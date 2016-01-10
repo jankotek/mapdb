@@ -236,5 +236,18 @@ internal object Utils {
         return serializer.deserialize(in2, out.pos)
     }
 
+    fun lockReadAll(locks: Array<ReadWriteLock?>) {
+        if(locks==null)
+            return
+        for(lock in locks)
+            lock!!.readLock().lock()
+    }
+
+    fun unlockReadAll(locks: Array<ReadWriteLock?>) {
+        if(locks==null)
+            return
+        for(i in locks.size-1 downTo 0)
+            locks[i]!!.readLock().unlock()
+    }
 
 }

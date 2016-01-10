@@ -268,9 +268,9 @@ open class StoreTrivial(
     }
 
 
-    override fun getAllRecids(): LongIterable {
+    override fun getAllRecids(): LongIterator {
         Utils.lockRead(lock) {
-            return records.keySet().toImmutable()
+            return records.keySet().toArray().iterator()
         }
     }
 

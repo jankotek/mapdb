@@ -11,7 +11,7 @@ class QueueLongTest {
     fun node(recid: Long) = q.store.get(recid, QueueLong.Node.SERIALIZER)!!
 
     @Test fun insert_take() {
-        assertEquals(4, q.store.getAllRecids().size())
+        assertEquals(4, q.store.getAllRecids().asSequence().count())
         val oldHead = q.head
         assertEquals(q.head, q.tail)
         assertNotEquals(0L, q.head)
@@ -40,12 +40,12 @@ class QueueLongTest {
         assertFailsWith(DBException.GetVoid::class) {
             q.store.get(recid, QueueLong.Node.SERIALIZER)!!
         }
-        assertEquals(4, q.store.getAllRecids().size())
+        assertEquals(4, q.store.getAllRecids().asSequence().count())
         assertNull(q.take())
     }
 
     @Test fun put_take_many() {
-        assertEquals(4, q.store.getAllRecids().size())
+        assertEquals(4, q.store.getAllRecids().asSequence().count())
         val ref = LinkedBlockingQueue<Pair<Long, Long>>()
 
         q.verify()
@@ -57,7 +57,7 @@ class QueueLongTest {
             ref.add(Pair(t, v))
         }
         assertEquals(10000, q.size())
-        assertEquals(4 + 10000, q.store.getAllRecids().size())
+        assertEquals(4 + 10000, q.store.getAllRecids().asSequence().count())
         q.verify()
         var node = q.take()
         while (node != null) {
@@ -69,19 +69,19 @@ class QueueLongTest {
         assertEquals(q.head, q.tail)
         assertEquals(0L, q.headPrev)
         assertTrue(q.tail != 0L)
-        assertEquals(4, q.store.getAllRecids().size())
+        assertEquals(4, q.store.getAllRecids().asSequence().count())
     }
 
 
     @Test fun remove_start() {
-        assertEquals(4, q.store.getAllRecids().size())
+        assertEquals(4, q.store.getAllRecids().asSequence().count())
         q.verify()
         val recid1 = q.put(1L, 11L)
         q.verify()
         val recid2 = q.put(2L, 22L)
         val recid3 = q.put(3L, 33L)
         q.verify()
-        assertEquals(4 + 3, q.store.getAllRecids().size())
+        assertEquals(4 + 3, q.store.getAllRecids().asSequence().count())
 
         assertTrue(recid1 != recid2 && recid2 != recid3 && recid3 != q.head)
 
@@ -99,7 +99,7 @@ class QueueLongTest {
         q.verify()
         q.remove(recid1, removeNode = true)
         q.verify()
-        assertEquals(4 + 2, q.store.getAllRecids().size())
+        assertEquals(4 + 2, q.store.getAllRecids().asSequence().count())
 
         assertEquals(recid2, q.tail)
         assertEquals(recid3, q.headPrev)
@@ -114,26 +114,26 @@ class QueueLongTest {
         assertEquals(recid2, node(recid3).prevRecid)
         assertEquals(q.head, node(recid3).nextRecid)
 
-        assertEquals(4 + 2, q.store.getAllRecids().size())
+        assertEquals(4 + 2, q.store.getAllRecids().asSequence().count())
         q.verify()
         assertEquals(22L, q.take()!!.value)
         q.verify()
-        assertEquals(4 + 1, q.store.getAllRecids().size())
+        assertEquals(4 + 1, q.store.getAllRecids().asSequence().count())
         q.verify()
         assertEquals(33L, q.take()!!.value)
         q.verify()
 
-        assertEquals(4, q.store.getAllRecids().size())
+        assertEquals(4, q.store.getAllRecids().asSequence().count())
         assertNull(q.take())
-        assertEquals(4, q.store.getAllRecids().size())
+        assertEquals(4, q.store.getAllRecids().asSequence().count())
     }
 
     @Test fun remove_middle() {
-        assertEquals(4, q.store.getAllRecids().size())
+        assertEquals(4, q.store.getAllRecids().asSequence().count())
         val recid1 = q.put(1L, 11L)
         val recid2 = q.put(2L, 22L)
         val recid3 = q.put(3L, 33L)
-        assertEquals(4 + 3, q.store.getAllRecids().size())
+        assertEquals(4 + 3, q.store.getAllRecids().asSequence().count())
 
         assertTrue(recid1 != recid2 && recid2 != recid3 && recid3 != q.head)
 
@@ -152,7 +152,7 @@ class QueueLongTest {
         q.verify()
         q.remove(recid2, removeNode = true)
         q.verify()
-        assertEquals(4 + 2, q.store.getAllRecids().size())
+        assertEquals(4 + 2, q.store.getAllRecids().asSequence().count())
 
         assertFailsWith(DBException.GetVoid::class) {
             node(recid2)
@@ -170,21 +170,21 @@ class QueueLongTest {
         q.verify()
         assertEquals(11L, q.take()!!.value)
         q.verify()
-        assertEquals(4 + 1, q.store.getAllRecids().size())
+        assertEquals(4 + 1, q.store.getAllRecids().asSequence().count())
         assertEquals(33L, q.take()!!.value)
         q.verify()
-        assertEquals(4, q.store.getAllRecids().size())
+        assertEquals(4, q.store.getAllRecids().asSequence().count())
         assertNull(q.take())
         q.verify()
-        assertEquals(4, q.store.getAllRecids().size())
+        assertEquals(4, q.store.getAllRecids().asSequence().count())
     }
 
     @Test fun remove_end() {
-        assertEquals(4, q.store.getAllRecids().size())
+        assertEquals(4, q.store.getAllRecids().asSequence().count())
         val recid1 = q.put(1L, 11L)
         val recid2 = q.put(2L, 22L)
         val recid3 = q.put(3L, 33L)
-        assertEquals(4 + 3, q.store.getAllRecids().size())
+        assertEquals(4 + 3, q.store.getAllRecids().asSequence().count())
 
         assertTrue(recid1 != recid2 && recid2 != recid3 && recid3 != q.head)
 
@@ -200,11 +200,11 @@ class QueueLongTest {
         assertEquals(recid2, node(recid3).prevRecid)
         assertEquals(q.head, node(recid3).nextRecid)
 
-        assertEquals(4 + 3, q.store.getAllRecids().size())
+        assertEquals(4 + 3, q.store.getAllRecids().asSequence().count())
         q.verify()
         q.remove(recid3, removeNode = true)
         q.verify()
-        assertEquals(4 + 2, q.store.getAllRecids().size())
+        assertEquals(4 + 2, q.store.getAllRecids().asSequence().count())
 
         assertFailsWith(DBException.GetVoid::class) {
             node(recid3)
@@ -219,16 +219,16 @@ class QueueLongTest {
         assertEquals(recid1, node(recid2).prevRecid)
         assertEquals(q.head, node(recid2).nextRecid)
 
-        assertEquals(4 + 2, q.store.getAllRecids().size())
+        assertEquals(4 + 2, q.store.getAllRecids().asSequence().count())
         assertEquals(11L, q.take()!!.value)
         q.verify()
-        assertEquals(4 + 1, q.store.getAllRecids().size())
+        assertEquals(4 + 1, q.store.getAllRecids().asSequence().count())
         assertEquals(22L, q.take()!!.value)
         q.verify()
-        assertEquals(4, q.store.getAllRecids().size())
+        assertEquals(4, q.store.getAllRecids().asSequence().count())
         assertNull(q.take())
         q.verify()
-        assertEquals(4, q.store.getAllRecids().size())
+        assertEquals(4, q.store.getAllRecids().asSequence().count())
     }
 
 
@@ -278,11 +278,11 @@ class QueueLongTest {
     }
 
     @Test fun bump_middle() {
-        assertEquals(4, q.store.getAllRecids().size())
+        assertEquals(4, q.store.getAllRecids().asSequence().count())
         val recid1 = q.put(1L, 11L)
         val recid2 = q.put(2L, 22L)
         val recid3 = q.put(3L, 33L)
-        assertEquals(4 + 3, q.store.getAllRecids().size())
+        assertEquals(4 + 3, q.store.getAllRecids().asSequence().count())
 
         assertTrue(recid1 != recid2 && recid2 != recid3 && recid3 != q.head)
 
@@ -299,9 +299,9 @@ class QueueLongTest {
         assertEquals(q.head, node(recid3).nextRecid)
 
         q.verify()
-        assertEquals(4 + 3, q.store.getAllRecids().size())
+        assertEquals(4 + 3, q.store.getAllRecids().asSequence().count())
         q.bump(recid2, 222L)
-        assertEquals(4 + 3, q.store.getAllRecids().size())
+        assertEquals(4 + 3, q.store.getAllRecids().asSequence().count())
         q.verify()
 
         assertEquals(recid1, q.tail)
@@ -318,14 +318,14 @@ class QueueLongTest {
 
         assertEquals(1L, q.take()!!.timestamp)
         q.verify()
-        assertEquals(4 + 2, q.store.getAllRecids().size())
+        assertEquals(4 + 2, q.store.getAllRecids().asSequence().count())
         assertEquals(3L, q.take()!!.timestamp)
         q.verify()
         assertEquals(222L, q.take()!!.timestamp)
         q.verify()
         assertNull(q.take())
         q.verify()
-        assertEquals(4, q.store.getAllRecids().size())
+        assertEquals(4, q.store.getAllRecids().asSequence().count())
     }
 
     @Test fun bump_end() {
@@ -348,11 +348,11 @@ class QueueLongTest {
         assertEquals(recid2, node(recid3).prevRecid)
         assertEquals(q.head, node(recid3).nextRecid)
 
-        assertEquals(4 + 3, q.store.getAllRecids().size())
+        assertEquals(4 + 3, q.store.getAllRecids().asSequence().count())
         q.verify()
         q.bump(recid3, 333L)
         q.verify()
-        assertEquals(4 + 3, q.store.getAllRecids().size())
+        assertEquals(4 + 3, q.store.getAllRecids().asSequence().count())
 
         assertEquals(0L, node(recid1).prevRecid)
         assertEquals(recid2, node(recid1).nextRecid)
@@ -366,14 +366,14 @@ class QueueLongTest {
         q.verify()
         assertEquals(1L, q.take()!!.timestamp)
         q.verify()
-        assertEquals(4 + 2, q.store.getAllRecids().size())
+        assertEquals(4 + 2, q.store.getAllRecids().asSequence().count())
         assertEquals(2L, q.take()!!.timestamp)
         q.verify()
         assertEquals(333L, q.take()!!.timestamp)
         q.verify()
         assertNull(q.take())
         q.verify()
-        assertEquals(4, q.store.getAllRecids().size())
+        assertEquals(4, q.store.getAllRecids().asSequence().count())
     }
 
     @Test fun takeUntil() {
@@ -381,22 +381,22 @@ class QueueLongTest {
         val recid2 = q.put(2L, 22L)
         val recid3 = q.put(3L, 33L)
 
-        assertEquals(4 + 3, q.store.getAllRecids().size())
+        assertEquals(4 + 3, q.store.getAllRecids().asSequence().count())
         q.takeUntil(QueueLongTakeUntil { nodeRecid, node ->
             q.verify()
             nodeRecid == recid1
         })
-        assertEquals(4 + 2, q.store.getAllRecids().size())
+        assertEquals(4 + 2, q.store.getAllRecids().asSequence().count())
         q.verify()
         assertEquals(2L, q.take()!!.timestamp)
         q.verify()
-        assertEquals(4 + 1, q.store.getAllRecids().size())
+        assertEquals(4 + 1, q.store.getAllRecids().asSequence().count())
         assertEquals(3L, q.take()!!.timestamp)
-        assertEquals(4, q.store.getAllRecids().size())
+        assertEquals(4, q.store.getAllRecids().asSequence().count())
         q.verify()
         assertNull(q.take())
         q.verify()
-        assertEquals(4, q.store.getAllRecids().size())
+        assertEquals(4, q.store.getAllRecids().asSequence().count())
 
     }
 
@@ -405,19 +405,19 @@ class QueueLongTest {
         val recid1 = q.put(1L, 11L)
         val recid2 = q.put(2L, 22L)
 
-        assertEquals(4 + 2, q.store.getAllRecids().size())
+        assertEquals(4 + 2, q.store.getAllRecids().asSequence().count())
         q.takeUntil(QueueLongTakeUntil { nodeRecid, node ->
             q.verify()
             nodeRecid == recid1
         })
-        assertEquals(4 + 1, q.store.getAllRecids().size())
+        assertEquals(4 + 1, q.store.getAllRecids().asSequence().count())
         q.verify()
         assertEquals(2L, q.take()!!.timestamp)
         q.verify()
-        assertEquals(4 + 0, q.store.getAllRecids().size())
+        assertEquals(4 + 0, q.store.getAllRecids().asSequence().count())
         assertNull(q.take())
         q.verify()
-        assertEquals(4, q.store.getAllRecids().size())
+        assertEquals(4, q.store.getAllRecids().asSequence().count())
 
     }
 
@@ -426,16 +426,16 @@ class QueueLongTest {
         val recid1 = q.put(1L, 11L)
         val recid2 = q.put(2L, 22L)
         val recid3 = q.put(3L, 33L)
-        assertEquals(4 + 3, q.store.getAllRecids().size())
+        assertEquals(4 + 3, q.store.getAllRecids().asSequence().count())
         q.takeUntil(QueueLongTakeUntil { nodeRecid, node ->
             assertTrue(nodeRecid in setOf(recid1, recid2, recid3))
             q.verify()
             true
         })
         q.verify()
-        assertEquals(4, q.store.getAllRecids().size())
+        assertEquals(4, q.store.getAllRecids().asSequence().count())
         assertNull(q.take())
-        assertEquals(4, q.store.getAllRecids().size())
+        assertEquals(4, q.store.getAllRecids().asSequence().count())
     }
 
     @Test fun clear() {
@@ -443,12 +443,12 @@ class QueueLongTest {
         val recid2 = q.put(2L, 22L)
         val recid3 = q.put(3L, 33L)
         assertEquals(3, q.size())
-        assertEquals(4 + 3, q.store.getAllRecids().size())
+        assertEquals(4 + 3, q.store.getAllRecids().asSequence().count())
         q.verify()
         q.clear()
         q.verify()
         assertEquals(0, q.size())
-        assertEquals(4, q.store.getAllRecids().size())
+        assertEquals(4, q.store.getAllRecids().asSequence().count())
     }
 
     @Test fun size() {

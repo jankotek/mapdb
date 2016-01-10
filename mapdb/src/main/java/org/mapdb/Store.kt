@@ -1,6 +1,5 @@
 package org.mapdb
 
-import com.gs.collections.api.LongIterable
 import java.io.IOException
 
 /**
@@ -10,7 +9,7 @@ interface StoreImmutable{
 
     fun <R> get(recid: Long, serializer: Serializer<R>): R?
 
-    fun getAllRecids(): LongIterable
+    fun getAllRecids(): LongIterator
 }
 
 /**

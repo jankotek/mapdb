@@ -82,17 +82,36 @@ class TreeArrayListTest{
 //TODO zero value is allowed, check in iterations etc
     @Test fun treeGet(){
 
-        //and point store to it
-        val valRecid = 1111L
-        val index = 5L;
-        val level = 1;
-        val dir = dirPut(dirEmpty(), treePos(dirShift, level, index), valRecid, index+1)
+        for(binary in TT.bools) {
+            //and point store to it
+            val valRecid = 1111L
+            val index = 5L;
+            val level = 1;
+            val dir = dirPut(dirEmpty(), treePos(dirShift, level, index), valRecid, index + 1)
 
-        val store = StoreTrivial();
-        val recid = store.put(dir, dirSer)
+            val store = if(binary) StoreDirect.make() else StoreTrivial();
+            val recid = store.put(dir, dirSer)
 
-        assertEquals(valRecid, treeGet(dirShift, recid, store, level, index))
-        assertEquals(0, treeGet(dirShift, recid, store, 2, 1.shl(dirShift) + index))
+            assertEquals(valRecid, treeGet(dirShift, recid, store, level, index))
+            assertEquals(0, treeGet(dirShift, recid, store, 2, 1.shl(dirShift) + index))
+        }
+    }
+
+    @Test fun treeGetNullable(){
+
+        for(binary in TT.bools) {
+            //and point store to it
+            val valRecid = 1111L
+            val index = 5L;
+            val level = 1;
+            val dir = dirPut(dirEmpty(), treePos(dirShift, level, index), valRecid, index + 1)
+
+            val store = if(binary) StoreDirect.make() else StoreTrivial();
+            val recid = store.put(dir, dirSer)
+
+            assertEquals(valRecid, treeGetNullable(dirShift, recid, store, level, index))
+            assertEquals(null, treeGetNullable(dirShift, recid, store, 2, 1.shl(dirShift) + index))
+        }
     }
 
     @Test fun treePut(){
@@ -199,12 +218,70 @@ class TreeArrayListTest{
         assertNull(treeIter(dirShift, rootRecid, s,2, 1000L+1))
     }
 
-
-
     @Test fun constants(){
         assertEquals(64, java.lang.Long.bitCount(full))
         assertEquals(7, maxDirShift)
 
     }
+
+    @Test fun dirOffsetFromLong(){
+        //first bitmap
+        for(pos in 0 until 64)
+        for(first in 0L..1){
+            if(pos==0 && first==1L)
+                continue
+            val bitmap1 = first.or(1L.shl(pos))
+            val v = 2+first.toInt()*2;
+            assertEquals(v, IndexTreeListJava.dirOffsetFromLong(bitmap1, 0L, pos))
+            if(pos<63){
+                assertEquals(-v-2, IndexTreeListJava.dirOffsetFromLong(bitmap1, 0, pos+1))
+            }
+        }
+
+        //second bitmap
+        for(pos in 0 until 64)
+        for(first in 0L..1)
+        for(last in 0L..1)
+        for(first2 in 0L..1){
+            if(pos==0 && first2==1L)
+                continue
+            val bitmap1 = first + last.shl(63)
+            val bitmap2 = first2.or(1L.shl(pos))
+            val v = 2+first.toInt()*2+last.toInt()*2+first2.toInt()*2
+            assertEquals(v,
+                    IndexTreeListJava.dirOffsetFromLong(bitmap1, bitmap2, 64+pos))
+
+            if(pos<63){
+                assertEquals(-v-2, IndexTreeListJava.dirOffsetFromLong(bitmap1, bitmap2, 64+pos+1))
+            }
+        }
+    }
+
+    @Test fun treeClear(){
+        val store = StoreTrivial()
+        assertFalse(store.getAllRecids().hasNext())
+
+        val dirShift = 4
+        val levels = 4
+
+        //create tree
+        val rootRecid = store.put(IndexTreeListJava.dirEmpty(), IndexTreeListJava.dirSer)
+
+        for(index in 1L .. 10000 step 10){
+            IndexTreeListJava.treePut(dirShift, rootRecid, store, levels, index, index*10)
+        }
+
+        val recidCountBefore = store.getAllRecids().asSequence().count()
+        assertTrue(recidCountBefore>1)
+
+        IndexTreeListJava.treeClear(rootRecid, store, levels)
+
+        //make sure only root is left
+        assertEquals(1, store.getAllRecids().asSequence().count())
+        val root = store.get(rootRecid, IndexTreeListJava.dirSer)
+        assertArrayEquals(root, IndexTreeListJava.dirEmpty())
+    }
+
+
 
 }

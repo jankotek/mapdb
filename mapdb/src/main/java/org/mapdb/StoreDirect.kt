@@ -924,23 +924,27 @@ class StoreDirect(
             throw IllegalAccessError("Store was closed");
     }
 
-    override fun getAllRecids(): LongIterable {
+    override fun getAllRecids(): LongIterator {
         val ret = LongArrayList()
-        val maxRecid = maxRecid
 
-        for(recid in 1 .. maxRecid){
-            val offset = recidToOffset(recid)
-            try {
-                val indexVal = parity1Get(volume.getLong(offset))
-                if(indexValFlagUnused(indexVal).not())
-                    ret.add(recid)
-            }catch(e:Exception){
+        Utils.lockReadAll(locks)
+        try {
+            val maxRecid = maxRecid
 
+            for (recid in 1..maxRecid) {
+                val offset = recidToOffset(recid)
+                try {
+                    val indexVal = parity1Get(volume.getLong(offset))
+                    if (indexValFlagUnused(indexVal).not())
+                        ret.add(recid)
+                } catch(e: Exception) {
+
+                }
             }
-
+        }finally{
+            Utils.unlockReadAll(locks)
         }
-
-        return ret;
+        return ret.toArray().iterator()
     }
 
 
