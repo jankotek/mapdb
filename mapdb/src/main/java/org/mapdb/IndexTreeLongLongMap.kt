@@ -41,7 +41,7 @@ import java.util.*
 /**
  * Primitive Sorted Map<Long,Long.
  */
-class IndexTreeLongLongMap(
+public class IndexTreeLongLongMap(
     val store:Store,
     val rootRecid:Long,
     val dirShift:Int,

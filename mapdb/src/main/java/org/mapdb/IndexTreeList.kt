@@ -8,7 +8,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
  * [ArrayList] like structure backed by tree
  */
 //TODO this is just broken
-class IndexTreeList<E>(
+internal class IndexTreeList<E>(
     val isThreadSafe:Boolean,
     val maxSize:Long,
     val serializer:Serializer<E>,
