@@ -14,7 +14,7 @@ import static java.lang.Long.rotateLeft;
 /**
  * Various IO classes and utilities..
  */
-final class DataIO {
+public final class DataIO {
 
     private DataIO(){}
 
