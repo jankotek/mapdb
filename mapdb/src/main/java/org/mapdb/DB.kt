@@ -2,6 +2,7 @@ package org.mapdb
 
 import com.gs.collections.api.map.primitive.MutableLongLongMap
 import com.gs.collections.impl.list.mutable.primitive.LongArrayList
+import java.io.Closeable
 import java.security.SecureRandom
 import java.util.*
 import java.util.concurrent.ExecutorService
@@ -16,7 +17,7 @@ open class DB(
         val store:Store,
         /** True if store existed before and was opened, false if store was created and is completely empty */
         val storeOpened:Boolean
-){
+): Closeable {
 
     @Volatile private  var closed = false;
 
@@ -184,7 +185,7 @@ open class DB(
 
     fun isClosed() = closed;
 
-    fun close(){
+    override fun close(){
         //shutdown running executors if any
         executors.forEach { it.shutdown() }
         //await termination on all
@@ -523,7 +524,8 @@ open class DB(
                 expireExecutorPeriod = expireExecutorPeriod,
                 threadSafe = true,
                 valueCreator = valueCreator,
-                modificationListeners = modificationListeners
+                modificationListeners = modificationListeners,
+                closeable = this@DB
         )
         return htreemap
     }

@@ -5,10 +5,12 @@ import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 import org.mapdb.guavaTests.ConcurrentMapInterfaceTest
 import org.mapdb.jsr166Tests.ConcurrentHashMapTest
+import java.io.Closeable
 import java.io.IOException
 import java.util.*
 import java.util.concurrent.ConcurrentMap
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.test.fail
 
@@ -39,6 +41,20 @@ class HTreeMapTest{
         val map = HTreeMap.make<Int,Int>(valueCreator={it+10})
         assertEquals(11, map[1])
         assertEquals(1, map.size)
+    }
+
+    @Test fun close(){
+        var closed = false
+        val closeable = object: Closeable {
+            override fun close() {
+                closed = true
+            }
+        }
+        val map = HTreeMap.make<Long,Long>(closeable=closeable)
+        assertFalse(closed)
+        map.close()
+        assertTrue(closed)
+
     }
 
 @RunWith(Parameterized::class)

@@ -5,6 +5,7 @@ import com.gs.collections.api.block.procedure.Procedure
 import com.gs.collections.api.block.procedure.Procedure2
 import com.gs.collections.api.map.primitive.MutableLongLongMap
 import com.gs.collections.impl.set.mutable.primitive.LongHashSet
+import java.io.Closeable
 import java.security.SecureRandom
 
 import java.util.*
@@ -40,11 +41,12 @@ class HTreeMap<K,V>(
         val expireExecutorPeriod:Long,
         val threadSafe:Boolean,
         val valueCreator:((key:K)->V)?,
-        private val modificationListeners: Array<MapModificationListener<K,V>>?
+        private val modificationListeners: Array<MapModificationListener<K,V>>?,
+        private val closeable:Closeable?
 
         //TODO queue is probably sequentially unsafe
 
-) : ConcurrentMap<K?,V?>, MapExtra<K?,V?>, Verifiable{
+) : ConcurrentMap<K?,V?>, MapExtra<K?,V?>, Verifiable, Closeable{
 
 
     companion object{
@@ -73,7 +75,8 @@ class HTreeMap<K,V>(
                 expireExecutorPeriod:Long = 0,
                 threadSafe:Boolean = true,
                 valueCreator:((key:K)->V)? = null,
-                modificationListeners: Array<MapModificationListener<K,V>>? = null
+                modificationListeners: Array<MapModificationListener<K,V>>? = null,
+                closeable: Closeable? = null
         ) = HTreeMap(
                 keySerializer = keySerializer,
                 valueSerializer = valueSerializer,
@@ -98,7 +101,8 @@ class HTreeMap<K,V>(
                 expireExecutorPeriod = expireExecutorPeriod,
                 threadSafe = threadSafe,
                 valueCreator = valueCreator,
-                modificationListeners = modificationListeners
+                modificationListeners = modificationListeners,
+                closeable = closeable
             )
 
         @JvmStatic @JvmField internal val QUEUE_CREATE=1L
@@ -1333,6 +1337,16 @@ class HTreeMap<K,V>(
                 if(expireRecids.isEmpty.not())
                     throw DBException.DataCorruption("Some expireRecids are not in queues")
             }
+        }
+    }
+
+
+    override fun close() {
+        Utils.lockWriteAll(locks)
+        try {
+            closeable?.close()
+        }finally{
+            Utils.unlockWriteAll(locks)
         }
     }
 

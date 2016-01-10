@@ -246,8 +246,24 @@ internal object Utils {
     fun unlockReadAll(locks: Array<ReadWriteLock?>) {
         if(locks==null)
             return
+        //unlock in reverse order to prevent deadlock
         for(i in locks.size-1 downTo 0)
             locks[i]!!.readLock().unlock()
+    }
+
+    fun lockWriteAll(locks: Array<ReadWriteLock?>) {
+        if(locks==null)
+            return
+        for(lock in locks)
+            lock!!.writeLock().lock()
+    }
+
+    fun unlockWriteAll(locks: Array<ReadWriteLock?>) {
+        if(locks==null)
+            return
+        //unlock in reverse order to prevent deadlock
+        for(i in locks.size-1 downTo 0)
+            locks[i]!!.writeLock().unlock()
     }
 
 }
