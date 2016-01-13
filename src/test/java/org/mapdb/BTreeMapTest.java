@@ -516,6 +516,12 @@ public class BTreeMapTest{
         assertEquals((Object) 100, map1.first());
     }
 
+    @Test public void setLong(){
+        BTreeMap.KeySet k = (BTreeMap.KeySet) DBMaker.newHeapDB().transactionDisable().make().createTreeSet("test").make();
+        k.add(11);
+        assertEquals(1,k.sizeLong());
+    }
+
 }
 
 
