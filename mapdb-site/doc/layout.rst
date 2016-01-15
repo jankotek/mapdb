@@ -1,5 +1,5 @@
-Partitioning
-==============
+Collection Layout
+==========================
 
 Partitioning in databases is usually way to distribute data between multiple stores, tables etc...
 MapDB has great flexibility and its partitioning is more complicated.
