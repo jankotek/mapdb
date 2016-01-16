@@ -185,6 +185,9 @@ open class StoreTrivial(
     override fun commit() {
     }
 
+    override fun compact() {
+    }
+
     override fun close() {
         if(CC.PARANOID) {
             Utils.lockRead(lock) {

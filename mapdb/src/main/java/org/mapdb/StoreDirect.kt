@@ -1,6 +1,5 @@
 package org.mapdb
 
-import com.gs.collections.api.LongIterable
 import com.gs.collections.impl.list.mutable.primitive.LongArrayList
 import org.mapdb.StoreDirectJava.*
 import org.mapdb.DataIO.*
@@ -11,7 +10,7 @@ import java.util.concurrent.locks.ReadWriteLock
 
 /**
  * Store which uses binary storage (file, memory buffer...) and updates records on place.
- * It has memory allocator and reuses space of deleted records
+ * It has memory allocator, so it reuses space freed by deletes and updates.
  */
 class StoreDirect(
         val file:String?,
@@ -898,6 +897,96 @@ class StoreDirect(
         get() = false //TODO thread safety
 
 
+    override fun compact() {
+        Utils.lockWriteAll(locks)
+        try{
+            Utils.lock(structuralLock){
+                //TODO use file for compaction, if store is file based
+                val store2 = StoreDirect.make(threadSafe=false, concShift = 0)
+
+                //first allocate enough index pages, so they are at beginning of store
+                for(i in 0 until indexPages.size())
+                    store2.allocateNewIndexPage()
+
+                if(CC.ASSERT && store2.indexPages.size()!=indexPages.size())
+                    throw AssertionError();
+
+                //now iterate over all recids
+                val maxRecid = maxRecid
+                for (recid in 1..maxRecid) {
+                    var data:ByteArray? = null;
+                    var exist = true;
+                    try{
+                        data = get(recid, Serializer.BYTE_ARRAY_NOSIZE)
+                        exist = true
+                    } catch(e: Exception) {
+                        //TODO better way to check for parity errors, EOF etc
+                        exist = false
+                    }
+
+                    if(!exist) {
+                        //recid does not exist, mark it as deleted in other store
+                        store2.releaseRecid(recid)
+                        store2.setIndexVal(recid, store2.indexValCompose(
+                                size = DELETED_RECORD_SIZE, offset = 0L, linked = 0, unused = 0, archive = 1))
+                    }else{
+                        store2.putCompact(recid, data)
+                    }
+                }
+
+                //finished, update some variables
+                store2.maxRecid = maxRecid
+
+                // copy content of volume
+                //TODO it would be faster to just swap volumes or rename file, but that is concurrency issue
+                val fileTail = store2.fileTail;
+                volume.truncate(fileTail)
+
+                for(page in 0 until fileTail step CC.PAGE_SIZE){
+                    store2.volume.transferInto(page, volume, page, CC.PAGE_SIZE)
+                }
+
+                //take index pages from second store
+                indexPages.clear()
+                indexPages.addAll(store2.indexPages)
+                //and update statistics
+                freeSize.set(store2.freeSize.get());
+
+                store2.close()
+            }
+        }finally{
+            Utils.unlockWriteAll(locks)
+        }
+    }
+
+    /** only called from compaction, it inserts new record under given recid */
+    private fun putCompact(recid: Long, data: ByteArray?) {
+        if(CC.ASSERT && isThreadSafe) //compaction is always thread unsafe
+            throw AssertionError();
+        if (data == null) {
+            setIndexVal(recid, indexValCompose(size = NULL_RECORD_SIZE, offset = 0, linked = 0, unused = 0, archive = 1))
+            return
+        }
+
+        if (data.size > MAX_RECORD_SIZE) {
+            //save as linked record
+            val indexVal = linkedRecordPut(data, data.size)
+            setIndexVal(recid, indexVal);
+            return
+        }
+
+        //allocate space for data
+        val offset = if(data.size==0) 0L
+        else{
+            allocateData(roundUp(data.size, 16), false)
+        }
+        //and write data
+        if(offset!=0L)
+            volume.putData(offset, data, 0, data.size)
+
+        setIndexVal(recid, indexValCompose(size = data.size.toLong(), offset = offset, linked = 0, unused = 0, archive = 1))
+    }
+
     override fun commit() {
         assertNotClosed()
         volume.sync()
@@ -932,7 +1021,7 @@ class StoreDirect(
                     if (indexValFlagUnused(indexVal).not())
                         ret.add(recid)
                 } catch(e: Exception) {
-
+                    //TODO better way to check for parity errors, EOF etc
                 }
             }
         }finally{
@@ -1058,7 +1147,7 @@ class StoreDirect(
 
             for (index in 0 until max) {
                 if (bit.get(index.toInt()).not()) {
-                    throw AssertionError("\n   not set at $index - ${index % CC.PAGE_SIZE} - $dataTail - $fileTail")
+                    throw AssertionError("not set at $index - ${index % CC.PAGE_SIZE} - $dataTail - $fileTail")
                 }
             }
         }finally{

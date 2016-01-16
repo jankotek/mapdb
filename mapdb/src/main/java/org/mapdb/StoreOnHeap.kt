@@ -102,6 +102,11 @@ class StoreOnHeap(
         //nothing to commit
     }
 
+    override fun compact() {
+        //nothing to compact
+    }
+
+
     override fun close() {
         if(CC.PARANOID) {
             Utils.lockWrite(lock) {

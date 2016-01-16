@@ -1,6 +1,7 @@
 package org.mapdb
 
 import com.gs.collections.impl.list.mutable.primitive.LongArrayList
+import com.gs.collections.impl.map.mutable.primitive.LongObjectHashMap
 import com.gs.collections.impl.set.mutable.primitive.LongHashSet
 import org.junit.Test
 import org.junit.Assert.*
@@ -297,5 +298,34 @@ class StoreDirectTest:StoreReopenTest(){
             map.put(key, ByteArray(800))
             assertEquals( Utils.lock(store.structuralLock) {store.calculateFreeSize()}, store.getFreeSize() )
         }
+    }
+
+    @Test fun compact(){
+        val store = openStore();
+
+        val ref = LongObjectHashMap<ByteArray>()
+        //insert random records
+        val random = Random()
+        for(i in 1..1000){
+            val string = TT.randomByteArray(size = random.nextInt(100000), seed=random.nextInt())
+            val recid = store.put(string, Serializer.BYTE_ARRAY_NOSIZE)
+            ref.put(recid,string)
+        }
+        val nullRecid = store.put(null, Serializer.BYTE_ARRAY_NOSIZE);
+
+        store.compact()
+        store.verify()
+
+        assertEquals(ref.size()+1, store.getAllRecids().asSequence().count())
+        store.getAllRecids().asSequence().forEach { recid->
+            assertTrue(ref.containsKey(recid)|| recid==nullRecid)
+        }
+
+        ref.forEachKeyValue { key, value ->
+            val value2 = store.get(key, Serializer.BYTE_ARRAY_NOSIZE)
+            assertTrue(Arrays.equals(value,value))
+        }
+
+        assertNull(store.get(nullRecid,Serializer.BYTE_ARRAY_NOSIZE))
     }
 }

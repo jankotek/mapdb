@@ -30,6 +30,7 @@ interface Store: StoreImmutable, Verifiable {
     fun <R> delete(recid: Long, serializer: Serializer<R>)
 
     fun commit();
+    fun compact()
 
     fun close();
     fun isClosed():Boolean;
