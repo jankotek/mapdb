@@ -224,6 +224,9 @@ class HTreeMapExpirationTest {
     }
 
     @Test fun expireStoreSize(){
+        if(TT.shortTest())
+            return
+
         val volume = Volume.SingleByteArrayVol(1024*1024*500)
 
         val db = DBMaker
@@ -246,6 +249,116 @@ class HTreeMapExpirationTest {
 
             map.put(i, ByteArray(1024))
         }
+    }
+
+
+    /** data should not be expireable until updated */
+    @Test fun storeSize_updateTTL(){
+        if(TT.shortTest())
+            return
+
+        val db = DBMaker.memoryDB().make()
+        val map = db
+                .hashMap("map", Serializer.INTEGER, Serializer.BYTE_ARRAY)
+                .counterEnable()
+                .layout(0, 3,4)
+                .expireAfterUpdate(5000)
+                .expireStoreSize(1024*1024*20)
+                .create()
+
+        //fill over rim
+        val keyCount = 30*1024
+        for(key in 0 until keyCount)
+            map.put(key, ByteArray(1024))
+
+        //wait and verify no entries were removed
+        Thread.sleep(15000)
+        map.expireEvict()
+        assertEquals(keyCount,map.size)
+
+        //update 2/3 entries
+        for(key in 0 until keyCount*2/3)
+            map.put(key, ByteArray(1023))
+
+        //some entries should expire immediately, to free space
+        map.expireEvict()
+        assertTrue(map.size>keyCount/3 && map.size<keyCount*4/5)
+
+        //now wait for time based eviction, it should remove all updated entries
+        Thread.sleep(15000)
+        map.expireEvict()
+        assertEquals(keyCount - keyCount*2/3, map.size)
+    }
+
+
+    /** data should not be expireable until updated */
+    @Test fun mapSize_updateTTL(){
+        if(TT.shortTest())
+            return
+
+        val db = DBMaker.memoryDB().make()
+        val map = db
+                .hashMap("map", Serializer.INTEGER, Serializer.BYTE_ARRAY)
+                .counterEnable()
+                .layout(0, 3,4)
+                .expireAfterUpdate(5000)
+                .expireMaxSize(1000)
+                .create()
+
+        //fill over rim
+        for(key in 0 until 2000)
+            map.put(key, ByteArray(102))
+
+        //wait and verify no entries were removed
+        Thread.sleep(15000)
+        map.expireEvict()
+        assertEquals(2000,map.size)
+
+        //update 2/3 entries
+        for(key in 0 until 2000*2/3)
+            map.put(key, ByteArray(103))
+
+        //some entries should expire immediately, to free space
+        map.expireEvict()
+        assertEquals(1000, map.size)
+
+        //now wait for time based eviction, it should remove all updated entries
+        Thread.sleep(15000)
+        map.expireEvict()
+        assertEquals(2000 - 2000*2/3, map.size)
+    }
+
+    @Test fun storeSize_external_change_displace(){
+        if(TT.shortTest())
+            return
+
+        val db = DBMaker.memoryDB().make()
+        val map = db
+                .hashMap("map", Serializer.INTEGER, Serializer.BYTE_ARRAY)
+                .counterEnable()
+                .layout(0, 3,4)
+                .expireAfterCreate()
+                .expireStoreSize(1024*1024*20)
+                .create()
+
+        //fill 10MB
+        for(key in 0 until 1024*10)
+            map.put(key, ByteArray(1024))
+
+        // no entries should be evicted, there is enough space
+        map.expireEvict()
+        assertEquals(1024*10, map.size)
+
+        //insert 15MB into store, that should displace some entries
+        db.store.put(ByteArray(1024*1024*15), Serializer.BYTE_ARRAY)
+        map.expireEvict()
+        assertTrue(map.size>0)
+        assertTrue(map.size<1024*10)
+
+        //insert another 15MB, map will become empty
+        db.store.put(ByteArray(1024*1024*15), Serializer.BYTE_ARRAY)
+        map.expireEvict()
+        assertEquals(0, map.size)
     }
 
 
