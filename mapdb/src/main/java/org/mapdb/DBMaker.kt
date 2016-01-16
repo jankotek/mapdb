@@ -17,6 +17,11 @@ object DBMaker{
         return Maker(StoreType.direct)
     }
 
+
+    @JvmStatic fun onVolume(volume: Volume, volumeExists: Boolean): Maker {
+        return Maker(storeType = StoreType.direct, volume=volume, volumeExist=volumeExists)
+    }
+
     //TODO convert user facing shifts into roundUp numbers
     @JvmStatic fun memorySegmentedHashMap(concShift:Int): DB.HashMapMaker<*,*> =
             DB(store = StoreDirect.make(),storeOpened = false)
@@ -35,7 +40,11 @@ object DBMaker{
                     .layout(concShift = concShift, levels=4, dirShift = 7)
 
 
-    class Maker(private val storeType:StoreType){
+    class Maker(
+            private val storeType:StoreType,
+            private val volume:Volume?=null,
+            private val volumeExist:Boolean?=null,
+            private val file:String?=null){
 
         private var _allocateStartSize:Long = 0L
 
@@ -48,13 +57,18 @@ object DBMaker{
             val store = when(storeType){
                 StoreType.onheap -> StoreOnHeap()
                 StoreType.direct -> {
-                    StoreDirect.make(allocateStartSize=_allocateStartSize)
+                    val volumeFactory =
+                            if(volume==null){
+                                if(file==null) CC.DEFAULT_MEMORY_VOLUME_FACTORY else CC.DEFAULT_FILE_VOLUME_FACTORY
+                            }else{
+                                Volume.VolumeFactory.wrap(volume, volumeExist!!)
+                            }
+                    StoreDirect.make(volumeFactory=volumeFactory, allocateStartSize=_allocateStartSize)
                 }
             }
 
             return DB(store=store, storeOpened = false)
         }
-
     }
 
 }

@@ -303,15 +303,13 @@ class StoreDirect(
 
         //no data were allocated yet
         if(dataTail2==0L){
-            //just create new page and return it
+            //create new page and return it
             val page = allocateNewPage();
             dataTail = page+size
             if(CC.ZEROS)
                 volume.assertZeroes(page, page+size)
             if(CC.ASSERT && page%16!=0L)
                 throw DBException.DataCorruption("wrong offset")
-
-            freeSizeIncrement(CC.PAGE_SIZE-size)
             return page;
         }
 
@@ -321,15 +319,14 @@ class StoreDirect(
             dataTail =
                 //check for case when page is completely filled
                 if((dataTail2+size)%CC.PAGE_SIZE==0L)
-                    0L
+                    0L //in that case reset dataTail
                 else
-                    dataTail2+size;
+                    dataTail2+size; //still space on current page, increment data tail
 
             if(CC.ZEROS)
                 volume.assertZeroes(dataTail2, dataTail2+size)
             if(CC.ASSERT && dataTail2%16!=0L)
                 throw DBException.DataCorruption("wrong offset")
-            freeSizeIncrement(-size.toLong())
             return dataTail2
         }
 
@@ -343,9 +340,6 @@ class StoreDirect(
         if(remSize!=0L){
             releaseData(remSize, dataTail2, recursive)
         }
-
-        freeSizeIncrement(CC.PAGE_SIZE-size)
-
         //now start new allocation on fresh page
         return allocateData(size, recursive);
     }
@@ -1077,6 +1071,8 @@ class StoreDirect(
 
 
     protected fun freeSizeIncrement(increment: Long) {
+        if(CC.ASSERT && increment%16!=0L)
+            throw AssertionError()
         while (true) {
             val v = freeSize.get()
             if (v == -1L || freeSize.compareAndSet(v, v + increment))
@@ -1094,25 +1090,36 @@ class StoreDirect(
             ret = freeSize.get()
             if (ret != -1L)
                 return ret
-
-            //traverse list of records
-            for(size in 16 .. StoreDirectJava.MAX_RECORD_SIZE step 16){
-                val masterLinkOffset = longStackMasterLinkOffset(size)
-                longStackForEach(masterLinkOffset){ v->
-                    ret += size
-                }
-            }
-
-            //set rest of data page
-            val dataTail = dataTail
-            if(dataTail%CC.PAGE_SIZE!=0L){
-                ret += CC.PAGE_SIZE - dataTail%CC.PAGE_SIZE
-            }
+            ret = calculateFreeSize()
 
             freeSize.set(ret)
 
             return ret
         }
+    }
+
+    internal fun calculateFreeSize(): Long {
+        Utils.assertLocked(structuralLock)
+
+        //traverse list of records
+        var ret1 = 0L
+        for (size in 16..MAX_RECORD_SIZE step 16) {
+            val masterLinkOffset = longStackMasterLinkOffset(size)
+            longStackForEach(masterLinkOffset) { v ->
+                if(CC.ASSERT && v==0L)
+                    throw AssertionError()
+
+                ret1 += size
+            }
+        }
+          //TODO Free size should include rest of data page, but that make stats unreliable for some reason
+//        //set rest of data page
+//        val dataTail = dataTail
+//        println("ASAA $dataTail - ${dataTail % CC.PAGE_SIZE}")
+//        if (dataTail % CC.PAGE_SIZE != 0L) {
+//            ret1 += CC.PAGE_SIZE - dataTail % CC.PAGE_SIZE
+//        }
+        return ret1
     }
 
     fun getTotalSize():Long = fileTail

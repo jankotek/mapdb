@@ -118,7 +118,7 @@ public abstract class Volume implements Closeable{
         abstract public boolean exists(@Nullable String file);
 
         @NotNull
-        public static VolumeFactory wrap(@NotNull final Volume volume) {
+        public static VolumeFactory wrap(@NotNull final Volume volume, final boolean exists) {
             return new VolumeFactory(){
                 @Override
                 public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize, boolean fixedSize) {
@@ -128,7 +128,7 @@ public abstract class Volume implements Closeable{
                 @NotNull
                 @Override
                 public boolean exists(@Nullable String file) {
-                    return true;
+                    return exists;
                 }
             };
         }

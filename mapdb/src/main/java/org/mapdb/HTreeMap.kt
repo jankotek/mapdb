@@ -865,17 +865,32 @@ class HTreeMap<K,V>(
                         ?: throw DBException.DataCorruption("Counter not found")
                     Math.max(0L, (segmentSize*segmentCount-expireMaxSize)/segmentCount)
                 }
-        for (q in arrayOf(expireCreateQueues?.get(segment), expireUpdateQueues?.get(segment), expireGetQueues?.get(segment))) {
-            //TODO in what order the queues should be expired?
+        for (q in arrayOf(expireGetQueues?.get(segment), expireUpdateQueues?.get(segment), expireCreateQueues?.get(segment))) {
             q?.takeUntil(QueueLongTakeUntil { nodeRecid, node ->
-                if ((node.timestamp!=0L && node.timestamp < currTimestamp) || numberToTake>0) {
+                var purged = false;
+
+                //expiration based on maximal Map size
+                if(numberToTake>0){
                     numberToTake--
-                    //remove key corresponding to node
-                    expireEvictEntry(segment=segment, leafRecid = node.value, nodeRecid = nodeRecid)
-                    true
-                } else {
-                    false
+                    purged = true
                 }
+
+                //expiration based on TTL
+                if(!purged && node.timestamp!=0L && node.timestamp < currTimestamp){
+                    purged = true
+                }
+
+                //expiration based on maximal store size
+                if(!purged && expireStoreSize!=0L){
+                    val store = stores[segment] as StoreDirect
+                    purged = store.fileTail - store.getFreeSize() > expireStoreSize
+                }
+
+                if(purged) {
+                    //remove entry from Map
+                    expireEvictEntry(segment = segment, leafRecid = node.value, nodeRecid = nodeRecid)
+                }
+                purged
             })
         }
     }

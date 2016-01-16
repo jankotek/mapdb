@@ -144,7 +144,7 @@ class StoreDirectTest:StoreReopenTest(){
         s.commit()
 
         //open new engine over the same volune, check it has the same index pages
-        val s2 = StoreDirect.make(volumeFactory = Volume.VolumeFactory.wrap(s.volume))
+        val s2 = StoreDirect.make(volumeFactory = Volume.VolumeFactory.wrap(s.volume,true))
         assertEquals(c, s2.indexPages)
     }
 
@@ -259,12 +259,12 @@ class StoreDirectTest:StoreReopenTest(){
         }
 
         assertTrue( Math.abs(count*arraySize - s.getFreeSize())<div)
-        s.freeSize.set(-1L)
-        assertTrue( Math.abs(count*arraySize - s.getFreeSize())<div)
+        s.structuralLock!!.lock()
+        assertEquals(s.getFreeSize(), s.calculateFreeSize())
     }
 
 
-    @Test fun freeSpace2(){
+    @Test fun freeSpace2() {
         val count = 100000
         val arraySize = 1024
         val div = count * arraySize / 100
@@ -272,17 +272,30 @@ class StoreDirectTest:StoreReopenTest(){
         val s = openStore()
         val recids = LongHashSet()
         s.getFreeSize()
-        for(i in 0..count){
+        for (i in 0..count) {
             val recid = s.put(ByteArray(arraySize), Serializer.BYTE_ARRAY_NOSIZE)
             recids.add(recid)
         }
 
-        recids.forEach { recid->
+        recids.forEach { recid ->
             s.delete(recid, Serializer.BYTE_ARRAY_NOSIZE)
         }
 
-        assertTrue( Math.abs(count*arraySize - s.getFreeSize())<div)
-        s.freeSize.set(-1L)
-        assertTrue( Math.abs(count*arraySize - s.getFreeSize())<div)
+        assertTrue(Math.abs(count * arraySize - s.getFreeSize()) < div)
+        s.structuralLock!!.lock()
+        assertEquals(s.getFreeSize(), s.calculateFreeSize())
+    }
+
+
+    @Test fun freeSpace3(){
+        val db = DBMaker.memoryDB().make()
+        val store = db.store as StoreDirect
+        val map = db.hashMap("map",Serializer.LONG, Serializer.BYTE_ARRAY).create()
+
+        val random = Random()
+        for(i in 0..10) for(key in 1L .. 10000){
+            map.put(key, ByteArray(800))
+            assertEquals( Utils.lock(store.structuralLock) {store.calculateFreeSize()}, store.getFreeSize() )
+        }
     }
 }

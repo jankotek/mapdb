@@ -223,5 +223,30 @@ class HTreeMapExpirationTest {
         }
     }
 
+    @Test fun expireStoreSize(){
+        val volume = Volume.SingleByteArrayVol(1024*1024*500)
+
+        val db = DBMaker
+                .onVolume(volume,false)
+                .make()
+
+        val map = db
+                .hashMap("map", Serializer.LONG, Serializer.BYTE_ARRAY)
+                .counterEnable()
+                .layout(0, 3,4)
+                .expireAfterCreate()
+                .expireStoreSize(1024*1024*400)
+                .create()
+
+        val store = db.store as StoreDirect
+        for(i in 0L .. 1000000){
+//            if(i%1000==0L)
+//                println("aa $i - ${map.size} - ${(i * 1024) / 1e7} - ${store.fileTail / 1e7} - ${store.getFreeSize() / 1e7} - ${
+//                Utils.lock(store.structuralLock) {store.calculateFreeSize() / 1e7}} ")
+
+            map.put(i, ByteArray(1024))
+        }
+    }
+
 
 }
