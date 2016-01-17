@@ -29,6 +29,7 @@ class IndexTreeListJava {
             out.writeLong(value[0]);
             out.writeLong(value[1]);
 
+            //TODO every second value is Index, those are incrementing and can be delta packed
             out.packLongArray(value, 2, value.length);
         }
 
