@@ -45,7 +45,8 @@ public class IndexTreeLongLongMap(
     val store:Store,
     val rootRecid:Long,
     val dirShift:Int,
-    val levels:Int
+    val levels:Int,
+    val collapseOnRemove:Boolean
 ): AbstractLongIterable(), MutableLongLongMap {
 
 
@@ -54,13 +55,15 @@ public class IndexTreeLongLongMap(
         fun make(
                 store:Store = StoreTrivial(),
                 rootRecid:Long = store.put(dirEmpty(), dirSer),
-                dirShift: Int = 6,
-                levels:Int = 5
+                dirShift: Int = CC.HTREEMAP_DIR_SHIFT,
+                levels:Int = CC.HTREEMAP_LEVELS,
+                collapseOnRemove: Boolean = true
         ) = IndexTreeLongLongMap(
                 store = store,
                 rootRecid = rootRecid,
                 dirShift = dirShift,
-                levels = levels
+                levels = levels,
+                collapseOnRemove = collapseOnRemove
         )
     }
 
@@ -76,7 +79,10 @@ public class IndexTreeLongLongMap(
 
     override fun remove(key: Long) {
         assertKey(key)
-        treeRemove(dirShift, rootRecid, store, levels, key, null)
+        if(collapseOnRemove)
+            treeRemoveCollapsing(dirShift, rootRecid, store, levels,true, key, null)
+        else
+            treeRemove(dirShift, rootRecid, store, levels, key, null)
     }
 
 

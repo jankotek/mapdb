@@ -74,6 +74,7 @@ open class DB(
         val concShift = ".concShift"
         val dirShift = ".dirShift"
         val levels = ".levels"
+        val removeCollapsesIndexTree = ".removeCollapsesIndexTree"
 
 //        val maxNodeSize = ".maxNodeSize"
 //        val valuesOutsideNodes = ".valuesOutsideNodes"
@@ -229,6 +230,8 @@ open class DB(
         private var _valueCreator:((key:K)->V)? = null
         private var _modListeners:MutableList<MapModificationListener<K,V>>? = null
         private var _expireOverflow:MutableMap<K,V>? = null;
+        private var _removeCollapsesIndexTree:Boolean = true
+
 
         fun <A> keySerializer(keySerializer:Serializer<A>):HashMapMaker<A,V>{
             _keySerializer = keySerializer
@@ -250,6 +253,13 @@ open class DB(
             _valueInline = true
             return this
         }
+
+
+        fun removeCollapsesIndexTreeDisable():HashMapMaker<K,V>{
+            _removeCollapsesIndexTree = false
+            return this
+        }
+
         fun hashSeed(hashSeed:Int):HashMapMaker<K,V>{
             _hashSeed = hashSeed
             return this
@@ -368,6 +378,7 @@ open class DB(
                 valueSerializer = _valueSerializer as Serializer<V>,
                 keyInline = _keyInline,
                 valueInline = _valueInline,
+                removeCollapsesIndexTree = _removeCollapsesIndexTree,
                 concShift = _concShift,
                 dirShift = _dirShift,
                 levels = _levels,
@@ -406,6 +417,7 @@ open class DB(
             valueSerializer:Serializer<V>,
             keyInline:Boolean,
             valueInline:Boolean,
+            removeCollapsesIndexTree:Boolean,
             concShift:Int,
             dirShift:Int,
             levels:Int,
@@ -463,6 +475,7 @@ open class DB(
         nameCatalog.put(name + Keys.concShift, concShift.toString())
         nameCatalog.put(name + Keys.dirShift, dirShift.toString())
         nameCatalog.put(name + Keys.levels, levels.toString())
+        nameCatalog.put(name + Keys.removeCollapsesIndexTree, removeCollapsesIndexTree.toString())
 
         val counterRecids:LongArray? = if(counterEnable){
             val cr = LongArray(segmentCount, {segment->
@@ -510,7 +523,9 @@ open class DB(
                 store=stores[segment],
                 rootRecid=rootRecids[segment],
                 dirShift = dirShift,
-                levels=levels)
+                levels=levels,
+                collapseOnRemove = removeCollapsesIndexTree
+            )
         })
 
         var valueCreator2 = valueCreator

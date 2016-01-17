@@ -257,7 +257,8 @@ class HTreeMap<K,V>(
     }
 
 
-    private val leafSerializer:Serializer<Array<Any>> =
+    //TODO Expiration QueueID is part of leaf, remove it if expiration is disabled!
+    internal val leafSerializer:Serializer<Array<Any>> =
             if(!keyInline && !valueInline)
                 leafSerializer()
             else if(keyInline && valueInline)

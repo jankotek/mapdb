@@ -57,7 +57,83 @@ class HTreeMapTest{
 
     }
 
-@RunWith(Parameterized::class)
+    @Test fun test_hash_collision() {
+        val m = HTreeMap.make(keySerializer = Guava.singleHashSerializer, valueSerializer = Serializer.INTEGER, concShift = 0)
+
+        for (i in 0..19) {
+            m.put(i, i + 100)
+        }
+
+        for (i in 0..19) {
+            assertTrue(m.containsKey(i))
+            assertEquals(i + 100, m[i])
+        }
+
+        m.put(11, 1111)
+        assertEquals(1111, m[11])
+
+        //everything in single linked leaf
+        val leafRecid = m.indexTrees[0].values().longIterator().next()
+
+        val leaf = m.stores[0].get(leafRecid, m.leafSerializer)
+        assertEquals(3*20, leaf!!.size)
+    }
+
+    @Test fun delete_removes_recids(){
+        val m = HTreeMap.make(keySerializer = Guava.singleHashSerializer, valueSerializer = Serializer.INTEGER, concShift = 0)
+
+        fun countRecids() = m.stores[0].getAllRecids().asSequence().count()
+
+        assertEquals(1, countRecids())
+        m.put(1,1)
+        assertEquals(1+3, countRecids())
+
+        m.put(2,2)
+        assertEquals(1+3+2, countRecids())
+        m.put(2,3)
+        assertEquals(1+3+2, countRecids())
+        m.remove(2)
+        assertEquals(1+3, countRecids())
+        m.remove(1)
+        assertEquals(1, countRecids())
+    }
+
+    @Test fun delete_removes_recids_dir_collapse(){
+        val sequentialHashSerializer = object :Serializer<Int>(){
+            override fun deserialize(input: DataInput2, available: Int): Int? {
+                return input.readInt()
+            }
+
+            override fun serialize(out: DataOutput2, value: Int) {
+                out.writeInt(value)
+            }
+
+            override fun hashCode(a: Int, seed: Int): Int {
+                return a
+            }
+        }
+
+        val m = HTreeMap.make(keySerializer = sequentialHashSerializer, valueSerializer = Serializer.INTEGER, concShift = 0)
+
+        fun countRecids() = m.stores[0].getAllRecids().asSequence().count()
+
+        assertEquals(1, countRecids())
+        m.put(1,1)
+
+        assertEquals(1+3, countRecids())
+
+        m.put(2,2)
+        assertEquals(11, countRecids())
+        m.put(2,3)
+        assertEquals(11, countRecids())
+        m.remove(2)
+        assertEquals(1+3, countRecids())
+        m.remove(1)
+        assertEquals(1, countRecids())
+    }
+
+
+    @RunWith(Parameterized::class)
 class Guava(val mapMaker:(generic:Boolean)->ConcurrentMap<Any?, Any?> ) :
         ConcurrentMapInterfaceTest<Int, String>(
             false,  // boolean allowsNullKeys,
@@ -100,6 +176,7 @@ class Guava(val mapMaker:(generic:Boolean)->ConcurrentMap<Any?, Any?> ) :
             for(getExpire in bools)
             for(onHeap in bools)
             for(counter in bools)
+            for(collapse in bools)
             {
                 ret.add(arrayOf<Any>({generic:Boolean->
 
@@ -134,6 +211,9 @@ class Guava(val mapMaker:(generic:Boolean)->ConcurrentMap<Any?, Any?> ) :
 
                     if(!generic)
                         maker.keySerializer(keySerializer).valueSerializer(Serializer.STRING)
+
+                    if(!collapse)
+                        maker.removeCollapsesIndexTreeDisable()
 
                     maker.hashSeed(1).create()
 

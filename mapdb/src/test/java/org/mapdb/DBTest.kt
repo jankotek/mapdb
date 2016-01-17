@@ -84,11 +84,12 @@ class DBTest{
                 .expireAfterUpdate(22L)
                 .expireAfterGet(33L)
                 .counterEnable()
+                .removeCollapsesIndexTreeDisable()
                 .create()
 
         val p = db.nameCatalogParamsFor("aa")
 
-        assertEquals(14, p.size)
+        assertEquals(15, p.size)
         assertEquals(1,hmap.indexTrees.size)
         assertEquals((hmap.indexTrees[0] as IndexTreeLongLongMap).rootRecid.toString(), p["aa"+DB.Keys.rootRecids])
         assertEquals("HashMap", p["aa"+DB.Keys.type])
@@ -96,6 +97,8 @@ class DBTest{
         assertEquals("org.mapdb.Serializer#BOOLEAN", p["aa"+DB.Keys.valueSerializer])
         assertEquals("true", p["aa"+DB.Keys.keyInline])
         assertEquals("true", p["aa"+DB.Keys.valueInline])
+        assertTrue((hmap.indexTrees[0] as IndexTreeLongLongMap).collapseOnRemove.not())
+        assertEquals("false", p["aa"+DB.Keys.removeCollapsesIndexTree])
 
         assertEquals("0", p["aa"+DB.Keys.concShift])
         assertEquals("2", p["aa"+DB.Keys.levels])
@@ -118,7 +121,7 @@ class DBTest{
 
         val p = db.nameCatalogParamsFor("aa")
 
-        assertEquals(14, p.size)
+        assertEquals(15, p.size)
         val rootRecids = hmap.indexTrees
                 .map { (it as IndexTreeLongLongMap).rootRecid.toString()}
                 .fold("",{str, it-> str+",$it"})
@@ -131,6 +134,10 @@ class DBTest{
         assertEquals("org.mapdb.Serializer#JAVA", p["aa"+DB.Keys.valueSerializer])
         assertEquals("false", p["aa"+DB.Keys.keyInline])
         assertEquals("false", p["aa"+DB.Keys.valueInline])
+        assertTrue((hmap.indexTrees[0] as IndexTreeLongLongMap).collapseOnRemove)
+        assertEquals("true", p["aa"+DB.Keys.removeCollapsesIndexTree])
+
+
         assertEquals("3", p["aa"+DB.Keys.concShift])
         assertEquals("4", p["aa"+DB.Keys.levels])
         assertEquals("4", p["aa"+DB.Keys.dirShift])
@@ -158,7 +165,7 @@ class DBTest{
 
         val p = db.nameCatalogParamsFor("aa")
 
-        assertEquals(14, p.size)
+        assertEquals(15, p.size)
         assertEquals(8, hmap.indexTrees.size)
         assertEquals(8, TT.identityCount(hmap.indexTrees))
         assertEquals(1, hmap.stores.toSet().size)

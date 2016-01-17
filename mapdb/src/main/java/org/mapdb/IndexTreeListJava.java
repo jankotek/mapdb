@@ -425,6 +425,78 @@ class IndexTreeListJava {
         }
     }
 
+
+
+    static final long[] treeRemoveCollapsingTrue = new long[0];
+
+    static long[] treeRemoveCollapsing(
+                                int dirShift,
+                                long recid,
+                                Store store,
+                                int level,
+                                boolean topLevel,
+                                long index,
+                                Long expectedValue //null for always remove
+    ){
+        if(CC.ASSERT && level<0)
+            throw new DBException.DataCorruption("level too low");
+        if(CC.ASSERT && index<0)
+            throw new AssertionError();
+        if(CC.ASSERT && (dirShift<0||dirShift>maxDirShift))
+            throw new AssertionError();
+
+//      TODO assert at top level
+//        if(CC.ASSERT && index>>>(level*dirShift)!=0)
+//            throw new AssertionError();
+
+        long[] dir = store.get(recid, dirSer);
+        final int slot = treePos(dirShift, level, index);
+        final int pos = dirOffsetFromSlot(dir, slot);
+        if(pos<0){
+            //slot not found
+            return null;
+        }
+        long oldVal = dir[pos];
+        long oldIndex= dir[pos+1]-1;
+
+        if (oldIndex == -1) {
+            if (oldVal == 0) {
+                throw new AssertionError(); //this was already covered by negative pos
+            } else {
+                //dive deeper
+                long[] result =  treeRemoveCollapsing(dirShift, oldVal, store, level-1, false, index, expectedValue);
+                if(result==null ||result==treeRemoveCollapsingTrue)
+                    return result;
+                //child node collapsed, put its content into here
+                if(dir.length==4 && !topLevel){
+                    //this was the only occupant of this node, collapse this node and push result up
+                    store.delete(recid, dirSer);
+                    return result;
+                }
+                //update existing node, with result from parent node
+                dir = dir.clone();
+                dir[pos] = result[2];
+                dir[pos+1] = result[3];
+                store.update(recid,dir,dirSer);
+                return treeRemoveCollapsingTrue;
+            }
+        } else if (oldIndex == index) {
+            //slot is occupied by the same index
+            if (expectedValue!=null && expectedValue.longValue()!=oldVal)
+                return null;
+            dir = dirRemove(dir, slot);
+            if(dir.length==4 && dir[3]>0){
+                //this node has now only single occupant, and its not reference to another dir
+                store.delete(recid, dirSer);
+                return dir;
+            }
+            store.update(recid, dir, dirSer);
+            return treeRemoveCollapsingTrue;
+        } else {
+            // is occupied by the different value, must split it
+            return null;
+        }
+    }
     public static long[] treeIter(int dirShift, long recid, Store store, int level, long indexStart){
         if(CC.ASSERT && level<0)
             throw new DBException.DataCorruption("level too low");
