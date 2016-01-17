@@ -362,4 +362,69 @@ class HTreeMapExpirationTest {
     }
 
 
+    @Test(timeout = 20000L)
+    @Throws(InterruptedException::class)
+    fun expiration_overflow() {
+        if (TT.shortTest())
+            return
+        val db = DBMaker.memoryDB().make()
+
+        val ondisk = db.hashMap("onDisk",Serializer.INTEGER,Serializer.STRING).create()
+
+        val inmemory = db.hashMap("inmemory",Serializer.INTEGER,Serializer.STRING)
+                .expireAfterCreate(1000)
+                .expireExecutor(TT.executor())
+                .expireExecutorPeriod(300)
+                .expireOverflow(ondisk)
+                .create()
+
+        //fill on disk, inmemory should stay empty
+        for (i in 0..999) {
+            ondisk.put(i, "aa" + i)
+        }
+
+        assertEquals(1000, ondisk.size.toLong())
+        assertEquals(0, inmemory.size.toLong())
+
+        //add stuff inmemory, ondisk should stay unchanged, until executor kicks in
+        for (i in 1000..1099) {
+            inmemory.put(i, "aa" + i)
+        }
+        assertEquals(1000, ondisk.size.toLong())
+        assertEquals(100, inmemory.size.toLong())
+
+        //wait until executor kicks in
+        while (!inmemory.isEmpty()) {
+            Thread.sleep(100)
+        }
+
+        //stuff should be moved to indisk
+        assertEquals(1100, ondisk.size.toLong())
+        assertEquals(0, inmemory.size.toLong())
+
+        //if value is not found in-memory it should get value from on-disk
+        assertEquals("aa111", inmemory.get(111))
+        assertEquals(1, inmemory.size.toLong())
+    }
+
+    @Test fun issue538_overflow_NPE1() {
+        val db = DBMaker.memoryDB().make()
+        val m2 = db.hashMap("m2", Serializer.STRING,Serializer.LONG).create()
+        val m = db.hashMap("m", Serializer.STRING,Serializer.LONG)
+                .expireOverflow(m2).create()
+
+        assertNull(m["nonExistent"])
+    }
+
+
+    @Test fun issue538_overflow_NPE2() {
+        val db = DBMaker.memoryDB().make()
+        val m2 = db.hashMap("m2", Serializer.STRING,Serializer.LONG).create()
+        val m = db.hashMap("m", Serializer.STRING,Serializer.LONG)
+                .expireOverflow(m2).create()
+
+        assertNull(m["nonExistent"])
+    }
+
+
 }

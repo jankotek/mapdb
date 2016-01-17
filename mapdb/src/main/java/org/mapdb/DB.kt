@@ -228,6 +228,7 @@ open class DB(
 
         private var _valueCreator:((key:K)->V)? = null
         private var _modListeners:MutableList<MapModificationListener<K,V>>? = null
+        private var _expireOverflow:MutableMap<K,V>? = null;
 
         fun <A> keySerializer(keySerializer:Serializer<A>):HashMapMaker<A,V>{
             _keySerializer = keySerializer
@@ -332,6 +333,11 @@ open class DB(
             return this
         }
 
+        fun expireOverflow(overflowMap:MutableMap<K,V>):HashMapMaker<K,V>{
+            _expireOverflow = overflowMap
+            return this
+        }
+
         internal fun storeFactory(storeFactory:(segment:Int)->Store):HashMapMaker<K,V>{
             _storeFactory = storeFactory
             return this
@@ -374,6 +380,7 @@ open class DB(
                 expireStoreSize = _expireStoreSize,
                 expireExecutor = _expireExecutor,
                 expireExecutorPeriod = _expireExecutorPeriod,
+                expireOverflow = _expireOverflow,
                 storeFactory = _storeFactory,
                 valueCreator = _valueCreator,
                 modificationListeners =  _modListeners?.toTypedArray()
@@ -411,12 +418,17 @@ open class DB(
             expireStoreSize:Long,
             expireExecutor: ScheduledExecutorService?,
             expireExecutorPeriod:Long,
+            expireOverflow:MutableMap<K,V>?,
             storeFactory:(segment:Int)->Store,
-            valueCreator:((key:K)->V)?,
+            valueCreator:((key:K)->V?)?,
             modificationListeners: Array<MapModificationListener<K,V>>?
 
     ):HTreeMap<K,V>{
         checkName(name)
+        if(expireOverflow!=null && valueCreator!=null)
+            throw DBException.WrongConfiguration("ExpireOverflow and ValueCreator can not be used at the same time")
+
+
         val hashSeed = hashSeed ?: SecureRandom().nextInt()
         val nameCatalog = nameCatalogLoad()
 
@@ -500,6 +512,36 @@ open class DB(
                 dirShift = dirShift,
                 levels=levels)
         })
+
+        var valueCreator2 = valueCreator
+        var modificationListeners2 = modificationListeners
+        if(expireOverflow!=null) {
+            //load non existing values from overflow
+            valueCreator2 = { key-> expireOverflow[key]}
+
+            //forward modifications to overflow
+            val listener = MapModificationListener<K,V> { key, oldVal, newVal, triggered ->
+                if(!triggered && newVal==null && oldVal!=null){
+                    //removal, also remove from overflow map
+                    val oldVal2 = expireOverflow.remove(key)
+                    if(oldVal2!=null && valueSerializer.equals(oldVal, oldVal2)){
+                        Utils.LOG.warning { "Key also removed from overflow Map, but value in overflow Map differs" }
+                    }
+                }else if(triggered && newVal==null){
+                    // triggered by eviction, put evicted entry into overflow map
+                    expireOverflow.put(key, oldVal)
+                }
+            }
+
+            //attach new listener
+            if(modificationListeners2==null)
+                modificationListeners2 = arrayOf(listener)
+            else{
+                modificationListeners2 = Arrays.copyOf(modificationListeners2, modificationListeners2.size+1)
+                modificationListeners2[modificationListeners2.size-1] = listener
+            }
+        }
+
         val htreemap = HTreeMap(
                 keySerializer=keySerializer,
                 valueSerializer = valueSerializer,
@@ -523,8 +565,8 @@ open class DB(
                 expireExecutor = expireExecutor,
                 expireExecutorPeriod = expireExecutorPeriod,
                 threadSafe = true,
-                valueCreator = valueCreator,
-                modificationListeners = modificationListeners,
+                valueCreator = valueCreator2,
+                modificationListeners = modificationListeners2,
                 closeable = this@DB
         )
         return htreemap

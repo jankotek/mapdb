@@ -40,7 +40,7 @@ class HTreeMap<K,V>(
         val expireExecutor: ScheduledExecutorService?,
         val expireExecutorPeriod:Long,
         val threadSafe:Boolean,
-        val valueCreator:((key:K)->V)?,
+        val valueCreator:((key:K)->V?)?,
         private val modificationListeners: Array<MapModificationListener<K,V>>?,
         private val closeable:Closeable?
 
