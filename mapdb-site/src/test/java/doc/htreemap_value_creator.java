@@ -15,7 +15,8 @@ public class htreemap_value_creator {
     public void run(){
         DB db = DBMaker.memoryDB().make();
         //a
-        HTreeMap<String,Long> map = db.hashMap("map", Serializer.STRING, Serializer.LONG)
+        HTreeMap<String,Long> map = db
+                .hashMap("map", Serializer.STRING, Serializer.LONG)
                 .valueCreator(s -> 1L)
                 .create();
 

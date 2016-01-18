@@ -15,7 +15,8 @@ public class htreemap_compressed {
         DB db = DBMaker.memoryDB().make();
         //a
         HTreeMap<Long, String> map = db.hashMap("map")
-                .valueSerializer(new Serializer.CompressionWrapper(Serializer.STRING))
+                .valueSerializer(
+                        new Serializer.CompressionWrapper(Serializer.STRING))
                 .create();
         //z
         //TODO add Serializer.compressed() method?
