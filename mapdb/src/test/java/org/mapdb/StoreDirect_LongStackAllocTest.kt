@@ -68,7 +68,7 @@ class StoreDirect_LongStackAllocTest(
         val size = 200000
         val r = Random(data.randomSeed)
 
-        val store = StoreDirect.make(threadSafe = false, concShift = 0)
+        val store = StoreDirect.make(isThreadSafe = false, concShift = 0)
 
         val recids = LongIntHashMap()
 

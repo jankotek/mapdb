@@ -26,7 +26,7 @@ object DBMaker{
             DB(store = StoreDirect.make(),storeOpened = false)
                     .hashMap("map")
                     .storeFactory{i->
-                        StoreDirect.make()
+                        StoreDirect.make(isThreadSafe = false)
                     }
                     .layout(concurrency=concurrency, dirSize = 1.shl(CC.HTREEMAP_DIR_SHIFT), levels = CC.HTREEMAP_LEVELS)
 
@@ -34,7 +34,7 @@ object DBMaker{
             DB(store = StoreOnHeap(),storeOpened = false)
                     .hashMap("map")
                     .storeFactory{i->
-                        StoreOnHeap()
+                        StoreOnHeap(isThreadSafe = false)
                     }
                     .layout(concurrency=concurrency, dirSize = 1.shl(CC.HTREEMAP_DIR_SHIFT), levels = CC.HTREEMAP_LEVELS)
 

@@ -16,7 +16,7 @@ class StoreDirect(
         val file:String?,
         val volumeFactory:Volume.VolumeFactory,
         val readOnly:Boolean,
-        val threadSafe:Boolean,
+        override val isThreadSafe:Boolean,
         val concShift:Int,
         allocateStartSize:Long
 
@@ -28,15 +28,15 @@ class StoreDirect(
             file:String?= null,
             volumeFactory: Volume.VolumeFactory  = if(file==null) CC.DEFAULT_MEMORY_VOLUME_FACTORY else CC.DEFAULT_FILE_VOLUME_FACTORY,
             readOnly:Boolean = false,
-            threadSafe:Boolean = true,
+            isThreadSafe:Boolean = true,
             concShift:Int = 4,
             allocateStartSize: Long = 0L
         ) = StoreDirect(
             file = file,
             volumeFactory = volumeFactory,
             readOnly = readOnly,
-            threadSafe = threadSafe,
-            concShift = 4,
+            isThreadSafe = isThreadSafe,
+            concShift = concShift,
             allocateStartSize = allocateStartSize
         )
     }
@@ -45,8 +45,8 @@ class StoreDirect(
 
     private val segmentCount = 1.shl(concShift)
     private val segmentMask = 1L.shl(concShift)-1
-    internal val locks:Array<ReadWriteLock?> = Array(segmentCount, {Utils.newReadWriteLock(threadSafe)})
-    internal val structuralLock = Utils.newLock(threadSafe)
+    internal val locks:Array<ReadWriteLock?> = Array(segmentCount, {Utils.newReadWriteLock(isThreadSafe)})
+    internal val structuralLock = Utils.newLock(isThreadSafe)
 
     private val volumeExistsAtStart = volumeFactory.exists(file)
     val volume: Volume = {
@@ -895,16 +895,12 @@ class StoreDirect(
         }
     }
 
-    override val isThreadSafe: Boolean
-        get() = false //TODO thread safety
-
-
     override fun compact() {
         Utils.lockWriteAll(locks)
         try{
             Utils.lock(structuralLock){
                 //TODO use file for compaction, if store is file based
-                val store2 = StoreDirect.make(threadSafe=false, concShift = 0)
+                val store2 = StoreDirect.make(isThreadSafe=false, concShift = 0)
 
                 //first allocate enough index pages, so they are at beginning of store
                 for(i in 0 until indexPages.size())
