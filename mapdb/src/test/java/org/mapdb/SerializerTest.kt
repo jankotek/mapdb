@@ -166,7 +166,7 @@ class Serializer_CHAR:SerializerTest<Char>(){
 
 class Serializer_STRINGXXHASH:SerializerTest<String>(){
     override fun randomValue() = TT.randomString(random.nextInt(1000))
-    override val serializer = Serializer.STRING_XXHASH
+    override val serializer = Serializer.STRING_ORIGHASH
 }
 
 class Serializer_STRING:SerializerTest<String>(){

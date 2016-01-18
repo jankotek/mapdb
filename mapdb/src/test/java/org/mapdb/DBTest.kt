@@ -76,9 +76,8 @@ class DBTest{
         val db = DB(store=StoreTrivial(), storeOpened = false)
 
         val hmap = db.hashMap("aa", Serializer.BIG_DECIMAL, Serializer.BOOLEAN)
-                .keyInline()
                 .valueInline()
-                .layout(0, 2,4)
+                .layout(0, 8, 2)
                 .hashSeed(1000)
                 .expireAfterCreate(11L)
                 .expireAfterUpdate(22L)
@@ -89,20 +88,19 @@ class DBTest{
 
         val p = db.nameCatalogParamsFor("aa")
 
-        assertEquals(15, p.size)
+        assertEquals(14, p.size)
         assertEquals(1,hmap.indexTrees.size)
         assertEquals((hmap.indexTrees[0] as IndexTreeLongLongMap).rootRecid.toString(), p["aa"+DB.Keys.rootRecids])
         assertEquals("HashMap", p["aa"+DB.Keys.type])
         assertEquals("org.mapdb.Serializer#BIG_DECIMAL", p["aa"+DB.Keys.keySerializer])
         assertEquals("org.mapdb.Serializer#BOOLEAN", p["aa"+DB.Keys.valueSerializer])
-        assertEquals("true", p["aa"+DB.Keys.keyInline])
         assertEquals("true", p["aa"+DB.Keys.valueInline])
         assertTrue((hmap.indexTrees[0] as IndexTreeLongLongMap).collapseOnRemove.not())
         assertEquals("false", p["aa"+DB.Keys.removeCollapsesIndexTree])
 
         assertEquals("0", p["aa"+DB.Keys.concShift])
         assertEquals("2", p["aa"+DB.Keys.levels])
-        assertEquals("4", p["aa"+DB.Keys.dirShift])
+        assertEquals("3", p["aa"+DB.Keys.dirShift])
         assertEquals("1000", p["aa"+DB.Keys.hashSeed])
         assertEquals("11", p["aa"+DB.Keys.expireCreateTTL])
         assertEquals("22", p["aa"+DB.Keys.expireUpdateTTL])
@@ -121,7 +119,7 @@ class DBTest{
 
         val p = db.nameCatalogParamsFor("aa")
 
-        assertEquals(15, p.size)
+        assertEquals(14, p.size)
         val rootRecids = hmap.indexTrees
                 .map { (it as IndexTreeLongLongMap).rootRecid.toString()}
                 .fold("",{str, it-> str+",$it"})
@@ -132,7 +130,6 @@ class DBTest{
         assertEquals("HashMap", p["aa"+DB.Keys.type])
         assertEquals("org.mapdb.Serializer#JAVA", p["aa"+DB.Keys.keySerializer])
         assertEquals("org.mapdb.Serializer#JAVA", p["aa"+DB.Keys.valueSerializer])
-        assertEquals("false", p["aa"+DB.Keys.keyInline])
         assertEquals("false", p["aa"+DB.Keys.valueInline])
         assertTrue((hmap.indexTrees[0] as IndexTreeLongLongMap).collapseOnRemove)
         assertEquals("true", p["aa"+DB.Keys.removeCollapsesIndexTree])
@@ -165,7 +162,7 @@ class DBTest{
 
         val p = db.nameCatalogParamsFor("aa")
 
-        assertEquals(15, p.size)
+        assertEquals(14, p.size)
         assertEquals(8, hmap.indexTrees.size)
         assertEquals(8, TT.identityCount(hmap.indexTrees))
         assertEquals(1, hmap.stores.toSet().size)
@@ -209,7 +206,7 @@ class DBTest{
 
     @Test fun hashMap_Create_Multi_Store(){
         val hmap = DBMaker
-                .memorySegmentedHashMap(3)
+                .memoryShardedHashMap(8)
                 .expireAfterCreate(10)
                 .expireAfterUpdate(10)
                 .expireAfterGet(10)
@@ -241,6 +238,27 @@ class DBTest{
         assertEquals(TimeUnit.SECONDS.toMillis(1), hmap.expireCreateTTL)
         assertEquals(TimeUnit.DAYS.toMillis(2), hmap.expireUpdateTTL)
         assertEquals(TimeUnit.HOURS.toMillis(3), hmap.expireGetTTL)
+    }
+
+
+    @Test fun hashmap_layout_number_to_shift(){
+        fun tt(v:Int, expected:Int){
+            val map = DBMaker.heapDB().make().hashMap("aa").layout(v,v,1).create();
+            assertEquals(expected, map.concShift)
+            assertEquals(expected, map.dirShift)
+        }
+
+        tt(-1, 0)
+        tt(0, 0)
+        tt(1, 0)
+        tt(2, 1)
+        tt(3, 2)
+        tt(4, 2)
+        tt(5, 3)
+        tt(6, 3)
+        tt(7, 3)
+        tt(8, 3)
+        tt(9, 4)
     }
 
 

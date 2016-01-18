@@ -86,14 +86,14 @@ class HTreeMapTest{
 
         assertEquals(1, countRecids())
         m.put(1,1)
-        assertEquals(1+3, countRecids())
+        assertEquals(1+2, countRecids())
 
         m.put(2,2)
-        assertEquals(1+3+2, countRecids())
+        assertEquals(1+2+1, countRecids())
         m.put(2,3)
-        assertEquals(1+3+2, countRecids())
+        assertEquals(1+2+1, countRecids())
         m.remove(2)
-        assertEquals(1+3, countRecids())
+        assertEquals(1+2, countRecids())
         m.remove(1)
         assertEquals(1, countRecids())
     }
@@ -120,14 +120,14 @@ class HTreeMapTest{
         assertEquals(1, countRecids())
         m.put(1,1)
 
-        assertEquals(1+3, countRecids())
+        assertEquals(1+2, countRecids())
 
         m.put(2,2)
-        assertEquals(11, countRecids())
+        assertEquals(9, countRecids())
         m.put(2,3)
-        assertEquals(11, countRecids())
+        assertEquals(9, countRecids())
         m.remove(2)
-        assertEquals(1+3, countRecids())
+        assertEquals(1+2, countRecids())
         m.remove(1)
         assertEquals(1, countRecids())
     }
@@ -167,7 +167,6 @@ class Guava(val mapMaker:(generic:Boolean)->ConcurrentMap<Any?, Any?> ) :
 
             val bools = if(TT.shortTest()) TT.boolsFalse else TT.bools
 
-            for(inlineKey in bools)
             for(inlineValue in bools)
             for(singleHash in bools)
             for(segmented in bools)
@@ -182,8 +181,8 @@ class Guava(val mapMaker:(generic:Boolean)->ConcurrentMap<Any?, Any?> ) :
 
                     var maker =
                             if(segmented) {
-                                if(onHeap)DBMaker.heapSegmentedHashMap(3)
-                                else DBMaker.memorySegmentedHashMap(3)
+                                if(onHeap)DBMaker.heapShardedHashMap(8)
+                                else DBMaker.memoryShardedHashMap(8)
                             }else {
                                 val db =
                                         if(onHeap) DBMaker.heapDB().make()
@@ -195,8 +194,6 @@ class Guava(val mapMaker:(generic:Boolean)->ConcurrentMap<Any?, Any?> ) :
                             if (singleHash.not()) Serializer.INTEGER
                             else singleHashSerializer
 
-                    if(inlineKey)
-                        maker.keyInline()
                     if(inlineValue)
                         maker.valueInline()
 

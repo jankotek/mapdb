@@ -202,7 +202,7 @@ class HTreeMapExpirationTest {
                 .hashMap("aa", Serializer.INTEGER, Serializer.INTEGER)
                 .expireAfterCreate()
                 .expireMaxSize(1000)
-                .layout(0, 4,4)
+                .layout(0, 1.shl(4),4)
                 .create()
 
         maxSizeTest(map)
@@ -236,7 +236,7 @@ class HTreeMapExpirationTest {
         val map = db
                 .hashMap("map", Serializer.LONG, Serializer.BYTE_ARRAY)
                 .counterEnable()
-                .layout(0, 3,4)
+                .layout(0, 8,4)
                 .expireAfterCreate()
                 .expireStoreSize(1024*1024*400)
                 .create()
@@ -261,7 +261,7 @@ class HTreeMapExpirationTest {
         val map = db
                 .hashMap("map", Serializer.INTEGER, Serializer.BYTE_ARRAY)
                 .counterEnable()
-                .layout(0, 3,4)
+                .layout(0, 8,4)
                 .expireAfterUpdate(5000)
                 .expireStoreSize(1024*1024*20)
                 .create()
@@ -300,7 +300,7 @@ class HTreeMapExpirationTest {
         val map = db
                 .hashMap("map", Serializer.INTEGER, Serializer.BYTE_ARRAY)
                 .counterEnable()
-                .layout(0, 3,4)
+                .layout(0, 8,4)
                 .expireAfterUpdate(5000)
                 .expireMaxSize(1000)
                 .create()
@@ -336,7 +336,7 @@ class HTreeMapExpirationTest {
         val map = db
                 .hashMap("map", Serializer.INTEGER, Serializer.BYTE_ARRAY)
                 .counterEnable()
-                .layout(0, 3,4)
+                .layout(0, 8,4)
                 .expireAfterCreate()
                 .expireStoreSize(1024*1024*20)
                 .create()

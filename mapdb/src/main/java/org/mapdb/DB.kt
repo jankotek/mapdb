@@ -56,7 +56,6 @@ open class DB(
         val valueSerializer = ".valueSerializer"
         val serializer = ".serializer"
 
-        val keyInline = ".keyInline"
         val valueInline = ".valueInline"
 
         val counterRecids = ".counterRecids"
@@ -207,7 +206,6 @@ open class DB(
     ){
         private var _keySerializer:Serializer<*> = Serializer.JAVA
         private var _valueSerializer:Serializer<*> = Serializer.JAVA
-        private var _keyInline = false
         private var _valueInline = false
 
         private var _concShift = CC.HTREEMAP_CONC_SHIFT
@@ -243,11 +241,6 @@ open class DB(
             return this as HashMapMaker<K, A>
         }
 
-        fun keyInline():HashMapMaker<K,V>{
-            _keyInline = true
-            return this
-        }
-
 
         fun valueInline():HashMapMaker<K,V>{
             _valueInline = true
@@ -265,11 +258,13 @@ open class DB(
             return this
         }
 
-        //TODO convert user facing shifts into roundUp numbers
-        fun layout(concShift:Int, levels:Int, dirShift:Int):HashMapMaker<K,V>{
-            _concShift = concShift
+        fun layout(concurrency:Int, dirSize:Int, levels:Int):HashMapMaker<K,V>{
+            fun toShift(value:Int):Int{
+                return 31 - Integer.numberOfLeadingZeros(DataIO.nextPowTwo(Math.max(1,value)))
+            }
+            _concShift = toShift(concurrency)
+            _dirShift = toShift(dirSize)
             _levels = levels
-            _dirShift = dirShift
             return this
         }
 
@@ -376,7 +371,6 @@ open class DB(
                 create = true,
                 keySerializer = _keySerializer as Serializer<K>,
                 valueSerializer = _valueSerializer as Serializer<V>,
-                keyInline = _keyInline,
                 valueInline = _valueInline,
                 removeCollapsesIndexTree = _removeCollapsesIndexTree,
                 concShift = _concShift,
@@ -415,7 +409,6 @@ open class DB(
             create:Boolean?,
             keySerializer:Serializer<K>,
             valueSerializer:Serializer<V>,
-            keyInline:Boolean,
             valueInline:Boolean,
             removeCollapsesIndexTree:Boolean,
             concShift:Int,
@@ -467,7 +460,6 @@ open class DB(
         nameCatalogPutClass(nameCatalog, name + Keys.keySerializer, keySerializer)
         nameCatalogPutClass(nameCatalog, name + Keys.valueSerializer, valueSerializer)
 
-        nameCatalog.put(name + Keys.keyInline, keyInline.toString())
         nameCatalog.put(name + Keys.valueInline, valueInline.toString())
 
         nameCatalog.put(name + Keys.rootRecids, rootRecidsStr)
@@ -560,7 +552,6 @@ open class DB(
         val htreemap = HTreeMap(
                 keySerializer=keySerializer,
                 valueSerializer = valueSerializer,
-                keyInline = keyInline,
                 valueInline = valueInline,
                 concShift = concShift,
                 dirShift = dirShift,

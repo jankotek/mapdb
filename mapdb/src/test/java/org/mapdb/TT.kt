@@ -192,7 +192,7 @@ object TT{
     }
 
     /** executor service with deamon threads, so Unit Test JVM can exit */
-    fun executor(threadCount:Int=1): ScheduledExecutorService? {
+    fun executor(threadCount:Int=1): ScheduledExecutorService {
         return Executors.newScheduledThreadPool(threadCount) { r->
             val t = Thread(r)
             t.isDaemon = true

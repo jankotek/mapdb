@@ -22,22 +22,21 @@ object DBMaker{
         return Maker(storeType = StoreType.direct, volume=volume, volumeExist=volumeExists)
     }
 
-    //TODO convert user facing shifts into roundUp numbers
-    @JvmStatic fun memorySegmentedHashMap(concShift:Int): DB.HashMapMaker<*,*> =
+    @JvmStatic fun memoryShardedHashMap(concurrency:Int): DB.HashMapMaker<*,*> =
             DB(store = StoreDirect.make(),storeOpened = false)
                     .hashMap("map")
                     .storeFactory{i->
                         StoreDirect.make()
                     }
-                    .layout(concShift = concShift, levels=4, dirShift = 7)
+                    .layout(concurrency=concurrency, dirSize = 1.shl(CC.HTREEMAP_DIR_SHIFT), levels = CC.HTREEMAP_LEVELS)
 
-    @JvmStatic fun heapSegmentedHashMap(concShift:Int): DB.HashMapMaker<*,*> =
+    @JvmStatic fun heapShardedHashMap(concurrency:Int): DB.HashMapMaker<*,*> =
             DB(store = StoreOnHeap(),storeOpened = false)
                     .hashMap("map")
                     .storeFactory{i->
                         StoreOnHeap()
                     }
-                    .layout(concShift = concShift, levels=4, dirShift = 7)
+                    .layout(concurrency=concurrency, dirSize = 1.shl(CC.HTREEMAP_DIR_SHIFT), levels = CC.HTREEMAP_LEVELS)
 
 
     class Maker(

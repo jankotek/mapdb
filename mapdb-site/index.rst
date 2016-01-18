@@ -74,3 +74,8 @@ And simple in-memory example:
     db.close();
 
 
+Content
+------------
+
+.. toctree::
+   format

@@ -68,7 +68,7 @@ public abstract class Serializer<A> {
      * Unlike {@link Serializer#STRING} this method hashes String with {@link String#hashCode()}
      * </p>
      */
-    public static final Serializer<String> STRING_XXHASH = new StringValueSerializer (){
+    public static final Serializer<String> STRING_ORIGHASH = new StringValueSerializer (){
         @Override
         public void serialize(DataOutput2 out, String value) throws IOException {
             out.writeUTF(value);
@@ -83,6 +83,7 @@ public abstract class Serializer<A> {
         public boolean isTrusted() {
             return true;
         }
+
 
 //        @Override
 //        public BTreeKeySerializer getBTreeKeySerializer(Comparator comparator) {
@@ -245,6 +246,12 @@ public abstract class Serializer<A> {
             return true;
         }
 
+        @Override
+        public int hashCode(@NotNull String s, int seed) {
+            return STRING.hashCode(s, seed);
+        }
+
+
     };
 
     /**
@@ -278,7 +285,12 @@ public abstract class Serializer<A> {
             return true;
         }
 
-//        @Override
+        @Override
+        public int hashCode(@NotNull String s, int seed) {
+            return STRING.hashCode(s, seed);
+        }
+
+        //        @Override
 //        public BTreeKeySerializer getBTreeKeySerializer(Comparator comparator) {
 //            if(comparator!=null && comparator!=Fun.COMPARATOR) {
 //                return super.getBTreeKeySerializer(comparator);

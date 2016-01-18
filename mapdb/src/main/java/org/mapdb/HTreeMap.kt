@@ -1,8 +1,6 @@
 package org.mapdb
 
 import com.google.common.collect.Iterators
-import com.gs.collections.api.block.procedure.Procedure
-import com.gs.collections.api.block.procedure.Procedure2
 import com.gs.collections.api.map.primitive.MutableLongLongMap
 import com.gs.collections.impl.set.mutable.primitive.LongHashSet
 import java.io.Closeable
@@ -20,7 +18,6 @@ import java.util.function.BiConsumer
 class HTreeMap<K,V>(
         val keySerializer:Serializer<K>,
         val valueSerializer:Serializer<V>,
-        val keyInline:Boolean,
         val valueInline:Boolean,
         val concShift: Int,
         val dirShift: Int,
@@ -54,7 +51,6 @@ class HTreeMap<K,V>(
         fun <K,V> make(
                 keySerializer:Serializer<K> = Serializer.JAVA as Serializer<K>,
                 valueSerializer:Serializer<V> = Serializer.JAVA as Serializer<V>,
-                keyInline:Boolean = false,
                 valueInline:Boolean = false,
                 concShift: Int = CC.HTREEMAP_CONC_SHIFT,
                 dirShift: Int = CC.HTREEMAP_DIR_SHIFT,
@@ -80,7 +76,6 @@ class HTreeMap<K,V>(
         ) = HTreeMap(
                 keySerializer = keySerializer,
                 valueSerializer = valueSerializer,
-                keyInline = keyInline,
                 valueInline = valueInline,
                 concShift = concShift,
                 dirShift = dirShift,
@@ -150,33 +145,7 @@ class HTreeMap<K,V>(
     }
 
 
-    private fun leafSerializer() = object: Serializer<Array<Any>>(){
-        override fun serialize(out: DataOutput2, value: Array<Any>) {
-            out.packInt(value.size)
-            for(i in 0 until value.size step 3) {
-                out.packLong(value[i+0] as Long)
-                out.packLong(value[i+1] as Long)
-                out.packLong(value[i+2] as Long)
-            }
-        }
-
-        override fun deserialize(input: DataInput2, available: Int): Array<Any> {
-            val ret:Array<Any?> = arrayOfNulls(input.unpackInt())
-            var i = 0;
-            while(i<ret.size) {
-                ret[i++] = input.unpackLong()
-                ret[i++] = input.unpackLong()
-                ret[i++] = input.unpackLong()
-            }
-            return ret as Array<Any>
-        }
-
-        override fun isTrusted(): Boolean {
-            return true
-        }
-    }
-
-    private fun leafKeyInlineValueInlineSerializer() = object: Serializer<Array<Any>>(){
+    private fun leafValueInlineSerializer() = object: Serializer<Array<Any>>(){
         override fun serialize(out: DataOutput2, value: kotlin.Array<Any>) {
             out.packInt(value.size)
             for(i in 0 until value.size step 3) {
@@ -203,7 +172,7 @@ class HTreeMap<K,V>(
     }
 
 
-    private fun leafKeyInlineSerializer() = object: Serializer<Array<Any>>(){
+    private fun leafValueExternalSerializer() = object: Serializer<Array<Any>>(){
         override fun serialize(out: DataOutput2, value: Array<Any>) {
             out.packInt(value.size)
             for(i in 0 until value.size step 3) {
@@ -230,43 +199,14 @@ class HTreeMap<K,V>(
     }
 
 
-    private fun leafValueInlineSerializer() = object: Serializer<Array<Any>>(){
-        override fun serialize(out: DataOutput2, value: Array<Any>) {
-            out.packInt(value.size)
-            for(i in 0 until value.size step 3) {
-                out.packLong(value[i+0] as Long)
-                valueSerializer.serialize(out, value[i+1] as V)
-                out.packLong(value[i+2] as Long)
-            }
-        }
-
-        override fun deserialize(input: DataInput2, available: Int): Array<Any> {
-            val ret:Array<Any?> = arrayOfNulls(input.unpackInt())
-            var i = 0;
-            while(i<ret.size) {
-                ret[i++] = input.unpackLong();
-                ret[i++] = valueSerializer.deserialize(input, -1);
-                ret[i++] = input.unpackLong() //expiration timestamp
-            }
-            return ret as Array<Any>
-        }
-
-        override fun isTrusted(): Boolean {
-            return valueSerializer.isTrusted
-        }
-    }
-
 
     //TODO Expiration QueueID is part of leaf, remove it if expiration is disabled!
     internal val leafSerializer:Serializer<Array<Any>> =
-            if(!keyInline && !valueInline)
-                leafSerializer()
-            else if(keyInline && valueInline)
-                leafKeyInlineValueInlineSerializer()
-            else if(keyInline && !valueInline)
-                leafKeyInlineSerializer()
-            else
+            if(valueInline)
                 leafValueInlineSerializer()
+            else
+                leafValueExternalSerializer()
+
 
     private val indexMask = (IndexTreeListJava.full.shl(levels*dirShift)).inv();
     private val concMask = IndexTreeListJava.full.shl(concShift).inv().toInt();
@@ -360,13 +300,12 @@ class HTreeMap<K,V>(
 
         if (leafRecid == 0L) {
             //not found, insert new record
-            val wrappedKey = keyWrap(segment, key)
             val wrappedValue = valueWrap(segment, value)
 
             val leafRecid2 =
                     if (expireCreateQueues == null) {
                         // no expiration, so just insert
-                        val leaf = arrayOf(wrappedKey, wrappedValue, 0L)
+                        val leaf = arrayOf(key as Any, wrappedValue, 0L)
                         store.put(leaf, leafSerializer)
                     } else {
                         // expiration is involved, and there is cyclic dependency between expireRecid and leafRecid
@@ -375,7 +314,7 @@ class HTreeMap<K,V>(
                         val expireRecid = expireCreateQueues[segment].put(
                                 if(expireCreateTTL==-1L) 0L else System.currentTimeMillis()+expireCreateTTL,
                                 leafRecid2)
-                        val leaf = arrayOf(wrappedKey, wrappedValue, expireId(expireRecid, QUEUE_CREATE))
+                        val leaf = arrayOf(key as Any, wrappedValue, expireId(expireRecid, QUEUE_CREATE))
                         store.update(leafRecid2, leaf, leafSerializer)
                         leafRecid2
                     }
@@ -392,7 +331,7 @@ class HTreeMap<K,V>(
 
         //check existing keys in leaf
         for (i in 0 until leaf.size step 3) {
-            val oldKey = keyUnwrap(segment, leaf[i])
+            val oldKey = leaf[i] as K
 
             if (keySerializer.equals(oldKey, key)) {
                 //match found, update existing value
@@ -447,11 +386,10 @@ class HTreeMap<K,V>(
         }
 
         //no key in leaf matches ours, so insert new key and update leaf
-        val wrappedKey = keyWrap(segment, key)
         val wrappedValue = valueWrap(segment, value)
 
         leaf = Arrays.copyOf(leaf, leaf.size + 3)
-        leaf[leaf.size-3] = wrappedKey
+        leaf[leaf.size-3] = key as Any
         leaf[leaf.size-2] = wrappedValue
         leaf[leaf.size-1] = 0L
 
@@ -508,7 +446,7 @@ class HTreeMap<K,V>(
 
         //check existing keys in leaf
         for (i in 0 until leaf.size step 3) {
-            val oldKey = keyUnwrap(segment, leaf[i])
+            val oldKey = leaf[i] as K
 
             if (keySerializer.equals(oldKey, key)) {
                 if (!evicted && leaf[i + 2] != 0L) {
@@ -531,8 +469,6 @@ class HTreeMap<K,V>(
                             leafSerializer)
                 }
 
-                if(!keyInline)
-                    store.delete(leaf[i] as Long, keySerializer)
                 if(!valueInline)
                     store.delete(leaf[i+1] as Long, valueSerializer)
                 counter(segment,-1)
@@ -561,12 +497,10 @@ class HTreeMap<K,V>(
                             ?: throw DBException.DataCorruption("linked leaf not found")
                     store.delete(leafRecid, leafSerializer);
                     for (i in 0 until leaf.size step 3) {
-                        val wrappedKey = leaf[i]
+                        val key = leaf[i]
                         val wrappedValue = leaf[i + 1]
                         if (notify)
-                            listenerNotify(keyUnwrap(segment, wrappedKey), valueUnwrap(segment, wrappedValue), null, false)
-                        if (!keyInline)
-                            store.delete(wrappedKey as Long, keySerializer)
+                            listenerNotify(key as K, valueUnwrap(segment, wrappedValue), null, false)
                         if (!valueInline)
                             store.delete(wrappedValue as Long, valueSerializer)
                     }
@@ -643,7 +577,7 @@ class HTreeMap<K,V>(
                 ?: throw DBException.DataCorruption("leaf not found");
 
         for (i in 0 until leaf.size step 3) {
-            val oldKey = keyUnwrap(segment, leaf[i])
+            val oldKey = leaf[i] as K
 
             if (keySerializer.equals(oldKey, key)) {
 
@@ -907,7 +841,7 @@ class HTreeMap<K,V>(
             if(nodeRecid != expireNodeRecidFor(leaf[leafIndex+2] as Long))
                 continue
             //remove from this leaf
-            val key = keyUnwrap(segment, leaf[leafIndex])
+            val key = leaf[leafIndex] as K
             val hash = hash(key);
             if(CC.ASSERT && segment!=hashToSegment(hash))
                 throw AssertionError()
@@ -938,8 +872,8 @@ class HTreeMap<K,V>(
 
         override fun iterator(): MutableIterator<MutableMap.MutableEntry<K?, V?>> {
             val iters = (0 until segmentCount).map{segment->
-                htreeIterator(segment) { wrappedKey, wrappedValue ->
-                    htreeEntry(keyUnwrap(segment, wrappedKey), valueUnwrap(segment, wrappedValue))
+                htreeIterator(segment) { key, wrappedValue ->
+                    htreeEntry(key as K, valueUnwrap(segment, wrappedValue))
                 }
             }
             return Iterators.concat(iters.toArrayList().iterator())
@@ -973,8 +907,8 @@ class HTreeMap<K,V>(
 
         override fun iterator(): MutableIterator<K?> {
             val iters = (0 until segmentCount).map{segment->
-                htreeIterator(segment) {wrappedKey, wrappedValue ->
-                   keyUnwrap(segment, wrappedKey)
+                htreeIterator(segment) {key, wrappedValue ->
+                   key as K
                 }
             }
             return Iterators.concat(iters.toArrayList().iterator())
@@ -1057,7 +991,7 @@ class HTreeMap<K,V>(
                         ret[i] = loadNext(leaf[i], leaf[i + 1])
 
                         //TODO PERF key is deserialized twice, modify iterators...
-                        ret[i + 1] = keyUnwrap(segment, leaf[i])
+                        ret[i + 1] = leaf[i] as K
                     }
                     return ret
                 }
@@ -1189,16 +1123,6 @@ class HTreeMap<K,V>(
     }
 
 
-    protected fun keyUnwrap(segment:Int, wrappedKey:Any):K{
-        if(keyInline)
-            return wrappedKey as K
-        if(CC.ASSERT)
-            Utils.assertReadLock(locks[segment])
-        return stores[segment].get(wrappedKey as Long, keySerializer)
-                ?: throw DBException.DataCorruption("linked key not found")
-    }
-
-
     protected fun valueUnwrap(segment:Int, wrappedValue:Any):V{
         if(valueInline)
             return wrappedValue as V
@@ -1206,14 +1130,6 @@ class HTreeMap<K,V>(
             Utils.assertReadLock(locks[segment])
         return stores[segment].get(wrappedValue as Long, valueSerializer)
                 ?: throw DBException.DataCorruption("linked value not found")
-    }
-
-    protected fun keyWrap(segment:Int, key:K):Any{
-        if(CC.ASSERT)
-            Utils.assertWriteLock(locks[segment])
-
-        return if(keyInline) key as Any
-            else return stores[segment].put(key, keySerializer)
     }
 
 
@@ -1234,7 +1150,7 @@ class HTreeMap<K,V>(
                     val leaf = store.get(leafRecid, leafSerializer)
                         ?: throw DBException.DataCorruption("leaf not found")
                     for(i in 0 until leaf.size step 3){
-                        val key = keyUnwrap(segment, leaf[i])
+                        val key = leaf[i] as K
                         val value = valueUnwrap(segment, leaf[i+1])
                         action.accept(key, value)
                     }
@@ -1251,7 +1167,7 @@ class HTreeMap<K,V>(
                     val leaf = store.get(leafRecid, leafSerializer)
                             ?: throw DBException.DataCorruption("leaf not found")
                     for(i in 0 until leaf.size step 3){
-                        val key = keyUnwrap(segment, leaf[i])
+                        val key = leaf[i] as K
                         action(key)
                     }
                 }
@@ -1301,7 +1217,7 @@ class HTreeMap<K,V>(
                         ?:throw DBException.DataCorruption("Leaf not found")
 
                     for(i in 0 until leaf.size step 3){
-                        val key = keyUnwrap(segment, leaf[i])
+                        val key = leaf[i] as K
                         val hash = hash(key)
                         if(segment!=hashToSegment(hash))
                             throw DBException.DataCorruption("Hash To Segment")
