@@ -18,6 +18,7 @@ abstract class StoreTest {
         val l = 11231203099090L
         val recid = e.put(l, Serializer.LONG)
         assertEquals(l, e.get(recid, Serializer.LONG))
+        e.verify()
         e.close()
     }
 
@@ -27,6 +28,7 @@ abstract class StoreTest {
         Random().nextBytes(b)
         val recid = e.put(b, Serializer.BYTE_ARRAY_NOSIZE)
         assertTrue(Arrays.equals(b, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE)))
+        e.verify()
         e.close()
     }
 
@@ -35,6 +37,7 @@ abstract class StoreTest {
         val recid = e.put(10000.toLong(), Serializer.LONG)
         val s2 = e.get(recid, Serializer.LONG)
         assertEquals(s2, java.lang.Long.valueOf(10000))
+        e.verify()
         e.close()
     }
 
@@ -46,6 +49,7 @@ abstract class StoreTest {
         val recid = e.put(b, Serializer.BYTE_ARRAY_NOSIZE)
         val b2 = e.get(recid, Serializer.BYTE_ARRAY_NOSIZE)
         assertTrue(Arrays.equals(b, b2))
+        e.verify()
         e.close()
     }
 
@@ -53,9 +57,65 @@ abstract class StoreTest {
         val e = openStore()
         val b = TT.randomByteArray(100000)
         val recid = e.put(b, Serializer.BYTE_ARRAY_NOSIZE)
+        e.verify()
         e.delete(recid, Serializer.BYTE_ARRAY_NOSIZE)
+        e.verify()
         e.close()
     }
+
+
+    @Test fun large_record_delete2(){
+        val s = openStore()
+
+        val b = TT.randomByteArray(200000)
+        val recid1 = s.put(b, Serializer.BYTE_ARRAY_NOSIZE)
+        s.verify()
+        val b2 = TT.randomByteArray(220000)
+        val recid2 = s.put(b2, Serializer.BYTE_ARRAY_NOSIZE)
+        s.verify()
+
+        assertTrue(Arrays.equals(b, s.get(recid1, Serializer.BYTE_ARRAY_NOSIZE)))
+        assertTrue(Arrays.equals(b2, s.get(recid2, Serializer.BYTE_ARRAY_NOSIZE)))
+
+        s.delete(recid1, Serializer.BYTE_ARRAY_NOSIZE)
+        assertTrue(Arrays.equals(b2, s.get(recid2, Serializer.BYTE_ARRAY_NOSIZE)))
+        s.verify()
+
+        s.delete(recid2, Serializer.BYTE_ARRAY_NOSIZE)
+        s.verify()
+
+        s.verify()
+        s.close()
+    }
+
+    @Test fun large_record_update(){
+        val s = openStore()
+
+        var b = TT.randomByteArray(200000)
+        val recid1 = s.put(b, Serializer.BYTE_ARRAY_NOSIZE)
+        s.verify()
+        val b2 = TT.randomByteArray(220000)
+        val recid2 = s.put(b2, Serializer.BYTE_ARRAY_NOSIZE)
+        s.verify()
+
+        assertTrue(Arrays.equals(b, s.get(recid1, Serializer.BYTE_ARRAY_NOSIZE)))
+        assertTrue(Arrays.equals(b2, s.get(recid2, Serializer.BYTE_ARRAY_NOSIZE)))
+
+        b = TT.randomByteArray(210000)
+        s.update(recid1, b, Serializer.BYTE_ARRAY_NOSIZE);
+        assertTrue(Arrays.equals(b, s.get(recid1, Serializer.BYTE_ARRAY_NOSIZE)))
+        assertTrue(Arrays.equals(b2, s.get(recid2, Serializer.BYTE_ARRAY_NOSIZE)))
+        s.verify()
+
+        b = TT.randomByteArray(28001)
+        s.update(recid1, b, Serializer.BYTE_ARRAY_NOSIZE);
+        assertTrue(Arrays.equals(b, s.get(recid1, Serializer.BYTE_ARRAY_NOSIZE)))
+        assertTrue(Arrays.equals(b2, s.get(recid2, Serializer.BYTE_ARRAY_NOSIZE)))
+        s.verify()
+
+        s.close()
+    }
+
 
     @Test
     fun get_non_existent() {
@@ -65,21 +125,25 @@ abstract class StoreTest {
             e.get(1, TT.Serializer_ILLEGAL_ACCESS)
         })
 
+        e.verify()
         e.close()
     }
 
     @Test fun preallocate_cas() {
         val e = openStore()
         val recid = e.preallocate()
+        e.verify()
         assertFalse(e.compareAndSwap(recid, 1L, 2L, Serializer.LONG))
         assertTrue(e.compareAndSwap(recid, null, 2L, Serializer.LONG))
         assertEquals(2L.toLong(), e.get(recid, Serializer.LONG))
+        e.verify()
         e.close()
     }
 
     @Test fun preallocate_get_update_delete_update_get() {
         val e = openStore()
         val recid = e.preallocate()
+        e.verify()
         assertNull(e.get(recid, TT.Serializer_ILLEGAL_ACCESS))
         e.update(recid, 1L, Serializer.LONG)
         assertEquals(1L.toLong(), e.get(recid, Serializer.LONG))
@@ -87,19 +151,23 @@ abstract class StoreTest {
         assertFailsWith(DBException.GetVoid::class) {
             assertNull(e.get(recid, TT.Serializer_ILLEGAL_ACCESS))
         }
+        e.verify()
         assertFailsWith(DBException.GetVoid::class) {
             e.update(recid, 1L, Serializer.LONG)
         }
+        e.verify()
         e.close()
     }
 
     @Test fun cas_delete() {
         val e = openStore()
         val recid = e.put(1L, Serializer.LONG)
+        e.verify()
         assertTrue(e.compareAndSwap(recid, 1L, null, Serializer.LONG))
         assertNull(e.get(recid, TT.Serializer_ILLEGAL_ACCESS))
         assertTrue(e.compareAndSwap(recid, null, 1L, Serializer.LONG))
         assertEquals(1L, e.get(recid, Serializer.LONG))
+        e.verify()
         e.close()
     }
 
@@ -108,9 +176,12 @@ abstract class StoreTest {
         val e = openStore()
         val recid = e.preallocate()
         assertTrue(e.compareAndSwap(recid, null, 1L, Serializer.LONG))
+        e.verify()
         assertEquals(1L, e.get(recid, Serializer.LONG))
         assertTrue(e.compareAndSwap(recid, 1L, null, Serializer.LONG))
+        e.verify()
         assertNull(e.get(recid, TT.Serializer_ILLEGAL_ACCESS))
+        e.verify()
         e.close()
     }
 
@@ -121,6 +192,7 @@ abstract class StoreTest {
         assertFailsWith(DBException.GetVoid::class) {
             assertTrue(e.compareAndSwap(recid, null, 1L, Serializer.LONG))
         }
+        e.verify()
         e.close()
     }
 
@@ -134,12 +206,12 @@ abstract class StoreTest {
         s = "da8898fe89w98fw98f9"
         e.update(recid, s, Serializer.STRING)
         assertEquals(s, e.get(recid, Serializer.STRING))
-
+        e.verify()
         e.delete(recid, Serializer.STRING)
         assertFailsWith(DBException.GetVoid::class) {
             e.get(recid, Serializer.STRING)
         }
-
+        e.verify()
         e.close()
     }
 
@@ -153,25 +225,28 @@ abstract class StoreTest {
         b = byteArrayOf(1, 2, 3)
         e.update(recid, b, Serializer.BYTE_ARRAY_NOSIZE)
         assertTrue(Arrays.equals(b, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE)))
-
+        e.verify()
         b = byteArrayOf()
         e.update(recid, b, Serializer.BYTE_ARRAY_NOSIZE)
         assertTrue(Arrays.equals(b, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE)))
-
+        e.verify()
         e.delete(recid, Serializer.BYTE_ARRAY_NOSIZE)
         assertFailsWith(DBException.GetVoid::class) {
             e.get(recid, Serializer.BYTE_ARRAY_NOSIZE)
         }
+        e.verify()
         e.close()
     }
 
     @Test fun get_deleted() {
         val e = openStore()
         val recid = e.put(1L, Serializer.LONG)
+        e.verify()
         e.delete(recid, Serializer.LONG)
         assertFailsWith(DBException.GetVoid::class) {
             e.get(recid, Serializer.LONG)
         }
+        e.verify()
         e.close()
     }
 
@@ -182,6 +257,7 @@ abstract class StoreTest {
         assertFailsWith(DBException.GetVoid::class) {
             e.update(recid, 2L, Serializer.LONG)
         }
+        e.verify()
         e.close()
     }
 
@@ -192,6 +268,7 @@ abstract class StoreTest {
         assertFailsWith(DBException.GetVoid::class) {
             e.delete(recid, Serializer.LONG)
         }
+        e.verify()
         e.close()
     }
 
@@ -211,6 +288,7 @@ abstract class StoreTest {
             e.commit()
             assertEquals(s, e.get(recid, Serializer.STRING))
         }
+        e.verify()
         e.close()
     }
 
@@ -224,6 +302,7 @@ abstract class StoreTest {
 
         val recid2 = e.put("bbb", Serializer.STRING)
         assertEquals(recid, recid2)
+        e.verify()
         e.close()
     }
 
@@ -231,12 +310,14 @@ abstract class StoreTest {
         val e = openStore()
         if(e is StoreTx)
             e.rollback()
+        e.verify()
         e.close()
     }
 
     @Test fun empty_commit(){
         val e = openStore()
         e.commit()
+        e.verify()
         e.close()
     }
 
@@ -270,6 +351,7 @@ abstract class StoreTest {
             s.verify()
         }
     }
+
 
 }
 

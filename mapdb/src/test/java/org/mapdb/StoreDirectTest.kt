@@ -45,6 +45,7 @@ class StoreDirectTest:StoreReopenTest(){
         assertEquals(1, s.maxRecid)
         assertEquals(0L, s.dataTail)
         assertEquals(2L * CC.PAGE_SIZE, s.volume.length())
+        s.verify()
         s.locks.forEach { it?.readLock()?.lock() }
         assertEquals(
                 s.indexValCompose(size=NULL_RECORD_SIZE, offset=0L, linked=0, archive=1, unused=1),

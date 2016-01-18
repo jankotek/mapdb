@@ -797,14 +797,16 @@ class StoreDirect(
 
         Utils.lockWrite(locks[recidToSegment(recid)]) {
             val oldIndexVal = getIndexVal(recid);
+            val oldLinked = indexValFlagLinked(oldIndexVal);
             val oldSize = indexValToSize(oldIndexVal);
             if (oldSize == DELETED_RECORD_SIZE)
                 throw DBException.GetVoid(recid)
             val newUpSize:Long = if(di==null) -16L else roundUp(di.pos.toLong(), 16)
-            if ( newUpSize!=roundUp(oldSize,16) &&
+            //try to reuse record if possible, if not possible, delete old record and allocate new
+            if ((oldLinked || newUpSize!=roundUp(oldSize,16)) &&
                 oldSize != NULL_RECORD_SIZE && oldSize!=0L ) {
                 Utils.lock(structuralLock) {
-                    if (indexValFlagLinked(oldIndexVal)) {
+                    if (oldLinked) {
                         linkedRecordDelete(oldIndexVal)
                     } else {
                         val oldOffset = indexValToOffset(oldIndexVal);
@@ -830,7 +832,7 @@ class StoreDirect(
             }
             val size = di.pos;
             val offset =
-                    if(newUpSize==roundUp(oldSize,16) ){
+                    if(!oldLinked && newUpSize==roundUp(oldSize,16) ){
                         //reuse existing offset
                         indexValToOffset(oldIndexVal)
                     }else if(size==0){
@@ -1147,7 +1149,11 @@ class StoreDirect(
 
             for (index in 0 until max) {
                 if (bit.get(index.toInt()).not()) {
-                    throw AssertionError("not set at $index - ${index % CC.PAGE_SIZE} - $dataTail - $fileTail")
+                    var len = 0;
+                    while(bit.get(index.toInt()+len).not()){
+                        len++;
+                    }
+                    throw AssertionError("not set at $index, for length $len - ${index % CC.PAGE_SIZE} - $dataTail - $fileTail")
                 }
             }
         }finally{
