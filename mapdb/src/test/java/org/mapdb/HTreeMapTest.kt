@@ -3,6 +3,7 @@ package org.mapdb
 import org.junit.Test
 import java.io.Closeable
 import java.io.Serializable
+import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
@@ -331,6 +332,29 @@ class HTreeMapTest{
             m.put(AA(i), i)
             i++
         }
+    }
+
+    @Test fun continous_expiration(){
+        val size = 32 * 1024*1024
+        val volume = Volume.SingleByteArrayVol(size)
+        val db = DBMaker.onVolume(volume, false).make()
+        val map = db
+            .hashMap("map", Serializer.LONG, Serializer.BYTE_ARRAY)
+            .expireAfterCreate()
+            .expireStoreSize((size*0.7).toLong())
+            .expireExecutor(TT.executor())
+            .expireExecutorPeriod(100)
+            .expireCompactThreshold(0.5)
+            .create()
+
+        val t = TT.nowPlusMinutes(10.0)
+        var key = 0L
+        val random = Random()
+        while(t>System.currentTimeMillis()){
+            map.put(key, ByteArray(random.nextInt(32000)))
+        }
+
+        db.close()
     }
 
 

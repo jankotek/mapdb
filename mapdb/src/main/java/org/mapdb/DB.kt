@@ -220,6 +220,7 @@ open class DB(
         private var _expireExecutorPeriod:Long = 10000
         private var _expireMaxSize:Long = 0
         private var _expireStoreSize:Long = 0
+        private var _expireCompactThreshold:Double? = null
 
         private var _counterEnable: Boolean = false
 
@@ -265,13 +266,6 @@ open class DB(
             _concShift = toShift(concurrency)
             _dirShift = toShift(dirSize)
             _levels = levels
-            return this
-        }
-
-        fun expireTTL(ttl:Long):HashMapMaker<K,V>{
-            _expireCreateTTL = ttl
-            _expireUpdateTTL = ttl
-            _expireGetTTL = ttl
             return this
         }
 
@@ -327,6 +321,12 @@ open class DB(
             _expireExecutorPeriod = period
             return this
         }
+
+        fun expireCompactThreshold(freeFraction: Double):HashMapMaker<K,V>{
+            _expireCompactThreshold = freeFraction
+            return this
+        }
+
 
         fun expireMaxSize(maxSize:Long):HashMapMaker<K,V>{
             _expireMaxSize = maxSize;
@@ -385,6 +385,7 @@ open class DB(
                 expireStoreSize = _expireStoreSize,
                 expireExecutor = _expireExecutor,
                 expireExecutorPeriod = _expireExecutorPeriod,
+                expireCompactThreshold = _expireCompactThreshold,
                 expireOverflow = _expireOverflow,
                 storeFactory = _storeFactory,
                 valueCreator = _valueCreator,
@@ -423,6 +424,7 @@ open class DB(
             expireStoreSize:Long,
             expireExecutor: ScheduledExecutorService?,
             expireExecutorPeriod:Long,
+            expireCompactThreshold:Double?,
             expireOverflow:MutableMap<K,V>?,
             storeFactory:(segment:Int)->Store,
             valueCreator:((key:K)->V?)?,
@@ -570,6 +572,7 @@ open class DB(
                 expireGetQueues = expireGetQueues,
                 expireExecutor = expireExecutor,
                 expireExecutorPeriod = expireExecutorPeriod,
+                expireCompactThreshold = expireCompactThreshold,
                 threadSafe = true,
                 valueCreator = valueCreator2,
                 modificationListeners = modificationListeners2,

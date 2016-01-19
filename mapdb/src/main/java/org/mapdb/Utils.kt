@@ -2,6 +2,7 @@ package org.mapdb
 
 import java.io.File
 import java.nio.file.Path
+import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.*
 import java.util.logging.Level
@@ -265,5 +266,12 @@ internal object Utils {
         for(i in locks.size-1 downTo 0)
             locks[i]!!.writeLock().unlock()
     }
+
+    fun identityCount(vals: Array<*>): Int {
+        val a = IdentityHashMap<Any?, Any?>()
+        vals.forEach { a.put(it,"") }
+        return a.size
+    }
+
 
 }

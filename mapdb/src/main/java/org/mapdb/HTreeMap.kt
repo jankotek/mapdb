@@ -36,6 +36,7 @@ class HTreeMap<K,V>(
         val expireGetQueues:Array<QueueLong>?,
         val expireExecutor: ScheduledExecutorService?,
         val expireExecutorPeriod:Long,
+        val expireCompactThreshold:Double?,
         val threadSafe:Boolean,
         val valueCreator:((key:K)->V?)?,
         private val modificationListeners: Array<MapModificationListener<K,V>>?,
@@ -69,6 +70,7 @@ class HTreeMap<K,V>(
                 expireGetQueues:Array<QueueLong>? = if(expireGetTTL<=0L) null else Array(stores.size, {i->QueueLong.make(store = stores[i])}),
                 expireExecutor:ScheduledExecutorService? = null,
                 expireExecutorPeriod:Long = 0,
+                expireCompactThreshold:Double? = null,
                 threadSafe:Boolean = true,
                 valueCreator:((key:K)->V)? = null,
                 modificationListeners: Array<MapModificationListener<K,V>>? = null,
@@ -94,6 +96,7 @@ class HTreeMap<K,V>(
                 expireGetQueues = expireGetQueues,
                 expireExecutor = expireExecutor,
                 expireExecutorPeriod = expireExecutorPeriod,
+                expireCompactThreshold = expireCompactThreshold,
                 threadSafe = threadSafe,
                 valueCreator = valueCreator,
                 modificationListeners = modificationListeners,
@@ -106,6 +109,8 @@ class HTreeMap<K,V>(
     }
 
     private val segmentCount = 1.shl(concShift)
+
+    private val storesUniqueCount = Utils.identityCount(stores)
 
     internal val locks:Array<ReadWriteLock?> = Array(segmentCount, {Utils.newReadWriteLock(threadSafe)})
 
@@ -827,6 +832,17 @@ class HTreeMap<K,V>(
                 }
                 purged
             })
+        }
+
+        //trigger compaction?
+        if(expireCompactThreshold!=null){
+            val store = stores[segment]
+            if(store is StoreDirect){
+                val totalSize = store.getTotalSize().toDouble()
+                if(store.getFreeSize().toDouble()/totalSize > expireCompactThreshold) {
+                    store.compact()
+                }
+            }
         }
     }
 

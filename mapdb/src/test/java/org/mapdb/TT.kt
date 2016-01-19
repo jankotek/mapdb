@@ -153,11 +153,6 @@ object TT{
         return ObjectInputStream(in2).readObject() as E
     }
 
-    fun identityCount(vals: Array<*>): Int {
-        val a = IdentityHashMap<Any?,Any?>()
-        vals.forEach { a.put(it,"") }
-        return a.size
-    }
 
     fun fork(count:Int, body:(i:Int)->Unit){
         val exec = Executors.newCachedThreadPool({ r->

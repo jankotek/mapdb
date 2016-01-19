@@ -124,7 +124,7 @@ class DBTest{
                 .map { (it as IndexTreeLongLongMap).rootRecid.toString()}
                 .fold("",{str, it-> str+",$it"})
 
-        assertEquals(8, TT.identityCount(hmap.indexTrees))
+        assertEquals(8, Utils.identityCount(hmap.indexTrees))
         assertEquals(1, hmap.stores.toSet().size)
         assertEquals(rootRecids, ","+p["aa"+DB.Keys.rootRecids])
         assertEquals("HashMap", p["aa"+DB.Keys.type])
@@ -164,7 +164,7 @@ class DBTest{
 
         assertEquals(14, p.size)
         assertEquals(8, hmap.indexTrees.size)
-        assertEquals(8, TT.identityCount(hmap.indexTrees))
+        assertEquals(8, Utils.identityCount(hmap.indexTrees))
         assertEquals(1, hmap.stores.toSet().size)
 
         val rootRecids = hmap.indexTrees
@@ -213,11 +213,11 @@ class DBTest{
                 .create()
         assertEquals(3, hmap.concShift)
         assertEquals(8, hmap.stores.size)
-        assertEquals(8, TT.identityCount(hmap.stores))
-        assertEquals(8, TT.identityCount(hmap.indexTrees))
-        assertEquals(8, TT.identityCount(hmap.expireCreateQueues!!))
-        assertEquals(8, TT.identityCount(hmap.expireUpdateQueues!!))
-        assertEquals(8, TT.identityCount(hmap.expireGetQueues!!))
+        assertEquals(8, Utils.identityCount(hmap.stores))
+        assertEquals(8, Utils.identityCount(hmap.indexTrees))
+        assertEquals(8, Utils.identityCount(hmap.expireCreateQueues!!))
+        assertEquals(8, Utils.identityCount(hmap.expireUpdateQueues!!))
+        assertEquals(8, Utils.identityCount(hmap.expireGetQueues!!))
 
         for(segment in 0 until 8){
             val store = hmap.stores[segment]
