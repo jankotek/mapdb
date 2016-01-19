@@ -107,7 +107,7 @@ class HTreeMap<K,V>(
 
     private val segmentCount = 1.shl(concShift)
 
-    private val locks:Array<ReadWriteLock?> = Array(segmentCount, {Utils.newReadWriteLock(threadSafe)})
+    internal val locks:Array<ReadWriteLock?> = Array(segmentCount, {Utils.newReadWriteLock(threadSafe)})
 
     /** true if Eviction is executed inside user thread, as part of get/put etc operations */
     internal val expireEvict:Boolean = expireExecutor==null &&
@@ -220,11 +220,11 @@ class HTreeMap<K,V>(
     private var checkHashAfterSerialization = stores.find { it is StoreOnHeap } == null
 
 
-    private fun hash(key:K):Int{
+    internal fun hash(key:K):Int{
         return keySerializer.hashCode(key, 0)
     }
-    private fun hashToIndex(hash:Int) = DataIO.intToLong(hash) and indexMask
-    private fun hashToSegment(hash:Int) = hash.ushr(levels*dirShift) and concMask
+    internal fun hashToIndex(hash:Int) = DataIO.intToLong(hash) and indexMask
+    internal fun hashToSegment(hash:Int) = hash.ushr(levels*dirShift) and concMask
 
 
     private inline fun <E> segmentWrite(segment:Int, body:()->E):E{

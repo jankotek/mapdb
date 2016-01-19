@@ -17,7 +17,7 @@ class HTreeMapConcTest(val mapMaker:(generic:Boolean)-> ConcurrentMap<Any?, Any?
         @Parameterized.Parameters
         @JvmStatic
         fun params(): Iterable<Any> {
-            return HTreeMapTest.Guava.params()
+            return HTreeMap_GuavaTest.params()
         }
     }
     @Test fun basicTest(){

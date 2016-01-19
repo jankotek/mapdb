@@ -1,14 +1,10 @@
 package org.mapdb
 
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.Parameterized
-import org.mapdb.guavaTests.ConcurrentMapInterfaceTest
-import org.mapdb.jsr166Tests.ConcurrentHashMapTest
 import java.io.Closeable
-import java.io.IOException
-import java.util.*
-import java.util.concurrent.ConcurrentMap
+import java.io.Serializable
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -58,7 +54,7 @@ class HTreeMapTest{
     }
 
     @Test fun test_hash_collision() {
-        val m = HTreeMap.make(keySerializer = Guava.singleHashSerializer, valueSerializer = Serializer.INTEGER, concShift = 0)
+        val m = HTreeMap.make(keySerializer = HTreeMap_GuavaTest.singleHashSerializer, valueSerializer = Serializer.INTEGER, concShift = 0)
 
         for (i in 0..19) {
             m.put(i, i + 100)
@@ -80,7 +76,7 @@ class HTreeMapTest{
     }
 
     @Test fun delete_removes_recids(){
-        val m = HTreeMap.make(keySerializer = Guava.singleHashSerializer, valueSerializer = Serializer.INTEGER, concShift = 0)
+        val m = HTreeMap.make(keySerializer = HTreeMap_GuavaTest.singleHashSerializer, valueSerializer = Serializer.INTEGER, concShift = 0)
 
         fun countRecids() = m.stores[0].getAllRecids().asSequence().count()
 
@@ -132,144 +128,210 @@ class HTreeMapTest{
         assertEquals(1, countRecids())
     }
 
+    @Test fun clear(){
+        val m = HTreeMap.make(keySerializer = Serializer.INTEGER, valueSerializer = Serializer.INTEGER)
+        val recidCount = m.stores[0].getAllRecids().asSequence().count()
+        for(i in 1 .. 10000)
+            m.put(i, i);
+        m.clear()
+        assertEquals(recidCount, m.stores[0].getAllRecids().asSequence().count())
+    }
 
-    @RunWith(Parameterized::class)
-class Guava(val mapMaker:(generic:Boolean)->ConcurrentMap<Any?, Any?> ) :
-        ConcurrentMapInterfaceTest<Int, String>(
-            false,  // boolean allowsNullKeys,
-            false,  // boolean allowsNullValues,
-            true,   // boolean supportsPut,
-            true,   // boolean supportsRemove,
-            true,   // boolean supportsClear,
-            true    // boolean supportsIteratorRemove
-    ){
 
-    companion object {
+    @Test(timeout = 20000)
+    fun cache_load_time_expire() {
+        if (TT.shortTest())
+            return
 
-        val singleHashSerializer = object : Serializer<Int>() {
-            override fun deserialize(input: DataInput2, available: Int) = input.readInt()
+        val db = DBMaker.memoryDB().make()
 
-            override fun serialize(out: DataOutput2, value: Int) {
-                out.writeInt(value)
-            }
+        val m = db.hashMap("test", Serializer.LONG, Serializer.LONG)
+                .expireAfterUpdate(100).expireAfterCreate(100).create()
+        val time = System.currentTimeMillis()
+        var counter: Long = 0
+        while (time + 5000 > System.currentTimeMillis()) {
+            m.put(counter++, counter++)
+        }
+        m.clear()
+    }
 
-            override fun hashCode(a: Int, seed: Int): Int {
-                //NOTE: fixed hash to generate collisions
-                return seed
-            }
+    @Test(timeout = 20000)
+    fun cache_load_size_expire() {
+        if (TT.shortTest())
+            return
+
+        val db = DBMaker.memoryDB().make()
+
+        val m = db.hashMap("test", Serializer.LONG, Serializer.LONG).expireMaxSize(10000).create()
+        val time = System.currentTimeMillis()
+        var counter: Long = 0
+        while (time + 5000 > System.currentTimeMillis()) {
+            m.put(counter++, counter++)
+            //            if(counter%1000<2) System.out.println(m.size());
+        }
+        m.clear()
+    }
+
+
+    @Test fun hasher() {
+        val m = DBMaker.memoryDB().make()
+                .hashMap("test", Serializer.INT_ARRAY, Serializer.INTEGER).create()
+
+
+        var i = 0
+        while (i < 1e5){
+            m.put(intArrayOf(i, i, i), i)
+            i++
         }
 
-        @Parameterized.Parameters
-        @Throws(IOException::class)
-        @JvmStatic
-        fun params(): Iterable<Any> {
-            val ret = ArrayList<Any>()
-
-            val bools = if(TT.shortTest()) TT.boolsFalse else TT.bools
-
-            for(inlineValue in bools)
-            for(singleHash in bools)
-            for(segmented in bools)
-            for(createExpire in bools)
-            for(updateExpire in bools)
-            for(getExpire in bools)
-            for(onHeap in bools)
-            for(counter in bools)
-            for(collapse in bools)
-            {
-                ret.add(arrayOf<Any>({generic:Boolean->
-
-                    var maker =
-                            if(segmented) {
-                                if(onHeap)DBMaker.heapShardedHashMap(8)
-                                else DBMaker.memoryShardedHashMap(8)
-                            }else {
-                                val db =
-                                        if(onHeap) DBMaker.heapDB().make()
-                                        else DBMaker.memoryDB().make()
-                                db.hashMap("aa")
-                            }
-
-                    val keySerializer =
-                            if (singleHash.not()) Serializer.INTEGER
-                            else singleHashSerializer
-
-                    if(inlineValue)
-                        maker.valueInline()
-
-                    if(createExpire)
-                        maker.expireAfterCreate(Integer.MAX_VALUE.toLong())
-                    if(updateExpire)
-                        maker.expireAfterUpdate(Integer.MAX_VALUE.toLong())
-                    if(getExpire)
-                        maker.expireAfterGet(Integer.MAX_VALUE.toLong())
-                    if(counter)
-                        maker.counterEnable()
-
-                    if(!generic)
-                        maker.keySerializer(keySerializer).valueSerializer(Serializer.STRING)
-
-                    if(!collapse)
-                        maker.removeCollapsesIndexTreeDisable()
-
-                    maker.hashSeed(1).create()
-
-                }))
-
-            }
-
-            return ret
+        i = 0
+        while (i < 1e5){
+            assertEquals(i, m.get(intArrayOf(i!!, i, i)))
+            i++
         }
 
     }
 
-    override fun getKeyNotInPopulatedMap(): Int = -10
 
-    override fun getValueNotInPopulatedMap(): String = "-120"
-    override fun getSecondValueNotInPopulatedMap(): String = "-121"
+    @Test fun mod_listener_lock() {
+        val db = DBMaker.memoryDB().make()
+        val counter = AtomicInteger()
+        var m:HTreeMap<String,String>? = null
+        var seg:Int? = null
+        m = db.hashMap("name", Serializer.STRING, Serializer.STRING)
+            .modificationListener(MapModificationListener { key, oldVal, newVal, triggered ->
+                for (i in 0..m!!.locks!!.size - 1) {
+                    assertEquals(seg == i,
+                            (m!!.locks[i] as Utils.SingleEntryReadWriteLock).lock.isWriteLockedByCurrentThread)
+                }
+                counter.incrementAndGet()
+            })
+            .create()
 
-    open override fun makeEmptyMap(): ConcurrentMap<Int?, String?> {
-        return mapMaker(false) as ConcurrentMap<Int?, String?>
+        seg = m!!.hashToSegment(m!!.hash("aa"))
+
+        m.put("aa", "aa")
+        m.put("aa", "bb")
+        m.remove("aa")
+
+        m.put("aa", "aa")
+        m.remove("aa", "aa")
+        m.putIfAbsent("aa", "bb")
+        m.replace("aa", "bb", "cc")
+        m.replace("aa", "cc")
+
+        assertEquals(8, counter.get().toLong())
     }
 
-    override fun makePopulatedMap(): ConcurrentMap<Int?, String?>? {
-        val ret = makeEmptyMap()
-        for(i in 0 until 30) {
-            ret.put(i,  "aa"+i)
+// TODO HashSet not implemented yet
+//    @Test
+//    fun test_iterate_and_remove() {
+//        val max = 1e5.toLong()
+//
+//        val m = DBMaker.memoryDB().make().hashSet("test")
+//
+//        for (i in 0..max - 1) {
+//            m.add(i)
+//        }
+//
+//
+//        val control = HashSet()
+//        val iter = m.iterator()
+//
+//        for (i in 0..max / 2 - 1) {
+//            assertTrue(iter.hasNext())
+//            control.add(iter.next())
+//        }
+//
+//        m.clear()
+//
+//        while (iter.hasNext()) {
+//            control.add(iter.next())
+//        }
+//
+//    }
+//
+    /*
+        Hi jan,
+
+        Today i found another problem.
+
+        my code is
+
+        HTreeMap<Object, Object>  map = db.createHashMap("cache").expireMaxSize(MAX_ITEM_SIZE).counterEnable()
+                .expireAfterWrite(EXPIRE_TIME, TimeUnit.SECONDS).expireStoreSize(MAX_GB_SIZE).make();
+
+        i set EXPIRE_TIME = 216000
+
+        but the data was expired right now,the expire time is not 216000s, it seems there is a bug for expireAfterWrite.
+
+        if i call expireAfterAccess ,everything seems ok.
+
+    */
+    @Test(timeout = 100000)
+    @Throws(InterruptedException::class)
+    fun expireAfterWrite() {
+        if (TT.shortTest())
+            return
+        //NOTE this test has race condition and may fail under heavy load.
+        //TODO increase timeout and move into integration tests.
+
+        val db = DBMaker.memoryDB().make()
+
+        val MAX_ITEM_SIZE = 1e7.toLong()
+        val EXPIRE_TIME = 3L
+        val MAX_GB_SIZE = 1e7.toLong()
+
+        val m = db.hashMap("cache", Serializer.INTEGER, Serializer.INTEGER)
+                .expireMaxSize(MAX_ITEM_SIZE).counterEnable()
+                .expireAfterCreate(EXPIRE_TIME, TimeUnit.SECONDS)
+                .expireAfterUpdate(EXPIRE_TIME, TimeUnit.SECONDS)
+                .expireStoreSize(MAX_GB_SIZE).create()
+
+        for (i in 0..999) {
+            m.put(i, i)
         }
-        return ret;
-    }
+        Thread.sleep(2000)
 
-    override fun supportsValuesHashCode(map: MutableMap<Int, String>?): Boolean {
-        // keySerializer returns wrong hash on purpose for this test, so pass it
-        return false;
-    }
+        for (i in 0..499) {
+            m.put(i, i + 1)
+        }
+        //wait until size is 1000
+        while (m.size != 1000) {
+            m.get("aa") //so internal tasks have change to run
+            Thread.sleep(10)
+        }
 
-}
+        Thread.sleep(2000)
 
-
-@RunWith(Parameterized::class)
-class JSR166_ConcurrentHashMapTest(
-        val mapMaker:(generic:Boolean)->ConcurrentMap<Any?, Any?>
-        ) : ConcurrentHashMapTest()
-{
-
-    override fun makeGenericMap(): ConcurrentMap<Any?, Any?>? {
-        return mapMaker(true)
-    }
-
-    override fun makeMap(): ConcurrentMap<Int?, String?>? {
-        return mapMaker(false) as ConcurrentMap<Int?, String?>
-    }
-
-    companion object {
-        @Parameterized.Parameters
-        @JvmStatic
-        fun params(): Iterable<Any> {
-            return HTreeMapTest.Guava.params()
+        //wait until size is 1000
+        while (m.size != 500) {
+            m.expireEvict()
+            Thread.sleep(10)
         }
     }
 
-}
+
+    class AA(internal val vv: Int) : Serializable {
+
+        override fun equals(obj: Any?): Boolean {
+            return obj is AA && obj.vv == vv
+        }
+    }
+
+
+    @Test(expected = IllegalArgumentException::class)
+    fun inconsistentHash() {
+        val db = DBMaker.memoryDB().make()
+
+        val m = db.hashMap("test", Serializer.JAVA, Serializer.INTEGER).create()
+
+        var i = 0
+        while (i < 1e50){
+            m.put(AA(i), i)
+            i++
+        }
+    }
+
 
 }
