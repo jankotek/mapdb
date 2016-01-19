@@ -9,7 +9,7 @@ import org.mapdb.Serializer;
 import static org.junit.Assert.assertEquals;
 
 
-public class htreemap_value_creator {
+public class htreemap_value_loader {
 
     @Test
     public void run(){
@@ -17,7 +17,7 @@ public class htreemap_value_creator {
         //a
         HTreeMap<String,Long> map = db
                 .hashMap("map", Serializer.STRING, Serializer.LONG)
-                .valueCreator(s -> 1L)
+                .valueLoader(s -> 1L)
                 .create();
 
         //return 1, even if key does not exist

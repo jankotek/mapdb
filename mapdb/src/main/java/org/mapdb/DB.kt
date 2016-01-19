@@ -226,7 +226,7 @@ open class DB(
 
         private var _storeFactory:(segment:Int)->Store = {i->_db.store}
 
-        private var _valueCreator:((key:K)->V)? = null
+        private var _valueLoader:((key:K)->V)? = null
         private var _modListeners:MutableList<MapModificationListener<K,V>>? = null
         private var _expireOverflow:MutableMap<K,V>? = null;
         private var _removeCollapsesIndexTree:Boolean = true
@@ -348,8 +348,8 @@ open class DB(
             return this
         }
 
-        fun valueCreator(valueCreator:(key:K)->V):HashMapMaker<K,V>{
-            _valueCreator = valueCreator
+        fun valueLoader(valueLoader:(key:K)->V):HashMapMaker<K,V>{
+            _valueLoader = valueLoader
             return this
         }
 
@@ -388,7 +388,7 @@ open class DB(
                 expireCompactThreshold = _expireCompactThreshold,
                 expireOverflow = _expireOverflow,
                 storeFactory = _storeFactory,
-                valueCreator = _valueCreator,
+                valueLoader = _valueLoader,
                 modificationListeners =  _modListeners?.toTypedArray()
         )
 
@@ -427,13 +427,13 @@ open class DB(
             expireCompactThreshold:Double?,
             expireOverflow:MutableMap<K,V>?,
             storeFactory:(segment:Int)->Store,
-            valueCreator:((key:K)->V?)?,
+            valueLoader:((key:K)->V?)?,
             modificationListeners: Array<MapModificationListener<K,V>>?
 
     ):HTreeMap<K,V>{
         checkName(name)
-        if(expireOverflow!=null && valueCreator!=null)
-            throw DBException.WrongConfiguration("ExpireOverflow and ValueCreator can not be used at the same time")
+        if(expireOverflow!=null && valueLoader !=null)
+            throw DBException.WrongConfiguration("ExpireOverflow and ValueLoader can not be used at the same time")
 
 
         val hashSeed = hashSeed ?: SecureRandom().nextInt()
@@ -522,11 +522,11 @@ open class DB(
             )
         })
 
-        var valueCreator2 = valueCreator
+        var valueLoader2 = valueLoader
         var modificationListeners2 = modificationListeners
         if(expireOverflow!=null) {
             //load non existing values from overflow
-            valueCreator2 = { key-> expireOverflow[key]}
+            valueLoader2 = { key-> expireOverflow[key]}
 
             //forward modifications to overflow
             val listener = MapModificationListener<K,V> { key, oldVal, newVal, triggered ->
@@ -574,7 +574,7 @@ open class DB(
                 expireExecutorPeriod = expireExecutorPeriod,
                 expireCompactThreshold = expireCompactThreshold,
                 threadSafe = true,
-                valueCreator = valueCreator2,
+                valueLoader = valueLoader2,
                 modificationListeners = modificationListeners2,
                 closeable = this@DB
         )

@@ -137,7 +137,7 @@ class MJCache<K,V>(
 
             if(configuration.isReadThrough) {
                 val loader = cacheLoader!!
-                c = c.valueCreator { key ->
+                c = c.valueLoader { key ->
                     try {
                         cacheLoader.load(key)
                     }catch(e:Exception){

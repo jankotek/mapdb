@@ -38,7 +38,7 @@ class HTreeMap<K,V>(
         val expireExecutorPeriod:Long,
         val expireCompactThreshold:Double?,
         val threadSafe:Boolean,
-        val valueCreator:((key:K)->V?)?,
+        val valueLoader:((key:K)->V?)?,
         private val modificationListeners: Array<MapModificationListener<K,V>>?,
         private val closeable:Closeable?
 
@@ -57,7 +57,7 @@ class HTreeMap<K,V>(
                 dirShift: Int = CC.HTREEMAP_DIR_SHIFT,
                 levels:Int = CC.HTREEMAP_LEVELS,
                 stores:Array<Store> = Array(1.shl(concShift), {StoreTrivial()}),
-                indexTrees: Array<MutableLongLongMap> = Array(1.shl(concShift), {i->IndexTreeLongLongMap.make(stores[i], levels=levels, dirShift = dirShift)}),
+                indexTrees: Array<MutableLongLongMap> = Array(1.shl(concShift), { i->IndexTreeLongLongMap.make(stores[i], levels=levels, dirShift = dirShift)}),
                 hashSeed:Int = SecureRandom().nextInt(),
                 counterRecids:LongArray? = null,
                 expireCreateTTL:Long = 0L,
@@ -65,14 +65,14 @@ class HTreeMap<K,V>(
                 expireGetTTL:Long = 0L,
                 expireMaxSize:Long = 0L,
                 expireStoreSize:Long = 0L,
-                expireCreateQueues:Array<QueueLong>? = if(expireCreateTTL<=0L) null else Array(stores.size, {i->QueueLong.make(store = stores[i])}),
-                expireUpdateQueues:Array<QueueLong>? = if(expireUpdateTTL<=0L) null else Array(stores.size, {i->QueueLong.make(store = stores[i])}),
-                expireGetQueues:Array<QueueLong>? = if(expireGetTTL<=0L) null else Array(stores.size, {i->QueueLong.make(store = stores[i])}),
+                expireCreateQueues:Array<QueueLong>? = if(expireCreateTTL<=0L) null else Array(stores.size, { i->QueueLong.make(store = stores[i])}),
+                expireUpdateQueues:Array<QueueLong>? = if(expireUpdateTTL<=0L) null else Array(stores.size, { i->QueueLong.make(store = stores[i])}),
+                expireGetQueues:Array<QueueLong>? = if(expireGetTTL<=0L) null else Array(stores.size, { i->QueueLong.make(store = stores[i])}),
                 expireExecutor:ScheduledExecutorService? = null,
                 expireExecutorPeriod:Long = 0,
                 expireCompactThreshold:Double? = null,
                 threadSafe:Boolean = true,
-                valueCreator:((key:K)->V)? = null,
+                valueLoader:((key:K)->V)? = null,
                 modificationListeners: Array<MapModificationListener<K,V>>? = null,
                 closeable: Closeable? = null
         ) = HTreeMap(
@@ -98,7 +98,7 @@ class HTreeMap<K,V>(
                 expireExecutorPeriod = expireExecutorPeriod,
                 expireCompactThreshold = expireCompactThreshold,
                 threadSafe = threadSafe,
-                valueCreator = valueCreator,
+                valueLoader = valueLoader,
                 modificationListeners = modificationListeners,
                 closeable = closeable
             )
@@ -244,7 +244,7 @@ class HTreeMap<K,V>(
 
     private inline fun <E> segmentRead(segment:Int, body:()->E):E{
         val lock =  // if expireGetQueue is modified on get, we need write lock
-                if(expireGetQueues==null && valueCreator==null) locks[segment]?.readLock()
+                if(expireGetQueues==null && valueLoader ==null) locks[segment]?.readLock()
                 else locks[segment]?.writeLock()
         lock?.lock()
         try {
@@ -549,8 +549,8 @@ class HTreeMap<K,V>(
             if(expireEvict && expireGetQueues!=null)
                 expireEvictSegment(segment)
             var ret =  getInternal(hash, key, updateQueue = true)
-            if(ret==null && valueCreator!=null){
-                ret = valueCreator!!(key)
+            if(ret==null && valueLoader !=null){
+                ret = valueLoader!!(key)
                 if(ret!=null)
                     putInternal(hash, key, ret, true)
             }

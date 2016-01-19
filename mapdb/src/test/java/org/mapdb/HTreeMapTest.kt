@@ -35,7 +35,7 @@ class HTreeMapTest{
 
 
     @Test fun valueCreator(){
-        val map = HTreeMap.make<Int,Int>(valueCreator={it+10})
+        val map = HTreeMap.make<Int,Int>(valueLoader ={it+10})
         assertEquals(11, map[1])
         assertEquals(1, map.size)
     }
@@ -47,7 +47,7 @@ class HTreeMapTest{
                 closed = true
             }
         }
-        val map = HTreeMap.make<Long,Long>(closeable=closeable)
+        val map = HTreeMap.make<Long,Long>(closeable =closeable)
         assertFalse(closed)
         map.close()
         assertTrue(closed)

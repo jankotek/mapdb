@@ -2,13 +2,24 @@ HTreeMap
 ===========
 
 HTreeMap provides ``HashMap`` and ``HashSet`` collections for MapDB.
-Typically it uses Hast Table based on Index Tree with access time ``O(log n)``.
+It optionally supports entry expiration and can be used as a cache.
+It is thread-safe and scales under parallel updates.
+
 It is thread safe, and supports parallel writes by using multiple segments,
-each with separate ReadWriteLock.
+each with separate ReadWriteLock. ``ConcurrentHashMap`` in JDK 7 works in a similar
+way. The number of segments (also called concurrency factor) is configurable.
 
-HTreeMap supports expiration based on Time-To-Live, maximal number of entries,
-and maximal store size. `TODO chapter link`
+HTreeMap is a `segmented Hash Tree`.
+Unlike other HashMaps it does not use fixed size Hash Table, and does not rehash all data when Hash Table grows.
+HTreeMap uses auto-expanding Index Tree, so it never needs resize.
+It also occupies less space, since empty hash slots do not consume any space.
+On the other hand, the tree structure requires more seeks and is slower on access.
+Its performance degrades with size `TODO at what scale?`.
 
+HTreeMap optionally supports entry expiration based on four criteria:
+maximal map size, maximal storage size, time-to-live since last modification and time-to-live
+since last access. Expired entries are automatically removed.
+This feature uses FIFO queue and each segment has independent expiration queue.
 
 Serializers
 ---------------------
@@ -138,12 +149,12 @@ all entries. You can enable size counter and in that case
     :language: java
     :dedent: 8
 
-And finally some sugar. There is **value creator**, a function to create
-a value if the existing value is not found. A newly created value is inserted
+And finally some sugar. There is **value loader**, a function to load
+a value if the existing key is not found. A newly created key/value is inserted
 into the map. This way ``map.get(key)`` never returns null. This is mainly
 useful for various generators and caches.
 
-.. literalinclude:: ../src/test/java/doc/htreemap_value_creator.java
+.. literalinclude:: ../src/test/java/doc/htreemap_value_loader.java
     :start-after: //a
     :end-before: //z
     :language: java
@@ -168,4 +179,106 @@ That is called **Sharded HTreeMap**, and is created directly ``DBMaker``:
 Sharded HTreeMap has similar configurations options as HTreeMap created by ``DB``.
 But there is no DB object associated with this HTreeMap.
 So in order to close Sharded HTreeMap, one has to invoke ``HTreeMap.close()`` method directly.
+
+
+
+Expiration
+---------------------------
+
+``HTreeMap`` offers optional entry expiration if some conditions are
+met. Entry can expire if:
+
+- An entry exists in the map longer time than the expiration period is. The
+  expiration period could be since the creation, last modification or
+  since the last read access.
+
+- The number of entries in a map would exceed maximal number
+
+- Map consumes more disk space or memory than space limit
+
+This will set expiration time since the creation, last update and since
+the last access:
+
+.. literalinclude:: ../src/test/java/doc/htreemap_expiration_ttl_limit.java
+    :start-after: //a
+    :end-before: //z
+    :language: java
+    :dedent: 8
+
+This will create ``HTreeMap`` with 16GB space limit:
+
+.. literalinclude:: ../src/test/java/doc/htreemap_expiration_space_limit.java
+    :start-after: //a
+    :end-before: //z
+    :language: java
+    :dedent: 8
+
+It is also possible to limit the maximal size of a map:
+
+.. literalinclude:: ../src/test/java/doc/htreemap_expiration_size_limit.java
+    :start-after: //a
+    :end-before: //z
+    :language: java
+    :dedent: 8
+
+HTreeMap maintains LIFO Expiration Queue for each segment,
+eviction traverses queue and removes oldest entries.
+Not all Map entries are placed into Expiration Queue.
+For illustration, in this example the new  entrues never expire,
+only after update (value change) entry is placed into Expiration Queue.
+
+.. literalinclude:: ../src/test/java/doc/htreemap_expiration_create_update.java
+    :start-after: //a
+    :end-before: //z
+    :language: java
+    :dedent: 8
+
+Time based eviction will always place entry into Expiration Queue.
+But other expiration criteria (size and space limit) also needs hint when to place entry into
+Expiration Queue. In following example no entry is placed into queue and no entry ever expires.
+
+.. literalinclude:: ../src/test/java/doc/htreemap_expiration_noexpire.java
+    :start-after: //a
+    :end-before: //z
+    :language: java
+    :dedent: 8
+
+There are three possible triggers which will place entry into Expiration Queue:
+``expireAfterCreate()``, ``expireAfterUpdate()`` and ``expireAfterGet()``.
+Notice there is no TTL parameter.
+
+Entry expiration is done inside other methods. If you call ``map.put()`` or ``map.get()`` it might
+evict some entries. But eviction has some overhead, and it would slow down user operations.
+There is option to supply HTreeMap with an executor, and perform eviction in background thread.
+This will evict entries in two background threads, and eviction will be triggered every 10 seconds:
+
+.. literalinclude:: ../src/test/java/doc/htreemap_expiration_background.java
+    :start-after: //a
+    :end-before: //z
+    :language: java
+    :dedent: 8
+
+Expiration can be combined with multiple Sharded HTreeMap for better concurrency.
+In this case each segment has independent Store and that improves scalability under parallel updates.
+
+.. literalinclude:: ../src/test/java/doc/htreemap_expiration_sharded.java
+    :start-after: //a
+    :end-before: //z
+    :language: java
+    :dedent: 8
+
+Sharded HTreeMap should be combined with multiple background threads for eviction.
+Also over time the Store becomes fragmented and eventually space can not be reclaimed.
+There is option to schedule periodic compaction if there is too much free space.
+Compaction will reclaim free space. Because each Store (segment) is compacted separately,
+compactions do not affect all running threads.
+
+.. literalinclude:: ../src/test/java/doc/htreemap_expiration_sharded2.java
+    :start-after: //a
+    :end-before: //z
+    :language: java
+    :dedent: 8
+
+
+`TODO expiration counts are approximate. Map size can go slightly over limits for short period of time.`
 
