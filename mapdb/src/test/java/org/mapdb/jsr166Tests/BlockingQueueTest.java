@@ -183,7 +183,7 @@ public abstract class BlockingQueueTest extends JSR166TestCase {
         } catch (IllegalArgumentException success) {}
     }
 
-    /**
+    /*
      * drainTo(c, n) returns 0 and does nothing when n <= 0
      */
     public void testDrainToNonPositiveMaxElements() {
