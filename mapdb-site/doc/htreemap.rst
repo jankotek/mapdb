@@ -280,5 +280,42 @@ compactions do not affect all running threads.
     :dedent: 8
 
 
+Expiration Overflow
+----------------------
+
+HTreeMap supports Modification Listeners. It notifies listener about inserts, updates and removes from HTreeMap.
+It is possible to link two collections together. Usually faster in-memory with limited size,
+and slower on-disk with unlimited size. After an entry expires from in-memory, it is automatically moved to on-disk by Modification Listener.
+And Value Loader will load values back to in-memory map, if those are not found by map.get() operation.
+
+To establish Disk Overflow use following code:
+
+.. literalinclude:: ../src/test/java/doc/htreemap_overflow.java
+    :start-after: //a
+    :end-before: //z
+    :language: java
+    :dedent: 8
+
+
+Once binding is established, every entry removed from ``inMemory`` map will be added to ``onDisk`` map.
+This applies only to expired entries, ``map.remove()`` will also remove any entry from ``onDisk``.
+
+.. literalinclude:: ../../mapdb/src/test/java/doc/htreemap_overflow_remove.java
+    :start-after: //a
+    :end-before: //z
+    :language: java
+    :dedent: 8
+
+If the ``inMemory.get(key)`` is called and value does not exist, the Value Loader will try to find Map in ``onDisk``.
+If value is found inside ``onDisk``, it is added into ``inMemory``.
+
+.. literalinclude:: ../../mapdb/src/test/java/doc/htreemap_overflow_get.java
+    :start-after: //a
+    :end-before: //z
+    :language: java
+    :dedent: 8
+
+
 `TODO expiration counts are approximate. Map size can go slightly over limits for short period of time.`
 
+`TODO modification listeners`

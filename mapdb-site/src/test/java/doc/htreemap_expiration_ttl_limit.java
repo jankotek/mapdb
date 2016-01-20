@@ -1,5 +1,6 @@
 package doc;
 
+import org.junit.Test;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
@@ -9,7 +10,9 @@ import java.util.concurrent.TimeUnit;
 
 public class htreemap_expiration_ttl_limit {
 
-    public static void main(String[] args) {
+    @Test
+    public void run() {
+
         DB db = DBMaker.memoryDB().make();
         //a
         // remove entries 10 minutes  after their last modification,

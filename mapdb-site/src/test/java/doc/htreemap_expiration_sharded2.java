@@ -1,5 +1,6 @@
 package doc;
 
+import org.junit.Test;
 import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
 
@@ -8,7 +9,9 @@ import java.util.concurrent.Executors;
 
 public class htreemap_expiration_sharded2 {
 
-    public static void main(String[] args) {
+    @Test
+    public void run() {
+
         //a
         HTreeMap cache = DBMaker
                 .memoryShardedHashMap(16)

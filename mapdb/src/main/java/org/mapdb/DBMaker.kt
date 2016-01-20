@@ -6,8 +6,13 @@ package org.mapdb
 object DBMaker{
 
     enum class StoreType{
-        onheap, direct
+        onheap, direct, ondisk
     }
+
+    @JvmStatic fun fileDB(file:String): Maker {
+        return Maker(StoreType.ondisk, file = file)
+    }
+
 
     @JvmStatic fun heapDB(): Maker {
         return Maker(StoreType.onheap)
@@ -59,10 +64,14 @@ object DBMaker{
                     val volumeFactory =
                             if(volume==null){
                                 if(file==null) CC.DEFAULT_MEMORY_VOLUME_FACTORY else CC.DEFAULT_FILE_VOLUME_FACTORY
-                            }else{
+                            }else {
                                 Volume.VolumeFactory.wrap(volume, volumeExist!!)
                             }
                     StoreDirect.make(volumeFactory=volumeFactory, allocateStartSize=_allocateStartSize)
+                }
+                StoreType.ondisk -> {
+                    val volumeFactory = Volume.MappedFileVol.FACTORY
+                    StoreDirect.make(file=file, volumeFactory=volumeFactory, allocateStartSize=_allocateStartSize)
                 }
             }
 
