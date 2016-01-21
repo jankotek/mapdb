@@ -353,11 +353,25 @@ public final class DataIO {
         return i | ((Long.bitCount(i)+1)%2);
     }
 
+    public static int parity1Set(int i) {
+        if(CC.ASSERT && (i&1)!=0)
+            throw new DBException.PointerChecksumBroken();
+        return i | ((Integer.bitCount(i)+1)%2);
+    }
+
     public static long parity1Get(long i) {
         if(Long.bitCount(i)%2!=1){
             throw new DBException.PointerChecksumBroken();
         }
         return i&0xFFFFFFFFFFFFFFFEL;
+    }
+
+
+    public static int parity1Get(int i) {
+        if(Integer.bitCount(i)%2!=1){
+            throw new DBException.PointerChecksumBroken();
+        }
+        return i&0xFFFFFFFE;
     }
 
     public static long parity3Set(long i) {
