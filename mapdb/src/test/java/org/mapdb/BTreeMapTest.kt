@@ -425,10 +425,12 @@ class BTreeMapTest {
             )
             val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
             map.store.update(rootRecid, dir, map.nodeSer)
+            map.verify()
 
 
             map.put(i, i * 100)
             assertEquals(i * 100, map[i])
+            map.verify()
         }
 
     }

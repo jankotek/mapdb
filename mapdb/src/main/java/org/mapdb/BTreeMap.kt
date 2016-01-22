@@ -1,6 +1,7 @@
 package org.mapdb
 
 import com.gs.collections.api.stack.primitive.LongStack
+import com.gs.collections.impl.set.mutable.primitive.LongHashSet
 import com.gs.collections.impl.stack.mutable.primitive.LongArrayStack
 import org.mapdb.BTreeMapJava.*
 import java.util.*
@@ -14,7 +15,7 @@ class BTreeMap<K,V>(
         val rootRecidRecid:Long,
         val store:Store,
         val maxNodeSize:Int
-){
+):Verifiable{
 
     companion object{
         fun <K,V> make(
@@ -39,25 +40,25 @@ class BTreeMap<K,V>(
 
     internal val nodeSer = NodeSerializer(keySerializer, valueSerializer);
 
+    internal val rootRecid:Long
+        get() = store.get(rootRecidRecid, Serializer.RECID)
+                ?: throw DBException.DataCorruption("Root Recid not found");
+
     operator fun get(key:K):V?{
-        var current =  store.get(rootRecidRecid, Serializer.RECID)
-            ?: throw DBException.DataCorruption("Root Recid not found");
-        var A = store.get(current, nodeSer)
-            ?: throw DBException.DataCorruption("Referenced node not found");
+        var current =  rootRecid
+        var A = getNode(current)
 
         //dive into bottom
         while(A.isDir){
             current =  findChild(A, COMPARATOR, key)
-            A = store.get(current, nodeSer)
-                ?: throw DBException.DataCorruption("Referenced node not found");
+            A = getNode(current)
         }
 
         //follow link until necessary
         var ret = leafGet(A,COMPARATOR, key)
         while(LINK==ret){
             current = A.link;
-            A = store.get(current, nodeSer)
-                    ?: throw DBException.DataCorruption("Referenced node not found");
+            A = getNode(current)
             ret = leafGet(A,COMPARATOR, key)
         }
         return ret as V?;
@@ -67,40 +68,36 @@ class BTreeMap<K,V>(
         var completed = false
         val stack = LongArrayStack()
 
-        var current = store.get(rootRecidRecid, Serializer.RECID)
-            ?: throw DBException.DataCorruption("rootRecid not found")
-        var A = store.get(current, nodeSer)
-            ?: throw DBException.DataCorruption("Node not found")
+        var current = rootRecid
+
+        var A = getNode(current)
         while(A.isDir){
             var t = current
             current = findChild(A, COMPARATOR, key)
             if(current!=A.link){
                 stack.push(t)
             }
-            A = store.get(current, nodeSer)
-                ?: throw DBException.DataCorruption("Node not found")
+            A = getNode(current)
         }
 
         var level = 1
         do{
-            var found:Boolean
-            do{
-                found = true
+
+            leafLink@ while(true){
                 lock(current)
 
-                A = store.get(current, nodeSer)
-                        ?: throw DBException.DataCorruption("Node not found")
+                A = getNode(current)
 
                 //follow link, until key is higher than highest key in node
                 if(!A.isRightEdge && COMPARATOR.compare(key, A.keys[A.keys.size-1])>0){
                     //key is greater, load next link
                     unlock(current)
-                    found = true
                     current = A.link
-                    A = store.get(current, nodeSer)
-                        ?: throw DBException.DataCorruption("Node not found")
+                    A = getNode(current)
+                    continue@leafLink
                 }
-            }while(!found)
+                break@leafLink
+            }
 
             //current node is locked, and its highest value is higher/equal to key
             var pos = findValue(A, COMPARATOR, key)
@@ -146,5 +143,51 @@ class BTreeMap<K,V>(
     fun unlock(nodeRecid:Long){
 
     }
+
+    override fun verify() {
+        val rootRecid = rootRecid
+        val node = getNode(rootRecid)
+
+        val knownNodes = LongHashSet.newSetWith(rootRecid)
+
+        verifyRecur(node, left=true, right=true, knownNodes=knownNodes)
+    }
+
+
+    private fun verifyRecur(node:Node, left:Boolean, right:Boolean, knownNodes:LongHashSet){
+        if(left!=node.isLeftEdge)
+            throw AssertionError("left does not match $left")
+        if(right!=node.isRightEdge)
+            throw AssertionError("right does not match $right")
+
+        //check keys are sorted, no duplicates
+        for(i in 1 until node.keys.size){
+            val compare = COMPARATOR.compare(node.keys[i-1], node.keys[i])
+            val cresult = if(i==node.keys.size-1) 1 else 0
+            if(compare>=cresult)
+                throw AssertionError("Not sorted: "+Arrays.toString(node.keys))
+        }
+
+        //iterate over child
+        if(node.isDir){
+            val child = node.values as LongArray
+            for(i in 0 until child.size){
+                val recid = child[i]
+
+                if(knownNodes.contains(recid))
+                    throw AssertionError()
+                knownNodes.add(recid)
+                val node = getNode(recid)
+                verifyRecur(node, left = (i==0), right= (child.size==i+1), knownNodes = knownNodes)
+
+                //TODO follow link until next node is found
+                //val linkEnd = if(i==child.size-1) 0L else child[i+1]
+            }
+        }
+    }
+
+    private fun getNode(nodeRecid:Long) =
+            store.get(nodeRecid, nodeSer)
+                ?: throw DBException.DataCorruption("Node not found")
 
 }
