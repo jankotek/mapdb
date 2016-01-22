@@ -1,6 +1,7 @@
 package org.mapdb;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -85,6 +86,15 @@ public class BTreeMapJava {
         boolean isLastKeyDouble(){
             return ((flags)&1)==1;
         }
+
+        @Nullable
+        public Object getHighKey() {
+            return keys[keys.length-1];
+        }
+
+        public long[] getChildren(){
+            return (long[]) values;
+        }
     }
 
     static class NodeSerializer extends Serializer<Node>{
@@ -110,8 +120,11 @@ public class BTreeMapJava {
             out.packInt(keysLen);
             if(!value.isRightEdge())
                 out.packLong(value.link);
-            keySerializer.serialize(out, value.keys);
-            valueSerializer.serialize(out, value.values);
+            new ArraySer(keySerializer).serialize(out, value.keys);
+            if(value.isDir())
+                Serializer.LONG_ARRAY.serialize(out, (long[]) value.values);
+            else
+                new ArraySer(valueSerializer).serialize(out, (Object[])value.values);
         }
 
         @Override
@@ -123,11 +136,13 @@ public class BTreeMapJava {
                     ? 0L :
                     input.unpackLong();
 
-            Object[] keys = (Object[]) keySerializer.deserialize(input, 0);
+            Object[] keys = (Object[]) new ArraySer(keySerializer).deserialize(input, -1);
             if(CC.ASSERT && keysLen!=keysLen)
                 throw new AssertionError();
 
-            Object values = valueSerializer.deserialize(input, 0);
+            Object values = (flags&DIR)!=0 ?
+                    Serializer.LONG_ARRAY.deserialize(input, -1):
+                    new ArraySer(valueSerializer).deserialize(input, -1);
 
             return new Node(flags, link, keys, values);
         }
@@ -172,10 +187,7 @@ public class BTreeMapJava {
     }
 
 
-    static int findValue(Node node, Comparator comparator, Object key){
-        if(CC.ASSERT && node.isDir())
-            throw new AssertionError();
-
+    static int findIndex(Node node, Comparator comparator, Object key){
         Object[] keys = node.keys;
         int index = 0;
         int keysLen = keys.length;
@@ -198,7 +210,7 @@ public class BTreeMapJava {
     };
 
     static Object leafGet(Node node, Comparator comparator, Object key){
-        int pos = findValue(node, comparator, key);
+        int pos = findIndex(node, comparator, key);
         return leafGet(node, pos);
     }
 
@@ -225,6 +237,16 @@ public class BTreeMapJava {
     /* expand array size by 1, and put value at given position. No items from original array are lost*/
     protected static Object[] arrayPut(final Object[] array, final int pos, final Object value){
         final Object[] ret = Arrays.copyOf(array, array.length+1);
+        if(pos<array.length){
+            System.arraycopy(array, pos, ret, pos+1, array.length-pos);
+        }
+        ret[pos] = value;
+        return ret;
+    }
+
+    /* expand array size by 1, and put value at given position. No items from original array are lost*/
+    protected static long[] arrayPut(final long[] array, final int pos, final long value){
+        final long[] ret = Arrays.copyOf(array, array.length+1);
         if(pos<array.length){
             System.arraycopy(array, pos, ret, pos+1, array.length-pos);
         }

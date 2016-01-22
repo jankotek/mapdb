@@ -1,7 +1,10 @@
 package org.mapdb
 
+import com.gs.collections.impl.set.mutable.primitive.IntHashSet
+import com.gs.collections.impl.set.mutable.primitive.LongHashSet
 import org.junit.Test
 import org.mapdb.BTreeMapJava.*
+import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
@@ -91,14 +94,14 @@ class BTreeMapTest {
                 arrayOf(2, 3, 4)
         )
 
-        assertEquals(-1, findValue(node, COMPARATOR, 5))
-        assertEquals(-2, findValue(node, COMPARATOR, 15))
-        assertEquals(-3, findValue(node, COMPARATOR, 22))
-        assertEquals(0, findValue(node, COMPARATOR, 10))
-        assertEquals(1, findValue(node, COMPARATOR, 20))
-        assertEquals(2, findValue(node, COMPARATOR, 30))
-        assertEquals(3, findValue(node, COMPARATOR, 40))
-        assertEquals(-6, findValue(node, COMPARATOR, 50))
+        assertEquals(-1, findIndex(node, COMPARATOR, 5))
+        assertEquals(-2, findIndex(node, COMPARATOR, 15))
+        assertEquals(-3, findIndex(node, COMPARATOR, 22))
+        assertEquals(0, findIndex(node, COMPARATOR, 10))
+        assertEquals(1, findIndex(node, COMPARATOR, 20))
+        assertEquals(2, findIndex(node, COMPARATOR, 30))
+        assertEquals(3, findIndex(node, COMPARATOR, 40))
+        assertEquals(-6, findIndex(node, COMPARATOR, 50))
 
     }
 
@@ -432,6 +435,27 @@ class BTreeMapTest {
             assertEquals(i * 100, map[i])
             map.verify()
         }
+    }
+
+    @Test fun randomInsert(){
+        val map = BTreeMap.make(
+                keySerializer = Serializer.INTEGER,
+                valueSerializer = Serializer.INTEGER,
+                maxNodeSize = 12
+        )
+
+        var r = Random(1)
+        val ref = IntHashSet()
+        for(i in 0 .. 1000){
+            val key = r.nextInt(10000)
+            ref.add(key)
+            map.put(key, key*100)
+            map.verify()
+            ref.forEach { key2->
+                assertEquals(key2*100, map[key2])
+            }
+        }
+
 
     }
 }
