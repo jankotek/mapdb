@@ -1,7 +1,5 @@
 package org.mapdb.jcache
 
-import com.gs.collections.impl.multimap.bag.HashBagMultimap
-import org.jsr107.ri.RICacheManager
 import java.net.URI
 import java.net.URISyntaxException
 import java.util.*

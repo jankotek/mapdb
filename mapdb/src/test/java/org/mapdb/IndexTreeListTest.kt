@@ -1,6 +1,6 @@
 package org.mapdb
 
-import com.gs.collections.impl.map.mutable.primitive.LongLongHashMap
+import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap
 import org.junit.Assert.*
 import org.junit.Test
 

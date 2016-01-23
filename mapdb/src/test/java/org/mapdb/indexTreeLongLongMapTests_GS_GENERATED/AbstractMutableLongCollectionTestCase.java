@@ -16,12 +16,12 @@
 
 package org.mapdb.indexTreeLongLongMapTests_GS_GENERATED;
 
-import com.gs.collections.api.collection.primitive.MutableLongCollection;
-import com.gs.collections.api.iterator.LongIterator;
-import com.gs.collections.api.iterator.MutableLongIterator;
-import com.gs.collections.impl.bag.mutable.primitive.LongHashBag;
-import com.gs.collections.impl.list.mutable.primitive.LongArrayList;
-import com.gs.collections.impl.test.Verify;
+import org.eclipse.collections.api.collection.primitive.MutableLongCollection;
+import org.eclipse.collections.api.iterator.LongIterator;
+import org.eclipse.collections.api.iterator.MutableLongIterator;
+import org.eclipse.collections.impl.bag.mutable.primitive.LongHashBag;
+import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList;
+import org.eclipse.collections.impl.test.Verify;
 import org.junit.Assert;
 import org.junit.Test;
 

@@ -1,10 +1,10 @@
 package org.mapdb
 
 import com.google.common.collect.Iterators
-import com.gs.collections.api.list.primitive.MutableLongList
-import com.gs.collections.impl.list.mutable.primitive.LongArrayList
-import com.gs.collections.impl.set.mutable.primitive.LongHashSet
-import com.gs.collections.impl.stack.mutable.primitive.LongArrayStack
+import org.eclipse.collections.api.list.primitive.MutableLongList
+import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
+import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
+import org.eclipse.collections.impl.stack.mutable.primitive.LongArrayStack
 import org.mapdb.BTreeMapJava.*
 import java.io.PrintStream
 import java.util.*

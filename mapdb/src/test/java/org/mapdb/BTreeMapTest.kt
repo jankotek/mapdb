@@ -1,7 +1,7 @@
 package org.mapdb
 
-import com.gs.collections.impl.set.mutable.primitive.IntHashSet
-import com.gs.collections.impl.set.mutable.primitive.LongHashSet
+import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet
+import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.junit.Test
 import org.mapdb.BTreeMapJava.*
 import java.util.*

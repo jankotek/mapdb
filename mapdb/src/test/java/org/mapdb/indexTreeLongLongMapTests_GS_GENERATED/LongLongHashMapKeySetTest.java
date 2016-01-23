@@ -16,11 +16,11 @@
 
 package org.mapdb.indexTreeLongLongMapTests_GS_GENERATED;
 
-import com.gs.collections.api.set.primitive.MutableLongSet;
-import com.gs.collections.impl.block.factory.primitive.LongPredicates;
-import com.gs.collections.impl.list.mutable.primitive.LongArrayList;
-import com.gs.collections.impl.map.mutable.primitive.LongLongHashMap;
-import com.gs.collections.impl.test.Verify;
+import org.eclipse.collections.api.set.primitive.MutableLongSet;
+import org.eclipse.collections.impl.block.factory.primitive.LongPredicates;
+import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList;
+import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
+import org.eclipse.collections.impl.test.Verify;
 import org.junit.Assert;
 import org.junit.Test;
 

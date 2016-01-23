@@ -16,18 +16,18 @@
 
 package org.mapdb.indexTreeLongLongMapTests_GS_GENERATED;
 
-import com.gs.collections.api.block.function.primitive.LongFunction;
-import com.gs.collections.api.block.function.primitive.LongFunction0;
-import com.gs.collections.api.block.function.primitive.LongToLongFunction;
-import com.gs.collections.api.iterator.MutableLongIterator;
-import com.gs.collections.api.map.primitive.MutableLongLongMap;
-import com.gs.collections.api.set.primitive.LongSet;
-import com.gs.collections.impl.list.mutable.primitive.LongArrayList;
-import com.gs.collections.impl.map.mutable.primitive.LongLongHashMap;
-import com.gs.collections.impl.map.mutable.primitive.SynchronizedLongLongMap;
-import com.gs.collections.impl.map.mutable.primitive.UnmodifiableLongLongMap;
-import com.gs.collections.impl.set.mutable.primitive.LongHashSet;
-import com.gs.collections.impl.test.Verify;
+import org.eclipse.collections.api.block.function.primitive.LongFunction;
+import org.eclipse.collections.api.block.function.primitive.LongFunction0;
+import org.eclipse.collections.api.block.function.primitive.LongToLongFunction;
+import org.eclipse.collections.api.iterator.MutableLongIterator;
+import org.eclipse.collections.api.map.primitive.MutableLongLongMap;
+import org.eclipse.collections.api.set.primitive.LongSet;
+import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList;
+import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
+import org.eclipse.collections.impl.map.mutable.primitive.SynchronizedLongLongMap;
+import org.eclipse.collections.impl.map.mutable.primitive.UnmodifiableLongLongMap;
+import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet;
+import org.eclipse.collections.impl.test.Verify;
 import org.junit.Assert;
 import org.junit.Test;
 

@@ -1,6 +1,6 @@
 package org.mapdb
 
-import com.gs.collections.impl.list.mutable.primitive.LongArrayList
+import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.mapdb.StoreDirectJava.*
 import org.mapdb.DataIO.*
 import java.io.IOException

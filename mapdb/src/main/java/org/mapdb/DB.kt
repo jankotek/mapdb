@@ -1,7 +1,7 @@
 package org.mapdb
 
-import com.gs.collections.api.map.primitive.MutableLongLongMap
-import com.gs.collections.impl.list.mutable.primitive.LongArrayList
+import org.eclipse.collections.api.map.primitive.MutableLongLongMap
+import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import java.io.Closeable
 import java.security.SecureRandom
 import java.util.*

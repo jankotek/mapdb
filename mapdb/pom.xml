@@ -30,28 +30,28 @@
         </dependency>
 
         <dependency>
-            <groupId>com.goldmansachs</groupId>
-            <artifactId>gs-collections-api</artifactId>
-            <version>${gsc.version}</version>
+            <groupId>org.eclipse.collections</groupId>
+            <artifactId>eclipse-collections-api</artifactId>
+            <version>${ec.version}</version>
         </dependency>
 
         <dependency>
-            <groupId>com.goldmansachs</groupId>
-            <artifactId>gs-collections</artifactId>
-            <version>${gsc.version}</version>
+            <groupId>org.eclipse.collections</groupId>
+            <artifactId>eclipse-collections</artifactId>
+            <version>${ec.version}</version>
         </dependency>
 
         <dependency>
-            <groupId>com.goldmansachs</groupId>
-            <artifactId>gs-collections-testutils</artifactId>
-            <version>${gsc.version}</version>
+            <groupId>org.eclipse.collections</groupId>
+            <artifactId>eclipse-collections-testutils</artifactId>
+            <version>${ec.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
-            <groupId>com.goldmansachs</groupId>
-            <artifactId>gs-collections-forkjoin</artifactId>
-            <version>${gsc.version}</version>
+            <groupId>org.eclipse.collections</groupId>
+            <artifactId>eclipse-collections-forkjoin</artifactId>
+            <version>${ec.version}</version>
         </dependency>
 
         <!-- TODO remove Guava dep, it is needed to concat iterators in HTreeMap -->

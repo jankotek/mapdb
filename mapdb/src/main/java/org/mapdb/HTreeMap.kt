@@ -1,8 +1,8 @@
 package org.mapdb
 
 import com.google.common.collect.Iterators
-import com.gs.collections.api.map.primitive.MutableLongLongMap
-import com.gs.collections.impl.set.mutable.primitive.LongHashSet
+import org.eclipse.collections.api.map.primitive.MutableLongLongMap
+import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import java.io.Closeable
 import java.security.SecureRandom
 

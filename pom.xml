@@ -19,7 +19,8 @@
 
 
         <junit.version>4.12</junit.version>
-	    <gsc.version>7.0.0</gsc.version>
+        <!--eclipse collections-->
+	    <ec.version>7.0.0</ec.version>
         <jcache.api.version>1.0.0</jcache.api.version>
         <jcache.tck.version>1.0.1</jcache.tck.version>
 

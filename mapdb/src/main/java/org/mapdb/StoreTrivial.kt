@@ -1,9 +1,9 @@
 package org.mapdb
 
-import com.gs.collections.api.LongIterable
-import com.gs.collections.impl.map.mutable.primitive.LongObjectHashMap
-import com.gs.collections.impl.set.mutable.primitive.LongHashSet
-import com.gs.collections.impl.stack.mutable.primitive.LongArrayStack
+import org.eclipse.collections.api.LongIterable
+import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
+import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
+import org.eclipse.collections.impl.stack.mutable.primitive.LongArrayStack
 import java.io.*
 import java.nio.channels.FileChannel
 import java.nio.channels.FileLock

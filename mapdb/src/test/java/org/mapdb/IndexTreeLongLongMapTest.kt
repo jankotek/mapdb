@@ -1,10 +1,10 @@
 package org.mapdb
 
-import com.gs.collections.api.LazyLongIterable
-import com.gs.collections.api.collection.primitive.MutableLongCollection
-import com.gs.collections.api.map.primitive.MutableLongLongMap
-import com.gs.collections.api.set.primitive.MutableLongSet
-import com.gs.collections.impl.map.mutable.primitive.LongLongHashMap
+import org.eclipse.collections.api.LazyLongIterable
+import org.eclipse.collections.api.collection.primitive.MutableLongCollection
+import org.eclipse.collections.api.map.primitive.MutableLongLongMap
+import org.eclipse.collections.api.set.primitive.MutableLongSet
+import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap
 import org.mapdb.indexTreeLongLongMapTests_GS_GENERATED.*
 import org.junit.Assert.*
 import org.junit.Test

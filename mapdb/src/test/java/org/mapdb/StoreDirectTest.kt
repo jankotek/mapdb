@@ -1,8 +1,8 @@
 package org.mapdb
 
-import com.gs.collections.impl.list.mutable.primitive.LongArrayList
-import com.gs.collections.impl.map.mutable.primitive.LongObjectHashMap
-import com.gs.collections.impl.set.mutable.primitive.LongHashSet
+import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
+import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
+import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.junit.Test
 import org.junit.Assert.*
 import java.io.File

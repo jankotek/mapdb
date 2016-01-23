@@ -1,6 +1,6 @@
 package org.mapdb
 
-import com.gs.collections.api.block.procedure.Procedure
+import org.eclipse.collections.api.block.procedure.Procedure
 import java.util.EventListener
 import java.util.concurrent.ConcurrentMap
 import java.util.function.BiConsumer

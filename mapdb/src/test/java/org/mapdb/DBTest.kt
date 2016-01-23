@@ -1,6 +1,6 @@
 package org.mapdb
 
-import com.gs.collections.impl.set.mutable.primitive.LongHashSet
+import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.junit.Assert.*
 import org.junit.Test
 import java.math.BigDecimal
