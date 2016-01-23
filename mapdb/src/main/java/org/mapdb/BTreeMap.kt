@@ -806,10 +806,10 @@ class BTreeMap<K,V>(
         var node = getNode(leftEdges.first)
         while(true){
 
-            for(i in 1-node.intRightEdge()
+            for(i in 1-node.intLeftEdge()
                     until node.keys.size-1+node.intRightEdge()){
                 val key = node.keys[i] as K
-                val value = (node.values as Array<Any>)[i-1+node.intRightEdge()] as V
+                val value = (node.values as Array<Any>)[i-1+node.intLeftEdge()] as V
                 action.accept(key,value)
             }
 
@@ -825,7 +825,7 @@ class BTreeMap<K,V>(
         var node = getNode(leftEdges.first)
         while(true){
 
-            for(i in 1-node.intRightEdge()
+            for(i in 1-node.intLeftEdge()
                     until node.keys.size-1+node.intRightEdge()){
                 val key = node.keys[i] as K
                 procedure(key)
@@ -843,9 +843,9 @@ class BTreeMap<K,V>(
         var node = getNode(leftEdges.first)
         while(true){
 
-            for(i in 1-node.intRightEdge()
+            for(i in 1-node.intLeftEdge()
                     until node.keys.size-1+node.intRightEdge()){
-                val value = (node.values as Array<Any>)[i-1+node.intRightEdge()] as V
+                val value = (node.values as Array<Any>)[i-1+node.intLeftEdge()] as V
                 procedure(value)
             }
 
