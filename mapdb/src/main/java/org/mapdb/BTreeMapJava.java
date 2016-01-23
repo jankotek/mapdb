@@ -253,5 +253,12 @@ public class BTreeMapJava {
         ret[pos] = value;
         return ret;
     }
+
+    public static Object[] arrayRemove(Object[] vals, int pos) {
+        Object[] vals2 = Arrays.copyOf(vals, vals.length-1);
+        System.arraycopy(vals, pos+1, vals2, pos, vals.length-(pos+1));
+        return vals2;
+    }
+
 }
 

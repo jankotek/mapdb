@@ -196,6 +196,57 @@ class BTreeMap<K,V>(
         return null
     }
 
+    fun remove(key:K):V?{
+        return remove(key, null)
+    }
+
+    fun remove(key:K, value:V?):V?{
+        val v = key
+
+        val rootRecid = rootRecid
+
+        var current = rootRecid
+
+        var A = getNode(current)
+        while(A.isDir){
+            current = findChild(A, COMPARATOR, v)
+            A = getNode(current)
+        }
+
+        leafLink@ while(true){
+            lock(current)
+
+            A = getNode(current)
+
+            //follow link, until key is higher than highest key in node
+            if(!A.isRightEdge && COMPARATOR.compare(v, A.highKey)>0){
+                //key is greater, load next link
+                unlock(current)
+                current = A.link
+                continue@leafLink
+            }
+            break@leafLink
+        }
+
+        //current node is locked, and its highest value is higher/equal to key
+        var pos = findIndex(A, COMPARATOR, v)
+        var oldValue:V? = null
+        if(pos>=1-A.intLeftEdge() && pos!=A.keys.size-1+A.intRightEdge()){
+            val keys = arrayRemove(A.keys, pos)
+            pos = pos-1+A.intLeftEdge();
+            //key exist in node, just update
+            var values = (A.values as Array<Any>)
+            oldValue = values[pos] as V
+
+            values = arrayRemove(values, pos)
+            A = Node(A.flags.toInt(), A.link, keys, values)
+            store.update(current, A, nodeSer)
+        }
+        unlock(current)
+        return oldValue
+    }
+
+
     private fun copySplitLeft(a: Node, splitPos: Int, link:Long): Node {
         val flags = a.intDir()*DIR + a.intLeftEdge()*LEFT
 
@@ -339,7 +390,7 @@ class BTreeMap<K,V>(
 
                 val next = getNode(node.link)
                 if(COMPARATOR.compare(node.highKey,next.keys[0])!=0)
-                    throw AssertionError()
+                    throw AssertionError(node.link)
 
                 node = next
             }

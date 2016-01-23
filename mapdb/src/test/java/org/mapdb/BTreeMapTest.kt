@@ -441,7 +441,7 @@ class BTreeMapTest {
         val map = BTreeMap.make(
                 keySerializer = Serializer.INTEGER,
                 valueSerializer = Serializer.INTEGER,
-                maxNodeSize = 12
+                maxNodeSize = 8
         )
 
         var r = Random(1)
@@ -455,7 +455,66 @@ class BTreeMapTest {
                 assertEquals(key2*100, map[key2])
             }
         }
-
-
     }
+
+    @Test fun randomInsert_returnVal(){
+        val map = BTreeMap.make(
+                keySerializer = Serializer.INTEGER,
+                valueSerializer = Serializer.INTEGER,
+                maxNodeSize = 8
+        )
+
+        var r = Random(1)
+        val ref = IntHashSet()
+        for(i in 0 .. 1000){
+            val key = r.nextInt(10000)
+            ref.add(key)
+            map.put(key, key*100+i-1)
+            map.verify()
+            ref.forEach { key2->
+                assertEquals(key2*100+i-1, map[key2])
+                assertEquals(key2*100+i-1, map.put(key2, key2*100+i))
+            }
+        }
+    }
+
+    @Test fun randomInsert_delete(){
+        val map = BTreeMap.make(
+                keySerializer = Serializer.INTEGER,
+                valueSerializer = Serializer.INTEGER,
+                maxNodeSize = 8
+        )
+
+        var r = Random(1)
+        val ref = IntHashSet()
+        for(i in 0 .. 1000){
+            val key = r.nextInt(10000)
+            ref.add(key)
+            map.put(key, key*100)
+        }
+
+        val removed = IntHashSet()
+
+        ref.forEach { key->
+            assertEquals(key*100, map[key])
+            assertEquals(key*100, map.remove(key))
+            assertEquals(null, map[key])
+            assertEquals(null, map.remove(key))
+            removed.add(key)
+
+
+            for(i in 0 .. 10000){
+                if(!ref.contains(i) && !removed.contains(i)) {
+                    assertEquals(null, map[i])
+                }
+            }
+            map.verify()
+        }
+
+        ref.forEach { key ->
+            assertEquals(null, map[key])
+        }
+        map.verify()
+    }
+
 }
