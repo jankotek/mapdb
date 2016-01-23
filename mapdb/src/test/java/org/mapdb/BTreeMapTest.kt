@@ -5,10 +5,9 @@ import com.gs.collections.impl.set.mutable.primitive.LongHashSet
 import org.junit.Test
 import org.mapdb.BTreeMapJava.*
 import java.util.*
-import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
-import kotlin.test.assertTrue
-import kotlin.test.failsWith
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CopyOnWriteArraySet
+import kotlin.test.*
 
 class BTreeMapTest {
 
@@ -185,7 +184,7 @@ class BTreeMapTest {
 
         val map = BTreeMap.make<Int, Int>()
         val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
-        map.store.update(rootRecid, node, map.nodeSer)
+        map.store.update(rootRecid, node, map.nodeSerializer)
 
         assertEquals(null, map[19])
         assertEquals(2, map[20])
@@ -207,13 +206,13 @@ class BTreeMapTest {
 
         val node1 = Node(
                 LEFT,
-                map.store.put(node2, map.nodeSer),
+                map.store.put(node2, map.nodeSerializer),
                 arrayOf(20, 30, 40, 50, 50),
                 arrayOf(2, 3, 4, 5)
         )
 
         val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
-        map.store.update(rootRecid, node1, map.nodeSer)
+        map.store.update(rootRecid, node1, map.nodeSerializer)
 
         assertEquals(null, map[19])
         assertEquals(null, map[21])
@@ -234,21 +233,21 @@ class BTreeMapTest {
 
         val node2 = Node(
                 0,
-                map.store.put(node3, map.nodeSer),
+                map.store.put(node3, map.nodeSerializer),
                 arrayOf(50, 60, 70, 70),
                 arrayOf(6, 7)
         )
 
         val node1 = Node(
                 LEFT,
-                map.store.put(node2, map.nodeSer),
+                map.store.put(node2, map.nodeSerializer),
                 arrayOf(20, 30, 40, 50, 50),
                 arrayOf(2, 3, 4, 5)
         )
 
 
         val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
-        map.store.update(rootRecid, node1, map.nodeSer)
+        map.store.update(rootRecid, node1, map.nodeSerializer)
 
         for (i in 2..9) {
             assertEquals(null, map[i * 10 + 1])
@@ -269,7 +268,7 @@ class BTreeMapTest {
 
         val map = BTreeMap.make<Int, Int>()
         val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
-        map.store.update(rootRecid, node, map.nodeSer)
+        map.store.update(rootRecid, node, map.nodeSerializer)
 
         assertEquals(null, map[10])
         assertEquals(null, map[19])
@@ -295,13 +294,13 @@ class BTreeMapTest {
 
         val node1 = Node(
                 0,
-                map.store.put(node2, map.nodeSer),
+                map.store.put(node2, map.nodeSerializer),
                 arrayOf(10, 20, 30, 40, 50, 50),
                 arrayOf(2, 3, 4, 5)
         )
 
         val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
-        map.store.update(rootRecid, node1, map.nodeSer)
+        map.store.update(rootRecid, node1, map.nodeSerializer)
 
         assertEquals(null, map[10])
         assertEquals(null, map[19])
@@ -324,21 +323,21 @@ class BTreeMapTest {
 
         val node2 = Node(
                 0,
-                map.store.put(node3, map.nodeSer),
+                map.store.put(node3, map.nodeSerializer),
                 arrayOf(50, 60, 70, 70),
                 arrayOf(6, 7)
         )
 
         val node1 = Node(
                 0,
-                map.store.put(node2, map.nodeSer),
+                map.store.put(node2, map.nodeSerializer),
                 arrayOf(10, 20, 30, 40, 50, 50),
                 arrayOf(2, 3, 4, 5)
         )
 
 
         val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
-        map.store.update(rootRecid, node1, map.nodeSer)
+        map.store.update(rootRecid, node1, map.nodeSerializer)
 
         assertEquals(null, map[10])
         for (i in 2..9) {
@@ -357,7 +356,7 @@ class BTreeMapTest {
                 arrayOf(70, 80, 90),
                 arrayOf(8, 9)
         )
-        val recid3 = map.store.put(node3, map.nodeSer)
+        val recid3 = map.store.put(node3, map.nodeSerializer)
 
         val node2 = Node(
                 0,
@@ -365,7 +364,7 @@ class BTreeMapTest {
                 arrayOf(50, 60, 70, 70),
                 arrayOf(6, 7)
         )
-        val recid2 = map.store.put(node2, map.nodeSer)
+        val recid2 = map.store.put(node2, map.nodeSerializer)
 
         val node1 = Node(
                 LEFT,
@@ -373,7 +372,7 @@ class BTreeMapTest {
                 arrayOf(20, 30, 40, 50, 50),
                 arrayOf(2, 3, 4, 5)
         )
-        val recid1 = map.store.put(node1, map.nodeSer)
+        val recid1 = map.store.put(node1, map.nodeSerializer)
 
         val dir = Node(
                 DIR + LEFT + RIGHT,
@@ -382,7 +381,7 @@ class BTreeMapTest {
                 longArrayOf(recid1, recid2, recid3)
         )
         val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
-        map.store.update(rootRecid, dir, map.nodeSer)
+        map.store.update(rootRecid, dir, map.nodeSerializer)
 
         for (i in 2..9) {
             assertEquals(null, map[i * 10 + 1])
@@ -402,7 +401,7 @@ class BTreeMapTest {
                     arrayOf(70, 80, 90),
                     arrayOf(8, 9)
             )
-            val recid3 = map.store.put(node3, map.nodeSer)
+            val recid3 = map.store.put(node3, map.nodeSerializer)
 
             val node2 = Node(
                     0,
@@ -410,7 +409,7 @@ class BTreeMapTest {
                     arrayOf(50, 60, 70, 70),
                     arrayOf(6, 7)
             )
-            val recid2 = map.store.put(node2, map.nodeSer)
+            val recid2 = map.store.put(node2, map.nodeSerializer)
 
             val node1 = Node(
                     LEFT,
@@ -418,7 +417,7 @@ class BTreeMapTest {
                     arrayOf(20, 30, 40, 50, 50),
                     arrayOf(2, 3, 4, 5)
             )
-            val recid1 = map.store.put(node1, map.nodeSer)
+            val recid1 = map.store.put(node1, map.nodeSerializer)
 
             val dir = Node(
                     DIR + LEFT + RIGHT,
@@ -427,7 +426,7 @@ class BTreeMapTest {
                     longArrayOf(recid1, recid2, recid3)
             )
             val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
-            map.store.update(rootRecid, dir, map.nodeSer)
+            map.store.update(rootRecid, dir, map.nodeSerializer)
             map.verify()
 
 
@@ -516,5 +515,70 @@ class BTreeMapTest {
         }
         map.verify()
     }
+
+    @Test fun iterate(){
+        val map = BTreeMap.make(
+                keySerializer = Serializer.INTEGER,
+                valueSerializer = Serializer.INTEGER,
+                maxNodeSize = 8
+        )
+
+        var r = Random(1)
+        val ref = IntHashSet()
+        for(i in 0 .. 1000){
+            val key = r.nextInt(10000)
+            ref.add(key)
+            map.put(key, key*100)
+        }
+
+        val iter = map.entries.iterator()
+        while(iter.hasNext()){
+            val next = iter.next()
+            assertTrue(ref.remove(next.key!!))
+            assertEquals(next.key!!*100, next.value!!)
+        }
+        assertFalse(iter.hasNext())
+        assertFailsWith(NoSuchElementException::class.java){
+            iter.next()
+        }
+
+        assertTrue(ref.isEmpty)
+    }
+
+
+    /* check that empty leaf nodes are skipped during iteration */
+    @Test fun iterate_remove(){
+        val map = BTreeMap.make(
+                keySerializer = Serializer.INTEGER,
+                valueSerializer = Serializer.INTEGER,
+                maxNodeSize = 8
+        )
+
+        var r = Random(1)
+        val ref = CopyOnWriteArraySet<Int>()
+        for(i in 0 .. 1000){
+            val key = r.nextInt(10000)
+            ref.add(key)
+            map.put(key, key*100)
+        }
+
+        // remove keys from ref, iterator should always return all entries in ref
+        for(key in ref){
+            ref.remove(key)
+            assertEquals(key*100, map.remove(key))
+
+            val otherRef = CopyOnWriteArraySet<Int>()
+            val iter = map.entries.iterator()
+            while(iter.hasNext()) {
+                otherRef.add(iter.next().key!!)
+            }
+            //sort, ensure it equals
+            val sortedRef = TreeSet<Int>(ref)
+            val sortedOtherRef = TreeSet<Int>(otherRef)
+            assertEquals(sortedRef, sortedOtherRef)
+        }
+
+    }
+
 
 }

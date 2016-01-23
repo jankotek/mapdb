@@ -17,7 +17,7 @@ public class BTreeMapJava {
     static final int RIGHT = 1<<1;
     static final int LAST_KEY_DOUBLE = 1;
 
-    static class Node{
+    public static class Node{
 
         /** bit flags (dir, left most, right most, next key equal to last...) */
         final byte flags;
