@@ -1,6 +1,5 @@
 package org.mapdb
 
-import com.google.common.collect.Iterators
 import org.eclipse.collections.api.list.primitive.MutableLongList
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
@@ -9,6 +8,7 @@ import org.mapdb.BTreeMapJava.*
 import java.io.PrintStream
 import java.util.*
 import java.util.concurrent.ConcurrentMap
+import java.util.function.BiConsumer
 
 /**
  * Concurrent sorted BTree Map
@@ -19,7 +19,7 @@ class BTreeMap<K,V>(
         val rootRecidRecid:Long,
         val store:Store,
         val maxNodeSize:Int
-):Verifiable, ConcurrentMap<K, V> {
+):Verifiable, ConcurrentMap<K, V>, MapExtra<K, V> {
 
     companion object{
         fun <K,V> make(
@@ -479,6 +479,11 @@ class BTreeMap<K,V>(
         }
     }
 
+    override fun putIfAbsentBoolean(key: K?, value: V?):Boolean{
+        if(key == null || value==null)
+            throw NullPointerException()
+        return putIfAbsent(key,value)!=null
+    }
 
     override fun putIfAbsent(key: K?, value: V?): V? {
         if(key==null || value==null)
@@ -528,7 +533,7 @@ class BTreeMap<K,V>(
     override val size: Int
         get() = Math.min(Int.MAX_VALUE.toLong(), sizeLong()).toInt()
 
-    fun sizeLong():Long{
+    override fun sizeLong():Long{
         var ret = 0L
         val iter = keys.iterator()
         while(iter.hasNext()){
@@ -790,8 +795,65 @@ class BTreeMap<K,V>(
     }
 
 
-    fun isClosed(): Boolean {
+    override fun isClosed(): Boolean {
         return store.isClosed()
+    }
+
+
+    override fun forEach(action: BiConsumer<in K?, in V?>?) {
+        if(action==null)
+            throw NullPointerException()
+        var node = getNode(leftEdges.first)
+        while(true){
+
+            for(i in 1-node.intRightEdge()
+                    until node.keys.size-1+node.intRightEdge()){
+                val key = node.keys[i] as K
+                val value = (node.values as Array<Any>)[i-1+node.intRightEdge()] as V
+                action.accept(key,value)
+            }
+
+            if(node.isRightEdge)
+                return
+            node = getNode(node.link)
+        }
+    }
+
+    override fun forEachKey(procedure: (K?) -> Unit) {
+        if(procedure==null)
+            throw NullPointerException()
+        var node = getNode(leftEdges.first)
+        while(true){
+
+            for(i in 1-node.intRightEdge()
+                    until node.keys.size-1+node.intRightEdge()){
+                val key = node.keys[i] as K
+                procedure(key)
+            }
+
+            if(node.isRightEdge)
+                return
+            node = getNode(node.link)
+        }
+    }
+
+    override fun forEachValue(procedure: (V?) -> Unit) {
+        if(procedure==null)
+            throw NullPointerException()
+        var node = getNode(leftEdges.first)
+        while(true){
+
+            for(i in 1-node.intRightEdge()
+                    until node.keys.size-1+node.intRightEdge()){
+                val value = (node.values as Array<Any>)[i-1+node.intRightEdge()] as V
+                procedure(value)
+            }
+
+            if(node.isRightEdge)
+                return
+            node = getNode(node.link)
+        }
+
     }
 
 

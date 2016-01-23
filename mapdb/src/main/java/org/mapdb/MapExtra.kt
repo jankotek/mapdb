@@ -49,7 +49,7 @@ interface MapExtra<K, V> : ConcurrentMap<K, V> {
      * *  TODO link to JCache standar
      * *  TODO credits for javadoc
      */
-    fun putIfAbsentBoolean(key: K, value: V): Boolean
+    fun putIfAbsentBoolean(key: K?, value: V?): Boolean
 
 
     fun isClosed(): Boolean
