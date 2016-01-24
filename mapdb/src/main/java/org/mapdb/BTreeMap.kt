@@ -7,7 +7,9 @@ import org.eclipse.collections.impl.stack.mutable.primitive.LongArrayStack
 import org.mapdb.BTreeMapJava.*
 import java.io.PrintStream
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
+import java.util.concurrent.locks.LockSupport
 import java.util.function.BiConsumer
 
 /**
@@ -66,6 +68,8 @@ class BTreeMap<K,V>(
         ret.toReversed().asSynchronized()
     }()
 
+    private val locks = ConcurrentHashMap<Long, Long>()
+
     override operator fun get(key:K?):V?{
         if(key==null)
             throw NullPointerException()
@@ -94,124 +98,133 @@ class BTreeMap<K,V>(
         return put2(key,value, false)
     }
 
-    fun put2(key:K, value:V, onlyIfAbsent:Boolean):V?{
+    protected fun put2(key:K, value:V, onlyIfAbsent:Boolean):V?{
         if(key==null || value==null)
             throw NullPointerException()
 
-        var v = key!!
-        var completed = false
-        val stack = LongArrayStack()
-        val rootRecid = rootRecid
+        try{
+            var v = key!!
+            var completed = false
+            val stack = LongArrayStack()
+            val rootRecid = rootRecid
 
-        var current = rootRecid
+            var current = rootRecid
 
-        var A = getNode(current)
-        while(A.isDir){
-            var t = current
-            current = findChild(A, COMPARATOR, v)
-            if(current!=A.link){
-                stack.push(t)
-            }
-            A = getNode(current)
-        }
-
-        var level = 1
-        var p=0L
-        do{
-
-            leafLink@ while(true){
-                lock(current)
-
+            var A = getNode(current)
+            while(A.isDir){
+                var t = current
+                current = findChild(A, COMPARATOR, v)
+                if(current!=A.link){
+                    stack.push(t)
+                }
                 A = getNode(current)
+            }
 
-                //follow link, until key is higher than highest key in node
-                if(!A.isRightEdge && COMPARATOR.compare(v, A.highKey)>0){
-                    //key is greater, load next link
+            var level = 1
+            var p=0L
+            do{
+
+                leafLink@ while(true){
+                    lock(current)
+
+                    A = getNode(current)
+
+                    //follow link, until key is higher than highest key in node
+                    if(!A.isRightEdge && COMPARATOR.compare(v, A.highKey)>0){
+                        //key is greater, load next link
+                        unlock(current)
+                        current = A.link
+                        continue@leafLink
+                    }
+                    break@leafLink
+                }
+
+                //current node is locked, and its highest value is higher/equal to key
+                var pos = findIndex(A, COMPARATOR, v)
+                if(pos>=0){
+                    //entry exist in current node, so just update
+                    pos = pos-1+A.intLeftEdge();
+                    //key exist in node, just update
+                    val values = (A.values as Array<Any>).clone()
+                    val oldValue = values[pos] as V
+
+                    //update only if not exist, return
+                    if(!onlyIfAbsent) {
+                        values[pos] = value as Any;
+                        A = Node(A.flags.toInt(), A.link, A.keys, values)
+                        store.update(current, A, nodeSerializer)
+                    }
                     unlock(current)
-                    current = A.link
-                    continue@leafLink
+                    return oldValue
                 }
-                break@leafLink
-            }
 
-            //current node is locked, and its highest value is higher/equal to key
-            var pos = findIndex(A, COMPARATOR, v)
-            if(pos>=0){
-                //entry exist in current node, so just update
-                pos = pos-1+A.intLeftEdge();
-                //key exist in node, just update
-                val values = (A.values as Array<Any>).clone()
-                val oldValue = values[pos] as V
+                //normalise pos
+                pos = -pos-1
 
-                //update only if not exist, return
-                if(!onlyIfAbsent) {
-                    values[pos] = value as Any;
-                    A = Node(A.flags.toInt(), A.link, A.keys, values)
-                    store.update(current, A, nodeSerializer)
-                }
-                unlock(current)
-                return oldValue
-            }
-
-            //normalise pos
-            pos = -pos-1
-
-            //key does not exist, node must be expanded
-            A = if(A.isDir) copyAddKeyDir(A, pos, v, p)
+                //key does not exist, node must be expanded
+                A = if(A.isDir) copyAddKeyDir(A, pos, v, p)
                 else copyAddKeyLeaf(A, pos, v, value)
 
-            if(A.keys.size < maxNodeSize){
-                //it is safe to insert without spliting
-                store.update(current, A, nodeSerializer)
-                unlock(current)
-                return null
-            }
-
-            //node is not safe it requires split
-            val splitPos = A.keys.size/2
-            val B = copySplitRight(A, splitPos)
-            val q = store.put(B, nodeSerializer)
-            A = copySplitLeft(A, splitPos, q)
-            store.update(current, A, nodeSerializer)
-
-            if(current != rootRecid){
-                //is not root
-                unlock(current)
-                p = q
-                v = A.highKey as K
-//                if(CC.ASSERT && COMPARATOR.compare(v, key)<0)
-//                    throw AssertionError()
-                level++
-                current = if(stack.isEmpty.not()){
-                    stack.pop()
-                }else{
-                    //pointer to left most node at level
-                    leftEdges.get(level - 1)
+                if(A.keys.size < maxNodeSize){
+                    //it is safe to insert without spliting
+                    store.update(current, A, nodeSerializer)
+                    unlock(current)
+                    return null
                 }
-            }else{
-                //is root
-                val R = Node(
-                        DIR + LEFT + RIGHT,
-                        0L,
-                        arrayOf(A.highKey),
-                        longArrayOf(current, q)
-                )
 
-                unlock(current)
-                lock(rootRecidRecid)
-                val newRootRecid = store.put(R, nodeSerializer)
-                leftEdges.add(newRootRecid)
-                //TODO there could be a race condition between leftEdges  update and rootRecidRef update. Investigate!
-                store.update(rootRecidRecid, newRootRecid, Serializer.RECID)
+                //node is not safe it requires split
+                val splitPos = A.keys.size/2
+                val B = copySplitRight(A, splitPos)
+                val q = store.put(B, nodeSerializer)
+                A = copySplitLeft(A, splitPos, q)
+                store.update(current, A, nodeSerializer)
 
-                unlock(rootRecidRecid)
+                if(current != rootRecid){
+                    //is not root
+                    unlock(current)
+                    p = q
+                    v = A.highKey as K
+                    //                if(CC.ASSERT && COMPARATOR.compare(v, key)<0)
+                    //                    throw AssertionError()
+                    level++
+                    current = if(stack.isEmpty.not()){
+                        stack.pop()
+                    }else{
+                        //pointer to left most node at level
+                        leftEdges.get(level - 1)
+                    }
+                }else{
+                    //is root
+                    val R = Node(
+                            DIR + LEFT + RIGHT,
+                            0L,
+                            arrayOf(A.highKey),
+                            longArrayOf(current, q)
+                    )
 
-                return null;
-            }
+                    unlock(current)
+                    lock(rootRecidRecid)
+                    val newRootRecid = store.put(R, nodeSerializer)
+                    leftEdges.add(newRootRecid)
+                    //TODO there could be a race condition between leftEdges  update and rootRecidRef update. Investigate!
+                    store.update(rootRecidRecid, newRootRecid, Serializer.RECID)
 
-        }while(!completed)
+                    unlock(rootRecidRecid)
 
-        return null
+                    return null;
+                }
+
+            }while(!completed)
+
+            return null
+
+        }catch(e:Throwable) {
+            unlockAllCurrentThread()
+            throw e
+        }finally{
+            if(CC.ASSERT)
+                assertCurrentThreadUnlocked()
+        }
     }
 
     override fun remove(key:K?):V?{
@@ -225,61 +238,69 @@ class BTreeMap<K,V>(
         if(key==null)
             throw NullPointerException()
 
-        val v = key
+        try {
+            val v = key
 
-        val rootRecid = rootRecid
+            val rootRecid = rootRecid
 
-        var current = rootRecid
+            var current = rootRecid
 
-        var A = getNode(current)
-        while(A.isDir){
-            current = findChild(A, COMPARATOR, v)
-            A = getNode(current)
-        }
-
-        leafLink@ while(true){
-            lock(current)
-
-            A = getNode(current)
-
-            //follow link, until key is higher than highest key in node
-            if(!A.isRightEdge && COMPARATOR.compare(v, A.highKey)>0){
-                //key is greater, load next link
-                unlock(current)
-                current = A.link
-                continue@leafLink
+            var A = getNode(current)
+            while (A.isDir) {
+                current = findChild(A, COMPARATOR, v)
+                A = getNode(current)
             }
-            break@leafLink
-        }
 
-        //current node is locked, and its highest value is higher/equal to key
-        val pos = findIndex(A, COMPARATOR, v)
-        var oldValue:V? = null
-        if(pos>=1-A.intLeftEdge() && pos!=A.keys.size-1+A.intRightEdge()){
-            val valuePos = pos-1+A.intLeftEdge();
-            //key exist in node, just update
-            var values = (A.values as Array<Any>)
-            oldValue = values[valuePos] as V
-            var keys = A.keys
-            if(expectedOldValue==null || valueSerializer.equals(expectedOldValue!!,oldValue)) {
-                if(replaceWithValue==null){
-                    //remove
-                    keys = arrayRemove(keys, pos)
-                    values = arrayRemove(values, valuePos)
-                }else{
-                    //just replace value, do not modify keys
-                    values = values.clone()
-                    values[valuePos] = replaceWithValue
+            leafLink@ while (true) {
+                lock(current)
+
+                A = getNode(current)
+
+                //follow link, until key is higher than highest key in node
+                if (!A.isRightEdge && COMPARATOR.compare(v, A.highKey) > 0) {
+                    //key is greater, load next link
+                    unlock(current)
+                    current = A.link
+                    continue@leafLink
                 }
-
-                A = Node(A.flags.toInt(), A.link, keys, values)
-                store.update(current, A, nodeSerializer)
-            }else{
-                oldValue = null
+                break@leafLink
             }
+
+            //current node is locked, and its highest value is higher/equal to key
+            val pos = findIndex(A, COMPARATOR, v)
+            var oldValue: V? = null
+            if (pos >= 1 - A.intLeftEdge() && pos != A.keys.size - 1 + A.intRightEdge()) {
+                val valuePos = pos - 1 + A.intLeftEdge();
+                //key exist in node, just update
+                var values = (A.values as Array<Any>)
+                oldValue = values[valuePos] as V
+                var keys = A.keys
+                if (expectedOldValue == null || valueSerializer.equals(expectedOldValue!!, oldValue)) {
+                    if (replaceWithValue == null) {
+                        //remove
+                        keys = arrayRemove(keys, pos)
+                        values = arrayRemove(values, valuePos)
+                    } else {
+                        //just replace value, do not modify keys
+                        values = values.clone()
+                        values[valuePos] = replaceWithValue
+                    }
+
+                    A = Node(A.flags.toInt(), A.link, keys, values)
+                    store.update(current, A, nodeSerializer)
+                } else {
+                    oldValue = null
+                }
+            }
+            unlock(current)
+            return oldValue
+        }catch(e:Throwable) {
+            unlockAllCurrentThread()
+            throw e
+        }finally{
+            if(CC.ASSERT)
+                assertCurrentThreadUnlocked()
         }
-        unlock(current)
-        return oldValue
     }
 
 
@@ -347,12 +368,42 @@ class BTreeMap<K,V>(
 
 
     fun lock(nodeRecid:Long){
-        //TODO node locking
+        val value = Thread.currentThread().id
+        //try to lock, but only if current node is not empty
+        while(locks.putIfAbsent(nodeRecid, value)!=null)
+            LockSupport.parkNanos(10)
     }
 
     fun unlock(nodeRecid:Long){
-        //TODO node locking
+        val v = locks.remove(nodeRecid)
+        if(v==null || v!=Thread.currentThread().id)
+            throw AssertionError("Unlocked wrong thread");
     }
+
+    fun unlockAllCurrentThread(){
+        val id = Thread.currentThread().id
+        val iter = locks.iterator()
+        while(iter.hasNext()){
+            val e = iter.next()
+            if(e.value==id){
+                iter.remove()
+            }
+        }
+    }
+
+
+    fun assertCurrentThreadUnlocked(){
+        val id = Thread.currentThread().id
+        val iter = locks.iterator()
+        while(iter.hasNext()){
+            val e = iter.next()
+            if(e.value==id){
+                throw AssertionError("Node is locked: "+e.key)
+            }
+        }
+    }
+
+
 
     override fun verify() {
         fun verifyRecur(node:Node, left:Boolean, right:Boolean, knownNodes:LongHashSet, nextNodeRecid:Long){
