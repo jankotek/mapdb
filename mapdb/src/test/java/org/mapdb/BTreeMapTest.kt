@@ -112,13 +112,13 @@ class BTreeMapTest {
                 arrayOf(2, 3, 4)
         )
 
-        assertEquals(null, leafGet(node, COMPARATOR, 10))
-        assertEquals(2, leafGet(node, COMPARATOR, 20))
-        assertEquals(null, leafGet(node, COMPARATOR, 21))
-        assertEquals(3, leafGet(node, COMPARATOR, 30))
-        assertEquals(4, leafGet(node, COMPARATOR, 40))
-        assertEquals(LINK, leafGet(node, COMPARATOR, 41))
-        assertEquals(LINK, leafGet(node, COMPARATOR, 50))
+        assertEquals(null, leafGet(node, COMPARATOR, 10, Serializer.JAVA))
+        assertEquals(2, leafGet(node, COMPARATOR, 20, Serializer.JAVA))
+        assertEquals(null, leafGet(node, COMPARATOR, 21, Serializer.JAVA))
+        assertEquals(3, leafGet(node, COMPARATOR, 30, Serializer.JAVA))
+        assertEquals(4, leafGet(node, COMPARATOR, 40, Serializer.JAVA))
+        assertEquals(LINK, leafGet(node, COMPARATOR, 41, Serializer.JAVA))
+        assertEquals(LINK, leafGet(node, COMPARATOR, 50, Serializer.JAVA))
     }
 
     @Test fun leafGetLink() {
@@ -129,14 +129,14 @@ class BTreeMapTest {
                 arrayOf(2, 3, 4)
         )
 
-        assertEquals(null, leafGet(node, COMPARATOR, 10))
-        assertEquals(2, leafGet(node, COMPARATOR, 20))
-        assertEquals(null, leafGet(node, COMPARATOR, 21))
-        assertEquals(3, leafGet(node, COMPARATOR, 30))
-        assertEquals(4, leafGet(node, COMPARATOR, 40))
-        assertEquals(null, leafGet(node, COMPARATOR, 41))
-        assertEquals(null, leafGet(node, COMPARATOR, 50))
-        assertEquals(LINK, leafGet(node, COMPARATOR, 51))
+        assertEquals(null, leafGet(node, COMPARATOR, 10, Serializer.JAVA))
+        assertEquals(2, leafGet(node, COMPARATOR, 20, Serializer.JAVA))
+        assertEquals(null, leafGet(node, COMPARATOR, 21, Serializer.JAVA))
+        assertEquals(3, leafGet(node, COMPARATOR, 30, Serializer.JAVA))
+        assertEquals(4, leafGet(node, COMPARATOR, 40, Serializer.JAVA))
+        assertEquals(null, leafGet(node, COMPARATOR, 41, Serializer.JAVA))
+        assertEquals(null, leafGet(node, COMPARATOR, 50, Serializer.JAVA))
+        assertEquals(LINK, leafGet(node, COMPARATOR, 51, Serializer.JAVA))
     }
 
     @Test fun flags() {

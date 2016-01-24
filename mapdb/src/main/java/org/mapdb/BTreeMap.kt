@@ -31,7 +31,7 @@ class BTreeMap<K,V>(
                 rootRecidRecid: Long = //insert recid of new empty node
                     store.put(
                         store.put(
-                            Node(LEFT+RIGHT, 0L, arrayOf(), arrayOf<Any>()),
+                            Node(LEFT+RIGHT, 0L, arrayOf(), valueSerializer.valueArrayEmpty(), valueSerializer),
                             NodeSerializer(keySerializer, valueSerializer)),
                         Serializer.RECID),
                 maxNodeSize:Int=32) =
@@ -84,11 +84,11 @@ class BTreeMap<K,V>(
         }
 
         //follow link until necessary
-        var ret = leafGet(A,COMPARATOR, key)
+        var ret = leafGet(A,COMPARATOR, key, valueSerializer)
         while(LINK==ret){
             current = A.link;
             A = getNode(current)
-            ret = leafGet(A,COMPARATOR, key)
+            ret = leafGet(A,COMPARATOR, key, valueSerializer)
         }
         return ret as V?;
     }
@@ -145,13 +145,12 @@ class BTreeMap<K,V>(
                     //entry exist in current node, so just update
                     pos = pos-1+A.intLeftEdge();
                     //key exist in node, just update
-                    val values = (A.values as Array<Any>).clone()
-                    val oldValue = values[pos] as V
+                    val oldValue = valueSerializer.valueArrayGet(A.values, pos)
 
                     //update only if not exist, return
                     if(!onlyIfAbsent) {
-                        values[pos] = value as Any;
-                        A = Node(A.flags.toInt(), A.link, A.keys, values)
+                        val values = valueSerializer.valueArrayUpdateVal(A.values, pos, value)
+                        A = Node(A.flags.toInt(), A.link, A.keys, values, valueSerializer)
                         store.update(current, A, nodeSerializer)
                     }
                     unlock(current)
@@ -199,7 +198,8 @@ class BTreeMap<K,V>(
                             DIR + LEFT + RIGHT,
                             0L,
                             arrayOf(A.highKey),
-                            longArrayOf(current, q)
+                            longArrayOf(current, q),
+                            valueSerializer
                     )
 
                     unlock(current)
@@ -272,21 +272,19 @@ class BTreeMap<K,V>(
             if (pos >= 1 - A.intLeftEdge() && pos != A.keys.size - 1 + A.intRightEdge()) {
                 val valuePos = pos - 1 + A.intLeftEdge();
                 //key exist in node, just update
-                var values = (A.values as Array<Any>)
-                oldValue = values[valuePos] as V
+                oldValue = valueSerializer.valueArrayGet(A.values, valuePos)
                 var keys = A.keys
                 if (expectedOldValue == null || valueSerializer.equals(expectedOldValue!!, oldValue)) {
-                    if (replaceWithValue == null) {
+                    val values = if (replaceWithValue == null) {
                         //remove
                         keys = arrayRemove(keys, pos)
-                        values = arrayRemove(values, valuePos)
+                        valueSerializer.valueArrayDeleteValue(A.values, valuePos+1)
                     } else {
                         //just replace value, do not modify keys
-                        values = values.clone()
-                        values[valuePos] = replaceWithValue
+                        valueSerializer.valueArrayUpdateVal(A.values, pos, replaceWithValue)
                     }
 
-                    A = Node(A.flags.toInt(), A.link, keys, values)
+                    A = Node(A.flags.toInt(), A.link, keys, values, valueSerializer)
                     store.update(current, A, nodeSerializer)
                 } else {
                     oldValue = null
@@ -316,11 +314,10 @@ class BTreeMap<K,V>(
             val c = a.values as LongArray
             Arrays.copyOfRange(c, 0, valSplitPos)
         }else{
-            val c = a.values as Array<Any>
-            Arrays.copyOfRange(c, 0, valSplitPos)
+            valueSerializer.valueArrayCopyOfRange(a.values, 0, valSplitPos)
         }
 
-        return Node(flags, link, keys, values)
+        return Node(flags, link, keys, values, valueSerializer)
 
     }
 
@@ -334,11 +331,11 @@ class BTreeMap<K,V>(
             val c = a.values as LongArray
             Arrays.copyOfRange(c, valSplitPos, c.size)
         }else{
-            val c = a.values as Array<Any>
-            Arrays.copyOfRange(c, valSplitPos, c.size)
+            val size = valueSerializer.valueArraySize(a.values)
+            valueSerializer.valueArrayCopyOfRange(a.values, valSplitPos, size)
         }
 
-        return Node(flags, a.link, keys, values)
+        return Node(flags, a.link, keys, values, valueSerializer)
     }
 
 
@@ -349,9 +346,9 @@ class BTreeMap<K,V>(
         val keys = arrayPut(a.keys, insertPos, key)
 
         val valuesInsertPos = insertPos-1+a.intLeftEdge();
-        val values = arrayPut(a.values as Array<Any>, valuesInsertPos, value)
+        val values = valueSerializer.valueArrayPut(a.values, valuesInsertPos, value)
 
-        return Node(a.flags.toInt(), a.link, keys, values)
+        return Node(a.flags.toInt(), a.link, keys, values, valueSerializer)
     }
 
     private fun copyAddKeyDir(a: Node, insertPos: Int, key: K, newChild: Long): Node {
@@ -362,7 +359,7 @@ class BTreeMap<K,V>(
 
         val values = arrayPut(a.values as LongArray, insertPos+a.intLeftEdge(), newChild)
 
-        return Node(a.flags.toInt(), a.link, keys, values)
+        return Node(a.flags.toInt(), a.link, keys, values, valueSerializer)
     }
 
 
@@ -508,7 +505,7 @@ class BTreeMap<K,V>(
 
 
             str+= if(node.isDir) "child="+Arrays.toString(node.children)
-                  else "vals="+Arrays.toString(node.values as Array<Any>)
+                  else "vals="+Arrays.toString(valueSerializer.valueArrayToArray(node.values))
 
             out.println(prefix+str)
 
@@ -613,7 +610,7 @@ class BTreeMap<K,V>(
                 override fun next(): MutableMap.MutableEntry<K?, V?> {
                     val leaf = currentLeaf ?: throw NoSuchElementException()
                     val key = leaf.keys[currentPos] as K
-                    val value = (leaf.values as Array<Any>)[currentPos-1+leaf.intLeftEdge()] as V
+                    val value = valueSerializer.valueArrayGet(leaf.values, currentPos-1+leaf.intLeftEdge())
                     advance()
                     return btreeEntry(key, value)
                 }
@@ -699,7 +696,7 @@ class BTreeMap<K,V>(
             return object: BTreeIterator<K,V>(this@BTreeMap), MutableIterator<V?>{
                 override fun next(): V? {
                     val leaf = currentLeaf?:throw NoSuchElementException()
-                    val value = (leaf.values as Array<Any>)[currentPos-1+leaf.intLeftEdge()]
+                    val value = valueSerializer.valueArrayGet(leaf.values, currentPos-1+leaf.intLeftEdge())
                     advance()
                     return value as V
                 }
@@ -860,7 +857,7 @@ class BTreeMap<K,V>(
             for(i in 1-node.intLeftEdge()
                     until node.keys.size-1+node.intRightEdge()){
                 val key = node.keys[i] as K
-                val value = (node.values as Array<Any>)[i-1+node.intLeftEdge()] as V
+                val value = valueSerializer.valueArrayGet(node.values, i-1+node.intLeftEdge()) as V
                 action.accept(key,value)
             }
 
@@ -896,7 +893,7 @@ class BTreeMap<K,V>(
 
             for(i in 1-node.intLeftEdge()
                     until node.keys.size-1+node.intRightEdge()){
-                val value = (node.values as Array<Any>)[i-1+node.intLeftEdge()] as V
+                val value = valueSerializer.valueArrayGet(node.values, i-1+node.intLeftEdge()) as V
                 procedure(value)
             }
 

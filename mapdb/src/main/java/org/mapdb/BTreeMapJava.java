@@ -28,7 +28,14 @@ public class BTreeMapJava {
         /** represents values for leaf node, or ArrayLong of children for dir node  */
         final Object values;
 
-        Node(int flags, long link, Object[] keys, Object values) {
+        Node(int flags, long link, Object[] keys, Object values, Serializer valueSerializer) {
+            this(flags, link, keys, values);
+            if(CC.ASSERT && !isDir() &&
+                    keys.length !=
+                            valueSerializer.valueArraySize(values) + 2 - intLeftEdge() - intRightEdge())
+                throw new AssertionError();
+        }
+        Node(int flags, long link, Object[] keys, Object values){
             this.flags = (byte)flags;
             this.link = link;
             this.keys = keys;
@@ -46,11 +53,6 @@ public class BTreeMapJava {
                 throw new AssertionError();
 
             if(CC.ASSERT && !isRightEdge() && (link==0L))
-                throw new AssertionError();
-
-            if(CC.ASSERT && !isDir() &&
-                    keys.length !=
-                    ((Object[])values).length + 2 - intLeftEdge() - intRightEdge())
                 throw new AssertionError();
         }
 
@@ -112,39 +114,41 @@ public class BTreeMapJava {
 
             if(CC.ASSERT && value.flags>>>4!=0)
                 throw new AssertionError();
-            int keysLen = value.keys.length;
-            keysLen = (keysLen<<5) + value.flags<<1;
-            keysLen = DataIO.parity1Set(keysLen);
+            int keysLen = value.keys.length<<4;
+            keysLen += value.flags;
+            keysLen = DataIO.parity1Set(keysLen<<1);
 
             //keysLen and flags are combined into single packed long, that saves a byte for small nodes
             out.packInt(keysLen);
             if(!value.isRightEdge())
                 out.packLong(value.link);
             new ArraySer(keySerializer).serialize(out, value.keys);
-            if(value.isDir())
+            if(value.isDir()) //TODO serialize children without size hint overhead
                 Serializer.LONG_ARRAY.serialize(out, (long[]) value.values);
             else
-                new ArraySer(valueSerializer).serialize(out, (Object[])value.values);
+                valueSerializer.valueArraySerialize(out, value.values);
         }
 
         @Override
         public Node deserialize(@NotNull DataInput2 input, int available) throws IOException {
             int keysLen = DataIO.parity1Get(input.unpackInt())>>>1;
-            byte flags = (byte) (keysLen & 0xF);
+            int flags = keysLen & 0xF;
             keysLen = keysLen>>>4;
             long link =  ((flags>>>1)&1)==1
                     ? 0L :
                     input.unpackLong();
 
-            Object[] keys = (Object[]) new ArraySer(keySerializer).deserialize(input, -1);
-            if(CC.ASSERT && keysLen!=keysLen)
+            Object[] keys = new ArraySer(keySerializer).deserialize(input, -1);
+            if(CC.ASSERT && keysLen!=keys.length)
                 throw new AssertionError();
 
             Object values = (flags&DIR)!=0 ?
                     Serializer.LONG_ARRAY.deserialize(input, -1):
-                    new ArraySer(valueSerializer).deserialize(input, -1);
+                    valueSerializer.valueArrayDeserialize(input,
+                            keysLen - 2 + ((flags>>>2)&1) + ((flags>>>1)&1));
 
-            return new Node(flags, link, keys, values);
+
+            return new Node(flags, link, keys, values, valueSerializer);
         }
 
         @Override
@@ -209,29 +213,29 @@ public class BTreeMapJava {
         }
     };
 
-    static Object leafGet(Node node, Comparator comparator, Object key){
+    static Object leafGet(Node node, Comparator comparator, Object key, Serializer valueSerializer){
         int pos = findIndex(node, comparator, key);
-        return leafGet(node, pos);
+        return leafGet(node, pos, valueSerializer);
     }
 
-    static Object leafGet(Node node, int pos){
-        Object[] vals = (Object[]) node.values;
+    static Object leafGet(Node node, int pos, Serializer valueSerializer){
+
         if(pos<0+1-node.intLeftEdge()) {
             if(!node.isRightEdge() && pos<-node.keys.length )
                 return LINK;
             else
                 return null;
         }
-
-        if(!node.isRightEdge() && pos==vals.length+1)
+        int valsLen = valueSerializer.valueArraySize(node.values);
+        if(!node.isRightEdge() && pos==valsLen+1)
             return null;
-        else if(pos>=vals.length+1){
+        else if(pos>=valsLen+1){
             return LINK;
         }
         pos = pos-1+node.intLeftEdge();
-        if(pos>=vals.length)
+        if(pos>=valsLen)
             return null;
-        return vals[pos];
+        return valueSerializer.valueArrayGet(node.values, pos);
     }
 
     /* expand array size by 1, and put value at given position. No items from original array are lost*/
