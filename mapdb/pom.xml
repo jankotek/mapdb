@@ -176,6 +176,12 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.19</version>
                 <configuration>
+                    <properties>
+                        <property>
+                            <name>listener</name>
+                            <value>org.mapdb.JUnitRunListener</value>
+                        </property>
+                    </properties>
                     <parallel>classesAndMethods</parallel>
                     <threadCount>${threadCount}</threadCount>
                     <perCoreThreadCount>false</perCoreThreadCount>
@@ -188,7 +194,6 @@
                         <!-- must be here, otherwise inner classes are ignored-->
                         <exclude>AAAAAAAAAA</exclude>
                     </excludes>
-
                 </configuration>
             </plugin>
 
