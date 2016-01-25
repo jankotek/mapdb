@@ -93,14 +93,14 @@ class BTreeMapTest {
                 arrayOf(2, 3, 4)
         )
 
-        assertEquals(-1, findIndex(keyser, node, COMPARATOR, 5))
-        assertEquals(-2, findIndex(keyser, node, COMPARATOR, 15))
-        assertEquals(-3, findIndex(keyser, node, COMPARATOR, 22))
-        assertEquals(0, findIndex(keyser, node, COMPARATOR, 10))
-        assertEquals(1, findIndex(keyser, node, COMPARATOR, 20))
-        assertEquals(2, findIndex(keyser, node, COMPARATOR, 30))
-        assertEquals(3, findIndex(keyser, node, COMPARATOR, 40))
-        assertEquals(-5, findIndex(keyser, node, COMPARATOR, 50))
+        assertEquals(-1, keyser.valueArrayBinarySearch(node.keys, 5, COMPARATOR))
+        assertEquals(-2, keyser.valueArrayBinarySearch(node.keys, 15, COMPARATOR))
+        assertEquals(-3, keyser.valueArrayBinarySearch(node.keys, 22, COMPARATOR))
+        assertEquals(0, keyser.valueArrayBinarySearch(node.keys, 10, COMPARATOR))
+        assertEquals(1, keyser.valueArrayBinarySearch(node.keys, 20, COMPARATOR))
+        assertEquals(2, keyser.valueArrayBinarySearch(node.keys, 30, COMPARATOR))
+        assertEquals(3, keyser.valueArrayBinarySearch(node.keys, 40, COMPARATOR))
+        assertEquals(-5, keyser.valueArrayBinarySearch(node.keys, 50, COMPARATOR))
 
     }
 
@@ -581,11 +581,6 @@ class BTreeMapTest {
     }
 
 
-    @Test fun find_index_vs_arrayBinarySearch(){
-
-        val array = arrayOf(10,20,21,22,23, 30, 40, 50, 60, 70, 81,82,83, 84 , 85, 86 )
-
-    }
 
 
 }

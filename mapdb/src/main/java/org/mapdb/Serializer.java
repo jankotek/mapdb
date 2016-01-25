@@ -55,6 +55,8 @@ public abstract class Serializer<A> {
         public boolean isTrusted() {
             return true;
         }
+
+        //TODO value array
     };
 
 
@@ -130,6 +132,8 @@ public abstract class Serializer<A> {
 //        }
     };
 
+
+
     private static abstract class StringValueSerializer extends Serializer<String>{
         @Override
         public void valueArraySerialize(DataOutput2 out2, Object vals) throws IOException {
@@ -154,6 +158,18 @@ public abstract class Serializer<A> {
                 ret[i] = cc;
             }
             return ret;
+        }
+
+        @Override
+        public int valueArrayBinarySearch(Object keys, Object key) {
+            //TODO not yet implemented
+            throw new UnsupportedOperationException("not yet implemented");
+        }
+
+        @Override
+        public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
+            //TODO not yet implemented
+            throw new UnsupportedOperationException("not yet implemented");
         }
 
         @Override
@@ -454,13 +470,16 @@ public abstract class Serializer<A> {
             return l.longValue();
         }
 
-//        @Override
-//        public BTreeKeySerializer getBTreeKeySerializer(Comparator comparator) {
-//            if(comparator!=null && comparator!=Fun.COMPARATOR) {
-//                return super.getBTreeKeySerializer(comparator);
-//            }
-//            return BTreeKeySerializer.LONG;
-//        }
+        @Override
+        public int valueArrayBinarySearch(Object keys, Object key) {
+            return Arrays.binarySearch((long[])keys, (Long)key);
+        }
+
+        @Override
+        public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
+            //TODO not yet implemented
+            throw new UnsupportedOperationException("not yet implemented");
+        }
     }
 
     /** Serializes Long into 8 bytes, used mainly for testing.
@@ -622,13 +641,32 @@ public abstract class Serializer<A> {
             return l;
         }
 
-//        @Override
-//        public BTreeKeySerializer getBTreeKeySerializer(Comparator comparator) {
-//            if(comparator!=null && comparator!=Fun.COMPARATOR) {
-//                return super.getBTreeKeySerializer(comparator);
-//            }
-//            return BTreeKeySerializer.INTEGER;
-//        }
+
+        @Override
+        public int valueArrayBinarySearch(Object keys, Object key) {
+            return Arrays.binarySearch((int[])keys, (Integer)key);
+        }
+
+        @Override
+        public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
+            int[] array = (int[]) keys;
+
+            int lo = 0;
+            int hi = array.length - 1;
+
+            while (lo <= hi) {
+                int mid = (lo + hi) >>> 1;
+                int compare = comparator.compare(key, array[mid]);
+
+                if (compare == 0)
+                    return mid;
+                else if (compare < 0) //TODO optimize with biteshift (negative bit >>>31), eliminate conditions
+                    hi = mid - 1;
+                else
+                    lo = mid + 1;
+            }
+            return -(lo + 1);
+        }
     }
 
     /** Serializes Integer into 4 bytes, used mainly for testing.
@@ -706,6 +744,19 @@ public abstract class Serializer<A> {
         @Override
         public boolean isTrusted() {
             return true;
+        }
+
+
+        @Override
+        public int valueArrayBinarySearch(Object keys, Object key) {
+            //TODO not yet implemented
+            throw new UnsupportedOperationException("not yet implemented");
+        }
+
+        @Override
+        public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
+            //TODO not yet implemented
+            throw new UnsupportedOperationException("not yet implemented");
         }
 
         @Override
@@ -820,6 +871,18 @@ public abstract class Serializer<A> {
         }
 
 
+
+        @Override
+        public int valueArrayBinarySearch(Object keys, Object key) {
+            return Arrays.binarySearch((long[])keys, (Long)key);
+        }
+
+        @Override
+        public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
+            //TODO not yet implemented
+            throw new UnsupportedOperationException("not yet implemented");
+        }
+
         @Override
         public void valueArraySerialize(DataOutput2 out, Object vals) throws IOException {
             for(long o:(long[]) vals){
@@ -856,6 +919,18 @@ public abstract class Serializer<A> {
             return ret;
         };
 
+
+        @Override
+        public int valueArrayBinarySearch(Object keys, Object key) {
+            //TODO not yet implemented
+            throw new UnsupportedOperationException("not yet implemented");
+        }
+
+        @Override
+        public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
+            //TODO not yet implemented
+            throw new UnsupportedOperationException("not yet implemented");
+        }
 
         @Override
         public boolean isTrusted() {
@@ -1228,6 +1303,17 @@ public abstract class Serializer<A> {
 
         }
 
+        @Override
+        public int valueArrayBinarySearch(Object keys, Object key) {
+            //TODO not yet implemented
+            throw new UnsupportedOperationException("not yet implemented");
+        }
+
+        @Override
+        public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
+            //TODO not yet implemented
+            throw new UnsupportedOperationException("not yet implemented");
+        }
 
         @Override
         public void valueArraySerialize(DataOutput2 out, Object vals) throws IOException {
@@ -1337,6 +1423,8 @@ public abstract class Serializer<A> {
             return in.readByte();
         }
 
+        //TODO value array operations
+
         @Override
         public int fixedSize() {
             return 1;
@@ -1359,6 +1447,18 @@ public abstract class Serializer<A> {
         @Override
         protected int pack(Float l) {
             return Float.floatToIntBits(l);
+        }
+
+        @Override
+        public int valueArrayBinarySearch(Object keys, Object key) {
+            //TODO not yet implemented
+            throw new UnsupportedOperationException("not yet implemented");
+        }
+
+        @Override
+        public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
+            //TODO not yet implemented
+            throw new UnsupportedOperationException("not yet implemented");
         }
 
         @Override
@@ -1386,6 +1486,19 @@ public abstract class Serializer<A> {
         }
 
         @Override
+        public int valueArrayBinarySearch(Object keys, Object key) {
+            //TODO not yet implemented
+            throw new UnsupportedOperationException("not yet implemented");
+        }
+
+        @Override
+        public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
+            //TODO not yet implemented
+            throw new UnsupportedOperationException("not yet implemented");
+        }
+
+
+        @Override
         public void serialize(DataOutput2 out, Double value) throws IOException {
             out.writeDouble(value);
         }
@@ -1407,6 +1520,8 @@ public abstract class Serializer<A> {
         public Short deserialize(DataInput2 in, int available) throws IOException {
             return in.readShort();
         }
+
+        //TODO value array operations
 
         @Override
         public int fixedSize() {
@@ -1712,6 +1827,17 @@ public abstract class Serializer<A> {
             return true;
         }
 
+        @Override
+        public int valueArrayBinarySearch(Object keys, Object key) {
+            //TODO not yet implemented
+            throw new UnsupportedOperationException("not yet implemented");
+        }
+
+        @Override
+        public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
+            //TODO not yet implemented
+            throw new UnsupportedOperationException("not yet implemented");
+        }
 
         @Override
         public void valueArraySerialize(DataOutput2 out, Object vals) throws IOException {
@@ -1960,6 +2086,19 @@ public abstract class Serializer<A> {
         public boolean isTrusted() {
             return true;
         }
+
+        @Override
+        public int valueArrayBinarySearch(Object keys, Object key) {
+            //TODO not yet implemented
+            throw new UnsupportedOperationException("not yet implemented");
+        }
+
+        @Override
+        public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
+            //TODO not yet implemented
+            throw new UnsupportedOperationException("not yet implemented");
+        }
+
 
         @Override
         public void valueArraySerialize(DataOutput2 out, Object vals) throws IOException {
@@ -2253,6 +2392,15 @@ public abstract class Serializer<A> {
 
     public int hashCode(@NotNull A a, int seed){
         return DataIO.intHash(a.hashCode()+seed);
+    }
+
+    public int valueArrayBinarySearch(Object keys, Object key){
+        return Arrays.binarySearch((Object[])keys, key);
+    }
+
+
+    public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator){
+        return Arrays.binarySearch((Object[])keys, key, comparator);
     }
 
     @SuppressWarnings("unchecked")

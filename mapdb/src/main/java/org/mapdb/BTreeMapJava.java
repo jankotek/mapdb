@@ -202,20 +202,6 @@ public class BTreeMapJava {
     }
 
 
-    static int findIndex(Serializer keySerializer, Node node, Comparator comparator, Object key){
-        Object keys = node.keys;
-        int index = 0;
-        int keysLen = keySerializer.valueArraySize(keys);
-        while(index!=keysLen){
-            int compare = comparator.compare(key, keySerializer.valueArrayGet(keys, index));
-            if(compare<0)
-                return -index-1;
-            else if(compare==0)
-                return index;
-            index++;
-        }
-        return -index-1;
-    }
 
     static final Object LINK = new Object(){
         @Override
@@ -225,7 +211,7 @@ public class BTreeMapJava {
     };
 
     static Object leafGet(Node node, Comparator comparator, Object key, Serializer keySerializer, Serializer valueSerializer){
-        int pos = findIndex(keySerializer, node, comparator, key);
+        int pos = keySerializer.valueArrayBinarySearch(node.keys, key, comparator);
         return leafGet(node, pos, keySerializer, valueSerializer);
     }
 

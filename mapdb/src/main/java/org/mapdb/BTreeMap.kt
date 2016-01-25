@@ -141,7 +141,7 @@ class BTreeMap<K,V>(
                 }
 
                 //current node is locked, and its highest value is higher/equal to key
-                var pos = findIndex(keySerializer, A, COMPARATOR, v)
+                var pos = keySerializer.valueArrayBinarySearch( A.keys, v, COMPARATOR)
                 if(pos>=0){
                     //entry exist in current node, so just update
                     pos = pos-1+A.intLeftEdge();
@@ -269,7 +269,7 @@ class BTreeMap<K,V>(
             }
 
             //current node is locked, and its highest value is higher/equal to key
-            val pos = findIndex(keySerializer, A, COMPARATOR, v)
+            val pos = keySerializer.valueArrayBinarySearch(A.keys, v, COMPARATOR)
             var oldValue: V? = null
             val keysSize = keySerializer.valueArraySize(A.keys);
             if (pos >= 1 - A.intLeftEdge() && pos !=  keysSize - 1 + A.intRightEdge()+A.intLastKeyDouble()) {
