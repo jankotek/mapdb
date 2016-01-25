@@ -11,6 +11,7 @@ import kotlin.test.*
 
 class BTreeMapTest {
 
+    val keyser = Serializer.JAVA
 
     @Test fun node_search() {
         val node = Node(
@@ -20,12 +21,13 @@ class BTreeMapTest {
                 longArrayOf(10L, 20L, 30L, 40L)
         )
 
-        assertEquals(10L, findChild(node, COMPARATOR, 1))
-        assertEquals(10L, findChild(node, COMPARATOR, 10))
-        assertEquals(20L, findChild(node, COMPARATOR, 11))
-        assertEquals(20L, findChild(node, COMPARATOR, 20))
-        assertEquals(40L, findChild(node, COMPARATOR, 40))
-        assertEquals(60L, findChild(node, COMPARATOR, 41))
+
+        assertEquals(10L, findChild(keyser, node, COMPARATOR, 1))
+        assertEquals(10L, findChild(keyser, node, COMPARATOR, 10))
+        assertEquals(20L, findChild(keyser, node, COMPARATOR, 11))
+        assertEquals(20L, findChild(keyser, node, COMPARATOR, 20))
+        assertEquals(40L, findChild(keyser, node, COMPARATOR, 40))
+        assertEquals(60L, findChild(keyser, node, COMPARATOR, 41))
     }
 
     @Test fun node_search2() {
@@ -36,16 +38,16 @@ class BTreeMapTest {
                 longArrayOf(10L, 20L, 30L)
         )
 
-        assertEquals(10L, findChild(node, COMPARATOR, 1)) //TODO this should not happen on non LeftEdge, throw corruption error?
-        assertEquals(10L, findChild(node, COMPARATOR, 10))
-        assertEquals(10L, findChild(node, COMPARATOR, 11))
-        assertEquals(10L, findChild(node, COMPARATOR, 20))
-        assertEquals(20L, findChild(node, COMPARATOR, 21))
-        assertEquals(20L, findChild(node, COMPARATOR, 25))
-        assertEquals(20L, findChild(node, COMPARATOR, 30))
-        assertEquals(30L, findChild(node, COMPARATOR, 31))
-        assertEquals(30L, findChild(node, COMPARATOR, 40))
-        assertEquals(60L, findChild(node, COMPARATOR, 41))
+        assertEquals(10L, findChild(keyser, node, COMPARATOR, 1)) //TODO this should not happen on non LeftEdge, throw corruption error?
+        assertEquals(10L, findChild(keyser, node, COMPARATOR, 10))
+        assertEquals(10L, findChild(keyser, node, COMPARATOR, 11))
+        assertEquals(10L, findChild(keyser, node, COMPARATOR, 20))
+        assertEquals(20L, findChild(keyser, node, COMPARATOR, 21))
+        assertEquals(20L, findChild(keyser, node, COMPARATOR, 25))
+        assertEquals(20L, findChild(keyser, node, COMPARATOR, 30))
+        assertEquals(30L, findChild(keyser, node, COMPARATOR, 31))
+        assertEquals(30L, findChild(keyser, node, COMPARATOR, 40))
+        assertEquals(60L, findChild(keyser, node, COMPARATOR, 41))
     }
 
     @Test fun node_search3() {
@@ -56,16 +58,16 @@ class BTreeMapTest {
                 longArrayOf(10L, 20L, 30L, 40L)
         )
 
-        assertEquals(10L, findChild(node, COMPARATOR, 1)) //TODO this should not happen on non LeftEdge, throw corruption error?
-        assertEquals(10L, findChild(node, COMPARATOR, 10))
-        assertEquals(10L, findChild(node, COMPARATOR, 11))
-        assertEquals(10L, findChild(node, COMPARATOR, 20))
-        assertEquals(20L, findChild(node, COMPARATOR, 21))
-        assertEquals(20L, findChild(node, COMPARATOR, 30))
-        assertEquals(30L, findChild(node, COMPARATOR, 31))
-        assertEquals(30L, findChild(node, COMPARATOR, 40))
-        assertEquals(40L, findChild(node, COMPARATOR, 41))
-        assertEquals(40L, findChild(node, COMPARATOR, 50))
+        assertEquals(10L, findChild(keyser, node, COMPARATOR, 1)) //TODO this should not happen on non LeftEdge, throw corruption error?
+        assertEquals(10L, findChild(keyser, node, COMPARATOR, 10))
+        assertEquals(10L, findChild(keyser, node, COMPARATOR, 11))
+        assertEquals(10L, findChild(keyser, node, COMPARATOR, 20))
+        assertEquals(20L, findChild(keyser, node, COMPARATOR, 21))
+        assertEquals(20L, findChild(keyser, node, COMPARATOR, 30))
+        assertEquals(30L, findChild(keyser, node, COMPARATOR, 31))
+        assertEquals(30L, findChild(keyser, node, COMPARATOR, 40))
+        assertEquals(40L, findChild(keyser, node, COMPARATOR, 41))
+        assertEquals(40L, findChild(keyser, node, COMPARATOR, 50))
     }
 
     @Test fun node_search4() {
@@ -76,13 +78,13 @@ class BTreeMapTest {
                 longArrayOf(10L, 20L, 30L, 40L, 50L)
         )
 
-        assertEquals(10L, findChild(node, COMPARATOR, 1))
-        assertEquals(10L, findChild(node, COMPARATOR, 10))
-        assertEquals(20L, findChild(node, COMPARATOR, 11))
-        assertEquals(20L, findChild(node, COMPARATOR, 20))
-        assertEquals(40L, findChild(node, COMPARATOR, 40))
-        assertEquals(50L, findChild(node, COMPARATOR, 41))
-        assertEquals(50L, findChild(node, COMPARATOR, 50))
+        assertEquals(10L, findChild(keyser, node, COMPARATOR, 1))
+        assertEquals(10L, findChild(keyser, node, COMPARATOR, 10))
+        assertEquals(20L, findChild(keyser, node, COMPARATOR, 11))
+        assertEquals(20L, findChild(keyser, node, COMPARATOR, 20))
+        assertEquals(40L, findChild(keyser, node, COMPARATOR, 40))
+        assertEquals(50L, findChild(keyser, node, COMPARATOR, 41))
+        assertEquals(50L, findChild(keyser, node, COMPARATOR, 50))
     }
 
     @Test fun findValue() {
@@ -93,14 +95,14 @@ class BTreeMapTest {
                 arrayOf(2, 3, 4)
         )
 
-        assertEquals(-1, findIndex(node, COMPARATOR, 5))
-        assertEquals(-2, findIndex(node, COMPARATOR, 15))
-        assertEquals(-3, findIndex(node, COMPARATOR, 22))
-        assertEquals(0, findIndex(node, COMPARATOR, 10))
-        assertEquals(1, findIndex(node, COMPARATOR, 20))
-        assertEquals(2, findIndex(node, COMPARATOR, 30))
-        assertEquals(3, findIndex(node, COMPARATOR, 40))
-        assertEquals(-6, findIndex(node, COMPARATOR, 50))
+        assertEquals(-1, findIndex(keyser, node, COMPARATOR, 5))
+        assertEquals(-2, findIndex(keyser, node, COMPARATOR, 15))
+        assertEquals(-3, findIndex(keyser, node, COMPARATOR, 22))
+        assertEquals(0, findIndex(keyser, node, COMPARATOR, 10))
+        assertEquals(1, findIndex(keyser, node, COMPARATOR, 20))
+        assertEquals(2, findIndex(keyser, node, COMPARATOR, 30))
+        assertEquals(3, findIndex(keyser, node, COMPARATOR, 40))
+        assertEquals(-6, findIndex(keyser, node, COMPARATOR, 50))
 
     }
 
@@ -112,13 +114,13 @@ class BTreeMapTest {
                 arrayOf(2, 3, 4)
         )
 
-        assertEquals(null, leafGet(node, COMPARATOR, 10, Serializer.JAVA))
-        assertEquals(2, leafGet(node, COMPARATOR, 20, Serializer.JAVA))
-        assertEquals(null, leafGet(node, COMPARATOR, 21, Serializer.JAVA))
-        assertEquals(3, leafGet(node, COMPARATOR, 30, Serializer.JAVA))
-        assertEquals(4, leafGet(node, COMPARATOR, 40, Serializer.JAVA))
-        assertEquals(LINK, leafGet(node, COMPARATOR, 41, Serializer.JAVA))
-        assertEquals(LINK, leafGet(node, COMPARATOR, 50, Serializer.JAVA))
+        assertEquals(null, leafGet(node, COMPARATOR, 10, keyser, Serializer.JAVA))
+        assertEquals(2, leafGet(node, COMPARATOR, 20, keyser, Serializer.JAVA))
+        assertEquals(null, leafGet(node, COMPARATOR, 21, keyser, Serializer.JAVA))
+        assertEquals(3, leafGet(node, COMPARATOR, 30, keyser, Serializer.JAVA))
+        assertEquals(4, leafGet(node, COMPARATOR, 40, keyser, Serializer.JAVA))
+        assertEquals(LINK, leafGet(node, COMPARATOR, 41, keyser, Serializer.JAVA))
+        assertEquals(LINK, leafGet(node, COMPARATOR, 50, keyser, Serializer.JAVA))
     }
 
     @Test fun leafGetLink() {
@@ -129,22 +131,22 @@ class BTreeMapTest {
                 arrayOf(2, 3, 4)
         )
 
-        assertEquals(null, leafGet(node, COMPARATOR, 10, Serializer.JAVA))
-        assertEquals(2, leafGet(node, COMPARATOR, 20, Serializer.JAVA))
-        assertEquals(null, leafGet(node, COMPARATOR, 21, Serializer.JAVA))
-        assertEquals(3, leafGet(node, COMPARATOR, 30, Serializer.JAVA))
-        assertEquals(4, leafGet(node, COMPARATOR, 40, Serializer.JAVA))
-        assertEquals(null, leafGet(node, COMPARATOR, 41, Serializer.JAVA))
-        assertEquals(null, leafGet(node, COMPARATOR, 50, Serializer.JAVA))
-        assertEquals(LINK, leafGet(node, COMPARATOR, 51, Serializer.JAVA))
+        assertEquals(null, leafGet(node, COMPARATOR, 10, keyser, Serializer.JAVA))
+        assertEquals(2, leafGet(node, COMPARATOR, 20, keyser, Serializer.JAVA))
+        assertEquals(null, leafGet(node, COMPARATOR, 21, keyser, Serializer.JAVA))
+        assertEquals(3, leafGet(node, COMPARATOR, 30, keyser, Serializer.JAVA))
+        assertEquals(4, leafGet(node, COMPARATOR, 40, keyser, Serializer.JAVA))
+        assertEquals(null, leafGet(node, COMPARATOR, 41, keyser, Serializer.JAVA))
+        assertEquals(null, leafGet(node, COMPARATOR, 50, keyser, Serializer.JAVA))
+        assertEquals(LINK, leafGet(node, COMPARATOR, 51, keyser, Serializer.JAVA))
     }
 
     @Test fun flags() {
         val node = Node(
                 RIGHT + LEFT,
                 0L,
-                arrayOf(),
-                arrayOf<Object>()
+                arrayOf<Any>(),
+                arrayOf<Any>()
         )
 
         assertTrue(node.isRightEdge)

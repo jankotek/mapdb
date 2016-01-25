@@ -31,7 +31,8 @@ class BTreeMap<K,V>(
                 rootRecidRecid: Long = //insert recid of new empty node
                     store.put(
                         store.put(
-                            Node(LEFT+RIGHT, 0L, arrayOf(), valueSerializer.valueArrayEmpty(), valueSerializer),
+                            Node(LEFT+RIGHT, 0L, keySerializer.valueArrayEmpty(),
+                                    valueSerializer.valueArrayEmpty(), keySerializer, valueSerializer),
                             NodeSerializer(keySerializer, valueSerializer)),
                         Serializer.RECID),
                 maxNodeSize:Int=32) =
@@ -79,16 +80,16 @@ class BTreeMap<K,V>(
 
         //dive into bottom
         while(A.isDir){
-            current =  findChild(A, COMPARATOR, key)
+            current =  findChild(keySerializer, A, COMPARATOR, key)
             A = getNode(current)
         }
 
         //follow link until necessary
-        var ret = leafGet(A,COMPARATOR, key, valueSerializer)
+        var ret = leafGet(A,COMPARATOR, key, keySerializer, valueSerializer)
         while(LINK==ret){
             current = A.link;
             A = getNode(current)
-            ret = leafGet(A,COMPARATOR, key, valueSerializer)
+            ret = leafGet(A,COMPARATOR, key, keySerializer, valueSerializer)
         }
         return ret as V?;
     }
@@ -113,7 +114,7 @@ class BTreeMap<K,V>(
             var A = getNode(current)
             while(A.isDir){
                 var t = current
-                current = findChild(A, COMPARATOR, v)
+                current = findChild(keySerializer, A, COMPARATOR, v)
                 if(current!=A.link){
                     stack.push(t)
                 }
@@ -130,7 +131,7 @@ class BTreeMap<K,V>(
                     A = getNode(current)
 
                     //follow link, until key is higher than highest key in node
-                    if(!A.isRightEdge && COMPARATOR.compare(v, A.highKey)>0){
+                    if(!A.isRightEdge && COMPARATOR.compare(v, A.highKey(keySerializer))>0){
                         //key is greater, load next link
                         unlock(current)
                         current = A.link
@@ -140,7 +141,7 @@ class BTreeMap<K,V>(
                 }
 
                 //current node is locked, and its highest value is higher/equal to key
-                var pos = findIndex(A, COMPARATOR, v)
+                var pos = findIndex(keySerializer, A, COMPARATOR, v)
                 if(pos>=0){
                     //entry exist in current node, so just update
                     pos = pos-1+A.intLeftEdge();
@@ -150,7 +151,7 @@ class BTreeMap<K,V>(
                     //update only if not exist, return
                     if(!onlyIfAbsent) {
                         val values = valueSerializer.valueArrayUpdateVal(A.values, pos, value)
-                        A = Node(A.flags.toInt(), A.link, A.keys, values, valueSerializer)
+                        A = Node(A.flags.toInt(), A.link, A.keys, values, keySerializer, valueSerializer)
                         store.update(current, A, nodeSerializer)
                     }
                     unlock(current)
@@ -163,8 +164,8 @@ class BTreeMap<K,V>(
                 //key does not exist, node must be expanded
                 A = if(A.isDir) copyAddKeyDir(A, pos, v, p)
                 else copyAddKeyLeaf(A, pos, v, value)
-
-                if(A.keys.size < maxNodeSize){
+                val keysSize = keySerializer.valueArraySize(A.keys)
+                if(keysSize < maxNodeSize){
                     //it is safe to insert without spliting
                     store.update(current, A, nodeSerializer)
                     unlock(current)
@@ -172,7 +173,7 @@ class BTreeMap<K,V>(
                 }
 
                 //node is not safe it requires split
-                val splitPos = A.keys.size/2
+                val splitPos = keysSize/2
                 val B = copySplitRight(A, splitPos)
                 val q = store.put(B, nodeSerializer)
                 A = copySplitLeft(A, splitPos, q)
@@ -182,7 +183,7 @@ class BTreeMap<K,V>(
                     //is not root
                     unlock(current)
                     p = q
-                    v = A.highKey as K
+                    v = A.highKey(keySerializer) as K
                     //                if(CC.ASSERT && COMPARATOR.compare(v, key)<0)
                     //                    throw AssertionError()
                     level++
@@ -197,8 +198,9 @@ class BTreeMap<K,V>(
                     val R = Node(
                             DIR + LEFT + RIGHT,
                             0L,
-                            arrayOf(A.highKey),
+                            keySerializer.valueArrayFromArray(arrayOf(A.highKey(keySerializer))),
                             longArrayOf(current, q),
+                            keySerializer,
                             valueSerializer
                     )
 
@@ -247,7 +249,7 @@ class BTreeMap<K,V>(
 
             var A = getNode(current)
             while (A.isDir) {
-                current = findChild(A, COMPARATOR, v)
+                current = findChild(keySerializer, A, COMPARATOR, v)
                 A = getNode(current)
             }
 
@@ -257,7 +259,7 @@ class BTreeMap<K,V>(
                 A = getNode(current)
 
                 //follow link, until key is higher than highest key in node
-                if (!A.isRightEdge && COMPARATOR.compare(v, A.highKey) > 0) {
+                if (!A.isRightEdge && COMPARATOR.compare(v, A.highKey(keySerializer)) > 0) {
                     //key is greater, load next link
                     unlock(current)
                     current = A.link
@@ -267,9 +269,9 @@ class BTreeMap<K,V>(
             }
 
             //current node is locked, and its highest value is higher/equal to key
-            val pos = findIndex(A, COMPARATOR, v)
+            val pos = findIndex(keySerializer, A, COMPARATOR, v)
             var oldValue: V? = null
-            if (pos >= 1 - A.intLeftEdge() && pos != A.keys.size - 1 + A.intRightEdge()) {
+            if (pos >= 1 - A.intLeftEdge() && pos != keySerializer.valueArraySize(A.keys) - 1 + A.intRightEdge()) {
                 val valuePos = pos - 1 + A.intLeftEdge();
                 //key exist in node, just update
                 oldValue = valueSerializer.valueArrayGet(A.values, valuePos)
@@ -277,14 +279,14 @@ class BTreeMap<K,V>(
                 if (expectedOldValue == null || valueSerializer.equals(expectedOldValue!!, oldValue)) {
                     val values = if (replaceWithValue == null) {
                         //remove
-                        keys = arrayRemove(keys, pos)
+                        keys = keySerializer.valueArrayDeleteValue(A.keys, pos+1)
                         valueSerializer.valueArrayDeleteValue(A.values, valuePos+1)
                     } else {
                         //just replace value, do not modify keys
                         valueSerializer.valueArrayUpdateVal(A.values, pos, replaceWithValue)
                     }
 
-                    A = Node(A.flags.toInt(), A.link, keys, values, valueSerializer)
+                    A = Node(A.flags.toInt(), A.link, keys, values, keySerializer, valueSerializer)
                     store.update(current, A, nodeSerializer)
                 } else {
                     oldValue = null
@@ -305,10 +307,14 @@ class BTreeMap<K,V>(
     private fun copySplitLeft(a: Node, splitPos: Int, link:Long): Node {
         val flags = a.intDir()*DIR + a.intLeftEdge()*LEFT
 
-        val keys = Arrays.copyOfRange(a.keys, 0, splitPos+1-a.intDir())
-        if(!a.isDir)
-            keys[keys.size-1] = keys[keys.size-2] //TODO lastKeyDouble flag
-
+        var keys = keySerializer.valueArrayCopyOfRange(a.keys, 0, splitPos+1-a.intDir())
+        if(!a.isDir) {
+            //duplicate last key twice
+            //TODO lastKeyDouble flag
+            val keysSize = keySerializer.valueArraySize(keys)
+            val oneBeforeLast = keySerializer.valueArrayGet(keys, keysSize-2)
+            keys = keySerializer.valueArrayUpdateVal(keys, keysSize-1, oneBeforeLast)
+        }
         val valSplitPos = splitPos-1+a.intLeftEdge();
         val values = if(a.isDir){
             val c = a.values as LongArray
@@ -317,14 +323,14 @@ class BTreeMap<K,V>(
             valueSerializer.valueArrayCopyOfRange(a.values, 0, valSplitPos)
         }
 
-        return Node(flags, link, keys, values, valueSerializer)
+        return Node(flags, link, keys, values, keySerializer, valueSerializer)
 
     }
 
     private fun copySplitRight(a: Node, splitPos: Int): Node {
         val flags = a.intDir()*DIR + a.intRightEdge()*RIGHT + a.intLastKeyDouble()*LAST_KEY_DOUBLE
 
-        val keys = Arrays.copyOfRange(a.keys, splitPos-1, a.keys.size)
+        val keys = keySerializer.valueArrayCopyOfRange(a.keys, splitPos-1, keySerializer.valueArraySize(a.keys))
 
         val valSplitPos = splitPos-1+a.intLeftEdge();
         val values = if(a.isDir){
@@ -335,7 +341,7 @@ class BTreeMap<K,V>(
             valueSerializer.valueArrayCopyOfRange(a.values, valSplitPos, size)
         }
 
-        return Node(flags, a.link, keys, values, valueSerializer)
+        return Node(flags, a.link, keys, values, keySerializer, valueSerializer)
     }
 
 
@@ -343,23 +349,23 @@ class BTreeMap<K,V>(
         if(CC.ASSERT && a.isDir)
             throw AssertionError()
 
-        val keys = arrayPut(a.keys, insertPos, key)
+        val keys = keySerializer.valueArrayPut(a.keys, insertPos, key)
 
         val valuesInsertPos = insertPos-1+a.intLeftEdge();
         val values = valueSerializer.valueArrayPut(a.values, valuesInsertPos, value)
 
-        return Node(a.flags.toInt(), a.link, keys, values, valueSerializer)
+        return Node(a.flags.toInt(), a.link, keys, values, keySerializer, valueSerializer)
     }
 
     private fun copyAddKeyDir(a: Node, insertPos: Int, key: K, newChild: Long): Node {
         if(CC.ASSERT && a.isDir.not())
             throw AssertionError()
 
-        val keys = arrayPut(a.keys, insertPos, key)
+        val keys = keySerializer.valueArrayPut(a.keys, insertPos, key)
 
         val values = arrayPut(a.values as LongArray, insertPos+a.intLeftEdge(), newChild)
 
-        return Node(a.flags.toInt(), a.link, keys, values, valueSerializer)
+        return Node(a.flags.toInt(), a.link, keys, values, keySerializer, valueSerializer)
     }
 
 
@@ -410,11 +416,14 @@ class BTreeMap<K,V>(
                 throw AssertionError("right does not match $right")
 
             //check keys are sorted, no duplicates
-            for(i in 1 until node.keys.size){
-                val compare = COMPARATOR.compare(node.keys[i-1], node.keys[i])
-                val cresult = if(i==node.keys.size-1) 1 else 0
+            val keysLen = keySerializer.valueArraySize(node.keys)
+            for(i in 1 until keysLen){
+                val compare = COMPARATOR.compare(
+                        keySerializer.valueArrayGet(node.keys, i-1),
+                        keySerializer.valueArrayGet(node.keys,i))
+                val cresult = if(i==keysLen-1) 1 else 0
                 if(compare>=cresult)
-                    throw AssertionError("Not sorted: "+Arrays.toString(node.keys))
+                    throw AssertionError("Not sorted: "+Arrays.toString(keySerializer.valueArrayToArray(node.keys)))
             }
 
             //iterate over child
@@ -473,7 +482,7 @@ class BTreeMap<K,V>(
 //                    throw AssertionError()
 
                 val next = getNode(node.link)
-                if(COMPARATOR.compare(node.highKey,next.keys[0])!=0)
+                if(COMPARATOR.compare(node.highKey(keySerializer),keySerializer.valueArrayGet(next.keys, 0))!=0)
                     throw AssertionError(node.link)
 
                 node = next
@@ -501,7 +510,7 @@ class BTreeMap<K,V>(
                 str+="R"
             if(node.isLastKeyDouble)
                 str+="D"
-            str+=" recid=$nodeRecid, link=${node.link}, keys="+Arrays.toString(node.keys)+", "
+            str+=" recid=$nodeRecid, link=${node.link}, keys="+Arrays.toString(keySerializer.valueArrayToArray(node.keys))+", "
 
 
             str+= if(node.isDir) "child="+Arrays.toString(node.children)
@@ -609,7 +618,7 @@ class BTreeMap<K,V>(
             return object:BTreeIterator<K,V>(this@BTreeMap), MutableIterator<MutableMap.MutableEntry<K?, V?>>{
                 override fun next(): MutableMap.MutableEntry<K?, V?> {
                     val leaf = currentLeaf ?: throw NoSuchElementException()
-                    val key = leaf.keys[currentPos] as K
+                    val key = keySerializer.valueArrayGet(leaf.keys, currentPos)
                     val value = valueSerializer.valueArrayGet(leaf.values, currentPos-1+leaf.intLeftEdge())
                     advance()
                     return btreeEntry(key, value)
@@ -648,7 +657,7 @@ class BTreeMap<K,V>(
             return object: BTreeIterator<K,V>(this@BTreeMap), MutableIterator<K?>{
                 override fun next(): K? {
                     val leaf = currentLeaf?:throw NoSuchElementException()
-                    val key = leaf.keys[currentPos]
+                    val key = keySerializer.valueArrayGet(leaf.keys, currentPos)
                     advance()
                     return key as K
                 }
@@ -736,7 +745,7 @@ class BTreeMap<K,V>(
                     if(recid==0L) null
                     else m.getNode(recid);
             // iterate until node is not empty or link is not found
-            while (node != null && node.keys.size == 2 - node.intLeftEdge() - node.intRightEdge()) {
+            while (node != null && m.keySerializer.valueArraySize(node.keys) == 2 - node.intLeftEdge() - node.intRightEdge()) {
                 node =
                         if (node.isRightEdge) null
                         else m.getNode(node.link)
@@ -748,10 +757,10 @@ class BTreeMap<K,V>(
 
         protected fun advance(){
             val currentLeaf:Node = currentLeaf?:return
-            lastReturnedKey = currentLeaf.keys[currentPos] as K
+            lastReturnedKey = m.keySerializer.valueArrayGet(currentLeaf.keys, currentPos) as K
             currentPos++
 
-            if(currentPos == currentLeaf.keys.size-1+currentLeaf.intRightEdge()){
+            if(currentPos == m.keySerializer.valueArraySize(currentLeaf.keys)-1+currentLeaf.intRightEdge()){
                 //reached end of current node, iterate to next
                 advanceFrom(currentLeaf.link)
             }
@@ -853,10 +862,9 @@ class BTreeMap<K,V>(
             throw NullPointerException()
         var node = getNode(leftEdges.first)
         while(true){
-
-            for(i in 1-node.intLeftEdge()
-                    until node.keys.size-1+node.intRightEdge()){
-                val key = node.keys[i] as K
+            val limit = keySerializer.valueArraySize(node.keys) -1+node.intRightEdge()
+            for(i in 1-node.intLeftEdge() until limit){
+                val key = keySerializer.valueArrayGet(node.keys, i)
                 val value = valueSerializer.valueArrayGet(node.values, i-1+node.intLeftEdge()) as V
                 action.accept(key,value)
             }
@@ -873,9 +881,9 @@ class BTreeMap<K,V>(
         var node = getNode(leftEdges.first)
         while(true){
 
-            for(i in 1-node.intLeftEdge()
-                    until node.keys.size-1+node.intRightEdge()){
-                val key = node.keys[i] as K
+            val limit = keySerializer.valueArraySize(node.keys) -1+node.intRightEdge()
+            for(i in 1-node.intLeftEdge() until limit){
+                val key = keySerializer.valueArrayGet(node.keys, i)
                 procedure(key)
             }
 
@@ -890,10 +898,9 @@ class BTreeMap<K,V>(
             throw NullPointerException()
         var node = getNode(leftEdges.first)
         while(true){
-
-            for(i in 1-node.intLeftEdge()
-                    until node.keys.size-1+node.intRightEdge()){
-                val value = valueSerializer.valueArrayGet(node.values, i-1+node.intLeftEdge()) as V
+            val limit = keySerializer.valueArraySize(node.keys) -1+node.intRightEdge()
+            for(i in 1-node.intLeftEdge() until limit){
+                val value = valueSerializer.valueArrayGet(node.values, i-1+node.intLeftEdge())
                 procedure(value)
             }
 

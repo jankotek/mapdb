@@ -24,18 +24,32 @@ public class BTreeMapJava {
         /** link to next node */
         final long link;
         /** represents keys */
-        final Object[] keys;
+        final Object keys;
         /** represents values for leaf node, or ArrayLong of children for dir node  */
         final Object values;
 
-        Node(int flags, long link, Object[] keys, Object values, Serializer valueSerializer) {
+        Node(int flags, long link, Object keys, Object values, Serializer keySerializer, Serializer valueSerializer) {
             this(flags, link, keys, values);
-            if(CC.ASSERT && !isDir() &&
-                    keys.length !=
-                            valueSerializer.valueArraySize(values) + 2 - intLeftEdge() - intRightEdge())
-                throw new AssertionError();
+
+            if(CC.ASSERT) {
+                int keysLen = keySerializer.valueArraySize(keys);
+                if (isDir()){
+                    // compare directory size
+                    if( keysLen - 1 + intLeftEdge() + intRightEdge() !=
+                                ((long[]) values).length) {
+                        throw new AssertionError();
+                    }
+                } else{
+                    // compare leaf size
+                    if (
+                            keysLen !=
+                                    valueSerializer.valueArraySize(values) + 2 - intLeftEdge() - intRightEdge()) {
+                        throw new AssertionError();
+                    }
+                }
+            }
         }
-        Node(int flags, long link, Object[] keys, Object values){
+        Node(int flags, long link, Object keys, Object values){
             this.flags = (byte)flags;
             this.link = link;
             this.keys = keys;
@@ -44,10 +58,6 @@ public class BTreeMapJava {
             if(CC.ASSERT && isLastKeyDouble() && isDir())
                 throw new AssertionError();
 
-            if(CC.ASSERT && isDir() &&
-                    keys.length - 1 + intLeftEdge() + intRightEdge()!=
-                    ((long[])values).length)
-                throw new AssertionError();
 
             if(CC.ASSERT && isRightEdge() && (link!=0L))
                 throw new AssertionError();
@@ -90,8 +100,9 @@ public class BTreeMapJava {
         }
 
         @Nullable
-        public Object getHighKey() {
-            return keys[keys.length-1];
+        public Object highKey(Serializer keySerializer) {
+            int keysLen = keySerializer.valueArraySize(keys);
+            return keySerializer.valueArrayGet(keys, keysLen-1);
         }
 
         public long[] getChildren(){
@@ -114,7 +125,7 @@ public class BTreeMapJava {
 
             if(CC.ASSERT && value.flags>>>4!=0)
                 throw new AssertionError();
-            int keysLen = value.keys.length<<4;
+            int keysLen = keySerializer.valueArraySize(value.keys)<<4;
             keysLen += value.flags;
             keysLen = DataIO.parity1Set(keysLen<<1);
 
@@ -122,7 +133,7 @@ public class BTreeMapJava {
             out.packInt(keysLen);
             if(!value.isRightEdge())
                 out.packLong(value.link);
-            new ArraySer(keySerializer).serialize(out, value.keys);
+            keySerializer.valueArraySerialize(out, value.keys);
             if(value.isDir()) //TODO serialize children without size hint overhead
                 Serializer.LONG_ARRAY.serialize(out, (long[]) value.values);
             else
@@ -138,8 +149,8 @@ public class BTreeMapJava {
                     ? 0L :
                     input.unpackLong();
 
-            Object[] keys = new ArraySer(keySerializer).deserialize(input, -1);
-            if(CC.ASSERT && keysLen!=keys.length)
+            Object keys = keySerializer.valueArrayDeserialize(input, keysLen);
+            if(CC.ASSERT && keysLen!=keySerializer.valueArraySize(keys))
                 throw new AssertionError();
 
             Object values = (flags&DIR)!=0 ?
@@ -148,7 +159,7 @@ public class BTreeMapJava {
                             keysLen - 2 + ((flags>>>2)&1) + ((flags>>>1)&1));
 
 
-            return new Node(flags, link, keys, values, valueSerializer);
+            return new Node(flags, link, keys, values);
         }
 
         @Override
@@ -166,15 +177,16 @@ public class BTreeMapJava {
 
 
 
-    static long findChild(Node node, Comparator comparator, Object key){
+    static long findChild(Serializer keySerializer, Node node, Comparator comparator, Object key){
         if(CC.ASSERT && !node.isDir())
             throw new AssertionError();
         //find an index
-        Object[] keys = node.keys;
+        Object keys = node.keys;
         int index = 1-node.intLeftEdge();
-        int keysLen = keys.length;
+        int keysLen = keySerializer.valueArraySize(keys);
         long[] children = (long[]) node.values;
-        while(index!=keysLen && comparator.compare(key, keys[index])>0){
+        //TODO move binary search to serializer
+        while(index!=keysLen && comparator.compare(key, keySerializer.valueArrayGet(keys, index))>0){
             index++;
         }
 
@@ -191,12 +203,12 @@ public class BTreeMapJava {
     }
 
 
-    static int findIndex(Node node, Comparator comparator, Object key){
-        Object[] keys = node.keys;
+    static int findIndex(Serializer keySerializer, Node node, Comparator comparator, Object key){
+        Object keys = node.keys;
         int index = 0;
-        int keysLen = keys.length;
+        int keysLen = keySerializer.valueArraySize(keys);
         while(index!=keysLen){
-            int compare = comparator.compare(key, keys[index]);
+            int compare = comparator.compare(key, keySerializer.valueArrayGet(keys, index));
             if(compare<0)
                 return -index-1;
             else if(compare==0)
@@ -213,15 +225,15 @@ public class BTreeMapJava {
         }
     };
 
-    static Object leafGet(Node node, Comparator comparator, Object key, Serializer valueSerializer){
-        int pos = findIndex(node, comparator, key);
-        return leafGet(node, pos, valueSerializer);
+    static Object leafGet(Node node, Comparator comparator, Object key, Serializer keySerializer, Serializer valueSerializer){
+        int pos = findIndex(keySerializer, node, comparator, key);
+        return leafGet(node, pos, keySerializer, valueSerializer);
     }
 
-    static Object leafGet(Node node, int pos, Serializer valueSerializer){
+    static Object leafGet(Node node, int pos, Serializer keySerializer, Serializer valueSerializer){
 
         if(pos<0+1-node.intLeftEdge()) {
-            if(!node.isRightEdge() && pos<-node.keys.length )
+            if(!node.isRightEdge() && pos<-keySerializer.valueArraySize(node.keys))
                 return LINK;
             else
                 return null;
@@ -256,12 +268,6 @@ public class BTreeMapJava {
         }
         ret[pos] = value;
         return ret;
-    }
-
-    public static Object[] arrayRemove(Object[] vals, int pos) {
-        Object[] vals2 = Arrays.copyOf(vals, vals.length-1);
-        System.arraycopy(vals, pos+1, vals2, pos, vals.length-(pos+1));
-        return vals2;
     }
 
 }
