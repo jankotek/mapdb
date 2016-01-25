@@ -2,7 +2,7 @@ package org.mapdb
 
 import org.junit.runner.Description
 import org.junit.runner.notification.RunListener
-import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 /**
@@ -11,15 +11,15 @@ import java.util.concurrent.TimeUnit
  */
 class JUnitRunListener: RunListener() {
 
-    val runningTests = Collections.synchronizedSet(HashSet<String>())
+    val runningTests = ConcurrentHashMap<String, Long>()
     val period = 5*60*1000L
 
     val exec = TT.executor()
     init{
         exec.scheduleAtFixedRate({
             println("Running tests: ")
-            runningTests.forEach {
-                println("   " +it)
+            runningTests.forEach {name, time ->
+                println("   $name - " + (System.currentTimeMillis()-time)/(60*1000))
             }
         }, period, period, TimeUnit.MILLISECONDS)
     }
@@ -27,10 +27,10 @@ class JUnitRunListener: RunListener() {
 
 
     override fun testStarted(description: Description?) {
-        runningTests.add(description?.displayName)
+        runningTests.put(description!!.displayName!!, System.currentTimeMillis())
     }
 
     override fun testFinished(description: Description?) {
-        runningTests.remove(description?.displayName)
+        runningTests.remove(description!!.displayName)
     }
 }
