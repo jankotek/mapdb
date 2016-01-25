@@ -43,7 +43,7 @@ public class BTreeMapJava {
                     // compare leaf size
                     if (
                             keysLen !=
-                                    valueSerializer.valueArraySize(values) + 2 - intLeftEdge() - intRightEdge()) {
+                                    valueSerializer.valueArraySize(values) + 2 - intLeftEdge() - intRightEdge() - intLastKeyDouble()) {
                         throw new AssertionError();
                     }
                 }
@@ -57,7 +57,6 @@ public class BTreeMapJava {
 
             if(CC.ASSERT && isLastKeyDouble() && isDir())
                 throw new AssertionError();
-
 
             if(CC.ASSERT && isRightEdge() && (link!=0L))
                 throw new AssertionError();
@@ -156,10 +155,10 @@ public class BTreeMapJava {
             Object values = (flags&DIR)!=0 ?
                     Serializer.LONG_ARRAY.deserialize(input, -1):
                     valueSerializer.valueArrayDeserialize(input,
-                            keysLen - 2 + ((flags>>>2)&1) + ((flags>>>1)&1));
+                            keysLen - 2 + ((flags>>>2)&1) + ((flags>>>1)&1) +(flags&1));
 
 
-            return new Node(flags, link, keys, values);
+            return new Node(flags, link, keys, values, keySerializer, valueSerializer);
         }
 
         @Override

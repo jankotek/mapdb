@@ -1,11 +1,9 @@
 package org.mapdb
 
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet
-import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.junit.Test
 import org.mapdb.BTreeMapJava.*
 import java.util.*
-import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CopyOnWriteArraySet
 import kotlin.test.*
 
@@ -91,7 +89,7 @@ class BTreeMapTest {
         val node = Node(
                 LAST_KEY_DOUBLE,
                 10L,
-                arrayOf(10, 20, 30, 40, 40),
+                arrayOf(10, 20, 30, 40),
                 arrayOf(2, 3, 4)
         )
 
@@ -102,15 +100,15 @@ class BTreeMapTest {
         assertEquals(1, findIndex(keyser, node, COMPARATOR, 20))
         assertEquals(2, findIndex(keyser, node, COMPARATOR, 30))
         assertEquals(3, findIndex(keyser, node, COMPARATOR, 40))
-        assertEquals(-6, findIndex(keyser, node, COMPARATOR, 50))
+        assertEquals(-5, findIndex(keyser, node, COMPARATOR, 50))
 
     }
 
     @Test fun leafGet() {
         val node = Node(
-                0,
+                LAST_KEY_DOUBLE,
                 10L,
-                arrayOf(10, 20, 30, 40, 40),
+                arrayOf(10, 20, 30, 40),
                 arrayOf(2, 3, 4)
         )
 
@@ -207,9 +205,9 @@ class BTreeMapTest {
         )
 
         val node1 = Node(
-                LEFT,
+                LEFT + LAST_KEY_DOUBLE,
                 map.store.put(node2, map.nodeSerializer),
-                arrayOf(20, 30, 40, 50, 50),
+                arrayOf(20, 30, 40, 50),
                 arrayOf(2, 3, 4, 5)
         )
 
@@ -234,16 +232,16 @@ class BTreeMapTest {
         )
 
         val node2 = Node(
-                0,
+                LAST_KEY_DOUBLE,
                 map.store.put(node3, map.nodeSerializer),
-                arrayOf(50, 60, 70, 70),
+                arrayOf(50, 60, 70),
                 arrayOf(6, 7)
         )
 
         val node1 = Node(
-                LEFT,
+                LEFT + LAST_KEY_DOUBLE,
                 map.store.put(node2, map.nodeSerializer),
-                arrayOf(20, 30, 40, 50, 50),
+                arrayOf(20, 30, 40, 50),
                 arrayOf(2, 3, 4, 5)
         )
 
@@ -295,9 +293,9 @@ class BTreeMapTest {
         )
 
         val node1 = Node(
-                0,
+                LAST_KEY_DOUBLE,
                 map.store.put(node2, map.nodeSerializer),
-                arrayOf(10, 20, 30, 40, 50, 50),
+                arrayOf(10, 20, 30, 40, 50),
                 arrayOf(2, 3, 4, 5)
         )
 
@@ -324,16 +322,16 @@ class BTreeMapTest {
         )
 
         val node2 = Node(
-                0,
+                LAST_KEY_DOUBLE,
                 map.store.put(node3, map.nodeSerializer),
-                arrayOf(50, 60, 70, 70),
+                arrayOf(50, 60, 70),
                 arrayOf(6, 7)
         )
 
         val node1 = Node(
-                0,
+                LAST_KEY_DOUBLE,
                 map.store.put(node2, map.nodeSerializer),
-                arrayOf(10, 20, 30, 40, 50, 50),
+                arrayOf(10, 20, 30, 40, 50),
                 arrayOf(2, 3, 4, 5)
         )
 
@@ -361,17 +359,17 @@ class BTreeMapTest {
         val recid3 = map.store.put(node3, map.nodeSerializer)
 
         val node2 = Node(
-                0,
+                LAST_KEY_DOUBLE,
                 recid3,
-                arrayOf(50, 60, 70, 70),
+                arrayOf(50, 60, 70),
                 arrayOf(6, 7)
         )
         val recid2 = map.store.put(node2, map.nodeSerializer)
 
         val node1 = Node(
-                LEFT,
+                LEFT + LAST_KEY_DOUBLE,
                 recid2,
-                arrayOf(20, 30, 40, 50, 50),
+                arrayOf(20, 30, 40, 50),
                 arrayOf(2, 3, 4, 5)
         )
         val recid1 = map.store.put(node1, map.nodeSerializer)
@@ -406,17 +404,17 @@ class BTreeMapTest {
             val recid3 = map.store.put(node3, map.nodeSerializer)
 
             val node2 = Node(
-                    0,
+                    LAST_KEY_DOUBLE,
                     recid3,
-                    arrayOf(50, 60, 70, 70),
+                    arrayOf(50, 60, 70),
                     arrayOf(6, 7)
             )
             val recid2 = map.store.put(node2, map.nodeSerializer)
 
             val node1 = Node(
-                    LEFT,
+                    LEFT+LAST_KEY_DOUBLE,
                     recid2,
-                    arrayOf(20, 30, 40, 50, 50),
+                    arrayOf(20, 30, 40, 50),
                     arrayOf(2, 3, 4, 5)
             )
             val recid1 = map.store.put(node1, map.nodeSerializer)
@@ -579,6 +577,13 @@ class BTreeMapTest {
             val sortedOtherRef = TreeSet<Int>(otherRef)
             assertEquals(sortedRef, sortedOtherRef)
         }
+
+    }
+
+
+    @Test fun find_index_vs_arrayBinarySearch(){
+
+        val array = arrayOf(10,20,21,22,23, 30, 40, 50, 60, 70, 81,82,83, 84 , 85, 86 )
 
     }
 
