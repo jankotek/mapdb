@@ -180,19 +180,15 @@ public class BTreeMapJava {
         if(CC.ASSERT && !node.isDir())
             throw new AssertionError();
         //find an index
-        Object keys = node.keys;
-        int index = 1-node.intLeftEdge();
-        int keysLen = keySerializer.valueArraySize(keys);
-        long[] children = (long[]) node.values;
-        //TODO move binary search to serializer
-        while(index!=keysLen && comparator.compare(key, keySerializer.valueArrayGet(keys, index))>0){
-            index++;
-        }
+        int index = keySerializer.valueArrayBinarySearch(node.keys, key, comparator);
+
+        if(index<0)
+            index = -index-1;
 
         index += -1+node.intLeftEdge();
 
         index = Math.max(0, index);
-
+        long[] children = (long[]) node.values;
         if(index>=children.length) {
             if(CC.ASSERT && node.isRightEdge())
                 throw new AssertionError();

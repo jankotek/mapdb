@@ -473,6 +473,9 @@ public abstract class Serializer<A> implements Comparator<A> {
 
         @Override
         final public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
+            if(comparator==this)
+                return valueArrayBinarySearch(keys, key);
+
             long[] array = (long[]) keys;
 
             int lo = 0;
@@ -662,6 +665,8 @@ public abstract class Serializer<A> implements Comparator<A> {
 
         @Override
         final public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
+            if(comparator==this)
+                return valueArrayBinarySearch(keys, key);
             int[] array = (int[]) keys;
 
             int lo = 0;
@@ -2547,6 +2552,8 @@ public abstract class Serializer<A> implements Comparator<A> {
 
 
     public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator){
+        if(comparator==this)
+            return valueArrayBinarySearch(keys, key);
         return Arrays.binarySearch((Object[])keys, key, comparator);
     }
 
