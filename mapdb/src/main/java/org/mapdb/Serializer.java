@@ -32,7 +32,7 @@ import java.util.zip.InflaterInputStream;
  *
  * @author Jan Kotek
  */
-public abstract class Serializer<A> {
+public abstract class Serializer<A> implements Comparator<A> {
 
 
     public static final Serializer<Character> CHAR =  new Serializer<Character>() {
@@ -162,14 +162,29 @@ public abstract class Serializer<A> {
 
         @Override
         public int valueArrayBinarySearch(Object keys, Object key) {
-            //TODO not yet implemented
-            throw new UnsupportedOperationException("not yet implemented");
+            char[] key2 = ((String)key).toCharArray();
+            return Arrays.binarySearch((char[][])keys, key2, CHAR_ARRAY);
         }
 
         @Override
         public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
-            //TODO not yet implemented
-            throw new UnsupportedOperationException("not yet implemented");
+            char[][] array = (char[][]) keys;
+
+            int lo = 0;
+            int hi = array.length - 1;
+
+            while (lo <= hi) {
+                int mid = (lo + hi) >>> 1;
+                int compare = comparator.compare(key, new String(array[mid]));
+
+                if (compare == 0)
+                    return mid;
+                else if (compare < 0)
+                    hi = mid - 1;
+                else
+                    lo = mid + 1;
+            }
+            return -(lo + 1);
         }
 
         @Override
@@ -236,6 +251,7 @@ public abstract class Serializer<A> {
             char[] c = s.toCharArray();
             return CHAR_ARRAY.hashCode(c, seed);
         }
+
     }
 
     /**
@@ -455,6 +471,27 @@ public abstract class Serializer<A> {
             return 8;
         }
 
+        @Override
+        final public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
+            long[] array = (long[]) keys;
+
+            int lo = 0;
+            int hi = array.length - 1;
+
+            while (lo <= hi) {
+                int mid = (lo + hi) >>> 1;
+                int compare = comparator.compare(key, unpack(array[mid]));
+
+                if (compare == 0)
+                    return mid;
+                else if (compare < 0)
+                    hi = mid - 1;
+                else
+                    lo = mid + 1;
+            }
+            return -(lo + 1);
+        }
+
     }
 
 
@@ -475,11 +512,6 @@ public abstract class Serializer<A> {
             return Arrays.binarySearch((long[])keys, (Long)key);
         }
 
-        @Override
-        public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
-            //TODO not yet implemented
-            throw new UnsupportedOperationException("not yet implemented");
-        }
     }
 
     /** Serializes Long into 8 bytes, used mainly for testing.
@@ -627,6 +659,27 @@ public abstract class Serializer<A> {
             }
             return ret;
         }
+
+        @Override
+        final public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
+            int[] array = (int[]) keys;
+
+            int lo = 0;
+            int hi = array.length - 1;
+
+            while (lo <= hi) {
+                int mid = (lo + hi) >>> 1;
+                int compare = comparator.compare(key, unpack(array[mid]));
+
+                if (compare == 0)
+                    return mid;
+                else if (compare < 0)
+                    hi = mid - 1;
+                else
+                    lo = mid + 1;
+            }
+            return -(lo + 1);
+        }
     }
 
     abstract protected static class IntegerSerializer extends FourByteSerializer<Integer> {
@@ -641,32 +694,11 @@ public abstract class Serializer<A> {
             return l;
         }
 
-
         @Override
         public int valueArrayBinarySearch(Object keys, Object key) {
             return Arrays.binarySearch((int[])keys, (Integer)key);
         }
 
-        @Override
-        public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
-            int[] array = (int[]) keys;
-
-            int lo = 0;
-            int hi = array.length - 1;
-
-            while (lo <= hi) {
-                int mid = (lo + hi) >>> 1;
-                int compare = comparator.compare(key, array[mid]);
-
-                if (compare == 0)
-                    return mid;
-                else if (compare < 0) //TODO optimize with biteshift (negative bit >>>31), eliminate conditions
-                    hi = mid - 1;
-                else
-                    lo = mid + 1;
-            }
-            return -(lo + 1);
-        }
     }
 
     /** Serializes Integer into 4 bytes, used mainly for testing.
@@ -749,14 +781,12 @@ public abstract class Serializer<A> {
 
         @Override
         public int valueArrayBinarySearch(Object keys, Object key) {
-            //TODO not yet implemented
-            throw new UnsupportedOperationException("not yet implemented");
+            return Arrays.binarySearch(valueArrayToArray(keys), key);
         }
 
         @Override
         public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
-            //TODO not yet implemented
-            throw new UnsupportedOperationException("not yet implemented");
+            return Arrays.binarySearch(valueArrayToArray(keys), key, comparator);
         }
 
         @Override
@@ -871,16 +901,9 @@ public abstract class Serializer<A> {
         }
 
 
-
         @Override
         public int valueArrayBinarySearch(Object keys, Object key) {
             return Arrays.binarySearch((long[])keys, (Long)key);
-        }
-
-        @Override
-        public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
-            //TODO not yet implemented
-            throw new UnsupportedOperationException("not yet implemented");
         }
 
         @Override
@@ -922,14 +945,12 @@ public abstract class Serializer<A> {
 
         @Override
         public int valueArrayBinarySearch(Object keys, Object key) {
-            //TODO not yet implemented
-            throw new UnsupportedOperationException("not yet implemented");
+            return LONG_ARRAY.valueArrayBinarySearch(keys,key);
         }
 
         @Override
         public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
-            //TODO not yet implemented
-            throw new UnsupportedOperationException("not yet implemented");
+            return LONG_ARRAY.valueArrayBinarySearch(keys,key, comparator);
         }
 
         @Override
@@ -945,6 +966,11 @@ public abstract class Serializer<A> {
         @Override
         public int hashCode(long[] bytes, int seed) {
             return LONG_ARRAY.hashCode(bytes,seed);
+        }
+
+        @Override
+        public int compare(long[] o1, long[] o2) {
+            return LONG_ARRAY.compare(o1, o2);
         }
 
     };
@@ -1005,13 +1031,18 @@ public abstract class Serializer<A> {
                     DataIO.hash(bytes, 0, bytes.length, seed));
         }
 
-//        @Override
-//        public BTreeKeySerializer getBTreeKeySerializer(Comparator comparator) {
-//            if(comparator!=null && comparator!=Fun.COMPARATOR) {
-//                return super.getBTreeKeySerializer(comparator);
-//            }
-//            return BTreeKeySerializer.BYTE_ARRAY;
-//        }
+        @Override
+        public int compare(byte[] o1, byte[] o2) {
+            if(o1==o2) return 0;
+            final int len = Math.min(o1.length,o2.length);
+            for(int i=0;i<len;i++){
+                int b1 = o1[i]&0xFF;
+                int b2 = o2[i]&0xFF;
+                if(b1!=b2)
+                    return b1-b2;
+            }
+            return o1.length - o2.length;
+        }
     } ;
 
     /**
@@ -1052,14 +1083,18 @@ public abstract class Serializer<A> {
             return true;
         }
 
-
-//        @Override
-//        public BTreeKeySerializer getBTreeKeySerializer(Comparator comparator) {
-//            if(comparator!=null && comparator!=Fun.COMPARATOR) {
-//                return super.getBTreeKeySerializer(comparator);
-//            }
-//            return BTreeKeySerializer.BYTE_ARRAY;
-//        }
+        @Override
+        public int compare(byte[] o1, byte[] o2) {
+            if(o1==o2) return 0;
+            final int len = Math.min(o1.length,o2.length);
+            for(int i=0;i<len;i++){
+                int b1 = o1[i]&0xFF;
+                int b2 = o2[i]&0xFF;
+                if(b1!=b2)
+                    return b1-b2;
+            }
+            return o1.length - o2.length;
+        }
 
     } ;
 
@@ -1102,6 +1137,17 @@ public abstract class Serializer<A> {
                     DataIO.hash(bytes, 0, bytes.length, seed));
         }
 
+        @Override
+        public int compare(char[] o1, char[] o2) {
+            final int len = Math.min(o1.length,o2.length);
+            for(int i=0;i<len;i++){
+                int b1 = o1[i];
+                int b2 = o2[i];
+                if(b1!=b2)
+                    return b1-b2;
+            }
+            return compareInt(o1.length, o2.length);
+        }
 
     };
 
@@ -1147,6 +1193,19 @@ public abstract class Serializer<A> {
             return seed;
         }
 
+        @Override
+        public int compare(int[] o1, int[] o2) {
+            if(o1==o2) return 0;
+            final int len = Math.min(o1.length,o2.length);
+            for(int i=0;i<len;i++){
+                if(o1[i]==o2[i])
+                    continue;
+                if(o1[i]>o2[i])
+                    return 1;
+                return -1;
+            }
+            return compareInt(o1.length, o2.length);
+        }
 
     };
 
@@ -1193,6 +1252,19 @@ public abstract class Serializer<A> {
             return seed;
         }
 
+        @Override
+        public int compare(long[] o1, long[] o2) {
+            if(o1==o2) return 0;
+            final int len = Math.min(o1.length,o2.length);
+            for(int i=0;i<len;i++){
+                if(o1[i]==o2[i])
+                    continue;
+                if(o1[i]>o2[i])
+                    return 1;
+                return -1;
+            }
+            return compareInt(o1.length, o2.length);
+        }
 
     };
 
@@ -1237,6 +1309,20 @@ public abstract class Serializer<A> {
                 seed = (-1640531527) * seed + (int)(bits ^ (bits >>> 32));
             }
             return seed;
+        }
+
+        @Override
+        public int compare(double[] o1, double[] o2) {
+            if(o1==o2) return 0;
+            final int len = Math.min(o1.length,o2.length);
+            for(int i=0;i<len;i++){
+                if(o1[i]==o2[i])
+                    continue;
+                if(o1[i]>o2[i])
+                    return 1;
+                return -1;
+            }
+            return compareInt(o1.length, o2.length);
         }
 
 
@@ -1305,14 +1391,12 @@ public abstract class Serializer<A> {
 
         @Override
         public int valueArrayBinarySearch(Object keys, Object key) {
-            //TODO not yet implemented
-            throw new UnsupportedOperationException("not yet implemented");
+            return Arrays.binarySearch(valueArrayToArray(keys), key);
         }
 
         @Override
         public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
-            //TODO not yet implemented
-            throw new UnsupportedOperationException("not yet implemented");
+            return Arrays.binarySearch(valueArrayToArray(keys), key, comparator);
         }
 
         @Override
@@ -1449,17 +1533,7 @@ public abstract class Serializer<A> {
             return Float.floatToIntBits(l);
         }
 
-        @Override
-        public int valueArrayBinarySearch(Object keys, Object key) {
-            //TODO not yet implemented
-            throw new UnsupportedOperationException("not yet implemented");
-        }
 
-        @Override
-        public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
-            //TODO not yet implemented
-            throw new UnsupportedOperationException("not yet implemented");
-        }
 
         @Override
         public void serialize(DataOutput2 out, Float value) throws IOException {
@@ -1470,6 +1544,15 @@ public abstract class Serializer<A> {
         public Float deserialize(DataInput2 in, int available) throws IOException {
             return new Float(in.readFloat());
         }
+
+
+        @Override
+        public int valueArrayBinarySearch(Object keys, Object key) {
+            //TODO PERF this can be optimized, but must take care of NaN
+            return Arrays.binarySearch(valueArrayToArray(keys), key);
+        }
+
+
 
     } ;
 
@@ -1487,16 +1570,9 @@ public abstract class Serializer<A> {
 
         @Override
         public int valueArrayBinarySearch(Object keys, Object key) {
-            //TODO not yet implemented
-            throw new UnsupportedOperationException("not yet implemented");
+            //TODO PERF this can be optimized, but must take care of NaN
+            return Arrays.binarySearch(valueArrayToArray(keys), key);
         }
-
-        @Override
-        public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
-            //TODO not yet implemented
-            throw new UnsupportedOperationException("not yet implemented");
-        }
-
 
         @Override
         public void serialize(DataOutput2 out, Double value) throws IOException {
@@ -1601,6 +1677,20 @@ public abstract class Serializer<A> {
                 seed = (-1640531527) * seed + element;
             return seed;
         }
+
+        @Override
+        public int compare(short[] o1, short[] o2) {
+            if(o1==o2) return 0;
+            final int len = Math.min(o1.length,o2.length);
+            for(int i=0;i<len;i++){
+                if(o1[i]==o2[i])
+                    continue;
+                if(o1[i]>o2[i])
+                    return 1;
+                return -1;
+            }
+            return compareInt(o1.length, o2.length);
+        }
     };
 
 
@@ -1637,6 +1727,20 @@ public abstract class Serializer<A> {
             for (float element : floats)
                 seed = (-1640531527) * seed + Float.floatToIntBits(element);
             return seed;
+        }
+
+        @Override
+        public int compare(float[] o1, float[] o2) {
+            if(o1==o2) return 0;
+            final int len = Math.min(o1.length,o2.length);
+            for(int i=0;i<len;i++){
+                if(o1[i]==o2[i])
+                    continue;
+                if(o1[i]>o2[i])
+                    return 1;
+                return -1;
+            }
+            return compareInt(o1.length, o2.length);
         }
     };
 
@@ -1733,6 +1837,14 @@ public abstract class Serializer<A> {
         protected long pack(Date l) {
             return l.getTime();
         }
+
+        @Override
+        final public int valueArrayBinarySearch(Object keys, Object key) {
+            long time = ((Date)key).getTime();
+            return Arrays.binarySearch((long[])keys, time);
+        }
+
+
     };
 
 
@@ -1829,14 +1941,12 @@ public abstract class Serializer<A> {
 
         @Override
         public int valueArrayBinarySearch(Object keys, Object key) {
-            //TODO not yet implemented
-            throw new UnsupportedOperationException("not yet implemented");
+            return serializer.valueArrayBinarySearch(keys, key);
         }
 
         @Override
         public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
-            //TODO not yet implemented
-            throw new UnsupportedOperationException("not yet implemented");
+            return serializer.valueArrayBinarySearch(keys, key, comparator);
         }
 
         @Override
@@ -1966,6 +2076,11 @@ public abstract class Serializer<A> {
         public int hashCode(E e, int seed) {
             return serializer.hashCode(e, seed);
         }
+
+        @Override
+        public int compare(E o1, E o2) {
+            return serializer.compare(o1, o2);
+        }
     }
 
 
@@ -2087,18 +2202,16 @@ public abstract class Serializer<A> {
             return true;
         }
 
+
         @Override
         public int valueArrayBinarySearch(Object keys, Object key) {
-            //TODO not yet implemented
-            throw new UnsupportedOperationException("not yet implemented");
+            return serializer.valueArrayBinarySearch(keys, key);
         }
 
         @Override
         public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
-            //TODO not yet implemented
-            throw new UnsupportedOperationException("not yet implemented");
+            return serializer.valueArrayBinarySearch(keys, key, comparator);
         }
-
 
         @Override
         public void valueArraySerialize(DataOutput2 out, Object vals) throws IOException {
@@ -2222,6 +2335,11 @@ public abstract class Serializer<A> {
             return serializer.hashCode(e, seed);
         }
 
+        @Override
+        public int compare(E o1, E o2) {
+            return serializer.compare(o1, o2);
+        }
+
     }
 
     public static final class ArraySer<T> extends Serializer<T[]> implements  Serializable{
@@ -2300,6 +2418,30 @@ public abstract class Serializer<A> {
         @Override
         public int hashCode() {
             return serializer.hashCode();
+        }
+
+
+        @Override
+        public int compare(Object[] o1, Object[] o2) {
+            int len = Math.min(o1.length,o2.length);
+            int r;
+            for(int i=0;i<len;i++){
+                Object a1 = o1[i];
+                Object a2 = o2[i];
+
+                if(a1==a2) { //this case handles both nulls
+                    r = 0;
+                }else if(a1==null) {
+                    r = 1; //null is positive infinity, always greater than anything else
+                }else if(a2==null) {
+                    r = -1;
+                }else{
+                    r = serializer.compare((T)a1,(T)a2);;
+                }
+                if(r!=0)
+                    return r;
+            }
+            return compareInt(o1.length, o2.length);
         }
     }
 
@@ -2386,6 +2528,11 @@ public abstract class Serializer<A> {
         return false;
     }
 
+    @Override
+    public int compare(A o1, A o2) {
+        return ((Comparable)o1).compareTo(o2);
+    }
+
     public boolean equals(@NotNull A a1, @NotNull A a2){
         return a1==a2 || (a1!=null && a1.equals(a2));
     }
@@ -2395,7 +2542,7 @@ public abstract class Serializer<A> {
     }
 
     public int valueArrayBinarySearch(Object keys, Object key){
-        return Arrays.binarySearch((Object[])keys, key);
+        return Arrays.binarySearch((Object[])keys, key, (Comparator<Object>)this);
     }
 
 
@@ -2462,13 +2609,6 @@ public abstract class Serializer<A> {
         }
         return ret;
     }
-//
-//    public BTreeKeySerializer getBTreeKeySerializer(Comparator comparator){
-//        if(comparator==null)
-//            comparator = Fun.COMPARATOR;
-//        return new BTreeKeySerializer.BasicKeySerializer(Serializer.this,comparator);
-//    }
-
 
     public boolean needsAvailableSizeHint(){
         return false;
@@ -2511,5 +2651,10 @@ public abstract class Serializer<A> {
     public static <R> Serializer<R> serializerForClass(Class<R> clazz){
         return SERIALIZER_FOR_CLASS.get(clazz);
     }
+
+    private static int compareInt(int x, int y) {
+        return (x < y) ? -1 : ((x == y) ? 0 : 1);
+    }
+
 
 }

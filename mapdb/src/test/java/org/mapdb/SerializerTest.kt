@@ -70,6 +70,42 @@ abstract class SerializerTest<E>{
         }
     }
 
+    @Test fun compare() {
+        for (i in 0..max) {
+            val v1 = randomValue()
+            val v2 = randomValue()
+            serializer.compare(v1, v2)
+        }
+    }
+
+    @Test fun valueArrayBinarySearc(){
+        var v = ArrayList<E>()
+        for (i in 0..max) {
+            v.add(randomValue())
+        }
+        Collections.sort(v, serializer)
+        val keys = serializer.valueArrayFromArray(v.toArray())
+
+        fun check(keys:Any, e:E){
+            val v1 = serializer.valueArrayBinarySearch(keys, e)
+            val v2 = serializer.valueArrayBinarySearch(keys, e, serializer)
+            val v3 = Arrays.binarySearch(serializer.valueArrayToArray(keys), e as Any, serializer as Comparator<Any>)
+
+            assertEquals(v1, v3);
+            assertEquals(v1, v2);
+
+        }
+
+        for (i in 0..max) {
+            val e = randomValue()
+            check(keys, e)
+        }
+
+        for(e in v){
+            check(keys, e)
+        }
+    }
+
     fun randomValueArray():Any{
         var o = serializer.valueArrayEmpty()
         for(i in 0 until arraySize){
