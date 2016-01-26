@@ -133,9 +133,10 @@ public class BTreeMapJava {
             if(!value.isRightEdge())
                 out.packLong(value.link);
             keySerializer.valueArraySerialize(out, value.keys);
-            if(value.isDir()) //TODO serialize children without size hint overhead
-                Serializer.LONG_ARRAY.serialize(out, (long[]) value.values);
-            else
+            if(value.isDir()) {
+                long[] child = (long[]) value.values;
+                out.packLongArray(child, 0, child.length );
+            }else
                 valueSerializer.valueArraySerialize(out, value.values);
         }
 
@@ -152,10 +153,16 @@ public class BTreeMapJava {
             if(CC.ASSERT && keysLen!=keySerializer.valueArraySize(keys))
                 throw new AssertionError();
 
-            Object values = (flags&DIR)!=0 ?
-                    Serializer.LONG_ARRAY.deserialize(input, -1):
-                    valueSerializer.valueArrayDeserialize(input,
-                            keysLen - 2 + ((flags>>>2)&1) + ((flags>>>1)&1) +(flags&1));
+            Object values;
+            if((flags&DIR)!=0){
+                keysLen = keysLen - 1 + (flags>>2&1) +(flags>>1&1);
+                long[] c = new long[keysLen];
+                values = c;
+                input.unpackLongArray(c, 0, keysLen);
+            }else{
+                values = valueSerializer.valueArrayDeserialize(input,
+                        keysLen - 2 + ((flags >>> 2) & 1) + ((flags >>> 1) & 1) + (flags & 1));
+            }
 
 
             return new Node(flags, link, keys, values, keySerializer, valueSerializer);
