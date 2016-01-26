@@ -167,7 +167,7 @@ public class BTreeMapJava {
         }
     }
 
-    public static final Comparator COMPARATOR = new Comparator<Comparable>() {
+    public static final Comparator COMPARABLE_COMPARATOR = new Comparator<Comparable>() {
         @Override
         public int compare(Comparable o1, Comparable o2) {
             return o1.compareTo(o2);

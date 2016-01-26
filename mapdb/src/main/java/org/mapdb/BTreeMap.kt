@@ -20,7 +20,8 @@ class BTreeMap<K,V>(
         val valueSerializer:Serializer<V>,
         val rootRecidRecid:Long,
         val store:Store,
-        val maxNodeSize:Int
+        val maxNodeSize:Int,
+        val comparator:Comparator<K>
 ):Verifiable, ConcurrentMap<K, V>, MapExtra<K, V> {
 
     companion object{
@@ -35,13 +36,15 @@ class BTreeMap<K,V>(
                                     valueSerializer.valueArrayEmpty(), keySerializer, valueSerializer),
                             NodeSerializer(keySerializer, valueSerializer)),
                         Serializer.RECID),
-                maxNodeSize:Int=32) =
+                maxNodeSize:Int=32,
+                comparator:Comparator<K> = keySerializer) =
             BTreeMap(
                     keySerializer = keySerializer,
                     valueSerializer = valueSerializer,
                     store = store,
                     rootRecidRecid = rootRecidRecid,
-                    maxNodeSize = maxNodeSize
+                    maxNodeSize = maxNodeSize,
+                    comparator = comparator
             )
     }
 
@@ -80,16 +83,16 @@ class BTreeMap<K,V>(
 
         //dive into bottom
         while(A.isDir){
-            current =  findChild(keySerializer, A, COMPARATOR, key)
+            current =  findChild(keySerializer, A, comparator, key)
             A = getNode(current)
         }
 
         //follow link until necessary
-        var ret = leafGet(A,COMPARATOR, key, keySerializer, valueSerializer)
+        var ret = leafGet(A,comparator, key, keySerializer, valueSerializer)
         while(LINK==ret){
             current = A.link;
             A = getNode(current)
-            ret = leafGet(A,COMPARATOR, key, keySerializer, valueSerializer)
+            ret = leafGet(A,comparator, key, keySerializer, valueSerializer)
         }
         return ret as V?;
     }
@@ -114,7 +117,7 @@ class BTreeMap<K,V>(
             var A = getNode(current)
             while(A.isDir){
                 var t = current
-                current = findChild(keySerializer, A, COMPARATOR, v)
+                current = findChild(keySerializer, A, comparator, v)
                 if(current!=A.link){
                     stack.push(t)
                 }
@@ -131,7 +134,7 @@ class BTreeMap<K,V>(
                     A = getNode(current)
 
                     //follow link, until key is higher than highest key in node
-                    if(!A.isRightEdge && COMPARATOR.compare(v, A.highKey(keySerializer))>0){
+                    if(!A.isRightEdge && comparator.compare(v, A.highKey(keySerializer) as K)>0){ //TODO PERF optimize
                         //key is greater, load next link
                         unlock(current)
                         current = A.link
@@ -141,7 +144,7 @@ class BTreeMap<K,V>(
                 }
 
                 //current node is locked, and its highest value is higher/equal to key
-                var pos = keySerializer.valueArrayBinarySearch( A.keys, v, COMPARATOR)
+                var pos = keySerializer.valueArrayBinarySearch( A.keys, v, comparator)
                 if(pos>=0){
                     //entry exist in current node, so just update
                     pos = pos-1+A.intLeftEdge();
@@ -249,7 +252,7 @@ class BTreeMap<K,V>(
 
             var A = getNode(current)
             while (A.isDir) {
-                current = findChild(keySerializer, A, COMPARATOR, v)
+                current = findChild(keySerializer, A, comparator, v)
                 A = getNode(current)
             }
 
@@ -259,7 +262,7 @@ class BTreeMap<K,V>(
                 A = getNode(current)
 
                 //follow link, until key is higher than highest key in node
-                if (!A.isRightEdge && COMPARATOR.compare(v, A.highKey(keySerializer)) > 0) {
+                if (!A.isRightEdge && comparator.compare(v, A.highKey(keySerializer) as K) > 0) {
                     //key is greater, load next link
                     unlock(current)
                     current = A.link
@@ -269,7 +272,7 @@ class BTreeMap<K,V>(
             }
 
             //current node is locked, and its highest value is higher/equal to key
-            val pos = keySerializer.valueArrayBinarySearch(A.keys, v, COMPARATOR)
+            val pos = keySerializer.valueArrayBinarySearch(A.keys, v, comparator)
             var oldValue: V? = null
             val keysSize = keySerializer.valueArraySize(A.keys);
             if (pos >= 1 - A.intLeftEdge() && pos !=  keysSize - 1 + A.intRightEdge()+A.intLastKeyDouble()) {
@@ -424,7 +427,7 @@ class BTreeMap<K,V>(
             //check keys are sorted, no duplicates
             val keysLen = keySerializer.valueArraySize(node.keys)
             for(i in 1 until keysLen){
-                val compare = COMPARATOR.compare(
+                val compare = comparator.compare(
                         keySerializer.valueArrayGet(node.keys, i-1),
                         keySerializer.valueArrayGet(node.keys,i))
                 if(compare>=0)
@@ -487,7 +490,7 @@ class BTreeMap<K,V>(
 //                    throw AssertionError()
 
                 val next = getNode(node.link)
-                if(COMPARATOR.compare(node.highKey(keySerializer),keySerializer.valueArrayGet(next.keys, 0))!=0)
+                if(comparator.compare(node.highKey(keySerializer) as K,keySerializer.valueArrayGet(next.keys, 0))!=0)
                     throw AssertionError(node.link)
 
                 node = next

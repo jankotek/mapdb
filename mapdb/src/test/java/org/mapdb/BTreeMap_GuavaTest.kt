@@ -31,12 +31,15 @@ class BTreeMap_GuavaTest(val mapMaker:(generic:Boolean)-> ConcurrentMap<Any?, An
             val bools = if(TT.shortTest()) TT.boolsFalse else TT.bools
 
             for(inlineValue in bools)
+            for(reversedComparator in bools)
             {
                 ret.add(arrayOf<Any>({generic:Boolean->
                     if(generic)
-                        BTreeMap.make<Int,String>()
+                        BTreeMap.make<Int,String>(comparator =
+                            (if(reversedComparator) Serializer.JAVA.reversed() else Serializer.JAVA) as Comparator<Int> )
                     else
-                        BTreeMap.make(keySerializer = Serializer.INTEGER, valueSerializer = Serializer.STRING)
+                        BTreeMap.make(keySerializer = Serializer.INTEGER, valueSerializer = Serializer.STRING,
+                            comparator = if(reversedComparator) Serializer.INTEGER.reversed() else Serializer.INTEGER )
                 }))
 
             }
