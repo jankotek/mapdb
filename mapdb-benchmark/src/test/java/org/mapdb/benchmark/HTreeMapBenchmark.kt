@@ -3,18 +3,32 @@ package org.mapdb.benchmark
 import org.junit.Test
 import org.junit.Assert.*
 import org.mapdb.*
-import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.*
 
 class HTreeMapBenchmark{
 
     val size = 1e7.toInt()
 
 
-    @Test fun ConcurrentHashMap() {
+    @Test fun hashMap() {
         run(ConcurrentHashMap(size), "ConcurrentHashMap", size)
     }
 
-    @Test fun MapDB20() {
+    @Test fun skipListMap() {
+        run(ConcurrentSkipListMap(), "ConcurrentSkipListMap", size)
+    }
+
+
+    @Test fun MapDB20_HTreeMap() {
+        run(org.mapdb20.DBMaker.memoryDB()
+                .transactionDisable()
+                .allocateStartSize(1024 * 1024 * 512)
+                .make()
+                .treeMap("map", org.mapdb20.Serializer.INTEGER, org.mapdb20.Serializer.INTEGER),
+                "MapDB2_BTreeMap", size)
+    }
+
+    @Test fun MapDB20_BTreeMap() {
         run(org.mapdb20.DBMaker.memoryDB()
                 .transactionDisable()
                 .allocateStartSize(1024 * 1024 * 512)
@@ -23,7 +37,8 @@ class HTreeMapBenchmark{
                 "MapDB2_HTreeMap", size)
     }
 
-    @Test fun bench(){
+
+    @Test fun htreemap(){
         val bools = booleanArrayOf(true,false)
 
         for(keyInline in bools )
@@ -47,6 +62,15 @@ class HTreeMapBenchmark{
             val map = maker.create()
             run(map, name, size)
         }
+
+    }
+
+    @Test fun btreemap(){
+        val map = BTreeMap.make(
+                keySerializer = Serializer.INTEGER,
+                valueSerializer = Serializer.INTEGER,
+                store = StoreDirect.make())
+        run(map, "BTreeMap", size)
     }
 
 

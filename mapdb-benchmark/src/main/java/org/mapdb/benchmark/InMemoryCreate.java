@@ -18,46 +18,22 @@ public class InMemoryCreate {
 
     static final Map<String, Callable<Map<Long,UUID>>> fabs = new LinkedHashMap(max);
     static{
-        fabs.put("ConcurrentHashMap", new Callable<Map<Long, UUID>>() {
-            @Override public Map<Long, UUID> call() throws Exception {
-                return new ConcurrentHashMap<Long, UUID>();
-            }
-        });
+        fabs.put("ConcurrentHashMap", () -> new ConcurrentHashMap<Long, UUID>());
 
-        fabs.put("ConcurrentSkipListMap", new Callable<Map<Long, UUID>>() {
-            @Override public Map<Long, UUID> call() throws Exception {
-                return new ConcurrentSkipListMap<Long, UUID>();
-            }
-        });
+        fabs.put("ConcurrentSkipListMap", () -> new ConcurrentSkipListMap<Long, UUID>());
 
-        fabs.put("HTreeMap_heap", new Callable<Map<Long, UUID>>() {
-            @Override public Map<Long, UUID> call() throws Exception {
-                return org.mapdb20.DBMaker.heapDB().transactionDisable().make()
-                        .hashMap("map", org.mapdb20.Serializer.LONG, org.mapdb20.Serializer.UUID);
-            }
-        });
+        fabs.put("HTreeMap_heap", () -> org.mapdb20.DBMaker.heapDB().transactionDisable().make()
+                .hashMap("map", org.mapdb20.Serializer.LONG, org.mapdb20.Serializer.UUID));
 
-        fabs.put("BTreeMap_heap", new Callable<Map<Long, UUID>>() {
-            @Override public Map<Long, UUID> call() throws Exception {
-                return org.mapdb20.DBMaker.heapDB().transactionDisable().make()
-                        .treeMap("map", org.mapdb20.Serializer.LONG, org.mapdb20.Serializer.UUID);
-            }
-        });
+        fabs.put("BTreeMap_heap", () -> org.mapdb20.DBMaker.heapDB().transactionDisable().make()
+                .treeMap("map", org.mapdb20.Serializer.LONG, org.mapdb20.Serializer.UUID));
 
-        fabs.put("HTreeMap_offheap", new Callable<Map<Long, UUID>>() {
-            @Override public Map<Long, UUID> call() throws Exception {
-                return org.mapdb20.DBMaker.memoryDB().transactionDisable().asyncWriteEnable().make()
-                        .hashMap("map", org.mapdb20.Serializer.LONG, org.mapdb20.Serializer.UUID);
-            }
-        });
+        fabs.put("HTreeMap_offheap", () -> org.mapdb20.DBMaker.memoryDB().transactionDisable().asyncWriteEnable().make()
+                .hashMap("map", org.mapdb20.Serializer.LONG, org.mapdb20.Serializer.UUID));
 
-        fabs.put("BTreeMap_offheap", new Callable<Map<Long, UUID>>() {
-            @Override public Map<Long, UUID> call() throws Exception {
-                return org.mapdb20.DBMaker.memoryDB().asyncWriteEnable()
-                        .transactionDisable().make()
-                        .treeMap("map", org.mapdb20.Serializer.LONG, org.mapdb20.Serializer.UUID);
-            }
-        });
+        fabs.put("BTreeMap_offheap", () -> org.mapdb20.DBMaker.memoryDB().asyncWriteEnable()
+                .transactionDisable().make()
+                .treeMap("map", org.mapdb20.Serializer.LONG, org.mapdb20.Serializer.UUID));
     }
 
     public static void main(String[] args) throws Throwable {

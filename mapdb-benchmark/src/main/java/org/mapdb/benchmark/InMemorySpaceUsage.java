@@ -18,38 +18,18 @@ public class InMemorySpaceUsage {
 
     static final Map<String, Callable<Map<Long,String>>> fabs = new LinkedHashMap();
     static{
-        fabs.put("ConcurrentHashMap", new Callable<Map<Long, String>>() {
-            @Override public Map<Long, String> call() throws Exception {
-                return new ConcurrentHashMap<Long, String>();
-            }
-        });
+        fabs.put("ConcurrentHashMap", () -> new ConcurrentHashMap<Long, String>());
 
-        fabs.put("ConcurrentSkipListMap", new Callable<Map<Long, String>>() {
-            @Override public Map<Long, String> call() throws Exception {
-                return new ConcurrentSkipListMap<Long, String>();
-            }
-        });
+        fabs.put("ConcurrentSkipListMap", () -> new ConcurrentSkipListMap<Long, String>());
 
-        fabs.put("HTreeMap_heap", new Callable<Map<Long, String>>() {
-            @Override public Map<Long, String> call() throws Exception {
-                return DBMaker.heapDB().transactionDisable().make()
-                        .hashMap("map", Serializer.LONG, Serializer.STRING);
-            }
-        });
+        fabs.put("HTreeMap_heap", () -> DBMaker.heapDB().transactionDisable().make()
+                .hashMap("map", Serializer.LONG, Serializer.STRING));
 
-        fabs.put("BTreeMap_heap", new Callable<Map<Long, String>>() {
-            @Override public Map<Long, String> call() throws Exception {
-                return DBMaker.heapDB().transactionDisable().make()
-                        .treeMap("map", Serializer.LONG, Serializer.STRING);
-            }
-        });
+        fabs.put("BTreeMap_heap", () -> DBMaker.heapDB().transactionDisable().make()
+                .treeMap("map", Serializer.LONG, Serializer.STRING));
 
-        fabs.put("HTreeMap_offheap", new Callable<Map<Long, String>>() {
-            @Override public Map<Long, String> call() throws Exception {
-                return DBMaker.memoryDB().transactionDisable().make()
-                        .hashMap("map", Serializer.LONG, Serializer.STRING);
-            }
-        });
+        fabs.put("HTreeMap_offheap", () -> DBMaker.memoryDB().transactionDisable().make()
+                .hashMap("map", Serializer.LONG, Serializer.STRING));
 //
 //        fabs.put("BTreeMap_offheap", new Callable<Map<Long, String>>() {
 //            @Override public Map<Long, String> call() throws Exception {
@@ -60,18 +40,16 @@ public class InMemorySpaceUsage {
 //            }
 //        });
 
-        fabs.put("BTreeMap_offheap", new Callable<Map<Long, String>>() {
-            @Override public Map<Long, String> call() throws Exception {
-                Iterator<Fun.Pair<Long,String>> iter = new ReverseIter();
+        fabs.put("BTreeMap_offheap", () -> {
+            Iterator<Fun.Pair<Long,String>> iter = new ReverseIter();
 
-                return DBMaker.memoryDB()
-                        .transactionDisable().make()
-                        .treeMapCreate("map")
-                        .keySerializer(Serializer.LONG)
-                        .valueSerializer(Serializer.STRING)
-                        .pumpSource(iter)
-                        .make();
-            }
+            return DBMaker.memoryDB()
+                    .transactionDisable().make()
+                    .treeMapCreate("map")
+                    .keySerializer(Serializer.LONG)
+                    .valueSerializer(Serializer.STRING)
+                    .pumpSource(iter)
+                    .make();
         });
 //
 //        fabs.put("BTreeMap-archive", new Callable<Map<Long, String>>() {
