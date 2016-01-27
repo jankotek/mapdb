@@ -830,6 +830,25 @@ public abstract class Serializer<A> implements Comparator<A> {
         }
 
         @Override
+        public int valueArrayBinarySearch(Integer key, DataInput2 input, int keysLen, Comparator comparator) throws IOException {
+            if(comparator!=this)
+                return super.valueArrayBinarySearch(key, input, keysLen, comparator);
+            int key2 = key;
+            boolean notFound = true;
+            for(int pos=0; pos<keysLen; pos++){
+                int from = input.unpackInt();
+
+                if(notFound && key2<=from) {
+                    key2 = (key2==from) ? pos : -(pos + 1);
+                    notFound = false;
+                }
+            }
+
+            return notFound? -(keysLen+1) : key2;
+        }
+
+
+        @Override
         public int fixedSize() {
             return -1;
         }
