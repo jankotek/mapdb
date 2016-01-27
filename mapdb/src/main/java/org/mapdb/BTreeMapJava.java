@@ -187,21 +187,21 @@ public class BTreeMapJava {
         if(CC.ASSERT && !node.isDir())
             throw new AssertionError();
         //find an index
-        int index = keySerializer.valueArrayBinarySearch(node.keys, key, comparator);
+        int pos = keySerializer.valueArraySearch(node.keys, key, comparator);
 
-        if(index<0)
-            index = -index-1;
+        if(pos<0)
+            pos = -pos-1;
 
-        index += -1+node.intLeftEdge();
+        pos += -1+node.intLeftEdge();
 
-        index = Math.max(0, index);
+        pos = Math.max(0, pos);
         long[] children = (long[]) node.values;
-        if(index>=children.length) {
+        if(pos>=children.length) {
             if(CC.ASSERT && node.isRightEdge())
                 throw new AssertionError();
             return node.link;
         }
-        return children[index];
+        return children[pos];
     }
 
 
@@ -214,7 +214,7 @@ public class BTreeMapJava {
     };
 
     static Object leafGet(Node node, Comparator comparator, Object key, Serializer keySerializer, Serializer valueSerializer){
-        int pos = keySerializer.valueArrayBinarySearch(node.keys, key, comparator);
+        int pos = keySerializer.valueArraySearch(node.keys, key, comparator);
         return leafGet(node, pos, keySerializer, valueSerializer);
     }
 
@@ -292,26 +292,28 @@ public class BTreeMapJava {
             int intLeft = ((flags >>> 2) & 1);
             int intRight = ((flags >>> 1) & 1);
 
-            Object keys = keySerializer.valueArrayDeserialize(input, keysLen);
-            int pos = keySerializer.valueArrayBinarySearch(keys, key, comparator);
+            int pos = keySerializer.valueArrayBinarySearch(key, input, keysLen, comparator);
             if((flags&DIR)!=0){
                 //is directory, return related children
 
                 if(pos<0)
                     pos = -pos-1;
 
-                pos += -1 + (flags>>2)&1;   // plus left edge
+                pos += -1 + intLeft;   // plus left edge
                 pos = Math.max(0, pos);
                 keysLen = keysLen - 1 + intLeft + intRight;
 
                 if(pos>=keysLen) {
+                    if(CC.ASSERT && intRight==1)
+                        throw new AssertionError();
                     return link;
                 }
-                long[] c = new long[keysLen];
-                input.unpackLongArray(c, 0, keysLen);
-                return c[keysLen];
+                if(pos>0)
+                    input.unpackLongSkip(pos-1);
+                return input.unpackLong();
             }
 
+            //is leaf, get value from leaf
 
             if(pos<0+1-intLeft) {
                 if(intRight==0 && pos<-keysLen)
@@ -320,7 +322,7 @@ public class BTreeMapJava {
                     return -1;
             }
 
-            int valsLen = keysLen - 2 + ((flags >>> 2) & 1) + ((flags >>> 1) & 1) + (flags & 1);
+            int valsLen = keysLen - 2 + intLeft + intRight + (flags & 1);
 
             if(intRight==0 /*is not right edge*/ && pos==valsLen+1) {
                 //return null
@@ -328,7 +330,7 @@ public class BTreeMapJava {
             }else if(pos>=valsLen+1){
                 return link;
             }
-            Object values = valueSerializer.valueArrayDeserialize(input, valsLen);
+
             pos = pos-1+((flags >>> 2) & 1);
             if(pos>=valsLen) {
                 //return null
@@ -336,7 +338,7 @@ public class BTreeMapJava {
             }
 
             //found value, return it
-            value = valueSerializer.valueArrayGet(values, pos);
+            value = valueSerializer.valueArrayBinaryGet(input, pos);
             return -1L;
         }
     }

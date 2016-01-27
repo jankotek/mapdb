@@ -94,14 +94,14 @@ class BTreeMapTest {
                 arrayOf(2, 3, 4)
         )
 
-        assertEquals(-1, keyser.valueArrayBinarySearch(node.keys, 5, COMPARATOR))
-        assertEquals(-2, keyser.valueArrayBinarySearch(node.keys, 15, COMPARATOR))
-        assertEquals(-3, keyser.valueArrayBinarySearch(node.keys, 22, COMPARATOR))
-        assertEquals(0, keyser.valueArrayBinarySearch(node.keys, 10, COMPARATOR))
-        assertEquals(1, keyser.valueArrayBinarySearch(node.keys, 20, COMPARATOR))
-        assertEquals(2, keyser.valueArrayBinarySearch(node.keys, 30, COMPARATOR))
-        assertEquals(3, keyser.valueArrayBinarySearch(node.keys, 40, COMPARATOR))
-        assertEquals(-5, keyser.valueArrayBinarySearch(node.keys, 50, COMPARATOR))
+        assertEquals(-1, keyser.valueArraySearch(node.keys, 5, COMPARATOR))
+        assertEquals(-2, keyser.valueArraySearch(node.keys, 15, COMPARATOR))
+        assertEquals(-3, keyser.valueArraySearch(node.keys, 22, COMPARATOR))
+        assertEquals(0, keyser.valueArraySearch(node.keys, 10, COMPARATOR))
+        assertEquals(1, keyser.valueArraySearch(node.keys, 20, COMPARATOR))
+        assertEquals(2, keyser.valueArraySearch(node.keys, 30, COMPARATOR))
+        assertEquals(3, keyser.valueArraySearch(node.keys, 40, COMPARATOR))
+        assertEquals(-5, keyser.valueArraySearch(node.keys, 50, COMPARATOR))
 
     }
 

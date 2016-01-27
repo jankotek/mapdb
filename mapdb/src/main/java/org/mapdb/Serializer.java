@@ -161,13 +161,13 @@ public abstract class Serializer<A> implements Comparator<A> {
         }
 
         @Override
-        public int valueArrayBinarySearch(Object keys, Object key) {
-            char[] key2 = ((String)key).toCharArray();
+        public int valueArraySearch(Object keys, String key) {
+            char[] key2 = key.toCharArray();
             return Arrays.binarySearch((char[][])keys, key2, CHAR_ARRAY);
         }
 
         @Override
-        public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
+        public int valueArraySearch(Object keys, String key, Comparator comparator) {
             char[][] array = (char[][]) keys;
 
             int lo = 0;
@@ -366,14 +366,65 @@ public abstract class Serializer<A> implements Comparator<A> {
             return true;
         }
 
-        //        @Override
-//        public BTreeKeySerializer getBTreeKeySerializer(Comparator comparator) {
-//            if(comparator!=null && comparator!=Fun.COMPARATOR) {
-//                return super.getBTreeKeySerializer(comparator);
-//            }
-//            return BTreeKeySerializer.STRING;
-//        }
+        @Override
+        public Object valueArrayCopyOfRange(Object vals, int from, int to) {
+            throw new UnsupportedOperationException("NOSIZE can not be used for values");
+        }
 
+        @Override
+        public Object valueArrayDeleteValue(Object vals, int pos) {
+            throw new UnsupportedOperationException("NOSIZE can not be used for values");
+        }
+
+        @Override
+        public Object valueArrayDeserialize(DataInput2 in2, int size) throws IOException {
+            throw new UnsupportedOperationException("NOSIZE can not be used for values");
+        }
+
+        @Override
+        public Object valueArrayEmpty() {
+            throw new UnsupportedOperationException("NOSIZE can not be used for values");
+        }
+
+        @Override
+        public Object valueArrayFromArray(Object[] objects) {
+            throw new UnsupportedOperationException("NOSIZE can not be used for values");
+        }
+
+        @Override
+        public String valueArrayGet(Object vals, int pos) {
+            throw new UnsupportedOperationException("NOSIZE can not be used for values");
+        }
+
+        @Override
+        public Object valueArrayPut(Object vals, int pos, String newValue) {
+            throw new UnsupportedOperationException("NOSIZE can not be used for values");
+        }
+
+        @Override
+        public int valueArraySearch(Object keys, String key) {
+            throw new UnsupportedOperationException("NOSIZE can not be used for values");
+        }
+
+        @Override
+        public int valueArraySearch(Object keys, String key, Comparator comparator) {
+            throw new UnsupportedOperationException("NOSIZE can not be used for values");
+        }
+
+        @Override
+        public void valueArraySerialize(DataOutput2 out2, Object vals) throws IOException {
+            throw new UnsupportedOperationException("NOSIZE can not be used for values");
+        }
+
+        @Override
+        public int valueArraySize(Object vals) {
+            throw new UnsupportedOperationException("NOSIZE can not be used for values");
+        }
+
+        @Override
+        public Object valueArrayUpdateVal(Object vals, int pos, String newValue) {
+            throw new UnsupportedOperationException("NOSIZE can not be used for values");
+        }
     };
 
 
@@ -472,9 +523,9 @@ public abstract class Serializer<A> implements Comparator<A> {
         }
 
         @Override
-        final public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
+        final public int valueArraySearch(Object keys, E key, Comparator comparator) {
             if(comparator==this)
-                return valueArrayBinarySearch(keys, key);
+                return valueArraySearch(keys, key);
 
             long[] array = (long[]) keys;
 
@@ -511,8 +562,8 @@ public abstract class Serializer<A> implements Comparator<A> {
         }
 
         @Override
-        public int valueArrayBinarySearch(Object keys, Object key) {
-            return Arrays.binarySearch((long[])keys, (Long)key);
+        public int valueArraySearch(Object keys, Long key) {
+            return Arrays.binarySearch((long[])keys, key);
         }
 
     }
@@ -664,9 +715,9 @@ public abstract class Serializer<A> implements Comparator<A> {
         }
 
         @Override
-        final public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
+        final public int valueArraySearch(Object keys, E key, Comparator comparator) {
             if(comparator==this)
-                return valueArrayBinarySearch(keys, key);
+                return valueArraySearch(keys, key);
             int[] array = (int[]) keys;
 
             int lo = 0;
@@ -700,10 +751,38 @@ public abstract class Serializer<A> implements Comparator<A> {
         }
 
         @Override
-        public int valueArrayBinarySearch(Object keys, Object key) {
-            return Arrays.binarySearch((int[])keys, (Integer)key);
+        public int valueArraySearch(Object keys, Integer key) {
+            return Arrays.binarySearch((int[])keys, key);
         }
 
+        @Override
+        public Integer valueArrayBinaryGet(DataInput2 input, int pos) throws IOException {
+            int a=-Integer.MIN_VALUE;
+            while(pos-- >= 0){
+                a = deserialize(input, -1);
+            }
+            return a;
+        }
+
+        @Override
+        public int valueArrayBinarySearch(Integer key, DataInput2 input, int keysLen, Comparator comparator) throws IOException {
+            if(comparator!=this)
+                return super.valueArrayBinarySearch(key, input, keysLen, comparator);
+
+            int key2 = key;
+            for(int pos=0; pos<keysLen; pos++){
+                int from = input.readInt();
+
+                if(key2<=from) {
+                    int ret = (key2==from) ? pos : -(pos + 1);
+                    while(++pos<keysLen){
+                        input.readInt();
+                    }
+                    return ret;
+                }
+            }
+            return -(keysLen+1);
+        }
     }
 
     /** Serializes Integer into 4 bytes, used mainly for testing.
@@ -785,12 +864,12 @@ public abstract class Serializer<A> implements Comparator<A> {
 
 
         @Override
-        public int valueArrayBinarySearch(Object keys, Object key) {
+        public int valueArraySearch(Object keys, Boolean key) {
             return Arrays.binarySearch(valueArrayToArray(keys), key);
         }
 
         @Override
-        public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
+        public int valueArraySearch(Object keys, Boolean key, Comparator comparator) {
             return Arrays.binarySearch(valueArrayToArray(keys), key, comparator);
         }
 
@@ -907,8 +986,8 @@ public abstract class Serializer<A> implements Comparator<A> {
 
 
         @Override
-        public int valueArrayBinarySearch(Object keys, Object key) {
-            return Arrays.binarySearch((long[])keys, (Long)key);
+        public int valueArraySearch(Object keys, Long key) {
+            return Arrays.binarySearch((long[])keys, key);
         }
 
         @Override
@@ -949,13 +1028,13 @@ public abstract class Serializer<A> implements Comparator<A> {
 
 
         @Override
-        public int valueArrayBinarySearch(Object keys, Object key) {
-            return LONG_ARRAY.valueArrayBinarySearch(keys,key);
+        public int valueArraySearch(Object keys, long[] key) {
+            return LONG_ARRAY.valueArraySearch(keys, key);
         }
 
         @Override
-        public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
-            return LONG_ARRAY.valueArrayBinarySearch(keys,key, comparator);
+        public int valueArraySearch(Object keys, long[] key, Comparator comparator) {
+            return LONG_ARRAY.valueArraySearch(keys, key, comparator);
         }
 
         @Override
@@ -1101,6 +1180,75 @@ public abstract class Serializer<A> implements Comparator<A> {
             return o1.length - o2.length;
         }
 
+        @Override
+        public byte[] valueArrayBinaryGet(DataInput2 input, int pos) throws IOException {
+            throw new UnsupportedOperationException("NOSIZE can not be used for values");
+        }
+
+        @Override
+        public int valueArrayBinarySearch(byte[] key, DataInput2 input, int keysLen, Comparator comparator) throws IOException {
+            throw new UnsupportedOperationException("NOSIZE can not be used for values");
+        }
+
+        @Override
+        public Object valueArrayCopyOfRange(Object vals, int from, int to) {
+            throw new UnsupportedOperationException("NOSIZE can not be used for values");
+        }
+
+        @Override
+        public Object valueArrayDeleteValue(Object vals, int pos) {
+            throw new UnsupportedOperationException("NOSIZE can not be used for values");
+        }
+
+        @Override
+        public Object valueArrayDeserialize(DataInput2 in, int size) throws IOException {
+            throw new UnsupportedOperationException("NOSIZE can not be used for values");
+        }
+
+        @Override
+        public Object valueArrayEmpty() {
+            throw new UnsupportedOperationException("NOSIZE can not be used for values");
+        }
+
+        @Override
+        public Object valueArrayFromArray(Object[] objects) {
+            throw new UnsupportedOperationException("NOSIZE can not be used for values");
+        }
+
+        @Override
+        public byte[] valueArrayGet(Object vals, int pos) {
+            throw new UnsupportedOperationException("NOSIZE can not be used for values");
+        }
+
+        @Override
+        public Object valueArrayPut(Object vals, int pos, byte[] newValue) {
+            throw new UnsupportedOperationException("NOSIZE can not be used for values");
+        }
+
+        @Override
+        public int valueArraySearch(Object keys, byte[] key) {
+            throw new UnsupportedOperationException("NOSIZE can not be used for values");
+        }
+
+        @Override
+        public int valueArraySearch(Object keys, byte[] key, Comparator comparator) {
+            throw new UnsupportedOperationException("NOSIZE can not be used for values");
+        }
+
+        @Override
+        public void valueArraySerialize(DataOutput2 out, Object vals) throws IOException {
+            throw new UnsupportedOperationException("NOSIZE can not be used for values");
+        }
+
+        @Override
+        public int valueArraySize(Object vals) {
+            throw new UnsupportedOperationException("NOSIZE can not be used for values");
+        }
+
+        @Override
+        public Object valueArrayUpdateVal(Object vals, int pos, byte[] newValue) {
+            throw new UnsupportedOperationException("NOSIZE can not be used for values");
+        }
     } ;
 
     /**
@@ -1395,12 +1543,12 @@ public abstract class Serializer<A> implements Comparator<A> {
         }
 
         @Override
-        public int valueArrayBinarySearch(Object keys, Object key) {
+        public int valueArraySearch(Object keys, UUID key) {
             return Arrays.binarySearch(valueArrayToArray(keys), key);
         }
 
         @Override
-        public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
+        public int valueArraySearch(Object keys, UUID key, Comparator comparator) {
             return Arrays.binarySearch(valueArrayToArray(keys), key, comparator);
         }
 
@@ -1552,7 +1700,7 @@ public abstract class Serializer<A> implements Comparator<A> {
 
 
         @Override
-        public int valueArrayBinarySearch(Object keys, Object key) {
+        public int valueArraySearch(Object keys, Float key) {
             //TODO PERF this can be optimized, but must take care of NaN
             return Arrays.binarySearch(valueArrayToArray(keys), key);
         }
@@ -1574,7 +1722,7 @@ public abstract class Serializer<A> implements Comparator<A> {
         }
 
         @Override
-        public int valueArrayBinarySearch(Object keys, Object key) {
+        public int valueArraySearch(Object keys, Double key) {
             //TODO PERF this can be optimized, but must take care of NaN
             return Arrays.binarySearch(valueArrayToArray(keys), key);
         }
@@ -1844,7 +1992,7 @@ public abstract class Serializer<A> implements Comparator<A> {
         }
 
         @Override
-        final public int valueArrayBinarySearch(Object keys, Object key) {
+        final public int valueArraySearch(Object keys, Date key) {
             long time = ((Date)key).getTime();
             return Arrays.binarySearch((long[])keys, time);
         }
@@ -1945,13 +2093,13 @@ public abstract class Serializer<A> implements Comparator<A> {
         }
 
         @Override
-        public int valueArrayBinarySearch(Object keys, Object key) {
-            return serializer.valueArrayBinarySearch(keys, key);
+        public int valueArraySearch(Object keys, E key) {
+            return serializer.valueArraySearch(keys, key);
         }
 
         @Override
-        public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
-            return serializer.valueArrayBinarySearch(keys, key, comparator);
+        public int valueArraySearch(Object keys, E key, Comparator comparator) {
+            return serializer.valueArraySearch(keys, key, comparator);
         }
 
         @Override
@@ -2065,12 +2213,6 @@ public abstract class Serializer<A> implements Comparator<A> {
                     serializer.valueArrayDeleteValue(vals, pos):
                     super.valueArrayDeleteValue(vals, pos);
         }
-//
-//        @Override
-//        public BTreeKeySerializer getBTreeKeySerializer(Comparator comparator) {
-//            //TODO compress BTreeKey serializer?
-//            return serializer.getBTreeKeySerializer(comparator);
-//        }
 
         @Override
         public boolean equals(E a1, E a2) {
@@ -2209,13 +2351,13 @@ public abstract class Serializer<A> implements Comparator<A> {
 
 
         @Override
-        public int valueArrayBinarySearch(Object keys, Object key) {
-            return serializer.valueArrayBinarySearch(keys, key);
+        public int valueArraySearch(Object keys, E key) {
+            return serializer.valueArraySearch(keys, key);
         }
 
         @Override
-        public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator) {
-            return serializer.valueArrayBinarySearch(keys, key, comparator);
+        public int valueArraySearch(Object keys, E key, Comparator comparator) {
+            return serializer.valueArraySearch(keys, key, comparator);
         }
 
         @Override
@@ -2546,14 +2688,40 @@ public abstract class Serializer<A> implements Comparator<A> {
         return DataIO.intHash(a.hashCode()+seed);
     }
 
-    public int valueArrayBinarySearch(Object keys, Object key){
-        return Arrays.binarySearch((Object[])keys, key, (Comparator<Object>)this);
+    public A valueArrayBinaryGet(DataInput2 input, int pos) throws IOException {
+        Object keys = valueArrayDeserialize(input, pos+1);
+        return valueArrayGet(keys, pos);
+//        A a=null;
+//        while(pos-- >= 0){
+//            a = deserialize(input, -1);
+//        }
+//        return a;
     }
 
 
-    public int valueArrayBinarySearch(Object keys, Object key, Comparator comparator){
+
+    public int valueArrayBinarySearch(A key, DataInput2 input, int keysLen, Comparator comparator) throws IOException {
+        Object keys = valueArrayDeserialize(input, keysLen);
+        return valueArraySearch(keys, key, comparator);
+//        for(int pos=0; pos<keysLen; pos++){
+//            A from = deserialize(input, -1);
+//            int comp = compare(key, from);
+//            if(comp==0)
+//                return pos;
+//            if(comp<0)
+//                return -(pos+1);
+//        }
+//        return -(keysLen+1);
+    }
+
+
+    public int valueArraySearch(Object keys, A key){
+        return Arrays.binarySearch((Object[])keys, key, (Comparator<Object>)this);
+    }
+
+    public int valueArraySearch(Object keys, A key, Comparator comparator){
         if(comparator==this)
-            return valueArrayBinarySearch(keys, key);
+            return valueArraySearch(keys, key);
         return Arrays.binarySearch((Object[])keys, key, comparator);
     }
 

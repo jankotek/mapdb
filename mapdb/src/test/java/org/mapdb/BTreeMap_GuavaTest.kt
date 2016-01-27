@@ -32,6 +32,7 @@ class BTreeMap_GuavaTest(val mapMaker:(generic:Boolean)-> ConcurrentMap<Any?, An
 
             for(inlineValue in bools)
             for(reversedComparator in bools)
+            for(small in bools)
             for(storeType in 0..2)
             {
                 val store = when(storeType){
@@ -41,15 +42,17 @@ class BTreeMap_GuavaTest(val mapMaker:(generic:Boolean)-> ConcurrentMap<Any?, An
                     else -> throw AssertionError()
                 }
 
+                val nodeSize = if(small) 4 else 32
+
                 ret.add(arrayOf<Any>({generic:Boolean->
                     if(generic)
                         BTreeMap.make<Int,String>(comparator =
                             (if(reversedComparator) Serializer.JAVA.reversed() else Serializer.JAVA) as Comparator<Int>,
-                            store = store)
+                            store = store, maxNodeSize =  nodeSize)
                     else
                         BTreeMap.make(keySerializer = Serializer.INTEGER, valueSerializer = Serializer.STRING,
                             comparator = if(reversedComparator) Serializer.INTEGER.reversed() else Serializer.INTEGER ,
-                            store = store)
+                            store = store, maxNodeSize =  nodeSize)
                 }))
 
             }

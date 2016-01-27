@@ -78,7 +78,7 @@ abstract class SerializerTest<E>{
         }
     }
 
-    @Test fun valueArrayBinarySearc(){
+    @Test open fun valueArrayBinarySearc(){
         var v = ArrayList<E>()
         for (i in 0..max) {
             v.add(randomValue())
@@ -86,24 +86,48 @@ abstract class SerializerTest<E>{
         Collections.sort(v, serializer)
         val keys = serializer.valueArrayFromArray(v.toArray())
 
-        fun check(keys:Any, e:E){
-            val v1 = serializer.valueArrayBinarySearch(keys, e)
-            val v2 = serializer.valueArrayBinarySearch(keys, e, serializer)
+        fun check(keys:Any, binary:ByteArray, e:E){
+            val v1 = serializer.valueArraySearch(keys, e)
+            val v2 = serializer.valueArraySearch(keys, e, serializer)
             val v3 = Arrays.binarySearch(serializer.valueArrayToArray(keys), e as Any, serializer as Comparator<Any>)
 
             assertEquals(v1, v3);
             assertEquals(v1, v2);
 
+            val v4 = serializer.valueArrayBinarySearch(e, DataInput2.ByteArray(binary), v.size, serializer)
+            assertEquals(v1, v4)
         }
 
-        for (i in 0..max) {
+        val out = DataOutput2();
+        serializer.valueArraySerialize(out, keys)
+        val deserialized = serializer.valueArrayDeserialize(DataInput2.ByteArray(out.buf), v.size);
+        assertTrue(Arrays.deepEquals(serializer.valueArrayToArray(keys), serializer.valueArrayToArray(deserialized)))
+
+        for (i in 0..max*10) {
             val e = randomValue()
-            check(keys, e)
+            check(keys, out.buf, e)
         }
 
         for(e in v){
-            check(keys, e)
+            check(keys, out.buf, e)
         }
+    }
+
+    @Test open fun valueArrayGet(){
+        var v = Array<Any>(max.toInt(), {i->randomValue() as Any})
+        val keys = serializer.valueArrayFromArray(v)
+        val out = DataOutput2()
+        serializer.valueArraySerialize(out, keys)
+
+        for(i in 0 until max.toInt()){
+            val v1 = v[i] as E
+            val v2 = serializer.valueArrayGet(keys, i)
+            val v3 = serializer.valueArrayBinaryGet(DataInput2.ByteArray(out.buf), i)
+
+            assertTrue(serializer.equals(v1, v2))
+            assertTrue(serializer.equals(v1, v3))
+        }
+
     }
 
     fun randomValueArray():Any{
@@ -141,7 +165,7 @@ abstract class SerializerTest<E>{
     }
 
 
-    @Test fun valueArraySerDeser(){
+    @Test open fun valueArraySerDeser(){
         if(serializer.needsAvailableSizeHint())
             return
         for(i in 0..max){
@@ -151,7 +175,7 @@ abstract class SerializerTest<E>{
         }
     }
 
-    @Test fun valueArrayDeleteValue(){
+    @Test open fun valueArrayDeleteValue(){
         for(i in 0..max){
             val vals = randomValueArray()
             val valsSize = serializer.valueArraySize(vals);
@@ -172,7 +196,7 @@ abstract class SerializerTest<E>{
 
     }
 
-    @Test fun valueArrayCopyOfRange(){
+    @Test open fun valueArrayCopyOfRange(){
         for(i in 0..max){
             val vals = randomValueArray()
             val valsSize = serializer.valueArraySize(vals);
@@ -223,6 +247,21 @@ class Serializer_STRING_ASCII:SerializerTest<String>(){
 class Serializer_STRING_NOSIZE:SerializerTest<String>(){
     override fun randomValue() = TT.randomString(random.nextInt(1000))
     override val serializer = Serializer.STRING_NOSIZE
+
+    override fun valueArrayBinarySearc() {
+    }
+
+    override fun valueArrayCopyOfRange() {
+    }
+
+    override fun valueArrayDeleteValue() {
+    }
+
+    override fun valueArrayGet() {
+    }
+
+    override fun valueArraySerDeser() {
+    }
 }
 
 class Serializer_LONG:SerializerTest<Long>(){
@@ -268,7 +307,7 @@ class Serializer_RECID:SerializerTest<Long>(){
 
 class Serializer_RECID_ARRAY:SerializerTest<LongArray>(){
     override fun randomValue():LongArray {
-        val ret = LongArray(random.nextInt(500));
+        val ret = LongArray(random.nextInt(50));
         for(i in 0 until ret.size){
             ret[i] = random.nextLong().and(0xFFFFFFFFFFFFL) //6 bytes
         }
@@ -279,13 +318,29 @@ class Serializer_RECID_ARRAY:SerializerTest<LongArray>(){
 }
 
 class Serializer_BYTE_ARRAY:SerializerTest<ByteArray>(){
-    override fun randomValue() = TT.randomByteArray(random.nextInt(500))
+    override fun randomValue() = TT.randomByteArray(random.nextInt(50))
     override val serializer = Serializer.BYTE_ARRAY
 }
 
 class Serializer_BYTE_ARRAY_NOSIZE:SerializerTest<ByteArray>(){
-    override fun randomValue() = TT.randomByteArray(random.nextInt(500))
+    override fun randomValue() = TT.randomByteArray(random.nextInt(50))
     override val serializer = Serializer.BYTE_ARRAY_NOSIZE
+
+
+    override fun valueArrayBinarySearc() {
+    }
+
+    override fun valueArrayCopyOfRange() {
+    }
+
+    override fun valueArrayDeleteValue() {
+    }
+
+    override fun valueArrayGet() {
+    }
+
+    override fun valueArraySerDeser() {
+    }
 }
 
 
@@ -296,7 +351,7 @@ class Serializer_BYTE:SerializerTest<Byte>(){
 
 class Serializer_CHAR_ARRAY:SerializerTest<CharArray>(){
     override fun randomValue():CharArray {
-        val ret = CharArray(random.nextInt(500));
+        val ret = CharArray(random.nextInt(50));
         for(i in 0 until ret.size){
             ret[i] = random.nextInt().toChar()
         }
@@ -307,7 +362,7 @@ class Serializer_CHAR_ARRAY:SerializerTest<CharArray>(){
 
 class Serializer_INT_ARRAY:SerializerTest<IntArray>(){
     override fun randomValue():IntArray {
-        val ret = IntArray(random.nextInt(500));
+        val ret = IntArray(random.nextInt(50));
         for(i in 0 until ret.size){
             ret[i] = random.nextInt()
         }
@@ -319,7 +374,7 @@ class Serializer_INT_ARRAY:SerializerTest<IntArray>(){
 
 class Serializer_LONG_ARRAY:SerializerTest<LongArray>(){
     override fun randomValue():LongArray {
-        val ret = LongArray(random.nextInt(500));
+        val ret = LongArray(random.nextInt(30));
         for(i in 0 until ret.size){
             ret[i] = random.nextLong()
         }
@@ -330,9 +385,9 @@ class Serializer_LONG_ARRAY:SerializerTest<LongArray>(){
 
 class Serializer_DOUBLE_ARRAY:SerializerTest<DoubleArray>(){
     override fun randomValue():DoubleArray {
-        val ret = DoubleArray(random.nextInt(500));
+        val ret = DoubleArray(random.nextInt(30));
         for(i in 0 until ret.size){
-            ret[i] = java.lang.Double.longBitsToDouble(random.nextLong())
+            ret[i] = random.nextDouble()
         }
         return ret
     }
@@ -388,15 +443,15 @@ class Serializer_UUID:SerializerTest<UUID>(){
 }
 
 class Serializer_FLOAT:SerializerTest<Float>(){
-    override fun randomValue() = java.lang.Float.intBitsToFloat(random.nextInt())
+    override fun randomValue() = random.nextFloat()
     override val serializer = Serializer.FLOAT
 }
 
 class Serializer_FLOAT_ARRAY:SerializerTest<FloatArray>(){
     override fun randomValue():FloatArray {
-        val ret = FloatArray(random.nextInt(500));
+        val ret = FloatArray(random.nextInt(50));
         for(i in 0 until ret.size){
-            ret[i] = java.lang.Float.intBitsToFloat(random.nextInt())
+            ret[i] = random.nextFloat()
         }
         return ret
     }
@@ -406,7 +461,7 @@ class Serializer_FLOAT_ARRAY:SerializerTest<FloatArray>(){
 
 
 class Serializer_DOUBLE:SerializerTest<Double>(){
-    override fun randomValue() = java.lang.Double.longBitsToDouble(random.nextLong())
+    override fun randomValue() = random.nextDouble()
     override val serializer = Serializer.DOUBLE
 }
 
@@ -417,7 +472,7 @@ class Serializer_SHORT:SerializerTest<Short>(){
 
 class Serializer_SHORT_ARRAY:SerializerTest<ShortArray>(){
     override fun randomValue():ShortArray {
-        val ret = ShortArray(random.nextInt(500));
+        val ret = ShortArray(random.nextInt(50));
         for(i in 0 until ret.size){
             ret[i] = random.nextInt().toShort()
         }
@@ -427,12 +482,12 @@ class Serializer_SHORT_ARRAY:SerializerTest<ShortArray>(){
 }
 
 class Serializer_BIG_INTEGER:SerializerTest<BigInteger>(){
-    override fun randomValue() = BigInteger(random.nextInt(500),random)
+    override fun randomValue() = BigInteger(random.nextInt(50),random)
     override val serializer = Serializer.BIG_INTEGER
 }
 
 class Serializer_BIG_DECIMAL:SerializerTest<BigDecimal>(){
-    override fun randomValue() = BigDecimal(BigInteger(random.nextInt(500),random), random.nextInt(100))
+    override fun randomValue() = BigDecimal(BigInteger(random.nextInt(50),random), random.nextInt(100))
     override val serializer = Serializer.BIG_DECIMAL
 }
 
