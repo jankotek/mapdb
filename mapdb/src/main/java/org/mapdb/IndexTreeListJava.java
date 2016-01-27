@@ -173,40 +173,41 @@ class IndexTreeListJava {
         }
 
         final StoreBinary binStore = (StoreBinary) store;
+        return treeGetBinary(dirShift, recid, binStore, level, index);
+    }
+
+    private static long treeGetBinary(final int dirShift, long recid, StoreBinary binStore, int level, final long index) {
         for (; level>= 0;) {
             final int level2 = level;
-            StoreBinary.BinaryGetLong f = new StoreBinary.BinaryGetLong() {
-                @Override
-                public long get(@NotNull DataInput2 input, int size) throws IOException {
-                    long bitmap1 = input.readLong();
-                    long bitmap2 = input.readLong();
+            StoreBinaryGetLong f = (input, size) -> {
+                long bitmap1 = input.readLong();
+                long bitmap2 = input.readLong();
 
-                    //index
-                    int dirPos = dirOffsetFromLong(bitmap1, bitmap2, treePos(dirShift, level2, index));
-                    if(dirPos<0){
-                        //not set
-                        return 0L;
-                    }
-
-                    //skip until offset
-                    input.unpackLongSkip(dirPos-2);
-
-                    long recid = input.unpackLong();
-                    if(recid==0)
-                        return 0L; //TODO this should not be here, if tree collapse exist
-
-                    long oldIndex = input.unpackLong()-1;
-
-                    if (oldIndex == index) {
-                        //found it, return value (recid)
-                        return recid;
-                    }else  if (oldIndex != -1) {
-                        // there is wrong index stored here, given index is not found
-                        return 0L;
-                    }
-
-                    return -recid; //continue
+                //index
+                int dirPos = dirOffsetFromLong(bitmap1, bitmap2, treePos(dirShift, level2, index));
+                if(dirPos<0){
+                    //not set
+                    return 0L;
                 }
+
+                //skip until offset
+                input.unpackLongSkip(dirPos-2);
+
+                long recid1 = input.unpackLong();
+                if(recid1 ==0)
+                    return 0L; //TODO this should not be here, if tree collapse exist
+
+                long oldIndex = input.unpackLong()-1;
+
+                if (oldIndex == index) {
+                    //found it, return value (recid)
+                    return recid1;
+                }else  if (oldIndex != -1) {
+                    // there is wrong index stored here, given index is not found
+                    return 0L;
+                }
+
+                return -recid1; //continue
             };
 
 

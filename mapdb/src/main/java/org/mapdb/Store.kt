@@ -49,10 +49,5 @@ interface StoreTx:Store{
 
 interface StoreBinary:Store{
 
-    interface BinaryGetLong{
-        @Throws(IOException::class)
-        fun get(input:DataInput2, size:Int):Long
-    }
-
-    fun getBinaryLong(recid:Long, f:BinaryGetLong):Long
+    fun getBinaryLong(recid:Long, f:StoreBinaryGetLong):Long
 }

@@ -48,6 +48,8 @@ class BTreeMap<K,V>(
             )
     }
 
+    private val hasBinaryStore = store is StoreBinary
+
     internal val nodeSerializer = NodeSerializer(keySerializer, valueSerializer);
 
     internal val rootRecid:Long
@@ -78,6 +80,30 @@ class BTreeMap<K,V>(
         if(key==null)
             throw NullPointerException()
 
+        return if(hasBinaryStore) getBinary(key)
+               else getNonBinary(key)
+    }
+
+
+
+
+    private fun getBinary(key:K):V?{
+        val binary = store as StoreBinary
+
+        var current =  rootRecid
+
+        val binaryGet = BinaryGet<K,V>(keySerializer, valueSerializer, comparator, key)
+
+        do{
+            current = binary.getBinaryLong(current, binaryGet)
+        }while(current!=-1L)
+
+        return binaryGet.value;
+
+    }
+
+
+    private fun getNonBinary(key:K?):V?{
         var current =  rootRecid
         var A = getNode(current)
 
@@ -96,6 +122,7 @@ class BTreeMap<K,V>(
         }
         return ret as V?;
     }
+
     override fun put(key:K?, value:V?):V?{
         if(key==null || value==null)
             throw NullPointerException()

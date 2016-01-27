@@ -723,7 +723,7 @@ class StoreDirect(
     }
 
 
-    override fun getBinaryLong(recid:Long, f: StoreBinary.BinaryGetLong): Long {
+    override fun getBinaryLong(recid:Long, f: StoreBinaryGetLong): Long {
         assertNotClosed()
 
         Utils.lockRead(locks[recidToSegment(recid)]) {

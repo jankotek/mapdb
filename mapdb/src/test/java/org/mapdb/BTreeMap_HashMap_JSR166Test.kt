@@ -40,4 +40,8 @@ class BTreeMap_HashMap_JSR166Test(
         //ignored test, must be comparable
     }
 
+    override fun testComparableFamily() {
+        //ignored test, must be comparable
+    }
+
 }

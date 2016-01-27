@@ -145,7 +145,7 @@ public class BTreeMapJava {
             int keysLen = DataIO.parity1Get(input.unpackInt())>>>1;
             int flags = keysLen & 0xF;
             keysLen = keysLen>>>4;
-            long link =  ((flags>>>1)&1)==1
+            long link =  (flags&RIGHT)!=0
                     ? 0L :
                     input.unpackLong();
 
@@ -258,5 +258,87 @@ public class BTreeMapJava {
         return ret;
     }
 
+    public static class BinaryGet<K, V> implements StoreBinaryGetLong {
+        final Serializer<K> keySerializer;
+        final Serializer<V> valueSerializer;
+        final Comparator<K> comparator;
+        final K key;
+
+        V value = null;
+
+        public BinaryGet(
+                @NotNull Serializer<K> keySerializer,
+                @NotNull Serializer<V> valueSerializer,
+                @NotNull Comparator<K> comparator,
+                @NotNull K key
+                ) {
+            this.keySerializer = keySerializer;
+            this.valueSerializer = valueSerializer;
+            this.comparator = comparator;
+            this.key = key;
+        }
+
+        @Override
+        public long get(DataInput2 input, int size) throws IOException {
+            //read size and flags
+            int keysLen = DataIO.parity1Get(input.unpackInt())>>>1;
+            int flags = keysLen&0xF;
+            keysLen = keysLen>>>4;
+
+            long link =  (flags&RIGHT)!=0
+                    ? 0L :
+                    input.unpackLong();
+
+            int intLeft = ((flags >>> 2) & 1);
+            int intRight = ((flags >>> 1) & 1);
+
+            Object keys = keySerializer.valueArrayDeserialize(input, keysLen);
+            int pos = keySerializer.valueArrayBinarySearch(keys, key, comparator);
+            if((flags&DIR)!=0){
+                //is directory, return related children
+
+                if(pos<0)
+                    pos = -pos-1;
+
+                pos += -1 + (flags>>2)&1;   // plus left edge
+                pos = Math.max(0, pos);
+                keysLen = keysLen - 1 + intLeft + intRight;
+
+                if(pos>=keysLen) {
+                    return link;
+                }
+                long[] c = new long[keysLen];
+                input.unpackLongArray(c, 0, keysLen);
+                return c[keysLen];
+            }
+
+
+            if(pos<0+1-intLeft) {
+                if(intRight==0 && pos<-keysLen)
+                    return link;
+                else
+                    return -1;
+            }
+
+            int valsLen = keysLen - 2 + ((flags >>> 2) & 1) + ((flags >>> 1) & 1) + (flags & 1);
+
+            if(intRight==0 /*is not right edge*/ && pos==valsLen+1) {
+                //return null
+                return -1;
+            }else if(pos>=valsLen+1){
+                return link;
+            }
+            Object values = valueSerializer.valueArrayDeserialize(input, valsLen);
+            pos = pos-1+((flags >>> 2) & 1);
+            if(pos>=valsLen) {
+                //return null
+                return -1;
+            }
+
+            //found value, return it
+            value = valueSerializer.valueArrayGet(values, pos);
+            return -1L;
+        }
+    }
 }
 
