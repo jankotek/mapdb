@@ -36,13 +36,8 @@ class BTreeMap<K,V>(
                 valueSerializer: Serializer<V> = Serializer.JAVA as Serializer<V>,
                 store: Store = StoreTrivial(),
                 rootRecidRecid: Long = //insert recid of new empty node
-                store.put(
-                        store.put(
-                                Node(LEFT + RIGHT, 0L, keySerializer.valueArrayEmpty(),
-                                        valueSerializer.valueArrayEmpty(), keySerializer, valueSerializer),
-                                NodeSerializer(keySerializer, valueSerializer)),
-                        Serializer.RECID),
-                maxNodeSize: Int = 32,
+                putEmptyRoot(store, keySerializer, valueSerializer),
+                maxNodeSize: Int =  CC.BTREEMAP_MAX_NODE_SIZE ,
                 comparator: Comparator<K> = keySerializer) =
                 BTreeMap(
                         keySerializer = keySerializer,
@@ -52,6 +47,15 @@ class BTreeMap<K,V>(
                         maxNodeSize = maxNodeSize,
                         comparator = comparator
                 )
+
+        internal fun <K, V> putEmptyRoot(store: Store, keySerializer: Serializer<K>, valueSerializer: Serializer<V>): Long {
+            return store.put(
+                    store.put(
+                            Node(LEFT + RIGHT, 0L, keySerializer.valueArrayEmpty(),
+                                    valueSerializer.valueArrayEmpty(), keySerializer, valueSerializer),
+                            NodeSerializer(keySerializer, valueSerializer)),
+                    Serializer.RECID)
+        }
     }
 
     private val hasBinaryStore = store is StoreBinary

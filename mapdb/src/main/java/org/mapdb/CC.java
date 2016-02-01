@@ -30,6 +30,7 @@ interface CC{
     Volume.VolumeFactory DEFAULT_MEMORY_VOLUME_FACTORY = Volume.ByteArrayVol.FACTORY;
     Volume.VolumeFactory DEFAULT_FILE_VOLUME_FACTORY = Volume.RandomAccessFileVol.FACTORY;
 
+    int BTREEMAP_MAX_NODE_SIZE = 32;
 
     int HTREEMAP_CONC_SHIFT = 3;
     int HTREEMAP_DIR_SHIFT = 4;

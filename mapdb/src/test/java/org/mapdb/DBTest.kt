@@ -286,4 +286,68 @@ class DBTest{
     }
 
 
+
+    @Test fun treeMap_create_unresolvable_serializer(){
+        val db = DB(store=StoreTrivial(), storeOpened = false)
+        val unresolvable = object:Serializer<String>(){
+            override fun deserialize(input: DataInput2, available: Int): String? {
+                throw UnsupportedOperationException()
+            }
+
+            override fun serialize(out: DataOutput2, value: String) {
+                throw UnsupportedOperationException()
+            }
+        }
+        val map = db.treeMap("aa", Serializer.BIG_DECIMAL, unresolvable).create()
+
+        assertEquals(Serializer.BIG_DECIMAL, map.keySerializer)
+        assertEquals(unresolvable, map.valueSerializer)
+
+        val nameCatalog = db.nameCatalogLoad()
+        assertTrue(2<nameCatalog.size)
+        assertEquals("TreeMap",nameCatalog["aa.type"])
+        assertEquals("org.mapdb.Serializer#BIG_DECIMAL", nameCatalog["aa.keySerializer"])
+    }
+
+    @Test fun treeMap_Create(){
+        val db = DB(store=StoreTrivial(), storeOpened = false)
+
+        val map = db.treeMap("aa", Serializer.BIG_DECIMAL, Serializer.BOOLEAN)
+                .counterEnable()
+                .maxNodeSize(16)
+                .create()
+
+        val p = db.nameCatalogParamsFor("aa")
+
+        assertEquals(6, p.size)
+        assertEquals("TreeMap", p["aa"+DB.Keys.type])
+        assertEquals("org.mapdb.Serializer#BIG_DECIMAL", p["aa"+DB.Keys.keySerializer])
+        assertEquals("org.mapdb.Serializer#BOOLEAN", p["aa"+DB.Keys.valueSerializer])
+        assertEquals("16", p["aa"+DB.Keys.maxNodeSize])
+        assertEquals(map.rootRecidRecid.toString(), p["aa"+DB.Keys.rootRecidRecid])
+//TODO reenable once counter is done
+//        assertTrue(p["aa"+DB.Keys.counterRecids]!!.toLong()>0)
+
+    }
+
+
+    @Test fun treeMap_Create_Default(){
+        val db = DB(store=StoreTrivial(), storeOpened = false)
+
+        val map = db.treeMap("aa")
+                .create()
+
+        val p = db.nameCatalogParamsFor("aa")
+
+        assertEquals(6, p.size)
+        assertEquals(map.store, db.store)
+        assertEquals("0", p["aa"+DB.Keys.counterRecid])
+        assertEquals(CC.BTREEMAP_MAX_NODE_SIZE.toString(), p["aa"+DB.Keys.maxNodeSize])
+        assertEquals(map.rootRecidRecid.toString(), p["aa"+DB.Keys.rootRecidRecid])
+        assertEquals("TreeMap", p["aa"+DB.Keys.type])
+        assertEquals("org.mapdb.Serializer#JAVA", p["aa"+DB.Keys.keySerializer])
+        assertEquals("org.mapdb.Serializer#JAVA", p["aa"+DB.Keys.valueSerializer])
+    }
+
+
 }
