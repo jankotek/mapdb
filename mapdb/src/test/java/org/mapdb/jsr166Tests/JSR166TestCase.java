@@ -59,6 +59,7 @@ import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestResult;
 import junit.framework.TestSuite;
+import org.mapdb.TT;
 
 /**
  * Base class for JSR166 Junit TCK tests.  Defines some constants,
@@ -136,8 +137,7 @@ public abstract class JSR166TestCase extends TestCase {
     private static final boolean useSecurityManager =
         Boolean.getBoolean("jsr166.useSecurityManager");
 
-    protected static final boolean expensiveTests =
-        Boolean.getBoolean("jsr166.expensiveTests");
+    protected static final boolean expensiveTests = !TT.shortTest();
 
     /**
      * If true, also run tests that are not part of the official tck

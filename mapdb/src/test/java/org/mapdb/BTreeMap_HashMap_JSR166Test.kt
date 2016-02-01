@@ -23,7 +23,7 @@ class BTreeMap_HashMap_JSR166Test(
         @Parameterized.Parameters
         @JvmStatic
         fun params(): Iterable<Any> {
-            return BTreeMap_GuavaTest.params()
+            return BTreeMap_ConcurrentMap_GuavaTest.params()
         }
     }
 

@@ -155,7 +155,7 @@ class BTreeMapTest {
         assertTrue(node.isDir.not())
         assertEquals(0, node.intDir())
         assertTrue(node.isLastKeyDouble.not())
-        assertEquals(0, node.intLastKeyDouble())
+        assertEquals(0, node.intLastKeyTwice())
 
         val node2 = Node(
                 DIR,
@@ -171,7 +171,7 @@ class BTreeMapTest {
         assertTrue(node2.isDir)
         assertEquals(1, node2.intDir())
         assertTrue(node2.isLastKeyDouble.not())
-        assertEquals(0, node2.intLastKeyDouble())
+        assertEquals(0, node2.intLastKeyTwice())
 
     }
 
@@ -413,7 +413,7 @@ class BTreeMapTest {
             val recid2 = map.store.put(node2, map.nodeSerializer)
 
             val node1 = Node(
-                    LEFT+LAST_KEY_DOUBLE,
+                    LEFT + LAST_KEY_DOUBLE,
                     recid2,
                     arrayOf(20, 30, 40, 50),
                     arrayOf(2, 3, 4, 5)
@@ -437,7 +437,7 @@ class BTreeMapTest {
         }
     }
 
-    @Test fun randomInsert(){
+    @Test fun randomInsert() {
         val map = BTreeMap.make(
                 keySerializer = Serializer.INTEGER,
                 valueSerializer = Serializer.INTEGER,
@@ -446,18 +446,18 @@ class BTreeMapTest {
 
         var r = Random(1)
         val ref = IntHashSet()
-        for(i in 0 .. 1000){
+        for (i in 0..1000) {
             val key = r.nextInt(10000)
             ref.add(key)
-            map.put(key, key*100)
+            map.put(key, key * 100)
             map.verify()
-            ref.forEach { key2->
-                assertEquals(key2*100, map[key2])
+            ref.forEach { key2 ->
+                assertEquals(key2 * 100, map[key2])
             }
         }
     }
 
-    @Test fun randomInsert_returnVal(){
+    @Test fun randomInsert_returnVal() {
         val map = BTreeMap.make(
                 keySerializer = Serializer.INTEGER,
                 valueSerializer = Serializer.INTEGER,
@@ -466,19 +466,19 @@ class BTreeMapTest {
 
         var r = Random(1)
         val ref = IntHashSet()
-        for(i in 0 .. 1000){
+        for (i in 0..1000) {
             val key = r.nextInt(10000)
             ref.add(key)
-            map.put(key, key*100+i-1)
+            map.put(key, key * 100 + i - 1)
             map.verify()
-            ref.forEach { key2->
-                assertEquals(key2*100+i-1, map[key2])
-                assertEquals(key2*100+i-1, map.put(key2, key2*100+i))
+            ref.forEach { key2 ->
+                assertEquals(key2 * 100 + i - 1, map[key2])
+                assertEquals(key2 * 100 + i - 1, map.put(key2, key2 * 100 + i))
             }
         }
     }
 
-    @Test fun randomInsert_delete(){
+    @Test fun randomInsert_delete() {
         val map = BTreeMap.make(
                 keySerializer = Serializer.INTEGER,
                 valueSerializer = Serializer.INTEGER,
@@ -487,24 +487,24 @@ class BTreeMapTest {
 
         var r = Random(1)
         val ref = IntHashSet()
-        for(i in 0 .. 1000){
+        for (i in 0..1000) {
             val key = r.nextInt(10000)
             ref.add(key)
-            map.put(key, key*100)
+            map.put(key, key * 100)
         }
 
         val removed = IntHashSet()
 
-        ref.forEach { key->
-            assertEquals(key*100, map[key])
-            assertEquals(key*100, map.remove(key))
+        ref.forEach { key ->
+            assertEquals(key * 100, map[key])
+            assertEquals(key * 100, map.remove(key))
             assertEquals(null, map[key])
             assertEquals(null, map.remove(key))
             removed.add(key)
 
 
-            for(i in 0 .. 10000){
-                if(!ref.contains(i) && !removed.contains(i)) {
+            for (i in 0..10000) {
+                if (!ref.contains(i) && !removed.contains(i)) {
                     assertEquals(null, map[i])
                 }
             }
@@ -517,7 +517,7 @@ class BTreeMapTest {
         map.verify()
     }
 
-    @Test fun iterate(){
+    @Test fun iterate() {
         val map = BTreeMap.make(
                 keySerializer = Serializer.INTEGER,
                 valueSerializer = Serializer.INTEGER,
@@ -526,20 +526,20 @@ class BTreeMapTest {
 
         var r = Random(1)
         val ref = IntHashSet()
-        for(i in 0 .. 1000){
+        for (i in 0..1000) {
             val key = r.nextInt(10000)
             ref.add(key)
-            map.put(key, key*100)
+            map.put(key, key * 100)
         }
 
         val iter = map.entries.iterator()
-        while(iter.hasNext()){
+        while (iter.hasNext()) {
             val next = iter.next()
             assertTrue(ref.remove(next.key!!))
-            assertEquals(next.key!!*100, next.value!!)
+            assertEquals(next.key!! * 100, next.value!!)
         }
         assertFalse(iter.hasNext())
-        assertFailsWith(NoSuchElementException::class.java){
+        assertFailsWith(NoSuchElementException::class.java) {
             iter.next()
         }
 
@@ -548,7 +548,7 @@ class BTreeMapTest {
 
 
     /* check that empty leaf nodes are skipped during iteration */
-    @Test fun iterate_remove(){
+    @Test fun iterate_remove() {
         val map = BTreeMap.make(
                 keySerializer = Serializer.INTEGER,
                 valueSerializer = Serializer.INTEGER,
@@ -557,20 +557,20 @@ class BTreeMapTest {
 
         var r = Random(1)
         val ref = CopyOnWriteArraySet<Int>()
-        for(i in 0 .. 1000){
+        for (i in 0..1000) {
             val key = r.nextInt(10000)
             ref.add(key)
-            map.put(key, key*100)
+            map.put(key, key * 100)
         }
 
         // remove keys from ref, iterator should always return all entries in ref
-        for(key in ref){
+        for (key in ref) {
             ref.remove(key)
-            assertEquals(key*100, map.remove(key))
+            assertEquals(key * 100, map.remove(key))
 
             val otherRef = CopyOnWriteArraySet<Int>()
             val iter = map.entries.iterator()
-            while(iter.hasNext()) {
+            while (iter.hasNext()) {
                 otherRef.add(iter.next().key!!)
             }
             //sort, ensure it equals
@@ -581,7 +581,179 @@ class BTreeMapTest {
 
     }
 
+    @Test fun descending_leaf_iterator() {
+        val map = BTreeMap.make<Int, Int>()
+
+        var iter = map.descendingLeafIterator(null)
+
+        assertTrue(iter.hasNext())
+        assertTrue(iter.next().isEmpty(map.keySerializer))
+        assertFalse(iter.hasNext())
+        assertFailsWith(NoSuchElementException::class.java) {
+            iter.next();
+        }
+
+    }
+
+    @Test fun descending_leaf_iterator_singleNode() {
+        val map = BTreeMap.make<Int, Int>()
+
+        val nodeRecid = map.store.put(
+                Node(LEFT + RIGHT, 0, arrayOf(1), arrayOf(10)),
+                map.nodeSerializer
+        )
+
+        map.store.update(
+                map.rootRecidRecid,
+                nodeRecid,
+                Serializer.RECID
+        )
+
+        var iter = map.descendingLeafIterator(null)
+
+        assertTrue(iter.hasNext())
+        assertEquals(1, (iter.next().keys as Array<Any>)[0])
+        assertFalse(iter.hasNext())
+        assertFailsWith(NoSuchElementException::class.java) {
+            iter.next();
+        }
+
+    }
 
 
+    @Test fun descending_leaf_iterator_threeChild() {
+        val map = BTreeMap.make<Int, Int>()
 
+        val node3 = Node(
+                RIGHT,
+                0L,
+                arrayOf(70, 80, 90),
+                arrayOf(8, 9)
+        )
+        val recid3 = map.store.put(node3, map.nodeSerializer)
+
+        val node2 = Node(
+                LAST_KEY_DOUBLE,
+                recid3,
+                arrayOf(50, 60, 70),
+                arrayOf(6, 7)
+        )
+        val recid2 = map.store.put(node2, map.nodeSerializer)
+
+        val node1 = Node(
+                LEFT + LAST_KEY_DOUBLE,
+                recid2,
+                arrayOf(20, 30, 40, 50),
+                arrayOf(2, 3, 4, 5)
+        )
+        val recid1 = map.store.put(node1, map.nodeSerializer)
+
+        val dir = Node(
+                DIR + LEFT + RIGHT,
+                0L,
+                arrayOf(50, 70),
+                longArrayOf(recid1, recid2, recid3)
+        )
+        val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
+        map.store.update(rootRecid, dir, map.nodeSerializer)
+        map.verify()
+
+        var iter = map.descendingLeafIterator(null)
+
+        assertTrue(iter.hasNext())
+        assertEquals(70, (iter.next().keys as Array<Any>)[0])
+
+        assertTrue(iter.hasNext())
+        assertEquals(50, (iter.next().keys as Array<Any>)[0])
+
+        assertTrue(iter.hasNext())
+        assertEquals(20, (iter.next().keys as Array<Any>)[0])
+
+        assertFalse(iter.hasNext())
+        assertFailsWith(NoSuchElementException::class.java) {
+            iter.next();
+        }
+
+    }
+
+    @Test fun descending_leaf_iterator_linkedChild_right() {
+        val map = BTreeMap.make<Int, Int>()
+
+        val node3 = Node(
+                RIGHT,
+                0L,
+                arrayOf(70, 80, 90),
+                arrayOf(8, 9)
+        )
+        val recid3 = map.store.put(node3, map.nodeSerializer)
+
+        val node2 = Node(
+                LAST_KEY_DOUBLE,
+                recid3,
+                arrayOf(50, 60, 70),
+                arrayOf(6, 7)
+        )
+        val recid2 = map.store.put(node2, map.nodeSerializer)
+
+        val node1 = Node(
+                LEFT + LAST_KEY_DOUBLE,
+                recid2,
+                arrayOf(20, 30, 40, 50),
+                arrayOf(2, 3, 4, 5)
+        )
+        val recid1 = map.store.put(node1, map.nodeSerializer)
+
+        val dir = Node(
+                DIR + LEFT + RIGHT,
+                0L,
+                arrayOf(50),
+                longArrayOf(recid1, recid2)
+        )
+        val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
+        map.store.update(rootRecid, dir, map.nodeSerializer)
+        map.verify()
+
+        var iter = map.descendingLeafIterator(null)
+
+        assertTrue(iter.hasNext())
+        assertEquals(70, (iter.next().keys as Array<Any>)[0])
+
+        assertTrue(iter.hasNext())
+        assertEquals(50, (iter.next().keys as Array<Any>)[0])
+
+        assertTrue(iter.hasNext())
+        assertEquals(20, (iter.next().keys as Array<Any>)[0])
+
+        assertFalse(iter.hasNext())
+        assertFailsWith(NoSuchElementException::class.java) {
+            iter.next();
+        }
+
+    }
+
+    @Test fun descending_leaf_iterator_large() {
+        val map = BTreeMap.make<Int, Int>(maxNodeSize = 6)
+        for (i in 1..100)
+            map.put(i, i)
+
+        val ref = ArrayList<Any>()
+        val iter = map.descendingLeafIterator(null)
+        var lastVal = -1
+        while (iter.hasNext()) {
+            val values = iter.next().values as Array<Any>
+            values.forEach { ref.add(it) }
+
+            val currentVal = values[0] as Int
+            if(lastVal!=-1 && currentVal >= lastVal){
+                throw AssertionError()
+            }
+            lastVal = currentVal
+        }
+
+        assertEquals(100, ref.size)
+        for (i in 1..100){
+            assertTrue(ref.contains(i))
+        }
+
+    }
 }

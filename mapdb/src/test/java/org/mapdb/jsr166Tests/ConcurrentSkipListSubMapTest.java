@@ -4,6 +4,8 @@ package org.mapdb.jsr166Tests;/*
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
+import org.junit.Test;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -13,24 +15,17 @@ import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentNavigableMap;
-import java.util.concurrent.ConcurrentSkipListMap;
 
-import junit.framework.Test;
-import junit.framework.TestSuite;
+public abstract class ConcurrentSkipListSubMapTest extends JSR166TestCase {
 
-public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
-    public static void main(String[] args) {
-        main(suite(), args);
-    }
-    public static Test suite() {
-        return new TestSuite(ConcurrentSkipListSubMapTest.class);
-    }
+
+    protected abstract ConcurrentNavigableMap<Integer,String> emptyMap();
 
     /**
      * Returns a new map from Integers 1-5 to Strings "A"-"E".
      */
-    private static ConcurrentNavigableMap map5() {
-        ConcurrentSkipListMap map = new ConcurrentSkipListMap();
+    private ConcurrentNavigableMap map5() {
+        ConcurrentNavigableMap map = emptyMap();
         assertTrue(map.isEmpty());
         map.put(zero, "Z");
         map.put(one, "A");
@@ -47,8 +42,8 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * Returns a new map from Integers -5 to -1 to Strings "A"-"E".
      */
-    private static ConcurrentNavigableMap dmap5() {
-        ConcurrentSkipListMap map = new ConcurrentSkipListMap();
+    private ConcurrentNavigableMap dmap5() {
+        ConcurrentNavigableMap map = emptyMap();
         assertTrue(map.isEmpty());
         map.put(m1, "A");
         map.put(m5, "E");
@@ -60,14 +55,14 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
         return map.descendingMap();
     }
 
-    private static ConcurrentNavigableMap map0() {
-        ConcurrentSkipListMap map = new ConcurrentSkipListMap();
+    private  ConcurrentNavigableMap map0() {
+        ConcurrentNavigableMap map = emptyMap();
         assertTrue(map.isEmpty());
         return map.tailMap(one, true);
     }
 
-    private static ConcurrentNavigableMap dmap0() {
-        ConcurrentSkipListMap map = new ConcurrentSkipListMap();
+    private  ConcurrentNavigableMap dmap0() {
+        ConcurrentNavigableMap map = emptyMap();
         assertTrue(map.isEmpty());
         return map;
     }
@@ -75,7 +70,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * clear removes all pairs
      */
-    public void testClear() {
+    @Test public void testClear() {
         ConcurrentNavigableMap map = map5();
         map.clear();
         assertEquals(0, map.size());
@@ -84,7 +79,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * Maps with same contents are equal
      */
-    public void testEquals() {
+    @Test public void testEquals() {
         ConcurrentNavigableMap map1 = map5();
         ConcurrentNavigableMap map2 = map5();
         assertEquals(map1, map2);
@@ -97,7 +92,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * containsKey returns true for contained key
      */
-    public void testContainsKey() {
+    @Test public void testContainsKey() {
         ConcurrentNavigableMap map = map5();
         assertTrue(map.containsKey(one));
         assertFalse(map.containsKey(zero));
@@ -106,7 +101,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * containsValue returns true for held values
      */
-    public void testContainsValue() {
+    @Test public void testContainsValue() {
         ConcurrentNavigableMap map = map5();
         assertTrue(map.containsValue("A"));
         assertFalse(map.containsValue("Z"));
@@ -116,7 +111,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
      * get returns the correct element at the given key,
      * or null if not present
      */
-    public void testGet() {
+    @Test public void testGet() {
         ConcurrentNavigableMap map = map5();
         assertEquals("A", (String)map.get(one));
         ConcurrentNavigableMap empty = map0();
@@ -126,7 +121,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * isEmpty is true of empty map and false for non-empty
      */
-    public void testIsEmpty() {
+    @Test public void testIsEmpty() {
         ConcurrentNavigableMap empty = map0();
         ConcurrentNavigableMap map = map5();
         assertTrue(empty.isEmpty());
@@ -136,7 +131,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * firstKey returns first key
      */
-    public void testFirstKey() {
+    @Test public void testFirstKey() {
         ConcurrentNavigableMap map = map5();
         assertEquals(one, map.firstKey());
     }
@@ -144,7 +139,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * lastKey returns last key
      */
-    public void testLastKey() {
+    @Test public void testLastKey() {
         ConcurrentNavigableMap map = map5();
         assertEquals(five, map.lastKey());
     }
@@ -152,7 +147,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * keySet returns a Set containing all the keys
      */
-    public void testKeySet() {
+    @Test public void testKeySet() {
         ConcurrentNavigableMap map = map5();
         Set s = map.keySet();
         assertEquals(5, s.size());
@@ -166,7 +161,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * keySet is ordered
      */
-    public void testKeySetOrder() {
+    @Test public void testKeySetOrder() {
         ConcurrentNavigableMap map = map5();
         Set s = map.keySet();
         Iterator i = s.iterator();
@@ -182,7 +177,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * values collection contains all values
      */
-    public void testValues() {
+    @Test public void testValues() {
         ConcurrentNavigableMap map = map5();
         Collection s = map.values();
         assertEquals(5, s.size());
@@ -196,7 +191,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * keySet.toArray returns contains all keys
      */
-    public void testKeySetToArray() {
+    @Test public void testKeySetToArray() {
         ConcurrentNavigableMap map = map5();
         Set s = map.keySet();
         Object[] ar = s.toArray();
@@ -209,7 +204,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * descendingkeySet.toArray returns contains all keys
      */
-    public void testDescendingKeySetToArray() {
+    @Test public void testDescendingKeySetToArray() {
         ConcurrentNavigableMap map = map5();
         Set s = map.descendingKeySet();
         Object[] ar = s.toArray();
@@ -222,7 +217,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * Values.toArray contains all values
      */
-    public void testValuesToArray() {
+    @Test public void testValuesToArray() {
         ConcurrentNavigableMap map = map5();
         Collection v = map.values();
         Object[] ar = v.toArray();
@@ -238,7 +233,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * entrySet contains all pairs
      */
-    public void testEntrySet() {
+    @Test public void testEntrySet() {
         ConcurrentNavigableMap map = map5();
         Set s = map.entrySet();
         assertEquals(5, s.size());
@@ -257,7 +252,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * putAll adds all key-value pairs from the given map
      */
-    public void testPutAll() {
+    @Test public void testPutAll() {
         ConcurrentNavigableMap empty = map0();
         ConcurrentNavigableMap map = map5();
         empty.putAll(map);
@@ -272,7 +267,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * putIfAbsent works when the given key is not present
      */
-    public void testPutIfAbsent() {
+    @Test public void testPutIfAbsent() {
         ConcurrentNavigableMap map = map5();
         map.putIfAbsent(six, "Z");
         assertTrue(map.containsKey(six));
@@ -281,7 +276,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * putIfAbsent does not add the pair if the key is already present
      */
-    public void testPutIfAbsent2() {
+    @Test public void testPutIfAbsent2() {
         ConcurrentNavigableMap map = map5();
         assertEquals("A", map.putIfAbsent(one, "Z"));
     }
@@ -289,7 +284,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * replace fails when the given key is not present
      */
-    public void testReplace() {
+    @Test public void testReplace() {
         ConcurrentNavigableMap map = map5();
         assertNull(map.replace(six, "Z"));
         assertFalse(map.containsKey(six));
@@ -298,7 +293,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * replace succeeds if the key is already present
      */
-    public void testReplace2() {
+    @Test public void testReplace2() {
         ConcurrentNavigableMap map = map5();
         assertNotNull(map.replace(one, "Z"));
         assertEquals("Z", map.get(one));
@@ -307,7 +302,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * replace value fails when the given key not mapped to expected value
      */
-    public void testReplaceValue() {
+    @Test public void testReplaceValue() {
         ConcurrentNavigableMap map = map5();
         assertEquals("A", map.get(one));
         assertFalse(map.replace(one, "Z", "Z"));
@@ -317,7 +312,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * replace value succeeds when the given key mapped to expected value
      */
-    public void testReplaceValue2() {
+    @Test public void testReplaceValue2() {
         ConcurrentNavigableMap map = map5();
         assertEquals("A", map.get(one));
         assertTrue(map.replace(one, "A", "Z"));
@@ -327,7 +322,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * remove removes the correct key-value pair from the map
      */
-    public void testRemove() {
+    @Test public void testRemove() {
         ConcurrentNavigableMap map = map5();
         map.remove(five);
         assertEquals(4, map.size());
@@ -337,7 +332,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * remove(key,value) removes only if pair present
      */
-    public void testRemove2() {
+    @Test public void testRemove2() {
         ConcurrentNavigableMap map = map5();
         assertTrue(map.containsKey(five));
         assertEquals("E", map.get(five));
@@ -352,7 +347,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * lowerEntry returns preceding entry.
      */
-    public void testLowerEntry() {
+    @Test public void testLowerEntry() {
         ConcurrentNavigableMap map = map5();
         Map.Entry e1 = map.lowerEntry(three);
         assertEquals(two, e1.getKey());
@@ -370,7 +365,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * higherEntry returns next entry.
      */
-    public void testHigherEntry() {
+    @Test public void testHigherEntry() {
         ConcurrentNavigableMap map = map5();
         Map.Entry e1 = map.higherEntry(three);
         assertEquals(four, e1.getKey());
@@ -388,7 +383,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * floorEntry returns preceding entry.
      */
-    public void testFloorEntry() {
+    @Test public void testFloorEntry() {
         ConcurrentNavigableMap map = map5();
         Map.Entry e1 = map.floorEntry(three);
         assertEquals(three, e1.getKey());
@@ -406,7 +401,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * ceilingEntry returns next entry.
      */
-    public void testCeilingEntry() {
+    @Test public void testCeilingEntry() {
         ConcurrentNavigableMap map = map5();
         Map.Entry e1 = map.ceilingEntry(three);
         assertEquals(three, e1.getKey());
@@ -424,7 +419,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * pollFirstEntry returns entries in order
      */
-    public void testPollFirstEntry() {
+    @Test public void testPollFirstEntry() {
         ConcurrentNavigableMap map = map5();
         Map.Entry e = map.pollFirstEntry();
         assertEquals(one, e.getKey());
@@ -451,7 +446,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * pollLastEntry returns entries in order
      */
-    public void testPollLastEntry() {
+    @Test public void testPollLastEntry() {
         ConcurrentNavigableMap map = map5();
         Map.Entry e = map.pollLastEntry();
         assertEquals(five, e.getKey());
@@ -478,7 +473,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * size returns the correct values
      */
-    public void testSize() {
+    @Test public void testSize() {
         ConcurrentNavigableMap map = map5();
         ConcurrentNavigableMap empty = map0();
         assertEquals(0, empty.size());
@@ -488,7 +483,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * toString contains toString of elements
      */
-    public void testToString() {
+    @Test public void testToString() {
         ConcurrentNavigableMap map = map5();
         String s = map.toString();
         for (int i = 1; i <= 5; ++i) {
@@ -501,7 +496,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * get(null) of nonempty map throws NPE
      */
-    public void testGet_NullPointerException() {
+    @Test public void testGet_NullPointerException() {
         try {
             ConcurrentNavigableMap c = map5();
             c.get(null);
@@ -512,7 +507,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * containsKey(null) of nonempty map throws NPE
      */
-    public void testContainsKey_NullPointerException() {
+    @Test public void testContainsKey_NullPointerException() {
         try {
             ConcurrentNavigableMap c = map5();
             c.containsKey(null);
@@ -523,7 +518,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * containsValue(null) throws NPE
      */
-    public void testContainsValue_NullPointerException() {
+    @Test public void testContainsValue_NullPointerException() {
         try {
             ConcurrentNavigableMap c = map0();
             c.containsValue(null);
@@ -534,7 +529,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * put(null,x) throws NPE
      */
-    public void testPut1_NullPointerException() {
+    @Test public void testPut1_NullPointerException() {
         try {
             ConcurrentNavigableMap c = map5();
             c.put(null, "whatever");
@@ -545,7 +540,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * putIfAbsent(null, x) throws NPE
      */
-    public void testPutIfAbsent1_NullPointerException() {
+    @Test public void testPutIfAbsent1_NullPointerException() {
         try {
             ConcurrentNavigableMap c = map5();
             c.putIfAbsent(null, "whatever");
@@ -556,7 +551,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * replace(null, x) throws NPE
      */
-    public void testReplace_NullPointerException() {
+    @Test public void testReplace_NullPointerException() {
         try {
             ConcurrentNavigableMap c = map5();
             c.replace(null, "whatever");
@@ -567,7 +562,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * replace(null, x, y) throws NPE
      */
-    public void testReplaceValue_NullPointerException() {
+    @Test public void testReplaceValue_NullPointerException() {
         try {
             ConcurrentNavigableMap c = map5();
             c.replace(null, one, "whatever");
@@ -578,7 +573,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * remove(null) throws NPE
      */
-    public void testRemove1_NullPointerException() {
+    @Test public void testRemove1_NullPointerException() {
         try {
             ConcurrentNavigableMap c = map5();
             c.remove(null);
@@ -589,7 +584,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * remove(null, x) throws NPE
      */
-    public void testRemove2_NullPointerException() {
+    @Test public void testRemove2_NullPointerException() {
         try {
             ConcurrentNavigableMap c = map5();
             c.remove(null, "whatever");
@@ -597,24 +592,25 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
-     * A deserialized map equals original
-     */
-    public void testSerialization() throws Exception {
-        NavigableMap x = map5();
-        NavigableMap y = serialClone(x);
-
-        assertNotSame(x, y);
-        assertEquals(x.size(), y.size());
-        assertEquals(x.toString(), y.toString());
-        assertEquals(x, y);
-        assertEquals(y, x);
-    }
+// TODO serialization?
+//    /**
+//     * A deserialized map equals original
+//     */
+//    @Test public void testSerialization() throws Exception {
+//        NavigableMap x = map5();
+//        NavigableMap y = serialClone(x);
+//
+//        assertNotSame(x, y);
+//        assertEquals(x.size(), y.size());
+//        assertEquals(x.toString(), y.toString());
+//        assertEquals(x, y);
+//        assertEquals(y, x);
+//    }
 
     /**
      * subMap returns map with keys in requested range
      */
-    public void testSubMapContents() {
+    @Test public void testSubMapContents() {
         ConcurrentNavigableMap map = map5();
         SortedMap sm = map.subMap(two, four);
         assertEquals(two, sm.firstKey());
@@ -645,7 +641,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
         assertEquals(3, map.size());
     }
 
-    public void testSubMapContents2() {
+    @Test public void testSubMapContents2() {
         ConcurrentNavigableMap map = map5();
         SortedMap sm = map.subMap(two, three);
         assertEquals(1, sm.size());
@@ -675,7 +671,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * headMap returns map with keys in requested range
      */
-    public void testHeadMapContents() {
+    @Test public void testHeadMapContents() {
         ConcurrentNavigableMap map = map5();
         SortedMap sm = map.headMap(four);
         assertTrue(sm.containsKey(one));
@@ -701,7 +697,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * headMap returns map with keys in requested range
      */
-    public void testTailMapContents() {
+    @Test public void testTailMapContents() {
         ConcurrentNavigableMap map = map5();
         SortedMap sm = map.tailMap(two);
         assertFalse(sm.containsKey(one));
@@ -749,7 +745,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * clear removes all pairs
      */
-    public void testDescendingClear() {
+    @Test public void testDescendingClear() {
         ConcurrentNavigableMap map = dmap5();
         map.clear();
         assertEquals(0, map.size());
@@ -758,7 +754,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * Maps with same contents are equal
      */
-    public void testDescendingEquals() {
+    @Test public void testDescendingEquals() {
         ConcurrentNavigableMap map1 = dmap5();
         ConcurrentNavigableMap map2 = dmap5();
         assertEquals(map1, map2);
@@ -771,7 +767,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * containsKey returns true for contained key
      */
-    public void testDescendingContainsKey() {
+    @Test public void testDescendingContainsKey() {
         ConcurrentNavigableMap map = dmap5();
         assertTrue(map.containsKey(m1));
         assertFalse(map.containsKey(zero));
@@ -780,7 +776,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * containsValue returns true for held values
      */
-    public void testDescendingContainsValue() {
+    @Test public void testDescendingContainsValue() {
         ConcurrentNavigableMap map = dmap5();
         assertTrue(map.containsValue("A"));
         assertFalse(map.containsValue("Z"));
@@ -790,7 +786,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
      * get returns the correct element at the given key,
      * or null if not present
      */
-    public void testDescendingGet() {
+    @Test public void testDescendingGet() {
         ConcurrentNavigableMap map = dmap5();
         assertEquals("A", (String)map.get(m1));
         ConcurrentNavigableMap empty = dmap0();
@@ -800,7 +796,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * isEmpty is true of empty map and false for non-empty
      */
-    public void testDescendingIsEmpty() {
+    @Test public void testDescendingIsEmpty() {
         ConcurrentNavigableMap empty = dmap0();
         ConcurrentNavigableMap map = dmap5();
         assertTrue(empty.isEmpty());
@@ -810,7 +806,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * firstKey returns first key
      */
-    public void testDescendingFirstKey() {
+    @Test public void testDescendingFirstKey() {
         ConcurrentNavigableMap map = dmap5();
         assertEquals(m1, map.firstKey());
     }
@@ -818,7 +814,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * lastKey returns last key
      */
-    public void testDescendingLastKey() {
+    @Test public void testDescendingLastKey() {
         ConcurrentNavigableMap map = dmap5();
         assertEquals(m5, map.lastKey());
     }
@@ -826,7 +822,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * keySet returns a Set containing all the keys
      */
-    public void testDescendingKeySet() {
+    @Test public void testDescendingKeySet() {
         ConcurrentNavigableMap map = dmap5();
         Set s = map.keySet();
         assertEquals(5, s.size());
@@ -840,7 +836,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * keySet is ordered
      */
-    public void testDescendingKeySetOrder() {
+    @Test public void testDescendingKeySetOrder() {
         ConcurrentNavigableMap map = dmap5();
         Set s = map.keySet();
         Iterator i = s.iterator();
@@ -856,7 +852,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * values collection contains all values
      */
-    public void testDescendingValues() {
+    @Test public void testDescendingValues() {
         ConcurrentNavigableMap map = dmap5();
         Collection s = map.values();
         assertEquals(5, s.size());
@@ -870,7 +866,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * keySet.toArray returns contains all keys
      */
-    public void testDescendingAscendingKeySetToArray() {
+    @Test public void testDescendingAscendingKeySetToArray() {
         ConcurrentNavigableMap map = dmap5();
         Set s = map.keySet();
         Object[] ar = s.toArray();
@@ -883,7 +879,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * descendingkeySet.toArray returns contains all keys
      */
-    public void testDescendingDescendingKeySetToArray() {
+    @Test public void testDescendingDescendingKeySetToArray() {
         ConcurrentNavigableMap map = dmap5();
         Set s = map.descendingKeySet();
         Object[] ar = s.toArray();
@@ -896,7 +892,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * Values.toArray contains all values
      */
-    public void testDescendingValuesToArray() {
+    @Test public void testDescendingValuesToArray() {
         ConcurrentNavigableMap map = dmap5();
         Collection v = map.values();
         Object[] ar = v.toArray();
@@ -912,7 +908,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * entrySet contains all pairs
      */
-    public void testDescendingEntrySet() {
+    @Test public void testDescendingEntrySet() {
         ConcurrentNavigableMap map = dmap5();
         Set s = map.entrySet();
         assertEquals(5, s.size());
@@ -931,7 +927,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * putAll adds all key-value pairs from the given map
      */
-    public void testDescendingPutAll() {
+    @Test public void testDescendingPutAll() {
         ConcurrentNavigableMap empty = dmap0();
         ConcurrentNavigableMap map = dmap5();
         empty.putAll(map);
@@ -946,7 +942,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * putIfAbsent works when the given key is not present
      */
-    public void testDescendingPutIfAbsent() {
+    @Test public void testDescendingPutIfAbsent() {
         ConcurrentNavigableMap map = dmap5();
         map.putIfAbsent(six, "Z");
         assertTrue(map.containsKey(six));
@@ -955,7 +951,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * putIfAbsent does not add the pair if the key is already present
      */
-    public void testDescendingPutIfAbsent2() {
+    @Test public void testDescendingPutIfAbsent2() {
         ConcurrentNavigableMap map = dmap5();
         assertEquals("A", map.putIfAbsent(m1, "Z"));
     }
@@ -963,7 +959,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * replace fails when the given key is not present
      */
-    public void testDescendingReplace() {
+    @Test public void testDescendingReplace() {
         ConcurrentNavigableMap map = dmap5();
         assertNull(map.replace(six, "Z"));
         assertFalse(map.containsKey(six));
@@ -972,7 +968,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * replace succeeds if the key is already present
      */
-    public void testDescendingReplace2() {
+    @Test public void testDescendingReplace2() {
         ConcurrentNavigableMap map = dmap5();
         assertNotNull(map.replace(m1, "Z"));
         assertEquals("Z", map.get(m1));
@@ -981,7 +977,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * replace value fails when the given key not mapped to expected value
      */
-    public void testDescendingReplaceValue() {
+    @Test public void testDescendingReplaceValue() {
         ConcurrentNavigableMap map = dmap5();
         assertEquals("A", map.get(m1));
         assertFalse(map.replace(m1, "Z", "Z"));
@@ -991,7 +987,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * replace value succeeds when the given key mapped to expected value
      */
-    public void testDescendingReplaceValue2() {
+    @Test public void testDescendingReplaceValue2() {
         ConcurrentNavigableMap map = dmap5();
         assertEquals("A", map.get(m1));
         assertTrue(map.replace(m1, "A", "Z"));
@@ -1001,7 +997,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * remove removes the correct key-value pair from the map
      */
-    public void testDescendingRemove() {
+    @Test public void testDescendingRemove() {
         ConcurrentNavigableMap map = dmap5();
         map.remove(m5);
         assertEquals(4, map.size());
@@ -1011,7 +1007,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * remove(key,value) removes only if pair present
      */
-    public void testDescendingRemove2() {
+    @Test public void testDescendingRemove2() {
         ConcurrentNavigableMap map = dmap5();
         assertTrue(map.containsKey(m5));
         assertEquals("E", map.get(m5));
@@ -1026,7 +1022,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * lowerEntry returns preceding entry.
      */
-    public void testDescendingLowerEntry() {
+    @Test public void testDescendingLowerEntry() {
         ConcurrentNavigableMap map = dmap5();
         Map.Entry e1 = map.lowerEntry(m3);
         assertEquals(m2, e1.getKey());
@@ -1044,7 +1040,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * higherEntry returns next entry.
      */
-    public void testDescendingHigherEntry() {
+    @Test public void testDescendingHigherEntry() {
         ConcurrentNavigableMap map = dmap5();
         Map.Entry e1 = map.higherEntry(m3);
         assertEquals(m4, e1.getKey());
@@ -1062,7 +1058,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * floorEntry returns preceding entry.
      */
-    public void testDescendingFloorEntry() {
+    @Test public void testDescendingFloorEntry() {
         ConcurrentNavigableMap map = dmap5();
         Map.Entry e1 = map.floorEntry(m3);
         assertEquals(m3, e1.getKey());
@@ -1080,7 +1076,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * ceilingEntry returns next entry.
      */
-    public void testDescendingCeilingEntry() {
+    @Test public void testDescendingCeilingEntry() {
         ConcurrentNavigableMap map = dmap5();
         Map.Entry e1 = map.ceilingEntry(m3);
         assertEquals(m3, e1.getKey());
@@ -1098,7 +1094,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * pollFirstEntry returns entries in order
      */
-    public void testDescendingPollFirstEntry() {
+    @Test public void testDescendingPollFirstEntry() {
         ConcurrentNavigableMap map = dmap5();
         Map.Entry e = map.pollFirstEntry();
         assertEquals(m1, e.getKey());
@@ -1125,7 +1121,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * pollLastEntry returns entries in order
      */
-    public void testDescendingPollLastEntry() {
+    @Test public void testDescendingPollLastEntry() {
         ConcurrentNavigableMap map = dmap5();
         Map.Entry e = map.pollLastEntry();
         assertEquals(m5, e.getKey());
@@ -1152,7 +1148,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * size returns the correct values
      */
-    public void testDescendingSize() {
+    @Test public void testDescendingSize() {
         ConcurrentNavigableMap map = dmap5();
         ConcurrentNavigableMap empty = dmap0();
         assertEquals(0, empty.size());
@@ -1162,7 +1158,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * toString contains toString of elements
      */
-    public void testDescendingToString() {
+    @Test public void testDescendingToString() {
         ConcurrentNavigableMap map = dmap5();
         String s = map.toString();
         for (int i = 1; i <= 5; ++i) {
@@ -1175,7 +1171,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * get(null) of empty map throws NPE
      */
-    public void testDescendingGet_NullPointerException() {
+    @Test public void testDescendingGet_NullPointerException() {
         try {
             ConcurrentNavigableMap c = dmap5();
             c.get(null);
@@ -1186,7 +1182,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * containsKey(null) of empty map throws NPE
      */
-    public void testDescendingContainsKey_NullPointerException() {
+    @Test public void testDescendingContainsKey_NullPointerException() {
         try {
             ConcurrentNavigableMap c = dmap5();
             c.containsKey(null);
@@ -1197,7 +1193,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * containsValue(null) throws NPE
      */
-    public void testDescendingContainsValue_NullPointerException() {
+    @Test public void testDescendingContainsValue_NullPointerException() {
         try {
             ConcurrentNavigableMap c = dmap0();
             c.containsValue(null);
@@ -1208,7 +1204,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * put(null,x) throws NPE
      */
-    public void testDescendingPut1_NullPointerException() {
+    @Test public void testDescendingPut1_NullPointerException() {
         try {
             ConcurrentNavigableMap c = dmap5();
             c.put(null, "whatever");
@@ -1219,7 +1215,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * putIfAbsent(null, x) throws NPE
      */
-    public void testDescendingPutIfAbsent1_NullPointerException() {
+    @Test public void testDescendingPutIfAbsent1_NullPointerException() {
         try {
             ConcurrentNavigableMap c = dmap5();
             c.putIfAbsent(null, "whatever");
@@ -1230,7 +1226,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * replace(null, x) throws NPE
      */
-    public void testDescendingReplace_NullPointerException() {
+    @Test public void testDescendingReplace_NullPointerException() {
         try {
             ConcurrentNavigableMap c = dmap5();
             c.replace(null, "whatever");
@@ -1241,7 +1237,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * replace(null, x, y) throws NPE
      */
-    public void testDescendingReplaceValue_NullPointerException() {
+    @Test public void testDescendingReplaceValue_NullPointerException() {
         try {
             ConcurrentNavigableMap c = dmap5();
             c.replace(null, m1, "whatever");
@@ -1252,7 +1248,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * remove(null) throws NPE
      */
-    public void testDescendingRemove1_NullPointerException() {
+    @Test public void testDescendingRemove1_NullPointerException() {
         try {
             ConcurrentNavigableMap c = dmap5();
             c.remove(null);
@@ -1263,32 +1259,32 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * remove(null, x) throws NPE
      */
-    public void testDescendingRemove2_NullPointerException() {
+    @Test public void testDescendingRemove2_NullPointerException() {
         try {
             ConcurrentNavigableMap c = dmap5();
             c.remove(null, "whatever");
             shouldThrow();
         } catch (NullPointerException success) {}
     }
-
-    /**
-     * A deserialized map equals original
-     */
-    public void testDescendingSerialization() throws Exception {
-        NavigableMap x = dmap5();
-        NavigableMap y = serialClone(x);
-
-        assertNotSame(x, y);
-        assertEquals(x.size(), y.size());
-        assertEquals(x.toString(), y.toString());
-        assertEquals(x, y);
-        assertEquals(y, x);
-    }
+// TODO serialization on submap?
+//    /**
+//     * A deserialized map equals original
+//     */
+//    @Test public void testDescendingSerialization() throws Exception {
+//        NavigableMap x = dmap5();
+//        NavigableMap y = serialClone(x);
+//
+//        assertNotSame(x, y);
+//        assertEquals(x.size(), y.size());
+//        assertEquals(x.toString(), y.toString());
+//        assertEquals(x, y);
+//        assertEquals(y, x);
+//    }
 
     /**
      * subMap returns map with keys in requested range
      */
-    public void testDescendingSubMapContents() {
+    @Test public void testDescendingSubMapContents() {
         ConcurrentNavigableMap map = dmap5();
         SortedMap sm = map.subMap(m2, m4);
         assertEquals(m2, sm.firstKey());
@@ -1319,7 +1315,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
         assertEquals(3, map.size());
     }
 
-    public void testDescendingSubMapContents2() {
+    @Test public void testDescendingSubMapContents2() {
         ConcurrentNavigableMap map = dmap5();
         SortedMap sm = map.subMap(m2, m3);
         assertEquals(1, sm.size());
@@ -1349,7 +1345,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * headMap returns map with keys in requested range
      */
-    public void testDescendingHeadMapContents() {
+    @Test public void testDescendingHeadMapContents() {
         ConcurrentNavigableMap map = dmap5();
         SortedMap sm = map.headMap(m4);
         assertTrue(sm.containsKey(m1));
@@ -1375,7 +1371,7 @@ public class ConcurrentSkipListSubMapTest extends JSR166TestCase {
     /**
      * headMap returns map with keys in requested range
      */
-    public void testDescendingTailMapContents() {
+    @Test public void testDescendingTailMapContents() {
         ConcurrentNavigableMap map = dmap5();
         SortedMap sm = map.tailMap(m2);
         assertFalse(sm.containsKey(m1));

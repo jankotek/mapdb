@@ -18,6 +18,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
+import org.easymock.internal.matchers.Null;
 import org.junit.Test;
 
 public abstract class ConcurrentHashMapTest extends JSR166TestCase {
@@ -664,7 +665,7 @@ public abstract class ConcurrentHashMapTest extends JSR166TestCase {
     public void testRemove3() {
         ConcurrentMap c = makeGenericMap();
         c.put("sadsdf", "asdads");
-      c.remove("sadsdf", null);
+        c.remove("sadsdf", null);
     }
 
     //TODO serialization

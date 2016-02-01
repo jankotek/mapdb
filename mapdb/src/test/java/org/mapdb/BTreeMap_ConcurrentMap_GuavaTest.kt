@@ -9,8 +9,9 @@ import java.util.concurrent.ConcurrentMap
 
 
 @RunWith(Parameterized::class)
-class BTreeMap_GuavaTest(val mapMaker:(generic:Boolean)-> ConcurrentMap<Any?, Any?>) :
-        ConcurrentMapInterfaceTest<Int, String>(
+class BTreeMap_ConcurrentMap_GuavaTest(
+        val mapMaker:(generic:Boolean)-> ConcurrentMap<Any?, Any?>
+    ):ConcurrentMapInterfaceTest<Int, String>(
             false,  // boolean allowsNullKeys,
             false,  // boolean allowsNullValues,
             true,   // boolean supportsPut,
