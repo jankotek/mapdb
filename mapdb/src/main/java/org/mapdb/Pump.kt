@@ -9,9 +9,10 @@ import org.mapdb.BTreeMapJava.*
  */
 object Pump{
 
-    abstract class  DataAcceptor<E,R>{
+    abstract class Consumer<E,R>{
 
         internal var rootRecidRecid:Long? = null
+        internal var counter = 0L
 
         abstract fun take(e:E)
         abstract fun finish():R
@@ -34,7 +35,7 @@ object Pump{
             comparator:Comparator<K> = keySerializer,
             leafNodeSize:Int = CC.BTREEMAP_MAX_NODE_SIZE*3/4,
             dirNodeSize:Int = CC.BTREEMAP_MAX_NODE_SIZE*3/4
-    ):DataAcceptor<Pair<K,V>,Unit>{
+    ): Consumer<Pair<K,V>,Unit>{
 
         var prevKey:K? = null
 
@@ -45,12 +46,10 @@ object Pump{
             var nextDirLink = 0L
         }
 
-        return object:DataAcceptor<Pair<K,V>,Unit>(){
+        return object: Consumer<Pair<K,V>,Unit>(){
 
             val dirStack = LinkedList<DirData>()
 
-//            val nodeKeys = ArrayList<K>()
-//            val nodeRecids = LongArrayList()
             val keys = ArrayList<K>()
             val values = ArrayList<V>()
             var leftEdgeLeaf = LEFT
@@ -63,6 +62,7 @@ object Pump{
                     throw DBException.NotSorted()
                 }
                 prevKey = e.first
+                counter++
 
                 keys.add(e.first)
                 values.add(e.second)

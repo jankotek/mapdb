@@ -349,5 +349,27 @@ class DBTest{
         assertEquals("org.mapdb.Serializer#JAVA", p["aa"+DB.Keys.valueSerializer])
     }
 
+    @Test fun treeMap_import(){
+        val db = DB(store=StoreTrivial(), storeOpened = false)
+        val maker = db.treeMap("aa")
+                .import()
+        maker.takeAll((0..6).map{Pair(it, it*2)})
+        val map = maker.finish()
+        assertEquals(7, map.size)
+        for(i in 0..6){
+            assertEquals(i*2, map[i])
+        }
+    }
+
+
+    @Test fun treeMap_import_size(){
+        val db = DB(store=StoreTrivial(), storeOpened = false)
+        val maker = db.treeMap("aa")
+                .counterEnable()
+                .import()
+        maker.takeAll((0..6).map{Pair(it, it*2)})
+        val map = maker.finish()
+        assertEquals(7, map.size)
+    }
 
 }

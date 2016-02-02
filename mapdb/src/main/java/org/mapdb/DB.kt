@@ -527,6 +527,17 @@ open class DB(
             .keySerializer(keySerializer)
             .valueSerializer(valueSerializer)
 
+    abstract class TreeMapPump<K,V>:Pump.Consumer<Pair<K,V>, BTreeMap<K,V>>(){
+        fun take(key:K, value:V) {
+            take(Pair(key, value))
+        }
+
+        fun takeAll(map:SortedMap<K,V>){
+            map.forEach { e ->
+                take(e.key, e.value)
+            }
+        }
+    }
 
     class TreeMapMaker<K,V>(
             private val db:DB,
@@ -589,10 +600,50 @@ open class DB(
         fun createOrOpen() = make(null)
         fun open() = make( false)
 
+        fun import(iterator:Iterator<Pair<K,V>>):BTreeMap<K,V>{
+            val consumer = import()
+            while(iterator.hasNext()){
+                consumer.take(iterator.next())
+            }
+            return consumer.finish()
+        }
+
+        fun import():TreeMapPump<K,V>{
+
+            val consumer = Pump.treeMap(
+                store = db.store,
+                keySerializer = _keySerializer,
+                valueSerializer = _valueSerializer,
+                //TODO add custom comparator, once its enabled
+                dirNodeSize = _maxNodeSize *3/4,
+                leafNodeSize = _maxNodeSize *3/4
+            )
+
+            return object:TreeMapPump<K,V>(){
+
+                override fun take(e: Pair<K, V>) {
+                    consumer.take(e)
+                }
+
+                override fun finish(): BTreeMap<K, V> {
+                    consumer.finish()
+                    val rootRecidRecid = consumer.rootRecidRecid
+                        ?: throw AssertionError()
+                    val counterRecid =
+                            if(_counterEnable) db.store.put(consumer.counter, Serializer.LONG)
+                            else 0L
+                    return make(true, rootRecidRecid=rootRecidRecid, counterRecid=counterRecid)
+                }
+
+            }
+        }
+
 
 
         internal fun make(
-                create:Boolean?
+            create:Boolean?,
+            rootRecidRecid:Long? = null,
+            counterRecid:Long? = null
         ):BTreeMap<K,V>{
             db.checkName(name)
             val nameCatalog = db.nameCatalogLoad()
@@ -610,10 +661,11 @@ open class DB(
             db.nameCatalogPutClass(nameCatalog, name + Keys.keySerializer, _keySerializer)
             db.nameCatalogPutClass(nameCatalog, name + Keys.valueSerializer, _valueSerializer)
 
-            val rootRecidRecid =  BTreeMap.putEmptyRoot(db.store, _keySerializer, _valueSerializer)
+            val rootRecidRecid = rootRecidRecid
+                    ?: BTreeMap.putEmptyRoot(db.store, _keySerializer, _valueSerializer)
             nameCatalog.put(name + Keys.rootRecidRecid, rootRecidRecid.toString())
             val counterRecid =
-                    if(_counterEnable) db.store.put(0L, Serializer.LONG)
+                    if(_counterEnable) counterRecid ?: db.store.put(0L, Serializer.LONG)
                     else 0L
             nameCatalog.put(name + Keys.counterRecid, counterRecid.toString())
 
