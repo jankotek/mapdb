@@ -36,7 +36,7 @@ object Pump{
             dirNodeSize:Int = CC.BTREEMAP_MAX_NODE_SIZE*3/4
     ):DataAcceptor<Pair<K,V>>{
 
-        //TODO sorted assertions?
+        var prevKey:K? = null
 
         class DirData {
             var leftEdge = LEFT
@@ -59,6 +59,11 @@ object Pump{
             val nodeSer = NodeSerializer(keySerializer, valueSerializer)
 
             override fun take(e: Pair<K, V>) {
+                if(prevKey!=null && comparator.compare(prevKey, e.first)>=0){
+                    throw DBException.NotSorted()
+                }
+                prevKey = e.first
+
                 keys.add(e.first)
                 values.add(e.second)
 

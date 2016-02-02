@@ -1,7 +1,6 @@
 package org.mapdb
 
 import org.junit.Test
-import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 
@@ -11,7 +10,6 @@ class PumpTest{
         check((1..6).map{Pair(it, it*2)})
     }
 
-
     @Test fun cent(){
         check((1..100).map{Pair(it, it*2)})
     }
@@ -20,11 +18,14 @@ class PumpTest{
         check((1..1000).map{Pair(it, it*2)})
     }
 
-
     @Test fun mega(){
         check((1..1000000).map{Pair(it, it*2)})
     }
 
+    @Test(expected = DBException.NotSorted::class)
+    fun notSorted(){
+        check((6 downTo 1).map{Pair(it, it*2)})
+    }
 
     private fun check(source: List<Pair<Int, Int>>) {
         val store = StoreTrivial()

@@ -8,6 +8,8 @@ import java.nio.file.Path
  */
 open class DBException(message: String?, cause: Throwable?) : RuntimeException(message, cause) {
 
+    class NotSorted():DBException("Keys are not sorted")
+
     class WrongConfiguration(message: String) : DBException(message) {}
 
     constructor(message: String):this(message, null)
