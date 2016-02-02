@@ -18,6 +18,15 @@ class PumpTest{
         check((1..1000).map{Pair(it, it*2)})
     }
 
+    @Test fun multi(){
+        if(TT.shortTest())
+            return
+        for(limit in 0 .. 1000) {
+            check((0 .. limit).map { Pair(it, it * 2) })
+        }
+    }
+
+
     @Test fun mega(){
         check((1..1000000).map{Pair(it, it*2)})
     }
@@ -32,7 +41,9 @@ class PumpTest{
         val taker = Pump.treeMap(
                 store = store,
                 keySerializer = Serializer.INTEGER,
-                valueSerializer = Serializer.INTEGER
+                valueSerializer = Serializer.INTEGER,
+                dirNodeSize = 10,
+                leafNodeSize = 10
         )
         taker.takeAll(source)
         taker.finish()
