@@ -35,25 +35,25 @@ class BTreeMap_ConcurrentMap_GuavaTest(
             for(reversedComparator in bools)
             for(small in bools)
             for(storeType in 0..2)
+            for(threadSafe in bools)
+            for(counter in bools)
             {
-                val store = when(storeType){
-                    0-> StoreOnHeap()
-                    1-> StoreTrivial()
-                    2-> StoreDirect.make()
-                    else -> throw AssertionError()
-                }
-
-                val nodeSize = if(small) 4 else 32
-
                 ret.add(arrayOf<Any>({generic:Boolean->
-                    if(generic)
-                        BTreeMap.make<Int,String>(comparator =
-                            (if(reversedComparator) Serializer.JAVA.reversed() else Serializer.JAVA) as Comparator<Int>,
-                            store = store, maxNodeSize =  nodeSize)
-                    else
-                        BTreeMap.make(keySerializer = Serializer.INTEGER, valueSerializer = Serializer.STRING,
+                    val store = when(storeType){
+                        0-> StoreOnHeap()
+                        1-> StoreTrivial()
+                        2-> StoreDirect.make()
+                        else -> throw AssertionError()
+                    }
+
+                    val nodeSize = if(small) 4 else 32
+                    val counterRecid = if(counter) store.put(0L, Serializer.LONG) else 0L
+                    val keySer = if(generic) Serializer.JAVA as Serializer<Int> else Serializer.INTEGER
+                    val valSer = if(generic) Serializer.JAVA as Serializer<String> else Serializer.STRING
+                    BTreeMap.make(keySerializer = keySer, valueSerializer = valSer,
                             comparator = if(reversedComparator) Serializer.INTEGER.reversed() else Serializer.INTEGER ,
-                            store = store, maxNodeSize =  nodeSize)
+                            store = store, maxNodeSize =  nodeSize, threadSafe = threadSafe,
+                            counterRecid = counterRecid)
                 }))
 
             }

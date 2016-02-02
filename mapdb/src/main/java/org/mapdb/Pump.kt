@@ -9,12 +9,12 @@ import org.mapdb.BTreeMapJava.*
  */
 object Pump{
 
-    abstract class  DataAcceptor<E>{
+    abstract class  DataAcceptor<E,R>{
 
         internal var rootRecidRecid:Long? = null
 
         abstract fun take(e:E)
-        abstract fun finish()
+        abstract fun finish():R
 
         fun takeAll(i:Iterable<E>){
             takeAll(i.iterator())
@@ -34,7 +34,7 @@ object Pump{
             comparator:Comparator<K> = keySerializer,
             leafNodeSize:Int = CC.BTREEMAP_MAX_NODE_SIZE*3/4,
             dirNodeSize:Int = CC.BTREEMAP_MAX_NODE_SIZE*3/4
-    ):DataAcceptor<Pair<K,V>>{
+    ):DataAcceptor<Pair<K,V>,Unit>{
 
         var prevKey:K? = null
 
@@ -45,7 +45,7 @@ object Pump{
             var nextDirLink = 0L
         }
 
-        return object:DataAcceptor<Pair<K,V>>(){
+        return object:DataAcceptor<Pair<K,V>,Unit>(){
 
             val dirStack = LinkedList<DirData>()
 

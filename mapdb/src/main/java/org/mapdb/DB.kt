@@ -539,6 +539,7 @@ open class DB(
         private var _counterEnable: Boolean = false
         private var _valueLoader:((key:K)->V)? = null
         private var _modListeners:MutableList<MapModificationListener<K,V>>? = null
+        private var _threadSafe = true;
 
 
         fun <A> keySerializer(keySerializer:Serializer<A>):TreeMapMaker<A,V>{
@@ -564,10 +565,16 @@ open class DB(
         }
 
         fun counterEnable():TreeMapMaker<K,V>{
-            //TODO BTree counter
             _counterEnable = true
             return this;
         }
+
+
+        fun threadSafeDisable():TreeMapMaker<K,V>{
+            _threadSafe = false
+            return this;
+        }
+
 
         fun modificationListener(listener:MapModificationListener<K,V>):TreeMapMaker<K,V>{
             //TODO BTree modification listener
@@ -614,13 +621,16 @@ open class DB(
 
             db.nameCatalogSave(nameCatalog)
 
+
             val btreemap = BTreeMap(
                     keySerializer = _keySerializer,
                     valueSerializer = _valueSerializer,
                     rootRecidRecid = rootRecidRecid,
                     store = db.store,
                     maxNodeSize = _maxNodeSize,
-                    comparator = _keySerializer //TODO custom comparator
+                    comparator = _keySerializer, //TODO custom comparator
+                    threadSafe = _threadSafe,
+                    counterRecid = counterRecid
             )
             return btreemap
         }

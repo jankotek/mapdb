@@ -26,6 +26,8 @@ class BTreeMap<K,V>(
         val store:Store,
         val maxNodeSize:Int,
         val comparator:Comparator<K>,
+        val threadSafe:Boolean,
+        val counterRecid:Long,
         @JvmField val hasValues:Boolean = true
 ):Verifiable, Closeable, Serializable,
         ConcurrentNavigableMap<K, V>, MapExtra<K, V> {
@@ -38,14 +40,19 @@ class BTreeMap<K,V>(
                 rootRecidRecid: Long = //insert recid of new empty node
                 putEmptyRoot(store, keySerializer, valueSerializer),
                 maxNodeSize: Int =  CC.BTREEMAP_MAX_NODE_SIZE ,
-                comparator: Comparator<K> = keySerializer) =
+                comparator: Comparator<K> = keySerializer,
+                threadSafe:Boolean = true,
+                counterRecid:Long=0L
+            ) =
                 BTreeMap(
                         keySerializer = keySerializer,
                         valueSerializer = valueSerializer,
                         store = store,
                         rootRecidRecid = rootRecidRecid,
                         maxNodeSize = maxNodeSize,
-                        comparator = comparator
+                        comparator = comparator,
+                        threadSafe = threadSafe,
+                        counterRecid = counterRecid
                 )
 
         internal fun <K, V> putEmptyRoot(store: Store, keySerializer: Serializer<K>, valueSerializer: Serializer<V>): Long {
@@ -214,7 +221,10 @@ class BTreeMap<K,V>(
 
                 //key does not exist, node must be expanded
                 A = if (A.isDir) copyAddKeyDir(A, pos, v, p)
-                else copyAddKeyLeaf(A, pos, v, value)
+                else{
+                    counterIncrement(1)
+                    copyAddKeyLeaf(A, pos, v, value)
+                }
                 val keysSize = keySerializer.valueArraySize(A.keys) + A.intLastKeyTwice()
                 if (keysSize < maxNodeSize) {
                     //it is safe to insert without spliting
@@ -335,10 +345,11 @@ class BTreeMap<K,V>(
                         if (A.isLastKeyDouble && pos == keysSize - 1) {
                             //last value is twice in node, but should be removed from here
                             // instead of removing key, just unset flag
-                            flags = flags - LAST_KEY_DOUBLE
+                            flags -= LAST_KEY_DOUBLE
                         } else {
                             keys = keySerializer.valueArrayDeleteValue(A.keys, pos + 1)
                         }
+                        counterIncrement(-1)
                         valueSerializer.valueArrayDeleteValue(A.values, valuePos + 1)
                     } else {
                         //just replace value, do not modify keys
@@ -352,6 +363,7 @@ class BTreeMap<K,V>(
                 }
             }
             unlock(current)
+
             return oldValue
         } catch(e: Throwable) {
             unlockAllCurrentThread()
@@ -427,6 +439,8 @@ class BTreeMap<K,V>(
 
 
     fun lock(nodeRecid: Long) {
+        if(!threadSafe)
+            return
         val value = Thread.currentThread().id
         //try to lock, but only if current node is not empty
         while (locks.putIfAbsent(nodeRecid, value) != null)
@@ -434,12 +448,16 @@ class BTreeMap<K,V>(
     }
 
     fun unlock(nodeRecid: Long) {
+        if(!threadSafe)
+            return
         val v = locks.remove(nodeRecid)
         if (v == null || v != Thread.currentThread().id)
             throw AssertionError("Unlocked wrong thread");
     }
 
     fun unlockAllCurrentThread() {
+        if(!threadSafe)
+            return
         val id = Thread.currentThread().id
         val iter = locks.iterator()
         while (iter.hasNext()) {
@@ -452,6 +470,8 @@ class BTreeMap<K,V>(
 
 
     fun assertCurrentThreadUnlocked() {
+        if(!threadSafe)
+            return
         val id = Thread.currentThread().id
         val iter = locks.iterator()
         while (iter.hasNext()) {
@@ -647,6 +667,10 @@ class BTreeMap<K,V>(
         get() = Math.min(Int.MAX_VALUE.toLong(), sizeLong()).toInt()
 
     override fun sizeLong(): Long {
+        if(counterRecid!=0L)
+            return store.get(counterRecid, Serializer.LONG)
+                    ?:throw DBException.DataCorruption("Counter not found")
+
         var ret = 0L
         val iter = keys.iterator()
         while (iter.hasNext()) {
@@ -654,6 +678,15 @@ class BTreeMap<K,V>(
             ret++
         }
         return ret
+    }
+
+    private fun counterIncrement(i:Int){
+        if(counterRecid==0L)
+            return
+        do{
+            val counter = store.get(counterRecid, Serializer.LONG)
+                    ?:throw DBException.DataCorruption("Counter not found")
+        }while(store.compareAndSwap(counterRecid, counter, counter+i, Serializer.LONG).not())
     }
 
 
