@@ -290,7 +290,7 @@ And Value Loader will load values back to in-memory map, if those are not found 
 
 To establish Disk Overflow use following code:
 
-.. literalinclude:: ../src/test/java/doc/htreemap_overflow.java
+.. literalinclude:: ../src/test/java/doc/htreemap_overflow_init.java
     :start-after: //a
     :end-before: //z
     :language: java
@@ -300,7 +300,7 @@ To establish Disk Overflow use following code:
 Once binding is established, every entry removed from ``inMemory`` map will be added to ``onDisk`` map.
 This applies only to expired entries, ``map.remove()`` will also remove any entry from ``onDisk``.
 
-.. literalinclude:: ../../mapdb/src/test/java/doc/htreemap_overflow_remove.java
+.. literalinclude:: ../src/test/java/doc/htreemap_overflow_remove.java
     :start-after: //a
     :end-before: //z
     :language: java
@@ -309,7 +309,7 @@ This applies only to expired entries, ``map.remove()`` will also remove any entr
 If the ``inMemory.get(key)`` is called and value does not exist, the Value Loader will try to find Map in ``onDisk``.
 If value is found inside ``onDisk``, it is added into ``inMemory``.
 
-.. literalinclude:: ../../mapdb/src/test/java/doc/htreemap_overflow_get.java
+.. literalinclude:: ../src/test/java/doc/htreemap_overflow_get.java
     :start-after: //a
     :end-before: //z
     :language: java
