@@ -1620,6 +1620,7 @@ class BTreeMap<K,V>(
         val key = keySerializer.valueArrayGet(node.keys, 1 - node.intLeftEdge())
         val value = valueSerializer.valueArrayGet(node.values, 0)
 
+        //TODO SimpleImmutableEntry etc does not use key/valueSerializer hash code, this is at multiple places
         return AbstractMap.SimpleImmutableEntry(key as K, value as V)
     }
 
