@@ -347,7 +347,7 @@ public class BTreeMapJava {
             }
 
             //found value, return it
-            value = valueSerializer.valueArrayBinaryGet(input, pos);
+            value = valueSerializer.valueArrayBinaryGet(input, keysLen, pos);
             return -1L;
         }
     }

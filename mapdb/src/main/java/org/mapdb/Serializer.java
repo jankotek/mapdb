@@ -756,7 +756,7 @@ public abstract class Serializer<A> implements Comparator<A> {
         }
 
         @Override
-        public Integer valueArrayBinaryGet(DataInput2 input, int pos) throws IOException {
+        public Integer valueArrayBinaryGet(DataInput2 input, int keysLen, int pos) throws IOException {
             int a=-Integer.MIN_VALUE;
             while(pos-- >= 0){
                 a = deserialize(input, -1);
@@ -1198,7 +1198,7 @@ public abstract class Serializer<A> implements Comparator<A> {
         }
 
         @Override
-        public byte[] valueArrayBinaryGet(DataInput2 input, int pos) throws IOException {
+        public byte[] valueArrayBinaryGet(DataInput2 input, int keysLen, int pos) throws IOException {
             throw new UnsupportedOperationException("NOSIZE can not be used for values");
         }
 
@@ -2705,7 +2705,7 @@ public abstract class Serializer<A> implements Comparator<A> {
         return DataIO.intHash(a.hashCode()+seed);
     }
 
-    public A valueArrayBinaryGet(DataInput2 input, int pos) throws IOException {
+    public A valueArrayBinaryGet(DataInput2 input, int keysLen, int pos) throws IOException {
         Object keys = valueArrayDeserialize(input, pos+1);
         return valueArrayGet(keys, pos);
 //        A a=null;

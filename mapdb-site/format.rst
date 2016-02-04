@@ -23,3 +23,12 @@ Index Page at start contains:
 - TODO second value in page is **checksum of all values** on page
 
 Rest of the index page is filled with index values.
+
+
+Sorted Table Map
+---------------------
+
+``SortedTableMap`` uses its own file format. File is split into page,
+where page size is power of two and maximal page size 1MB.
+
+

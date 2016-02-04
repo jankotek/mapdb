@@ -260,6 +260,22 @@ public final class DataIO {
     public static final long PACK_LONG_RESULT_MASK = 0xFFFFFFFFFFFFFFFL;
 
 
+    public static int getInt(byte[] buf, int pos) {
+       return
+                (((int)buf[pos++]) << 24) |
+                (((int)buf[pos++] & 0xFF) << 16) |
+                (((int)buf[pos++] & 0xFF) <<  8) |
+                (((int)buf[pos] & 0xFF));
+    }
+
+    public static void putInt(byte[] buf, int pos,int v) {
+        buf[pos++] = (byte) (0xff & (v >> 24));
+        buf[pos++] = (byte) (0xff & (v >> 16));
+        buf[pos++] = (byte) (0xff & (v >> 8));
+        buf[pos] = (byte) (0xff & (v));
+    }
+
+
     public static long getLong(byte[] buf, int pos) {
        return
                ((((long)buf[pos++]) << 56) |

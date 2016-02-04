@@ -122,7 +122,7 @@ abstract class SerializerTest<E>{
         for(i in 0 until max.toInt()){
             val v1 = v[i] as E
             val v2 = serializer.valueArrayGet(keys, i)
-            val v3 = serializer.valueArrayBinaryGet(DataInput2.ByteArray(out.buf), i)
+            val v3 = serializer.valueArrayBinaryGet(DataInput2.ByteArray(out.buf), max.toInt(), i)
 
             assertTrue(serializer.equals(v1, v2))
             assertTrue(serializer.equals(v1, v3))
