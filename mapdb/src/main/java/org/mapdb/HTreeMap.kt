@@ -16,8 +16,8 @@ import java.util.function.BiConsumer
  */
 //TODO there are many casts, catch ClassCastException and return false/null
 class HTreeMap<K,V>(
-        val keySerializer:Serializer<K>,
-        val valueSerializer:Serializer<V>,
+        override val keySerializer:Serializer<K>,
+        override val valueSerializer:Serializer<V>,
         val valueInline:Boolean,
         val concShift: Int,
         val dirShift: Int,
@@ -44,7 +44,7 @@ class HTreeMap<K,V>(
 
         //TODO queue is probably sequentially unsafe
 
-) : ConcurrentMap<K?,V?>, MapExtra<K?,V?>, Verifiable, Closeable{
+) : ConcurrentMap<K,V>, MapExtra<K,V>, Verifiable, Closeable{
 
 
     companion object{
@@ -1157,7 +1157,7 @@ class HTreeMap<K,V>(
         else return stores[segment].put(value, valueSerializer)
     }
 
-    override fun forEach(action: BiConsumer<in K?, in V?>?) {
+    override fun forEach(action: BiConsumer<in K, in V>) {
         action!!
         for(segment in 0 until segmentCount){
             segmentRead(segment){
@@ -1175,7 +1175,7 @@ class HTreeMap<K,V>(
         }
     }
 
-    override fun forEachKey(action:  (K?)->Unit) {
+    override fun forEachKey(action:  (K)->Unit) {
         for(segment in 0 until segmentCount){
             segmentRead(segment){
                 val store = stores[segment]
@@ -1192,7 +1192,7 @@ class HTreeMap<K,V>(
 
     }
 
-    override fun forEachValue(action:  (V?)->Unit) {
+    override fun forEachValue(action:  (V)->Unit) {
         for(segment in 0 until segmentCount){
             segmentRead(segment){
                 val store = stores[segment]

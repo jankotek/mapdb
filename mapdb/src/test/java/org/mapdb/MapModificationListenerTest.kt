@@ -8,9 +8,9 @@ import java.util.*
  * Tests map with modification listener
  */
 
-abstract class MapModificationListenerTest:MapModificationListener<Int?,String?> {
+abstract class MapModificationListenerTest:MapModificationListener<Int,String> {
 
-    abstract fun makeMap(): MapExtra<Int?, String?>
+    abstract fun makeMap(): MapExtra<Int, String>
 
     val map = makeMap()
 
@@ -40,7 +40,7 @@ abstract class MapModificationListenerTest:MapModificationListener<Int?,String?>
         Assert.assertEquals(expired, lexpired)
     }
 
-    override fun modify(key: Int?, oldValue: String?, newValue: String?, triggered: Boolean) {
+    override fun modify(key: Int, oldValue: String?, newValue: String?, triggered: Boolean) {
         lcounter++
         this.lkey = key
         this.loldValue = oldValue
@@ -131,7 +131,7 @@ abstract class MapModificationListenerTest:MapModificationListener<Int?,String?>
     }
 
     class HTreeMapTest:MapModificationListenerTest(){
-        override fun makeMap(): MapExtra<Int?, String?>  = HTreeMap.make(
+        override fun makeMap(): MapExtra<Int, String>  = HTreeMap.make(
                 keySerializer = Serializer.INTEGER, valueSerializer = Serializer.STRING,
                 modificationListeners = arrayOf(this as MapModificationListener<Int, String>))
 

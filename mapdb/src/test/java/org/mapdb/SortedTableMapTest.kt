@@ -49,11 +49,43 @@ class SortedTableMapTest{
             assertArrayEquals(arrayOf(100), map.keySerializer.valueArrayToArray(map.pageKeys))
         assertEquals(size, map.size)
 
-        val keyIter = map.keyIterator()
-        val valueIter = map.valueIterator()
-        val entryIter = map.entryIterator()
+        var keyIter = map.keyIterator()
+        var valueIter = map.valueIterator()
+        var entryIter = map.entryIterator()
 
         for(i in 100 until 100+size) {
+            assertEquals(i*2, map[i])
+
+            assertTrue(keyIter.hasNext())
+            assertEquals(i, keyIter.next())
+
+            assertTrue(valueIter.hasNext())
+            assertEquals(i*2, valueIter.next())
+
+            assertTrue(entryIter.hasNext())
+            val node = entryIter.next()
+            assertEquals(i, node.key)
+            assertEquals(i*2, node.value)
+        }
+        assertFalse(keyIter.hasNext())
+        assertFailsWith(NoSuchElementException::class.java){
+            keyIter.next()
+        }
+        assertFalse(valueIter.hasNext())
+        assertFailsWith(NoSuchElementException::class.java){
+            valueIter.next()
+        }
+        assertFalse(entryIter.hasNext())
+        assertFailsWith(NoSuchElementException::class.java){
+            entryIter.next()
+        }
+
+        //do reverse iterators
+        keyIter = map.descendingKeyIterator()
+        valueIter = map.descendingValueIterator()
+        entryIter = map.descendingEntryIterator()
+
+        for(i in 100+size-1 downTo 100) {
             assertEquals(i*2, map[i])
 
             assertTrue(keyIter.hasNext())

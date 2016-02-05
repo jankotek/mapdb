@@ -3,6 +3,7 @@ package org.mapdb
 import org.eclipse.collections.api.block.procedure.Procedure
 import java.util.EventListener
 import java.util.concurrent.ConcurrentMap
+import java.util.concurrent.ConcurrentNavigableMap
 import java.util.function.BiConsumer
 
 /**
@@ -54,12 +55,44 @@ interface MapExtra<K, V> : ConcurrentMap<K, V> {
 
     fun isClosed(): Boolean
 
-    fun forEachKey(procedure: (K?)->Unit);
+    fun forEachKey(procedure: (K)->Unit);
 
-    fun forEachValue(procedure: (V?)->Unit);
+    fun forEachValue(procedure: (V)->Unit);
 
-    override fun forEach(action: BiConsumer<in K?, in V?>?);
+    override fun forEach(action: BiConsumer<in K, in V>);
+
+    val keySerializer:Serializer<K>
+
+    val valueSerializer:Serializer<V>
+
+}
 
 
+internal interface ConcurrentNavigableMapExtra<K, V> : ConcurrentNavigableMap<K, V>, MapExtra<K, V> {
 
+    val hasValues:Boolean
+
+    fun findHigher(key: K?, inclusive: Boolean): MutableMap.MutableEntry<K, V>?
+
+    fun findSmaller(key: K?, inclusive: Boolean): MutableMap.MutableEntry<K, V>?
+
+    fun keyIterator(): MutableIterator<K>
+
+    fun keyIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<K>
+
+    fun valueIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<V>
+
+    fun entryIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<MutableMap.MutableEntry<K, V?>>
+
+    fun descendingKeyIterator(): MutableIterator<K>
+
+    fun descendingKeyIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<K>
+
+    fun descendingValueIterator(): MutableIterator<V>
+
+    fun descendingValueIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<V>
+
+    fun descendingEntryIterator(): MutableIterator<MutableMap.MutableEntry<K, V?>>
+
+    fun descendingEntryIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<MutableMap.MutableEntry<K, V?>>
 }

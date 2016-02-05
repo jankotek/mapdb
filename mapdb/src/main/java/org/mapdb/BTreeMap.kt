@@ -20,17 +20,17 @@ import java.util.function.BiConsumer
  * Concurrent sorted BTree Map
  */
 class BTreeMap<K,V>(
-        val keySerializer:Serializer<K>,
-        val valueSerializer:Serializer<V>,
+        override val keySerializer:Serializer<K>,
+        override val valueSerializer:Serializer<V>,
         val rootRecidRecid:Long,
         val store:Store,
         val maxNodeSize:Int,
         val comparator:Comparator<K>,
         val threadSafe:Boolean,
         val counterRecid:Long,
-        @JvmField val hasValues:Boolean = true
+        override val hasValues:Boolean = true
 ):Verifiable, Closeable, Serializable,
-        ConcurrentNavigableMap<K, V>, MapExtra<K, V> {
+        ConcurrentNavigableMap<K, V>, ConcurrentNavigableMapExtra<K,V> {
 
     companion object {
         fun <K, V> make(
@@ -951,7 +951,7 @@ class BTreeMap<K,V>(
     }
 
 
-    fun entryIterator(lo:K?,loInclusive:Boolean,hi:K?,hiInclusive:Boolean): MutableIterator<MutableMap.MutableEntry<K, V?>> {
+    override fun entryIterator(lo:K?,loInclusive:Boolean,hi:K?,hiInclusive:Boolean): MutableIterator<MutableMap.MutableEntry<K, V?>> {
         return object : BTreeBoundIterator<K, V>(this, lo, loInclusive, hi, hiInclusive), MutableIterator<MutableMap.MutableEntry<K, V?>> {
             override fun next(): MutableMap.MutableEntry<K, V?> {
                 val leaf = currentLeaf ?: throw NoSuchElementException()
@@ -963,9 +963,9 @@ class BTreeMap<K,V>(
         }
     }
 
-    fun keyIterator(): MutableIterator<K?> {
-        return object : BTreeIterator<K, V>(this), MutableIterator<K?> {
-            override fun next(): K? {
+    override fun keyIterator(): MutableIterator<K> {
+        return object : BTreeIterator<K, V>(this), MutableIterator<K> {
+            override fun next(): K {
                 val leaf = currentLeaf ?: throw NoSuchElementException()
                 val key = keySerializer.valueArrayGet(leaf.keys, currentPos)
                 advance()
@@ -974,9 +974,9 @@ class BTreeMap<K,V>(
         }
     }
 
-    fun keyIterator(lo:K?,loInclusive:Boolean,hi:K?,hiInclusive:Boolean): MutableIterator<K?> {
-        return object : BTreeBoundIterator<K, V>(this, lo, loInclusive, hi, hiInclusive), MutableIterator<K?> {
-            override fun next(): K? {
+    override fun keyIterator(lo:K?,loInclusive:Boolean,hi:K?,hiInclusive:Boolean): MutableIterator<K> {
+        return object : BTreeBoundIterator<K, V>(this, lo, loInclusive, hi, hiInclusive), MutableIterator<K> {
+            override fun next(): K {
                 val leaf = currentLeaf ?: throw NoSuchElementException()
                 val key = keySerializer.valueArrayGet(leaf.keys, currentPos)
                 advance()
@@ -996,9 +996,9 @@ class BTreeMap<K,V>(
         }
     }
 
-    fun valueIterator(lo:K?,loInclusive:Boolean,hi:K?,hiInclusive:Boolean): MutableIterator<V?> {
-        return object : BTreeBoundIterator<K, V>(this, lo, loInclusive, hi, hiInclusive), MutableIterator<V?> {
-            override fun next(): V? {
+    override fun valueIterator(lo:K?,loInclusive:Boolean,hi:K?,hiInclusive:Boolean): MutableIterator<V> {
+        return object : BTreeBoundIterator<K, V>(this, lo, loInclusive, hi, hiInclusive), MutableIterator<V> {
+            override fun next(): V {
                 val leaf = currentLeaf ?: throw NoSuchElementException()
                 val value = valueSerializer.valueArrayGet(leaf.values, currentPos - 1 + leaf.intLeftEdge())
                 advance()
@@ -1341,10 +1341,7 @@ class BTreeMap<K,V>(
     }
 
 
-
-
-
-    fun descendingEntryIterator(): MutableIterator<MutableMap.MutableEntry<K, V?>> {
+    override fun descendingEntryIterator(): MutableIterator<MutableMap.MutableEntry<K, V?>> {
         return object : DescendingIterator<K, V>(this), MutableIterator<MutableMap.MutableEntry<K, V?>> {
             override fun next(): MutableMap.MutableEntry<K, V?> {
                 val leaf = currentLeaf ?: throw NoSuchElementException()
@@ -1357,7 +1354,7 @@ class BTreeMap<K,V>(
     }
 
 
-    fun descendingEntryIterator(lo:K?,loInclusive:Boolean,hi:K?,hiInclusive:Boolean): MutableIterator<MutableMap.MutableEntry<K, V?>> {
+    override fun descendingEntryIterator(lo:K?,loInclusive:Boolean,hi:K?,hiInclusive:Boolean): MutableIterator<MutableMap.MutableEntry<K, V?>> {
         return object : DescendingBoundIterator<K, V>(this, lo, loInclusive, hi, hiInclusive), MutableIterator<MutableMap.MutableEntry<K, V?>> {
             override fun next(): MutableMap.MutableEntry<K, V?> {
                 val leaf = currentLeaf ?: throw NoSuchElementException()
@@ -1369,9 +1366,9 @@ class BTreeMap<K,V>(
         }
     }
 
-    fun descendingKeyIterator(): MutableIterator<K?> {
-        return object : DescendingIterator<K, V>(this), MutableIterator<K?> {
-            override fun next(): K? {
+    override fun descendingKeyIterator(): MutableIterator<K> {
+        return object : DescendingIterator<K, V>(this), MutableIterator<K> {
+            override fun next(): K {
                 val leaf = currentLeaf ?: throw NoSuchElementException()
                 val key = keySerializer.valueArrayGet(leaf.keys, currentPos)
                 advance()
@@ -1380,9 +1377,9 @@ class BTreeMap<K,V>(
         }
     }
 
-    fun descendingKeyIterator(lo:K?,loInclusive:Boolean,hi:K?,hiInclusive:Boolean): MutableIterator<K?> {
-        return object : DescendingBoundIterator<K, V>(this, lo, loInclusive, hi, hiInclusive), MutableIterator<K?> {
-            override fun next(): K? {
+    override fun descendingKeyIterator(lo:K?,loInclusive:Boolean,hi:K?,hiInclusive:Boolean): MutableIterator<K> {
+        return object : DescendingBoundIterator<K, V>(this, lo, loInclusive, hi, hiInclusive), MutableIterator<K> {
+            override fun next(): K {
                 val leaf = currentLeaf ?: throw NoSuchElementException()
                 val key = keySerializer.valueArrayGet(leaf.keys, currentPos)
                 advance()
@@ -1391,9 +1388,9 @@ class BTreeMap<K,V>(
         }
     }
 
-    fun descendingValueIterator(): MutableIterator<V?> {
-        return object : DescendingIterator<K, V>(this), MutableIterator<V?> {
-            override fun next(): V? {
+    override fun descendingValueIterator(): MutableIterator<V> {
+        return object : DescendingIterator<K, V>(this), MutableIterator<V> {
+            override fun next(): V {
                 val leaf = currentLeaf ?: throw NoSuchElementException()
                 val value = valueSerializer.valueArrayGet(leaf.values, currentPos - 1 + leaf.intLeftEdge())
                 advance()
@@ -1402,9 +1399,9 @@ class BTreeMap<K,V>(
         }
     }
 
-    fun descendingValueIterator(lo:K?,loInclusive:Boolean,hi:K?,hiInclusive:Boolean): MutableIterator<V?> {
-        return object : DescendingBoundIterator<K, V>(this, lo, loInclusive, hi, hiInclusive), MutableIterator<V?> {
-            override fun next(): V? {
+    override fun descendingValueIterator(lo:K?,loInclusive:Boolean,hi:K?,hiInclusive:Boolean): MutableIterator<V> {
+        return object : DescendingBoundIterator<K, V>(this, lo, loInclusive, hi, hiInclusive), MutableIterator<V> {
+            override fun next(): V {
                 val leaf = currentLeaf ?: throw NoSuchElementException()
                 val value = valueSerializer.valueArrayGet(leaf.values, currentPos - 1 + leaf.intLeftEdge())
                 advance()
@@ -1503,7 +1500,7 @@ class BTreeMap<K,V>(
     }
 
 
-    override fun forEach(action: BiConsumer<in K?, in V?>?) {
+    override fun forEach(action: BiConsumer<in K, in V>?) {
         if (action == null)
             throw NullPointerException()
         var node = getNode(leftEdges.first)
@@ -1521,7 +1518,7 @@ class BTreeMap<K,V>(
         }
     }
 
-    override fun forEachKey(procedure: (K?) -> Unit) {
+    override fun forEachKey(procedure: (K) -> Unit) {
         if (procedure == null)
             throw NullPointerException()
         var node = getNode(leftEdges.first)
@@ -1539,7 +1536,7 @@ class BTreeMap<K,V>(
         }
     }
 
-    override fun forEachValue(procedure: (V?) -> Unit) {
+    override fun forEachValue(procedure: (V) -> Unit) {
         if (procedure == null)
             throw NullPointerException()
         var node = getNode(leftEdges.first)
@@ -1681,7 +1678,7 @@ class BTreeMap<K,V>(
     }
 
 
-    fun findHigher(key: K?, inclusive: Boolean): MutableMap.MutableEntry<K, V?>? {
+    override fun findHigher(key: K?, inclusive: Boolean): MutableMap.MutableEntry<K, V>? {
         var current = rootRecid
         var A = getNode(current)
 
@@ -1720,7 +1717,7 @@ class BTreeMap<K,V>(
         }
     }
 
-    fun findSmaller(key: K?, inclusive: Boolean): MutableMap.MutableEntry<K, V?>? {
+    override fun findSmaller(key: K?, inclusive: Boolean): MutableMap.MutableEntry<K, V>? {
         val iter = descendingLeafIterator(key)
         while(iter.hasNext()){
             val node = iter.next()
@@ -1771,7 +1768,7 @@ class BTreeMap<K,V>(
     }
 
 
-    override fun lowerEntry(key: K?): MutableMap.MutableEntry<K, V?>? {
+    override fun lowerEntry(key: K?): MutableMap.MutableEntry<K, V>? {
         if (key == null) throw NullPointerException()
         return findSmaller(key, false)
     }
@@ -1781,7 +1778,7 @@ class BTreeMap<K,V>(
         return n?.key
     }
 
-    override fun floorEntry(key: K?): MutableMap.MutableEntry<K, V?>? {
+    override fun floorEntry(key: K?): MutableMap.MutableEntry<K, V>? {
         if (key == null) throw NullPointerException()
         return findSmaller(key, true)
     }
@@ -1791,7 +1788,7 @@ class BTreeMap<K,V>(
         return n?.key
     }
 
-    override fun ceilingEntry(key: K?): MutableMap.MutableEntry<K, V?>? {
+    override fun ceilingEntry(key: K?): MutableMap.MutableEntry<K, V>? {
         if (key == null) throw NullPointerException()
         return findHigher(key, true)
     }
@@ -1803,7 +1800,7 @@ class BTreeMap<K,V>(
         return n?.key
     }
 
-    override fun higherEntry(key: K?): MutableMap.MutableEntry<K, V?>? {
+    override fun higherEntry(key: K?): MutableMap.MutableEntry<K, V>? {
         if (key == null) throw NullPointerException()
         return findHigher(key, false)
     }
