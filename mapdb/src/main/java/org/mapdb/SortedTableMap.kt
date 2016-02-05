@@ -153,9 +153,8 @@ class SortedTableMap<K,V>(
 
     /** first key at beginning of each page */
     internal val pageKeys:Any = {
-        val vollen = volume.length()
         val keys = ArrayList<K>()
-        for(i in 0 until vollen step pageSize.toLong()){
+        for(i in 0 .. pageCount*pageSize step pageSize.toLong()){
             val ii:Long = if(i==0L) start.toLong() else i
             val offset = i+volume.getInt(ii+4)
             val size = (i+volume.getInt(ii+8) - offset).toInt()
@@ -189,6 +188,8 @@ class SortedTableMap<K,V>(
             throw NullPointerException()
 
         var keyPos = keySerializer.valueArraySearch(pageKeys, key)
+        if(keyPos==-1)
+            return null;
         if(keyPos<0)
             keyPos = -keyPos-2
 
@@ -611,8 +612,7 @@ class SortedTableMap<K,V>(
     override fun ceilingEntry(key: K?): MutableMap.MutableEntry<K, V>? {
         if(key==null)
             throw NullPointerException()
-
-        throw UnsupportedOperationException()
+        return findHigher(key, true)
     }
 
     override fun ceilingKey(key: K?): K? {
@@ -620,13 +620,15 @@ class SortedTableMap<K,V>(
     }
 
     override fun firstEntry(): MutableMap.MutableEntry<K, V>? {
-        throw UnsupportedOperationException()
+        if(isEmpty())
+            return null
+        return entryIterator().next()
     }
 
     override fun floorEntry(key: K?): MutableMap.MutableEntry<K, V>? {
         if(key==null)
             throw NullPointerException()
-        throw UnsupportedOperationException()
+        return findLower(key, true)
     }
 
     override fun floorKey(key: K?): K? {
@@ -636,7 +638,7 @@ class SortedTableMap<K,V>(
     override fun higherEntry(key: K?): MutableMap.MutableEntry<K, V>? {
         if(key==null)
             throw NullPointerException()
-        throw UnsupportedOperationException()
+        return findHigher(key, false)
     }
 
     override fun higherKey(key: K?): K? {
@@ -644,13 +646,15 @@ class SortedTableMap<K,V>(
     }
 
     override fun lastEntry(): MutableMap.MutableEntry<K, V>? {
-        throw UnsupportedOperationException()
+        if(isEmpty())
+            return null
+        return descendingEntryIterator().next() as  MutableMap.MutableEntry<K, V>
     }
 
     override fun lowerEntry(key: K?): MutableMap.MutableEntry<K, V>? {
         if(key==null)
             throw NullPointerException()
-        throw UnsupportedOperationException()
+        return findLower(key, false)
     }
 
     override fun lowerKey(key: K?): K? {
@@ -988,14 +992,6 @@ class SortedTableMap<K,V>(
         throw UnsupportedOperationException()
     }
 
-    override fun findHigher(key: K?, inclusive: Boolean): MutableMap.MutableEntry<K, V>? {
-        throw UnsupportedOperationException()
-    }
-
-    override fun findSmaller(key: K?, inclusive: Boolean): MutableMap.MutableEntry<K, V>? {
-        throw UnsupportedOperationException()
-    }
-
     override fun keyIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<K> {
         throw UnsupportedOperationException()
     }
@@ -1004,6 +1000,143 @@ class SortedTableMap<K,V>(
         throw UnsupportedOperationException()
     }
 
+
+    override fun findHigher(key: K?, inclusive: Boolean): MutableMap.MutableEntry<K, V>? {
+        if(key==null)
+            throw NullPointerException()
+
+        var keyPos = keySerializer.valueArraySearch(pageKeys, key)
+
+        pageLoop@ while(true) {
+            if (keyPos == -1) {
+                return firstEntry()
+            }
+            if(keyPos>pageCount)
+                return null
+
+            if (keyPos < 0)
+                keyPos = -keyPos - 2
+
+            val headSize = if (keyPos == 0) start else 0
+            val offset = (keyPos * pageSize).toLong()
+            val offsetWithHead = offset + headSize;
+            val nodeCount = volume.getInt(offsetWithHead)
+
+            //run binary search on first keys on each node
+            var nodePos = nodeSearch(key, offset, offsetWithHead, nodeCount)
+            if(nodePos==-1)
+                nodePos = 0
+            else if (nodePos < 0)
+                nodePos = -nodePos - 2
+
+
+            nodeLoop@ while(true) {
+                //search in keys at pos
+                val keysOffset = offset + volume.getInt(offsetWithHead + 4 + nodePos * 4)
+                val keysBinarySize = offset + volume.getInt(offsetWithHead + 4 + nodePos * 4 + 4) - keysOffset
+                val di = volume.getDataInput(keysOffset, keysBinarySize.toInt())
+                val keysSize = di.unpackInt()
+                val keys = keySerializer.valueArrayDeserialize(di, keysSize)
+                var valuePos = keySerializer.valueArraySearch(keys, key, comparator)
+
+                if (!inclusive && valuePos >= 0)
+                    valuePos++
+                if (valuePos < 0)
+                    valuePos = -valuePos - 1
+
+                //check if valuePos fits into current node
+                if (valuePos >= keysSize) {
+                    //does not fit, increase node and continue
+                    nodePos++
+
+                    //is the last node on this page? in that case increase page count and contine page loop
+                    if(nodePos>=nodeCount){
+                        keyPos++
+                        continue@pageLoop
+                    }
+
+                    continue@nodeLoop
+                }
+
+                val key2 = keySerializer.valueArrayGet(keys, valuePos)
+
+                val valOffset = offset + volume.getInt(offsetWithHead + 4 + (nodePos + nodeCount) * 4)
+                val valsBinarySize = offset + volume.getInt(offsetWithHead + 4 + (nodePos + nodeCount + 1) * 4) - valOffset
+                val di2 = volume.getDataInput(valOffset, valsBinarySize.toInt())
+                val value = valueSerializer.valueArrayBinaryGet(di2, keysSize, valuePos)
+                return AbstractMap.SimpleImmutableEntry(key2, value)
+            }
+        }
+    }
+
+    override fun findLower(key: K?, inclusive: Boolean): MutableMap.MutableEntry<K, V>? {
+        if(key==null)
+            throw NullPointerException()
+
+        var keyPos = keySerializer.valueArraySearch(pageKeys, key)
+
+        pageLoop@ while(true) {
+            if (keyPos == -1) {
+                return null
+            }
+            if(keyPos>pageCount)
+                return lastEntry()
+
+            if (keyPos < 0)
+                keyPos = -keyPos - 2
+
+            val headSize = if (keyPos == 0) start else 0
+            val offset = (keyPos * pageSize).toLong()
+            val offsetWithHead = offset + headSize;
+            val nodeCount = volume.getInt(offsetWithHead)
+
+            //run binary search on first keys on each node
+            var nodePos = nodeSearch(key, offset, offsetWithHead, nodeCount)
+            if (nodePos < 0)
+                nodePos = -nodePos - 2
+
+            nodeLoop@ while(true) {
+                //search in keys at pos
+                val keysOffset = offset + volume.getInt(offsetWithHead + 4 + nodePos * 4)
+                val keysBinarySize = offset + volume.getInt(offsetWithHead + 4 + nodePos * 4 + 4) - keysOffset
+                val di = volume.getDataInput(keysOffset, keysBinarySize.toInt())
+                val keysSize = di.unpackInt()
+                val keys = keySerializer.valueArrayDeserialize(di, keysSize)
+                var valuePos = keySerializer.valueArraySearch(keys, key, comparator)
+
+                if (!inclusive && valuePos >= 0)
+                    valuePos--
+                else if (valuePos < 0)
+                    valuePos = -valuePos - 2
+
+                //check if valuePos fits into current node
+                if (valuePos < 0) {
+                    //does not fit, increase node and continue
+                    nodePos--
+
+                    //is the last node on this page? in that case increase page count and contine page loop
+                    if(nodePos<0){
+                        keyPos--
+                        continue@pageLoop
+                    }
+
+                    continue@nodeLoop
+                }
+
+                if (valuePos >= keysSize) {
+                    valuePos--
+                }
+
+                val key2 = keySerializer.valueArrayGet(keys, valuePos)
+
+                val valOffset = offset + volume.getInt(offsetWithHead + 4 + (nodePos + nodeCount) * 4)
+                val valsBinarySize = offset + volume.getInt(offsetWithHead + 4 + (nodePos + nodeCount + 1) * 4) - valOffset
+                val di2 = volume.getDataInput(valOffset, valsBinarySize.toInt())
+                val value = valueSerializer.valueArrayBinaryGet(di2, keysSize, valuePos)
+                return AbstractMap.SimpleImmutableEntry(key2, value)
+            }
+        }
+    }
 
     override fun forEachKey(procedure: (K) -> Unit) {
         //TODO PERF optimize forEach traversal

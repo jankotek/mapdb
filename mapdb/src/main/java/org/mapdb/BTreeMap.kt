@@ -1717,7 +1717,7 @@ class BTreeMap<K,V>(
         }
     }
 
-    override fun findSmaller(key: K?, inclusive: Boolean): MutableMap.MutableEntry<K, V>? {
+    override fun findLower(key: K?, inclusive: Boolean): MutableMap.MutableEntry<K, V>? {
         val iter = descendingLeafIterator(key)
         while(iter.hasNext()){
             val node = iter.next()
@@ -1770,7 +1770,7 @@ class BTreeMap<K,V>(
 
     override fun lowerEntry(key: K?): MutableMap.MutableEntry<K, V>? {
         if (key == null) throw NullPointerException()
-        return findSmaller(key, false)
+        return findLower(key, false)
     }
 
     override fun lowerKey(key: K): K? {
@@ -1780,7 +1780,7 @@ class BTreeMap<K,V>(
 
     override fun floorEntry(key: K?): MutableMap.MutableEntry<K, V>? {
         if (key == null) throw NullPointerException()
-        return findSmaller(key, true)
+        return findLower(key, true)
     }
 
     override fun floorKey(key: K): K? {

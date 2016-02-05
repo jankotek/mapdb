@@ -815,7 +815,7 @@ public class BTreeMapJava {
             Entry<K,V> k =
                     hi==null ?
                             m.lastEntry():
-                            m.findSmaller(hi, hiInclusive);
+                            m.findLower(hi, hiInclusive);
 
             return k!=null && inBounds(k.getKey())? k : null;
         }
@@ -1237,7 +1237,7 @@ public class BTreeMapJava {
             Entry<K,V> k =
                     hi==null ?
                             m.lastEntry():
-                            m.findSmaller(hi, hiInclusive);
+                            m.findLower(hi, hiInclusive);
 
             return k!=null && inBounds(k.getKey())? k : null;
         }

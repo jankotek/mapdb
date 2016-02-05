@@ -26,7 +26,7 @@ public abstract class ConcurrentSkipListMapTest extends JSR166TestCase {
     /**
      * Returns a new map from Integers 1-5 to Strings "A"-"E".
      */
-    ConcurrentNavigableMap map5() {
+    public ConcurrentNavigableMap map5() {
         ConcurrentNavigableMap map = emptyMap();
         assertTrue(map.isEmpty());
         map.put(one, "A");

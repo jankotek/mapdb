@@ -1,32 +1,70 @@
 package org.mapdb
 
+import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 import org.mapdb.jsr166Tests.ConcurrentHashMapTest
 import org.mapdb.jsr166Tests.ConcurrentSkipListMapTest
+import org.mapdb.jsr166Tests.JSR166TestCase
 import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.ConcurrentNavigableMap
+import java.util.concurrent.ConcurrentSkipListMap
 
-@RunWith(Parameterized::class)
-class SortedTableMap_ConcurrentSkipListMapTest_JSR166Test(
-        val mapMaker:(generic:Boolean)-> ConcurrentNavigableMap<Int, String>
-) : ConcurrentSkipListMapTest()
+class SortedTableMap_ConcurrentSkipListMapTest_JSR166Test() : ConcurrentSkipListMapTest()
 {
+    override fun map5(): ConcurrentNavigableMap<*, *>? {
+        val consumer = SortedTableMap.import(
+                keySerializer = Serializer.INTEGER,
+                valueSerializer = Serializer.STRING_INTERN,
+                volume = CC.DEFAULT_MEMORY_VOLUME_FACTORY.makeVolume(null, false))
+        consumer.take(Pair(JSR166TestCase.one, "A"))
+        consumer.take(Pair(JSR166TestCase.two, "B"))
+        consumer.take(Pair(JSR166TestCase.three, "C"))
+        consumer.take(Pair(JSR166TestCase.four, "D"))
+        consumer.take(Pair(JSR166TestCase.five, "E"))
+        return consumer.finish()
+    }
 
     override fun emptyMap(): ConcurrentNavigableMap<Int, String>? {
-        return mapMaker(false)
+        return SortedTableMap.import(
+                keySerializer = Serializer.INTEGER,
+                valueSerializer = Serializer.STRING_INTERN,
+                volume = CC.DEFAULT_MEMORY_VOLUME_FACTORY.makeVolume(null, false))
+        .finish()
     }
 
     override fun emptyIntMap(): ConcurrentNavigableMap<Int, Int>? {
-        return mapMaker(true) as ConcurrentNavigableMap<Int, Int>
+        throw AssertionError()
     }
 
-    companion object {
-        @Parameterized.Parameters
-        @JvmStatic
-        fun params(): Iterable<Any> {
-            return BTreeMap_ConcurrentMap_GuavaTest.params()
-        }
+    override fun testEquals()
+    {
+        val map1 = map5()
+        val map2 = map5()
+        assertEquals(map1, map2)
+        assertEquals(map2, map1)
     }
+
+    override fun testPutIfAbsent() {}
+    override fun testPutIfAbsent2() {}
+    override fun testClear() {}
+    override fun testPollLastEntry() {}
+    override fun testPollFirstEntry() {}
+    override fun testRemove3() {}
+    override fun testPutAll() {}
+    override fun testPut1_NullPointerException() {}
+    override fun testRemove() {}
+    override fun testRemove2() {}
+    override fun testRemove1_NullPointerException() {}
+    override fun testRemove2_NullPointerException() {}
+    override fun testReplace() {}
+    override fun testReplace2() {}
+    override fun testReplaceValue() {}
+    override fun testReplaceValue2() {}
+    override fun testReplaceValue_NullPointerException() {}
+    override fun testReplace_NullPointerException() {}
+    override fun testPutIfAbsent1_NullPointerException() {}
+
+
 
 }

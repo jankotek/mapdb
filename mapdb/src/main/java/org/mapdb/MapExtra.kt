@@ -74,7 +74,7 @@ internal interface ConcurrentNavigableMapExtra<K, V> : ConcurrentNavigableMap<K,
 
     fun findHigher(key: K?, inclusive: Boolean): MutableMap.MutableEntry<K, V>?
 
-    fun findSmaller(key: K?, inclusive: Boolean): MutableMap.MutableEntry<K, V>?
+    fun findLower(key: K?, inclusive: Boolean): MutableMap.MutableEntry<K, V>?
 
     fun keyIterator(): MutableIterator<K>
 
