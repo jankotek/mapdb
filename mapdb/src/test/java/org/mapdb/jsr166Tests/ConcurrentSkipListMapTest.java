@@ -6,6 +6,7 @@ package org.mapdb.jsr166Tests;/*
 
 import org.junit.Ignore;
 import org.junit.Test;
+import org.mapdb.SortedTableMap;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -909,10 +910,16 @@ public abstract class ConcurrentSkipListMapTest extends JSR166TestCase {
         k = (Integer)(i.next());
         assertEquals(three, k);
         assertFalse(i.hasNext());
+        if(isReadOnly(map))
+            return;
         sm.clear();
         assertTrue(sm.isEmpty());
         assertEquals(2, map.size());
         assertEquals(four, map.firstKey());
+    }
+
+    private boolean isReadOnly(Map map) {
+        return map instanceof SortedTableMap;
     }
 
     /**

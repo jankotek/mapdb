@@ -989,15 +989,269 @@ class SortedTableMap<K,V>(
     }
 
     override fun entryIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<MutableMap.MutableEntry<K, V?>> {
-        throw UnsupportedOperationException()
+        return object:MutableIterator<MutableMap.MutableEntry<K,V?>>{
+
+            var page = 0L
+            var pageWithHead = start.toLong()
+            var pageNodeCount = volume.getInt(pageWithHead)
+            var node = 0
+            var nodePos = 0
+            var nodeKeys:Array<Any>? = null
+            var nodeVals:Array<Any>? = null
+
+            val hiComp = if(hiInclusive) 0 else 1
+
+            init{
+                loadNextNode()
+                checkHiBound()
+            }
+
+            fun loadNextNode(){
+                // is it last node on this page?
+                if(node==pageNodeCount) {
+                    // load next node?
+                    if(page>=pageCount*pageSize) {
+                        this.nodeKeys = null
+                        return
+                    }
+                    page+=pageSize
+                    pageWithHead = page
+                    node = 0
+                    pageNodeCount = volume.getInt(pageWithHead)
+                }
+                //load next node
+                val keysOffset = volume.getInt(pageWithHead + 4 + 4 * (node))
+                val nextOffset = volume.getInt(pageWithHead + 4 + 4 * (node+1))
+                val keysBinarySize = nextOffset - keysOffset
+                val di = volume.getDataInput(page + keysOffset, keysBinarySize)
+                val keysSize = di.unpackInt()
+                this.nodeKeys = this@SortedTableMap.keySerializer.valueArrayToArray(
+                        this@SortedTableMap.keySerializer.valueArrayDeserialize(di, keysSize)
+                )
+
+                val valsOffset = volume.getInt(pageWithHead + 4 + 4 * (pageNodeCount+node))
+                val nextValsOffset = if(pageNodeCount==node-1) pageSize
+                else volume.getInt(pageWithHead + 4 + 4 * (pageNodeCount+node+1))
+                val valsBinarySize = nextValsOffset - valsOffset
+                val diVals = volume.getDataInput(page + valsOffset, valsBinarySize)
+                this.nodeVals = this@SortedTableMap.valueSerializer.valueArrayToArray(
+                        this@SortedTableMap.valueSerializer.valueArrayDeserialize(diVals, keysSize)
+                )
+
+                node++
+
+                this.nodePos = 0
+            }
+
+            override fun hasNext(): Boolean {
+                return nodeKeys!=null;
+            }
+
+            override fun next(): MutableMap.MutableEntry<K,V?> {
+                val nodeKeys = nodeKeys
+                        ?: throw NoSuchElementException()
+
+                val ret = AbstractMap.SimpleImmutableEntry(nodeKeys[nodePos] as K, nodeVals!![nodePos] as V)
+                nodePos++
+                if(nodeKeys.size==nodePos){
+                    loadNextNode()
+                }
+                checkHiBound()
+                return ret
+            }
+
+            override fun remove() {
+                throw UnsupportedOperationException("read-only")
+            }
+
+            fun checkHiBound(){
+                val hi = hi
+                        ?:return
+                val nodeKeys = nodeKeys
+                        ?:return
+
+                val nextKey = nodeKeys[nodePos] as K
+                if(keySerializer.compare(hi, nextKey)<hiComp){
+                    //high bound is lower, than key, cancel next node
+                    this.nodeKeys = null
+                    this.nodePos = -1
+                }
+            }
+        }
     }
 
     override fun keyIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<K> {
-        throw UnsupportedOperationException()
+        return object:MutableIterator<K>{
+
+            var page = 0L
+            var pageWithHead = start.toLong()
+            var pageNodeCount = volume.getInt(pageWithHead)
+            var node = 0
+            var nodePos = 0
+            var nodeKeys:Array<Any>? = null
+
+            val hiComp = if(hiInclusive) 0 else 1
+
+            init{
+                loadNextNode()
+                checkHiBound()
+            }
+
+            fun loadNextNode(){
+                // is it last node on this page?
+                if(node==pageNodeCount) {
+                    // load next node?
+                    if(page>=pageCount*pageSize) {
+                        this.nodeKeys = null
+                        return
+                    }
+                    page+=pageSize
+                    pageWithHead = page
+                    node = 0
+                    pageNodeCount = volume.getInt(pageWithHead)
+                }
+                //load next node
+                val keysOffset = volume.getInt(pageWithHead + 4 + 4 * (node++))
+                val nextOffset = volume.getInt(pageWithHead + 4 + 4 * (node))
+                val keysBinarySize = nextOffset - keysOffset
+                val di = volume.getDataInput(page + keysOffset, keysBinarySize)
+                val keysSize = di.unpackInt()
+                this.nodeKeys = this@SortedTableMap.keySerializer.valueArrayToArray(
+                        this@SortedTableMap.keySerializer.valueArrayDeserialize(di, keysSize)
+                )
+                this.nodePos = 0
+            }
+
+            override fun hasNext(): Boolean {
+                return nodeKeys!=null;
+            }
+
+            override fun next(): K {
+                val nodeKeys = nodeKeys
+                        ?: throw NoSuchElementException()
+
+                val ret = nodeKeys[nodePos++]
+                if(nodeKeys.size==nodePos){
+                    loadNextNode()
+                }
+                checkHiBound()
+                return ret as K
+            }
+
+            override fun remove() {
+                throw UnsupportedOperationException("read-only")
+            }
+
+            fun checkHiBound(){
+                val hi = hi
+                        ?:return
+                val nodeKeys = nodeKeys
+                        ?:return
+
+                val nextKey = nodeKeys[nodePos] as K
+                if(keySerializer.compare(hi, nextKey)<hiComp){
+                    //high bound is lower, than key, cancel next node
+                    this.nodeKeys = null
+                    this.nodePos = -1
+                }
+            }
+        }
     }
 
     override fun valueIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<V> {
-        throw UnsupportedOperationException()
+        return object:MutableIterator<V>{
+
+            var page = 0L
+            var pageWithHead = start.toLong()
+            var pageNodeCount = volume.getInt(pageWithHead)
+            var node = 0
+            var nodePos = 0
+            var nodeKeys:Array<Any>? = null
+            var nodeVals:Array<Any>? = null
+
+            val hiComp = if(hiInclusive) 0 else 1
+
+            init{
+                loadNextNode()
+                checkHiBound()
+            }
+
+            fun loadNextNode(){
+                // is it last node on this page?
+                if(node==pageNodeCount) {
+                    // load next node?
+                    if(page>=pageCount*pageSize) {
+                        this.nodeVals = null
+                        return
+                    }
+                    page+=pageSize
+                    pageWithHead = page
+                    node = 0
+                    pageNodeCount = volume.getInt(pageWithHead)
+                }
+                //load next node
+                val keysOffset = volume.getInt(pageWithHead + 4 + 4 * (node))
+                val nextOffset = volume.getInt(pageWithHead + 4 + 4 * (node+1))
+                val keysBinarySize = nextOffset - keysOffset
+                val di = volume.getDataInput(page + keysOffset, keysBinarySize)
+                val keysSize = di.unpackInt()
+
+                if(hi!=null){
+                    this.nodeKeys = this@SortedTableMap.keySerializer.valueArrayToArray(
+                            this@SortedTableMap.keySerializer.valueArrayDeserialize(di, keysSize)
+                    )
+                }
+
+                val valsOffset = volume.getInt(pageWithHead + 4 + 4 * (pageNodeCount+node))
+                val nextValsOffset = if(pageNodeCount==node-1) pageSize
+                else volume.getInt(pageWithHead + 4 + 4 * (pageNodeCount+node+1))
+                val valsBinarySize = nextValsOffset - valsOffset
+                val diVals = volume.getDataInput(page + valsOffset, valsBinarySize)
+                this.nodeVals = this@SortedTableMap.valueSerializer.valueArrayToArray(
+                        this@SortedTableMap.valueSerializer.valueArrayDeserialize(diVals, keysSize)
+                )
+
+                node++
+
+                this.nodePos = 0
+            }
+
+            override fun hasNext(): Boolean {
+                return nodeVals!=null;
+            }
+
+            override fun next(): V {
+                val nodeVals = nodeVals
+                        ?: throw NoSuchElementException()
+
+                val ret = nodeVals[nodePos] as V
+                nodePos++
+                if(nodeVals.size==nodePos){
+                    loadNextNode()
+                }
+                checkHiBound()
+                return ret
+            }
+
+            override fun remove() {
+                throw UnsupportedOperationException("read-only")
+            }
+
+            fun checkHiBound(){
+                val hi = hi
+                        ?:return
+                val nodeKeys = nodeKeys
+                        ?:return
+
+                val nextKey = nodeKeys[nodePos] as K
+                if(keySerializer.compare(hi, nextKey)<hiComp){
+                    //high bound is lower, than key, cancel next node
+                    this.nodeKeys = null
+                    this.nodePos = -1
+                }
+            }
+
+        }
     }
 
 
