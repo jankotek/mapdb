@@ -224,7 +224,7 @@ class CrashJVMTestFail:CrashJVM(){
 
 
     @Test fun test(){
-        assertFailsWith(Throwable::class.java, {
+        assertFailsWith(Throwable::class, {
             CrashJVM.run(this,time=2000, killDelay = 200)
         })
     }

@@ -103,9 +103,9 @@ class HTreeMap<K,V>(
                 closeable = closeable
             )
 
-        @JvmStatic @JvmField internal val QUEUE_CREATE=1L
-        @JvmStatic @JvmField internal val QUEUE_UPDATE=2L
-        @JvmStatic @JvmField internal val QUEUE_GET=3L
+        @JvmField internal val QUEUE_CREATE=1L
+        @JvmField internal val QUEUE_UPDATE=2L
+        @JvmField internal val QUEUE_GET=3L
     }
 
     private val segmentCount = 1.shl(concShift)
@@ -892,7 +892,7 @@ class HTreeMap<K,V>(
                     htreeEntry(key as K, valueUnwrap(segment, wrappedValue))
                 }
             }
-            return Iterators.concat(iters.toArrayList().iterator())
+            return Iterators.concat(iters.iterator())
         }
 
         override fun remove(element: MutableMap.MutableEntry<K?, V?>): Boolean {
@@ -927,7 +927,7 @@ class HTreeMap<K,V>(
                    key as K
                 }
             }
-            return Iterators.concat(iters.toArrayList().iterator())
+            return Iterators.concat(iters.iterator())
         }
 
         override val size: Int
@@ -973,7 +973,7 @@ class HTreeMap<K,V>(
                     valueUnwrap(segment, valueWrapped)
                 }
             }
-            return Iterators.concat(iters.toArrayList().iterator())
+            return Iterators.concat(iters.iterator())
         }
 
     }

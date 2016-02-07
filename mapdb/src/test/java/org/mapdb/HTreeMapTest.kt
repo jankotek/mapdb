@@ -299,7 +299,7 @@ class HTreeMapTest{
         }
         //wait until size is 1000
         while (m.size != 1000) {
-            m.get("aa") //so internal tasks have change to run
+            m[2348294] //so internal tasks have change to run
             Thread.sleep(10)
         }
 

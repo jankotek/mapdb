@@ -277,7 +277,7 @@ class BTreeMapTest {
         assertEquals(null, map[21])
         assertEquals(3, map[30])
         assertEquals(4, map[40])
-        assertFailsWith(DBException.GetVoid::class.java) {
+        assertFailsWith(DBException.GetVoid::class) {
             assertEquals(null, map[41])
         }
     }
@@ -539,7 +539,7 @@ class BTreeMapTest {
             assertEquals(next.key!! * 100, next.value!!)
         }
         assertFalse(iter.hasNext())
-        assertFailsWith(NoSuchElementException::class.java) {
+        assertFailsWith(NoSuchElementException::class) {
             iter.next()
         }
 
@@ -589,7 +589,7 @@ class BTreeMapTest {
         assertTrue(iter.hasNext())
         assertTrue(iter.next().isEmpty(map.keySerializer))
         assertFalse(iter.hasNext())
-        assertFailsWith(NoSuchElementException::class.java) {
+        assertFailsWith(NoSuchElementException::class) {
             iter.next();
         }
 
@@ -614,7 +614,7 @@ class BTreeMapTest {
         assertTrue(iter.hasNext())
         assertEquals(1, (iter.next().keys as Array<Any>)[0])
         assertFalse(iter.hasNext())
-        assertFailsWith(NoSuchElementException::class.java) {
+        assertFailsWith(NoSuchElementException::class) {
             iter.next();
         }
 
@@ -670,7 +670,7 @@ class BTreeMapTest {
         assertEquals(20, (iter.next().keys as Array<Any>)[0])
 
         assertFalse(iter.hasNext())
-        assertFailsWith(NoSuchElementException::class.java) {
+        assertFailsWith(NoSuchElementException::class) {
             iter.next();
         }
 
@@ -725,7 +725,7 @@ class BTreeMapTest {
         assertEquals(20, (iter.next().keys as Array<Any>)[0])
 
         assertFalse(iter.hasNext())
-        assertFailsWith(NoSuchElementException::class.java) {
+        assertFailsWith(NoSuchElementException::class) {
             iter.next();
         }
 

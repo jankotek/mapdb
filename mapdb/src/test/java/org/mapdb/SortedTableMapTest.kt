@@ -68,15 +68,15 @@ class SortedTableMapTest{
             assertEquals(i*2, node.value)
         }
         assertFalse(keyIter.hasNext())
-        assertFailsWith(NoSuchElementException::class.java){
+        assertFailsWith(NoSuchElementException::class){
             keyIter.next()
         }
         assertFalse(valueIter.hasNext())
-        assertFailsWith(NoSuchElementException::class.java){
+        assertFailsWith(NoSuchElementException::class){
             valueIter.next()
         }
         assertFalse(entryIter.hasNext())
-        assertFailsWith(NoSuchElementException::class.java){
+        assertFailsWith(NoSuchElementException::class){
             entryIter.next()
         }
 
@@ -114,15 +114,15 @@ class SortedTableMapTest{
             assertEquals(i*2, node.value)
         }
         assertFalse(keyIter.hasNext())
-        assertFailsWith(NoSuchElementException::class.java){
+        assertFailsWith(NoSuchElementException::class){
             keyIter.next()
         }
         assertFalse(valueIter.hasNext())
-        assertFailsWith(NoSuchElementException::class.java){
+        assertFailsWith(NoSuchElementException::class){
             valueIter.next()
         }
         assertFalse(entryIter.hasNext())
-        assertFailsWith(NoSuchElementException::class.java){
+        assertFailsWith(NoSuchElementException::class){
             entryIter.next()
         }
 

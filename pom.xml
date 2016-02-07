@@ -11,7 +11,7 @@
 
 
     <properties>
-        <kotlin.version>1.0.0-beta-4584</kotlin.version>
+        <kotlin.version>1.0.0-rc-1036</kotlin.version>
         <dokka.version>0.9.4</dokka.version>
 
         <java.target.version>1.8</java.target.version>

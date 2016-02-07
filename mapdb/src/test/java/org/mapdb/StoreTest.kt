@@ -121,7 +121,7 @@ abstract class StoreTest {
     fun get_non_existent() {
         val e = openStore()
 
-        assertFailsWith(DBException.GetVoid::class.java, {
+        assertFailsWith(DBException.GetVoid::class, {
             e.get(1, TT.Serializer_ILLEGAL_ACCESS)
         })
 

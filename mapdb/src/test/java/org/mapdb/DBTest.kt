@@ -351,7 +351,7 @@ class DBTest{
 
     @Test fun treeMap_import(){
         val db = DB(store=StoreTrivial(), storeOpened = false)
-        val maker = db.treeMap("aa")
+        val maker = db.treeMap("aa", Serializer.INTEGER, Serializer.INTEGER)
                 .import()
         maker.takeAll((0..6).map{Pair(it, it*2)})
         val map = maker.finish()
@@ -364,7 +364,7 @@ class DBTest{
 
     @Test fun treeMap_import_size(){
         val db = DB(store=StoreTrivial(), storeOpened = false)
-        val maker = db.treeMap("aa")
+        val maker = db.treeMap("aa", Serializer.INTEGER, Serializer.INTEGER)
                 .counterEnable()
                 .import()
         maker.takeAll((0..6).map{Pair(it, it*2)})

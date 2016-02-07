@@ -69,13 +69,13 @@ class SortedTableMap<K,V>(
                     if(pairs.isEmpty())
                         return
                     // serialize pairs into nodes
-                    val keys = pairs.map{it.first}.toArrayList().toArray()
+                    val keys = pairs.map{it.first}.toTypedArray<Any?>()
                     val out = DataOutput2()
                     out.packInt(keys.size)
                     keySerializer.valueArraySerialize(out, keySerializer.valueArrayFromArray(keys))
                     val binaryKeys = out.copyBytes()
 
-                    val values = pairs.map{it.second}.toArrayList().toArray()
+                    val values = pairs.map{it.second}.toTypedArray<Any?>()
                     out.pos = 0
                     valueSerializer.valueArraySerialize(out, valueSerializer.valueArrayFromArray(values))
                     val binaryVals = out.copyBytes()

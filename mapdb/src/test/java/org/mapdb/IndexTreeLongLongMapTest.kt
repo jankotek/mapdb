@@ -35,7 +35,7 @@ class IndexTreeLongLongMapTest{
         assertTrue(iter.hasNext())
         assertEquals(3423L, iter.nextLong())
         assertFalse(iter.hasNext())
-        assertFailsWith(NoSuchElementException::class.java, {
+        assertFailsWith(NoSuchElementException::class, {
             iter.nextLong()
         })
 

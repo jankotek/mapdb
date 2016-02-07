@@ -14,11 +14,11 @@ class UtilsTest{
         lock.unlock()
 
         lock.lock()
-        assertFailsWith(IllegalMonitorStateException::class.java){
+        assertFailsWith(IllegalMonitorStateException::class){
             lock.lock()
         }
         lock.unlock()
-        assertFailsWith(IllegalMonitorStateException::class.java){
+        assertFailsWith(IllegalMonitorStateException::class){
             lock.unlock()
         }
     }
@@ -29,11 +29,11 @@ class UtilsTest{
         lock.unlock()
 
         lock.lock()
-        assertFailsWith(IllegalMonitorStateException::class.java){
+        assertFailsWith(IllegalMonitorStateException::class){
             lock.lock()
         }
         lock.unlock()
-        assertFailsWith(IllegalMonitorStateException::class.java){
+        assertFailsWith(IllegalMonitorStateException::class){
             lock.unlock()
         }
     }
