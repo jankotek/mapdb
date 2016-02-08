@@ -22,7 +22,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentNavigableMap;
 
 
-public abstract class ConcurrentSkipListMapTest extends JSR166TestCase {
+public abstract class ConcurrentSkipListMapTest extends JSR166Test {
 
     /**
      * Returns a new map from Integers 1-5 to Strings "A"-"E".
@@ -987,27 +987,35 @@ public abstract class ConcurrentSkipListMapTest extends JSR166TestCase {
         assertEquals(4, map.size());
     }
 
-    Random rnd = new Random(666);
-    BitSet bs;
+    protected Random rnd = new Random(666);
+    protected BitSet bs;
 
     /**
      * Submaps of submaps subdivide correctly
      */
     @Test public void testRecursiveSubMaps() throws Exception {
         int mapSize = expensiveTests ? 1000 : 100;
-        NavigableMap<Integer, Integer> map = emptyIntMap();
         bs = new BitSet(mapSize);
+        NavigableMap<Integer, Integer> map = populatedIntMap(mapSize);
 
-        populate(map, mapSize);
+        assertEquals(map.size(), bs.cardinality());
         check(map,                 0, mapSize - 1, true);
         check(map.descendingMap(), 0, mapSize - 1, false);
 
+        if(isReadOnly(map))
+            return;
         mutateMap(map, 0, mapSize - 1);
         check(map,                 0, mapSize - 1, true);
         check(map.descendingMap(), 0, mapSize - 1, false);
 
         bashSubMap(map.subMap(0, true, mapSize, false),
                    0, mapSize - 1, true);
+    }
+
+    protected NavigableMap<Integer,Integer> populatedIntMap(int mapSize){
+        NavigableMap<Integer,Integer> map = emptyIntMap();
+        populate(map, mapSize);
+        return map;
     }
 
 

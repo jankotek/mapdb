@@ -16,7 +16,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 
-public abstract class ConcurrentSkipListSubMapTest extends JSR166TestCase {
+public abstract class ConcurrentSkipListSubMapTest extends JSR166Test {
 
 
     protected abstract ConcurrentNavigableMap<Integer,String> emptyMap();

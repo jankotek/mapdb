@@ -21,7 +21,7 @@ import java.util.concurrent.ConcurrentMap;
 import org.easymock.internal.matchers.Null;
 import org.junit.Test;
 
-public abstract class ConcurrentHashMapTest extends JSR166TestCase {
+public abstract class ConcurrentHashMapTest extends JSR166Test {
 
     public abstract ConcurrentMap<Integer, String> makeMap();
     public abstract ConcurrentMap makeGenericMap();

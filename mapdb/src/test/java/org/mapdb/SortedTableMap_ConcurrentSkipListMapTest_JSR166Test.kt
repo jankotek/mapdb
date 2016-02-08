@@ -6,6 +6,7 @@ import org.junit.runners.Parameterized
 import org.mapdb.jsr166Tests.ConcurrentHashMapTest
 import org.mapdb.jsr166Tests.ConcurrentSkipListMapTest
 import org.mapdb.jsr166Tests.JSR166TestCase
+import java.util.*
 import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.ConcurrentNavigableMap
 import java.util.concurrent.ConcurrentSkipListMap
@@ -50,7 +51,7 @@ class SortedTableMap_ConcurrentSkipListMapTest_JSR166Test() : ConcurrentSkipList
     override fun testClear() {}
     override fun testPollLastEntry() {}
     override fun testPollFirstEntry() {}
-    override fun testRemove3() {}
+    override fun testRemove3() {throw NullPointerException()}
     override fun testPutAll() {}
     override fun testPut1_NullPointerException() {}
     override fun testRemove() {}
@@ -65,6 +66,25 @@ class SortedTableMap_ConcurrentSkipListMapTest_JSR166Test() : ConcurrentSkipList
     override fun testReplace_NullPointerException() {}
     override fun testPutIfAbsent1_NullPointerException() {}
 
+    override fun populatedIntMap(limit: Int): NavigableMap<Int, Int>? {
+        val consumer = SortedTableMap.import(
+                keySerializer = Serializer.INTEGER,
+                valueSerializer = Serializer.INTEGER,
+                volume = CC.DEFAULT_MEMORY_VOLUME_FACTORY.makeVolume(null, false))
 
+        var i = 0
+        val n = 2 * limit / 3
+        val map = java.util.TreeMap<Int,Int>()
+        while (i < n) {
+            val key = rnd.nextInt(limit)
+            map.put(key,key*2)
+            bs.set(key)
+            i++
+        }
+        map.forEach { k, v ->
+            consumer.take(Pair(k, v))
+        }
 
+        return consumer.finish()
+    }
 }
