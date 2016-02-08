@@ -819,7 +819,208 @@ class SortedTableMap<K,V>(
     }
 
     override fun descendingEntryIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<MutableMap.MutableEntry<K, V?>> {
-        throw UnsupportedOperationException()
+`        if(pageCount==-1L)
+            return LinkedList<MutableMap.MutableEntry<K, V?>>().iterator()
+        return object:MutableIterator<MutableMap.MutableEntry<K, V?>>{
+
+            var page:Long = pageSize.toLong()*pageCount
+            var pageWithHead = if(page==0L) start.toLong() else page
+            var pageNodeCount = volume.getInt(pageWithHead)
+            var node = pageNodeCount-1
+            var nodePos = 0
+            var nodeKeys:Array<Any>? = null
+            var nodeVals:Array<Any>? = null
+
+            val loComp = if(loInclusive) 0 else 1
+
+            init{
+                if(hi==null){
+                    loadFirstEntry()
+                }else{
+                    findHi()
+                }
+                checkLoBound()
+            }
+
+            fun loadFirstEntry(){
+                //load next node
+                val keysOffset = volume.getInt(pageWithHead + 4 + 4 * (node))
+                val nextOffset = volume.getInt(pageWithHead + 4 + 4 * (node+1))
+                val keysBinarySize = nextOffset - keysOffset
+                val di = volume.getDataInput(page + keysOffset, keysBinarySize)
+                val keysSize = di.unpackInt()
+                this.nodeKeys = this@SortedTableMap.keySerializer.valueArrayToArray(
+                        this@SortedTableMap.keySerializer.valueArrayDeserialize(di, keysSize)
+                )
+
+                val valsOffset = volume.getInt(pageWithHead + 4 + 4 * (pageNodeCount+node))
+                val nextValsOffset =
+                        if(pageNodeCount==node-1) pageSize
+                        else volume.getInt(pageWithHead + 4 + 4 * (pageNodeCount+node+1))
+                val valsBinarySize = nextValsOffset - valsOffset
+                val diVals = volume.getDataInput(page + valsOffset, valsBinarySize)
+                nodePos = keysSize-1
+                this.nodeVals = this@SortedTableMap.valueSerializer.valueArrayToArray(
+                        this@SortedTableMap.valueSerializer.valueArrayDeserialize(diVals, keysSize)
+                )
+            }
+
+            fun findHi(){
+                if(hi==null)
+                    throw NullPointerException()
+
+                var keyPos = keySerializer.valueArraySearch(pageKeys, hi)
+
+                pageLoop@ while(true) {
+                    if (keyPos == -1) {
+                        //cancel iteration,
+                        nodeKeys = null
+                        nodeVals = null
+                        return
+                    }
+                    if (keyPos > pageCount){
+                        loadFirstEntry()
+                        return
+                    }
+
+                    if (keyPos < 0)
+                        keyPos = -keyPos - 2
+
+                    val headSize = if (keyPos == 0) start else 0
+                    val offset = (keyPos * pageSize).toLong()
+                    val offsetWithHead = offset + headSize;
+                    val nodeCount = volume.getInt(offsetWithHead)
+
+                    //run binary search on first keys on each node
+                    var nodePos = nodeSearch(hi, offset, offsetWithHead, nodeCount)
+                    if (nodePos < 0)
+                        nodePos = -nodePos - 2
+
+                    nodeLoop@ while(true) {
+                        //search in keys at pos
+                        val keysOffset = offset + volume.getInt(offsetWithHead + 4 + nodePos * 4)
+                        val keysBinarySize = offset + volume.getInt(offsetWithHead + 4 + nodePos * 4 + 4) - keysOffset
+                        val di = volume.getDataInput(keysOffset, keysBinarySize.toInt())
+                        val keysSize = di.unpackInt()
+                        val keys = keySerializer.valueArrayDeserialize(di, keysSize)
+                        var valuePos = keySerializer.valueArraySearch(keys, hi, comparator)
+
+                        if (!hiInclusive && valuePos >= 0)
+                            valuePos--
+                        else if (valuePos < 0)
+                            valuePos = -valuePos - 2
+
+                        //check if valuePos fits into current node
+                        if (valuePos < 0) {
+                            //does not fit, increase node and continue
+                            nodePos--
+
+                            //is the last node on this page? in that case increase page count and contine page loop
+                            if(nodePos<0){
+                                keyPos--
+                                continue@pageLoop
+                            }
+
+                            continue@nodeLoop
+                        }
+
+                        if (valuePos >= keysSize) {
+                            valuePos--
+                        }
+
+                        this.nodeKeys = keySerializer.valueArrayToArray(keys)
+                        this.nodePos = valuePos
+                        this.node = nodePos
+                        this.pageWithHead = offsetWithHead
+                        this.pageNodeCount = nodeCount
+                        this.page = keyPos.toLong()
+
+                        val valOffset = offset + volume.getInt(offsetWithHead + 4 + (nodePos + nodeCount) * 4)
+                        val valsBinarySize = offset + volume.getInt(offsetWithHead + 4 + (nodePos + nodeCount + 1) * 4) - valOffset
+                        val di2 = volume.getDataInput(valOffset, valsBinarySize.toInt())
+                        val vals = valueSerializer.valueArrayDeserialize(di2, keysSize)
+                        this.nodeVals = valueSerializer.valueArrayToArray(vals)
+                        return
+                    }
+                }
+            }
+
+
+            fun loadNextNode(){
+                // is it last node on this page?
+                if(node==0) {
+                    // load next node?
+                    if(page==0L) {
+                        this.nodeKeys = null
+                        this.nodeVals = null
+                        return
+                    }
+                    page-=pageSize
+                    pageWithHead = if(page==0L) start.toLong() else page
+                    pageNodeCount = volume.getInt(pageWithHead)
+                    node = pageNodeCount
+                }
+                //load next node
+                //load next node
+                node--
+                val keysOffset = volume.getInt(pageWithHead + 4 + 4 * (node))
+                val nextOffset = volume.getInt(pageWithHead + 4 + 4 * (node+1))
+                val keysBinarySize = nextOffset - keysOffset
+                val di = volume.getDataInput(page + keysOffset, keysBinarySize)
+                val keysSize = di.unpackInt()
+                this.nodeKeys = this@SortedTableMap.keySerializer.valueArrayToArray(
+                        this@SortedTableMap.keySerializer.valueArrayDeserialize(di, keysSize)
+                )
+
+                val valsOffset = volume.getInt(pageWithHead + 4 + 4 * (pageNodeCount+node))
+                val nextValsOffset = if(pageNodeCount==node-1) pageSize
+                else volume.getInt(pageWithHead + 4 + 4 * (pageNodeCount+node+1))
+                val valsBinarySize = nextValsOffset - valsOffset
+                val diVals = volume.getDataInput(page + valsOffset, valsBinarySize)
+                this.nodeVals = this@SortedTableMap.valueSerializer.valueArrayToArray(
+                        this@SortedTableMap.valueSerializer.valueArrayDeserialize(diVals, keysSize)
+                )
+
+                this.nodePos = keysSize-1
+            }
+
+            override fun hasNext(): Boolean {
+                return nodeVals!=null;
+            }
+
+            override fun next(): MutableMap.MutableEntry<K, V?> {
+                val nodeKeys = nodeKeys
+                        ?: throw NoSuchElementException()
+
+                val ret = AbstractMap.SimpleImmutableEntry<K,V>(nodeKeys[nodePos] as K, nodeVals!![nodePos] as V)
+                nodePos--
+                if(nodePos==-1){
+                    loadNextNode()
+                }
+                checkLoBound()
+                return ret
+            }
+
+            fun checkLoBound(){
+                val lo = lo
+                        ?:return
+                val nodeKeys = nodeKeys
+                        ?:return
+
+                val nextKey = nodeKeys[nodePos] as K
+                if(keySerializer.compare(nextKey, lo)<loComp){
+                    //high bound is lower, than key, cancel next node
+                    this.nodeKeys = null
+                    this.nodePos = -1
+                    this.nodeVals = null
+                }
+            }
+
+
+            override fun remove() {
+                throw UnsupportedOperationException("read-only")
+            }
+        }
     }
 
     override fun descendingKeyIterator(): MutableIterator<K> {
@@ -894,7 +1095,177 @@ class SortedTableMap<K,V>(
     }
 
     override fun descendingKeyIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<K> {
-        throw UnsupportedOperationException()
+        if(pageCount==-1L)
+            return LinkedList<K>().iterator()
+        return object:MutableIterator<K>{
+
+            var page:Long = pageSize.toLong()*pageCount
+            var pageWithHead = if(page==0L) start.toLong() else page
+            var pageNodeCount = volume.getInt(pageWithHead)
+            var node = pageNodeCount-1
+            var nodePos = 0
+            var nodeKeys:Array<Any>? = null
+
+            val loComp = if(loInclusive) 0 else 1
+
+            init{
+                if(hi==null){
+                    loadFirstEntry()
+                }else{
+                    findHi()
+                }
+                checkLoBound()
+            }
+
+            fun loadFirstEntry(){
+                //load the last keys
+                val keysOffset = volume.getInt(pageWithHead + 4 + 4 * (node))
+                val nextOffset = volume.getInt(pageWithHead + 4 + 4 * (node+1))
+
+                val di = volume.getDataInput(page+keysOffset, nextOffset-keysOffset)
+                val nodeSize = di.unpackInt()
+                nodePos = nodeSize-1
+                nodeKeys = keySerializer.valueArrayToArray(keySerializer.valueArrayDeserialize(di, nodeSize))
+            }
+
+            fun findHi(){
+                if(hi==null)
+                    throw NullPointerException()
+
+                var keyPos = keySerializer.valueArraySearch(pageKeys, hi)
+
+                pageLoop@ while(true) {
+                    if (keyPos == -1) {
+                        //cancel iteration,
+                        nodeKeys = null
+                        return
+                    }
+                    if (keyPos > pageCount){
+                        loadFirstEntry()
+                        return
+                    }
+
+                    if (keyPos < 0)
+                        keyPos = -keyPos - 2
+
+                    val headSize = if (keyPos == 0) start else 0
+                    val offset = (keyPos * pageSize).toLong()
+                    val offsetWithHead = offset + headSize;
+                    val nodeCount = volume.getInt(offsetWithHead)
+
+                    //run binary search on first keys on each node
+                    var nodePos = nodeSearch(hi, offset, offsetWithHead, nodeCount)
+                    if (nodePos < 0)
+                        nodePos = -nodePos - 2
+
+                    nodeLoop@ while(true) {
+                        //search in keys at pos
+                        val keysOffset = offset + volume.getInt(offsetWithHead + 4 + nodePos * 4)
+                        val keysBinarySize = offset + volume.getInt(offsetWithHead + 4 + nodePos * 4 + 4) - keysOffset
+                        val di = volume.getDataInput(keysOffset, keysBinarySize.toInt())
+                        val keysSize = di.unpackInt()
+                        val keys = keySerializer.valueArrayDeserialize(di, keysSize)
+                        var valuePos = keySerializer.valueArraySearch(keys, hi, comparator)
+
+                        if (!hiInclusive && valuePos >= 0)
+                            valuePos--
+                        else if (valuePos < 0)
+                            valuePos = -valuePos - 2
+
+                        //check if valuePos fits into current node
+                        if (valuePos < 0) {
+                            //does not fit, increase node and continue
+                            nodePos--
+
+                            //is the last node on this page? in that case increase page count and contine page loop
+                            if(nodePos<0){
+                                keyPos--
+                                continue@pageLoop
+                            }
+
+                            continue@nodeLoop
+                        }
+
+                        if (valuePos >= keysSize) {
+                            valuePos--
+                        }
+
+                        this.nodeKeys = keySerializer.valueArrayToArray(keys)
+                        this.nodePos = valuePos
+                        this.node = nodePos
+                        this.pageWithHead = offsetWithHead
+                        this.pageNodeCount = nodeCount
+                        this.page = keyPos.toLong()
+                        return
+                    }
+                }
+            }
+
+
+            fun loadNextNode(){
+                // is it last node on this page?
+                if(node==0) {
+                    // load next node?
+                    if(page==0L) {
+                        this.nodeKeys = null
+                        return
+                    }
+                    page-=pageSize
+                    pageWithHead = if(page==0L) start.toLong() else page
+                    pageNodeCount = volume.getInt(pageWithHead)
+                    node = pageNodeCount
+                }
+                //load next node
+                //load next node
+                node--
+                val keysOffset = volume.getInt(pageWithHead + 4 + 4 * (node))
+                val nextOffset = volume.getInt(pageWithHead + 4 + 4 * (node+1))
+                val keysBinarySize = nextOffset - keysOffset
+                val di = volume.getDataInput(page + keysOffset, keysBinarySize)
+                val keysSize = di.unpackInt()
+                this.nodeKeys = this@SortedTableMap.keySerializer.valueArrayToArray(
+                        this@SortedTableMap.keySerializer.valueArrayDeserialize(di, keysSize)
+                )
+                this.nodePos = keysSize-1
+            }
+
+            override fun hasNext(): Boolean {
+                return nodeKeys!=null;
+            }
+
+            override fun next(): K {
+                val nodeKeys = nodeKeys
+                        ?: throw NoSuchElementException()
+
+                //val ret = AbstractMap.SimpleImmutableEntry<K,V>(nodeKeys[nodePos] as K, nodeVals!![nodePos] as V)
+                val ret = nodeKeys[nodePos] as K
+                nodePos--
+                if(nodePos==-1){
+                    loadNextNode()
+                }
+                checkLoBound()
+                return ret
+            }
+
+            fun checkLoBound(){
+                val lo = lo
+                        ?:return
+                val nodeKeys = nodeKeys
+                        ?:return
+
+                val nextKey = nodeKeys[nodePos] as K
+                if(keySerializer.compare(nextKey, lo)<loComp){
+                    //high bound is lower, than key, cancel next node
+                    this.nodeKeys = null
+                    this.nodePos = -1
+                }
+            }
+
+
+            override fun remove() {
+                throw UnsupportedOperationException("read-only")
+            }
+        }
     }
 
     override fun descendingValueIterator(): MutableIterator<V> {
@@ -985,41 +1356,150 @@ class SortedTableMap<K,V>(
     }
 
     override fun descendingValueIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<V> {
-        throw UnsupportedOperationException()
-    }
+        if(pageCount==-1L)
+            return LinkedList<V>().iterator()
+        return object:MutableIterator<V>{
 
-    override fun entryIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<MutableMap.MutableEntry<K, V?>> {
-        return object:MutableIterator<MutableMap.MutableEntry<K,V?>>{
-
-            var page = 0L
-            var pageWithHead = start.toLong()
+            var page:Long = pageSize.toLong()*pageCount
+            var pageWithHead = if(page==0L) start.toLong() else page
             var pageNodeCount = volume.getInt(pageWithHead)
-            var node = 0
+            var node = pageNodeCount-1
             var nodePos = 0
             var nodeKeys:Array<Any>? = null
             var nodeVals:Array<Any>? = null
 
-            val hiComp = if(hiInclusive) 0 else 1
+            val loComp = if(loInclusive) 0 else 1
 
             init{
-                loadNextNode()
-                checkHiBound()
+                if(hi==null){
+                    loadFirstEntry()
+                }else{
+                    findHi()
+                }
+                checkLoBound()
             }
+
+            fun loadFirstEntry(){
+                //load next node
+                val keysOffset = volume.getInt(pageWithHead + 4 + 4 * (node))
+                val nextOffset = volume.getInt(pageWithHead + 4 + 4 * (node+1))
+                val keysBinarySize = nextOffset - keysOffset
+                val di = volume.getDataInput(page + keysOffset, keysBinarySize)
+                val keysSize = di.unpackInt()
+                this.nodeKeys = this@SortedTableMap.keySerializer.valueArrayToArray(
+                        this@SortedTableMap.keySerializer.valueArrayDeserialize(di, keysSize)
+                )
+
+                val valsOffset = volume.getInt(pageWithHead + 4 + 4 * (pageNodeCount+node))
+                val nextValsOffset =
+                        if(pageNodeCount==node-1) pageSize
+                        else volume.getInt(pageWithHead + 4 + 4 * (pageNodeCount+node+1))
+                val valsBinarySize = nextValsOffset - valsOffset
+                val diVals = volume.getDataInput(page + valsOffset, valsBinarySize)
+                nodePos = keysSize-1
+                this.nodeVals = this@SortedTableMap.valueSerializer.valueArrayToArray(
+                        this@SortedTableMap.valueSerializer.valueArrayDeserialize(diVals, keysSize)
+                )
+            }
+
+            fun findHi(){
+                if(hi==null)
+                    throw NullPointerException()
+
+                var keyPos = keySerializer.valueArraySearch(pageKeys, hi)
+
+                pageLoop@ while(true) {
+                    if (keyPos == -1) {
+                        //cancel iteration,
+                        nodeKeys = null
+                        nodeVals = null
+                        return
+                    }
+                    if (keyPos > pageCount){
+                        loadFirstEntry()
+                        return
+                    }
+
+                    if (keyPos < 0)
+                        keyPos = -keyPos - 2
+
+                    val headSize = if (keyPos == 0) start else 0
+                    val offset = (keyPos * pageSize).toLong()
+                    val offsetWithHead = offset + headSize;
+                    val nodeCount = volume.getInt(offsetWithHead)
+
+                    //run binary search on first keys on each node
+                    var nodePos = nodeSearch(hi, offset, offsetWithHead, nodeCount)
+                    if (nodePos < 0)
+                        nodePos = -nodePos - 2
+
+                    nodeLoop@ while(true) {
+                        //search in keys at pos
+                        val keysOffset = offset + volume.getInt(offsetWithHead + 4 + nodePos * 4)
+                        val keysBinarySize = offset + volume.getInt(offsetWithHead + 4 + nodePos * 4 + 4) - keysOffset
+                        val di = volume.getDataInput(keysOffset, keysBinarySize.toInt())
+                        val keysSize = di.unpackInt()
+                        val keys = keySerializer.valueArrayDeserialize(di, keysSize)
+                        var valuePos = keySerializer.valueArraySearch(keys, hi, comparator)
+
+                        if (!hiInclusive && valuePos >= 0)
+                            valuePos--
+                        else if (valuePos < 0)
+                            valuePos = -valuePos - 2
+
+                        //check if valuePos fits into current node
+                        if (valuePos < 0) {
+                            //does not fit, increase node and continue
+                            nodePos--
+
+                            //is the last node on this page? in that case increase page count and contine page loop
+                            if(nodePos<0){
+                                keyPos--
+                                continue@pageLoop
+                            }
+
+                            continue@nodeLoop
+                        }
+
+                        if (valuePos >= keysSize) {
+                            valuePos--
+                        }
+
+                        this.nodeKeys = keySerializer.valueArrayToArray(keys)
+                        this.nodePos = valuePos
+                        this.node = nodePos
+                        this.pageWithHead = offsetWithHead
+                        this.pageNodeCount = nodeCount
+                        this.page = keyPos.toLong()
+
+                        val valOffset = offset + volume.getInt(offsetWithHead + 4 + (nodePos + nodeCount) * 4)
+                        val valsBinarySize = offset + volume.getInt(offsetWithHead + 4 + (nodePos + nodeCount + 1) * 4) - valOffset
+                        val di2 = volume.getDataInput(valOffset, valsBinarySize.toInt())
+                        val vals = valueSerializer.valueArrayDeserialize(di2, keysSize)
+                        this.nodeVals = valueSerializer.valueArrayToArray(vals)
+                        return
+                    }
+                }
+            }
+
 
             fun loadNextNode(){
                 // is it last node on this page?
-                if(node==pageNodeCount) {
+                if(node==0) {
                     // load next node?
-                    if(page>=pageCount*pageSize) {
+                    if(page==0L) {
                         this.nodeKeys = null
+                        this.nodeVals = null
                         return
                     }
-                    page+=pageSize
-                    pageWithHead = page
-                    node = 0
+                    page-=pageSize
+                    pageWithHead = if(page==0L) start.toLong() else page
                     pageNodeCount = volume.getInt(pageWithHead)
+                    node = pageNodeCount
                 }
                 //load next node
+                //load next node
+                node--
                 val keysOffset = volume.getInt(pageWithHead + 4 + 4 * (node))
                 val nextOffset = volume.getInt(pageWithHead + 4 + 4 * (node+1))
                 val keysBinarySize = nextOffset - keysOffset
@@ -1038,8 +1518,171 @@ class SortedTableMap<K,V>(
                         this@SortedTableMap.valueSerializer.valueArrayDeserialize(diVals, keysSize)
                 )
 
-                node++
+                this.nodePos = keysSize-1
+            }
 
+            override fun hasNext(): Boolean {
+                return nodeVals!=null;
+            }
+
+            override fun next(): V {
+                val nodeVals = nodeVals
+                        ?: throw NoSuchElementException()
+
+                val ret = nodeVals[nodePos] as V
+                nodePos--
+                if(nodePos==-1){
+                    loadNextNode()
+                }
+                checkLoBound()
+                return ret
+            }
+
+            fun checkLoBound(){
+                val lo = lo
+                        ?:return
+                val nodeKeys = nodeKeys
+                        ?:return
+
+                val nextKey = nodeKeys[nodePos] as K
+                if(keySerializer.compare(nextKey, lo)<loComp){
+                    //high bound is lower, than key, cancel next node
+                    this.nodeKeys = null
+                    this.nodePos = -1
+                    this.nodeVals = null
+                }
+            }
+
+
+            override fun remove() {
+                throw UnsupportedOperationException("read-only")
+            }
+        }    }
+
+    override fun entryIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<MutableMap.MutableEntry<K, V?>> {
+        return object:MutableIterator<MutableMap.MutableEntry<K, V?>>{
+
+            var page = 0L
+            var pageWithHead = start.toLong()
+            var pageNodeCount = volume.getInt(pageWithHead)
+            var node = 0
+            var nodePos = 0
+            var nodeKeys:Array<Any>? = null
+            var nodeVals:Array<Any>? = null
+
+            val hiComp = if(hiInclusive) 0 else 1
+
+            init{
+                if(lo==null) {
+                    loadNextNode()
+                }else{
+                    findLo()
+                }
+                checkHiBound()
+            }
+
+            fun findLo(){
+                val lo = lo?:throw AssertionError()
+
+                var keyPos = keySerializer.valueArraySearch(pageKeys, lo)
+
+                pageLoop@ while(true) {
+                    if (keyPos == -1) {
+                        // start with next node
+                        loadNextNode()
+                        return
+                    }
+                    if(keyPos>pageCount) {
+                        // cancel iteration
+                        this.nodeKeys = null
+                        return
+                    }
+
+                    if (keyPos < 0)
+                        keyPos = -keyPos - 2
+
+                    val headSize = if (keyPos == 0) start else 0
+                    val offset = (keyPos * pageSize).toLong()
+                    val offsetWithHead = offset + headSize;
+                    val nodeCount = volume.getInt(offsetWithHead)
+
+                    //run binary search on first keys on each node
+                    var nodePos = nodeSearch(lo, offset, offsetWithHead, nodeCount)
+                    if(nodePos==-1)
+                        nodePos = 0
+                    else if (nodePos < 0)
+                        nodePos = -nodePos - 2
+
+
+                    nodeLoop@ while(true) {
+                        //search in keys at pos
+                        val keysOffset = offset + volume.getInt(offsetWithHead + 4 + nodePos * 4)
+                        val keysBinarySize = offset + volume.getInt(offsetWithHead + 4 + nodePos * 4 + 4) - keysOffset
+                        val di = volume.getDataInput(keysOffset, keysBinarySize.toInt())
+                        val keysSize = di.unpackInt()
+                        val keys = keySerializer.valueArrayDeserialize(di, keysSize)
+                        var valuePos = keySerializer.valueArraySearch(keys, lo, comparator)
+
+                        if (!loInclusive && valuePos >= 0)
+                            valuePos++
+                        if (valuePos < 0)
+                            valuePos = -valuePos - 1
+
+                        //check if valuePos fits into current node
+                        if (valuePos >= keysSize) {
+                            //does not fit, increase node and continue
+                            nodePos++
+
+                            //is the last node on this page? in that case increase page count and contine page loop
+                            if(nodePos>=nodeCount){
+                                keyPos++
+                                continue@pageLoop
+                            }
+
+                            continue@nodeLoop
+                        }
+
+                        this.nodeKeys = keySerializer.valueArrayToArray(keys)
+                        this.nodePos = valuePos
+                        this.node = nodePos
+                        this.pageNodeCount = pageCount.toInt()
+                        this.page = keyPos.toLong()
+                        this.pageWithHead = offsetWithHead
+
+                        val valOffset = offset + volume.getInt(offsetWithHead + 4 + (nodePos + nodeCount) * 4)
+                        val valsBinarySize = offset + volume.getInt(offsetWithHead + 4 + (nodePos + nodeCount + 1) * 4) - valOffset
+                        val di2 = volume.getDataInput(valOffset, valsBinarySize.toInt())
+                        val values = valueSerializer.valueArrayDeserialize(di2, keysSize)
+                        this.nodeVals = valueSerializer.valueArrayToArray(values)
+                        return
+                    }
+                }
+            }
+
+
+
+            fun loadNextNode(){
+                // is it last node on this page?
+                if(node==pageNodeCount) {
+                    // load next node?
+                    if(page>=pageCount*pageSize) {
+                        this.nodeKeys = null
+                        return
+                    }
+                    page+=pageSize
+                    pageWithHead = page
+                    node = 0
+                    pageNodeCount = volume.getInt(pageWithHead)
+                }
+                //load next node
+                val keysOffset = volume.getInt(pageWithHead + 4 + 4 * (node++))
+                val nextOffset = volume.getInt(pageWithHead + 4 + 4 * (node))
+                val keysBinarySize = nextOffset - keysOffset
+                val di = volume.getDataInput(page + keysOffset, keysBinarySize)
+                val keysSize = di.unpackInt()
+                this.nodeKeys = this@SortedTableMap.keySerializer.valueArrayToArray(
+                        this@SortedTableMap.keySerializer.valueArrayDeserialize(di, keysSize)
+                )
                 this.nodePos = 0
             }
 
@@ -1093,9 +1736,88 @@ class SortedTableMap<K,V>(
             val hiComp = if(hiInclusive) 0 else 1
 
             init{
-                loadNextNode()
+                if(lo==null) {
+                    loadNextNode()
+                }else{
+                    findLo()
+                }
                 checkHiBound()
             }
+
+            fun findLo(){
+                val lo = lo?:throw AssertionError()
+
+                var keyPos = keySerializer.valueArraySearch(pageKeys, lo)
+
+                pageLoop@ while(true) {
+                    if (keyPos == -1) {
+                        // start with next node
+                        loadNextNode()
+                        return
+                    }
+                    if(keyPos>pageCount) {
+                        // cancel iteration
+                        this.nodeKeys = null
+                        return
+                    }
+
+                    if (keyPos < 0)
+                        keyPos = -keyPos - 2
+
+                    val headSize = if (keyPos == 0) start else 0
+                    val offset = (keyPos * pageSize).toLong()
+                    val offsetWithHead = offset + headSize;
+                    val nodeCount = volume.getInt(offsetWithHead)
+
+                    //run binary search on first keys on each node
+                    var nodePos = nodeSearch(lo, offset, offsetWithHead, nodeCount)
+                    if(nodePos==-1)
+                        nodePos = 0
+                    else if (nodePos < 0)
+                        nodePos = -nodePos - 2
+
+
+                    nodeLoop@ while(true) {
+                        //search in keys at pos
+                        val keysOffset = offset + volume.getInt(offsetWithHead + 4 + nodePos * 4)
+                        val keysBinarySize = offset + volume.getInt(offsetWithHead + 4 + nodePos * 4 + 4) - keysOffset
+                        val di = volume.getDataInput(keysOffset, keysBinarySize.toInt())
+                        val keysSize = di.unpackInt()
+                        val keys = keySerializer.valueArrayDeserialize(di, keysSize)
+                        var valuePos = keySerializer.valueArraySearch(keys, lo, comparator)
+
+                        if (!loInclusive && valuePos >= 0)
+                            valuePos++
+                        if (valuePos < 0)
+                            valuePos = -valuePos - 1
+
+                        //check if valuePos fits into current node
+                        if (valuePos >= keysSize) {
+                            //does not fit, increase node and continue
+                            nodePos++
+
+                            //is the last node on this page? in that case increase page count and contine page loop
+                            if(nodePos>=nodeCount){
+                                keyPos++
+                                continue@pageLoop
+                            }
+
+                            continue@nodeLoop
+                        }
+
+                        this.nodeKeys = keySerializer.valueArrayToArray(keys)
+                        this.nodePos = valuePos
+                        this.node = nodePos
+                        this.pageNodeCount = pageCount.toInt()
+                        this.page = keyPos.toLong()
+                        this.pageWithHead = offsetWithHead
+
+                        return
+                    }
+                }
+            }
+
+
 
             fun loadNextNode(){
                 // is it last node on this page?
@@ -1172,16 +1894,100 @@ class SortedTableMap<K,V>(
             val hiComp = if(hiInclusive) 0 else 1
 
             init{
-                loadNextNode()
+                if(lo==null) {
+                    loadNextNode()
+                }else{
+                    findLo()
+                }
                 checkHiBound()
             }
+
+            fun findLo(){
+                val lo = lo?:throw AssertionError()
+
+                var keyPos = keySerializer.valueArraySearch(pageKeys, lo)
+
+                pageLoop@ while(true) {
+                    if (keyPos == -1) {
+                        // start with next node
+                        loadNextNode()
+                        return
+                    }
+                    if(keyPos>pageCount) {
+                        // cancel iteration
+                        this.nodeKeys = null
+                        return
+                    }
+
+                    if (keyPos < 0)
+                        keyPos = -keyPos - 2
+
+                    val headSize = if (keyPos == 0) start else 0
+                    val offset = (keyPos * pageSize).toLong()
+                    val offsetWithHead = offset + headSize;
+                    val nodeCount = volume.getInt(offsetWithHead)
+
+                    //run binary search on first keys on each node
+                    var nodePos = nodeSearch(lo, offset, offsetWithHead, nodeCount)
+                    if(nodePos==-1)
+                        nodePos = 0
+                    else if (nodePos < 0)
+                        nodePos = -nodePos - 2
+
+
+                    nodeLoop@ while(true) {
+                        //search in keys at pos
+                        val keysOffset = offset + volume.getInt(offsetWithHead + 4 + nodePos * 4)
+                        val keysBinarySize = offset + volume.getInt(offsetWithHead + 4 + nodePos * 4 + 4) - keysOffset
+                        val di = volume.getDataInput(keysOffset, keysBinarySize.toInt())
+                        val keysSize = di.unpackInt()
+                        val keys = keySerializer.valueArrayDeserialize(di, keysSize)
+                        var valuePos = keySerializer.valueArraySearch(keys, lo, comparator)
+
+                        if (!loInclusive && valuePos >= 0)
+                            valuePos++
+                        if (valuePos < 0)
+                            valuePos = -valuePos - 1
+
+                        //check if valuePos fits into current node
+                        if (valuePos >= keysSize) {
+                            //does not fit, increase node and continue
+                            nodePos++
+
+                            //is the last node on this page? in that case increase page count and contine page loop
+                            if(nodePos>=nodeCount){
+                                keyPos++
+                                continue@pageLoop
+                            }
+
+                            continue@nodeLoop
+                        }
+
+                        this.nodeKeys = keySerializer.valueArrayToArray(keys)
+                        this.nodePos = valuePos
+                        this.node = nodePos
+                        this.pageNodeCount = pageCount.toInt()
+                        this.page = keyPos.toLong()
+                        this.pageWithHead = offsetWithHead
+
+                        val valOffset = offset + volume.getInt(offsetWithHead + 4 + (nodePos + nodeCount) * 4)
+                        val valsBinarySize = offset + volume.getInt(offsetWithHead + 4 + (nodePos + nodeCount + 1) * 4) - valOffset
+                        val di2 = volume.getDataInput(valOffset, valsBinarySize.toInt())
+                        val values = valueSerializer.valueArrayDeserialize(di2, keysSize)
+                        this.nodeVals = valueSerializer.valueArrayToArray(values)
+                        return
+                    }
+                }
+            }
+
+
 
             fun loadNextNode(){
                 // is it last node on this page?
                 if(node==pageNodeCount) {
                     // load next node?
                     if(page>=pageCount*pageSize) {
-                        this.nodeVals = null
+                        this.nodeKeys = null
                         return
                     }
                     page+=pageSize
@@ -1190,43 +1996,28 @@ class SortedTableMap<K,V>(
                     pageNodeCount = volume.getInt(pageWithHead)
                 }
                 //load next node
-                val keysOffset = volume.getInt(pageWithHead + 4 + 4 * (node))
-                val nextOffset = volume.getInt(pageWithHead + 4 + 4 * (node+1))
+                val keysOffset = volume.getInt(pageWithHead + 4 + 4 * (node++))
+                val nextOffset = volume.getInt(pageWithHead + 4 + 4 * (node))
                 val keysBinarySize = nextOffset - keysOffset
                 val di = volume.getDataInput(page + keysOffset, keysBinarySize)
                 val keysSize = di.unpackInt()
-
-                if(hi!=null){
-                    this.nodeKeys = this@SortedTableMap.keySerializer.valueArrayToArray(
-                            this@SortedTableMap.keySerializer.valueArrayDeserialize(di, keysSize)
-                    )
-                }
-
-                val valsOffset = volume.getInt(pageWithHead + 4 + 4 * (pageNodeCount+node))
-                val nextValsOffset = if(pageNodeCount==node-1) pageSize
-                else volume.getInt(pageWithHead + 4 + 4 * (pageNodeCount+node+1))
-                val valsBinarySize = nextValsOffset - valsOffset
-                val diVals = volume.getDataInput(page + valsOffset, valsBinarySize)
-                this.nodeVals = this@SortedTableMap.valueSerializer.valueArrayToArray(
-                        this@SortedTableMap.valueSerializer.valueArrayDeserialize(diVals, keysSize)
+                this.nodeKeys = this@SortedTableMap.keySerializer.valueArrayToArray(
+                        this@SortedTableMap.keySerializer.valueArrayDeserialize(di, keysSize)
                 )
-
-                node++
-
                 this.nodePos = 0
             }
 
             override fun hasNext(): Boolean {
-                return nodeVals!=null;
+                return nodeKeys!=null;
             }
 
             override fun next(): V {
-                val nodeVals = nodeVals
+                val nodeKeys = nodeKeys
                         ?: throw NoSuchElementException()
 
-                val ret = nodeVals[nodePos] as V
+                val ret = nodeVals!![nodePos] as V
                 nodePos++
-                if(nodeVals.size==nodePos){
+                if(nodeKeys.size==nodePos){
                     loadNextNode()
                 }
                 checkHiBound()
@@ -1250,7 +2041,6 @@ class SortedTableMap<K,V>(
                     this.nodePos = -1
                 }
             }
-
         }
     }
 

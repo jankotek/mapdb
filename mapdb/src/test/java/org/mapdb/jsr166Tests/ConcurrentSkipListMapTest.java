@@ -845,6 +845,9 @@ public abstract class ConcurrentSkipListMapTest extends JSR166TestCase {
         assertEquals(two, k);
         assertFalse(r.hasNext());
 
+        if(isReadOnly(map))
+            return;
+
         Iterator j = sm.keySet().iterator();
         j.next();
         j.remove();
@@ -881,6 +884,8 @@ public abstract class ConcurrentSkipListMapTest extends JSR166TestCase {
 
         Iterator j = sm.keySet().iterator();
         j.next();
+        if(isReadOnly(map))
+            return;
         j.remove();
         assertFalse(map.containsKey(two));
         assertEquals(4, map.size());
@@ -974,6 +979,8 @@ public abstract class ConcurrentSkipListMapTest extends JSR166TestCase {
         NavigableMap ssm = sm.tailMap(four, true);
         assertEquals(four, ssm.firstKey());
         assertEquals(five, ssm.lastKey());
+        if(isReadOnly(map))
+            return;
         assertEquals("D", ssm.remove(four));
         assertEquals(1, ssm.size());
         assertEquals(3, sm.size());
