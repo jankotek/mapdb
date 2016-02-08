@@ -819,7 +819,7 @@ class SortedTableMap<K,V>(
     }
 
     override fun descendingEntryIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<MutableMap.MutableEntry<K, V?>> {
-`        if(pageCount==-1L)
+        if(pageCount==-1L)
             return LinkedList<MutableMap.MutableEntry<K, V?>>().iterator()
         return object:MutableIterator<MutableMap.MutableEntry<K, V?>>{
 
