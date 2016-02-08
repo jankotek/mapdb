@@ -715,7 +715,7 @@ class SortedTableMap<K,V>(
         return descendingMap.navigableKeySet()
     }
 
-    override fun descendingMap(): ConcurrentNavigableMap<K, V>? {
+    override fun descendingMap(): ConcurrentNavigableMap<K, V> {
         return descendingMap;
     }
 
