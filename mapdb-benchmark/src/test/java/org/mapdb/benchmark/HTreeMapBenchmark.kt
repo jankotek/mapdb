@@ -7,8 +7,9 @@ import java.util.concurrent.*
 
 class HTreeMapBenchmark{
 
-    val size = 1e7.toInt()
-
+    companion object {
+        val size = 1e7.toInt()
+    }
 
     @Test fun hashMap() {
         run(ConcurrentHashMap(size), "ConcurrentHashMap", size)
@@ -19,7 +20,7 @@ class HTreeMapBenchmark{
     }
 
 
-    @Test fun MapDB20_HTreeMap() {
+    @Test fun MapDB20_BTreeMap() {
         run(org.mapdb20.DBMaker.memoryDB()
                 .transactionDisable()
                 .allocateStartSize(1024 * 1024 * 512)
@@ -28,7 +29,7 @@ class HTreeMapBenchmark{
                 "MapDB2_BTreeMap", size)
     }
 
-    @Test fun MapDB20_BTreeMap() {
+    @Test fun MapDB20_HTreeMap() {
         run(org.mapdb20.DBMaker.memoryDB()
                 .transactionDisable()
                 .allocateStartSize(1024 * 1024 * 512)
