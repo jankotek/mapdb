@@ -17,10 +17,87 @@ class SortedTableMap<K,V>(
         override val hasValues: Boolean = false
 ): ConcurrentMap<K, V>, ConcurrentNavigableMap<K, V>, ConcurrentNavigableMapExtra<K,V> {
 
-    abstract class Consumer<K,V>:Pump.Consumer<Pair<K,V>, SortedTableMap<K,V>>(){}
+    abstract class Consumer<K,V>:Pump.Consumer<Pair<K,V>, SortedTableMap<K,V>>(){
+        fun take(key:K, value:V){
+            take(Pair(key, value))
+        }
+    }
 
     companion object{
-        fun <K,V> import(
+
+        class Maker<K,V>(){
+            internal var _volume: Volume? = null
+            internal var _keySerializer: Serializer<K>? = null
+            internal var _valueSerializer: Serializer<V>? = null
+            internal var _pageSize:Int = CC.PAGE_SIZE.toInt()
+            internal var _nodeSize:Int = CC.BTREEMAP_MAX_NODE_SIZE
+
+            fun pageSize(pageSize:Int):Maker<K,V>{
+                _pageSize = pageSize
+                return this
+            }
+
+            fun nodeSize(nodeSize:Int):Maker<K,V>{
+                _nodeSize = nodeSize
+                return this
+            }
+
+
+            fun make(pairs:Iterable<Pair<K,V>>):SortedTableMap<K,V>{
+                val consumer = consumer()
+                for(pair in pairs)
+                    consumer.take(pair)
+                return consumer.finish()
+            }
+
+            fun make(map:Map<K,V>):SortedTableMap<K,V>{
+                val consumer = consumer()
+                for(pair in map)
+                    consumer.take(Pair(pair.key, pair.value))
+                return consumer.finish()
+            }
+
+            fun consumer():Consumer<K,V>{
+                return import(
+                        keySerializer = _keySerializer!!,
+                        valueSerializer = _valueSerializer!!,
+                        volume = _volume!!,
+                        pageSize=_pageSize,
+                        nodeSize = _nodeSize)
+            }
+        }
+
+
+        @JvmStatic fun <K,V> create(
+                volume:Volume,
+                keySerializer:Serializer<K>,
+                valueSerializer:Serializer<V>
+            ):Maker<K,V> {
+            val ret = Maker<K,V>()
+            ret._volume = volume
+            ret._keySerializer = keySerializer
+            ret._valueSerializer = valueSerializer
+            return ret
+        }
+
+
+        @JvmStatic fun <K,V> open(
+                volume:Volume,
+                keySerializer:Serializer<K>,
+                valueSerializer:Serializer<V>
+        ):SortedTableMap<K,V> {
+            val pageSize = volume.getLong(PAGE_SIZE_OFFSET)
+            if(pageSize<=0||pageSize>CC.PAGE_SIZE)
+                throw DBException.DataCorruption("Wrong page size: "+pageSize)
+            return SortedTableMap<K,V>(
+                    keySerializer = keySerializer,
+                    valueSerializer = valueSerializer,
+                    volume = volume,
+                    pageSize = pageSize.toInt()
+            )
+        }
+
+        internal fun <K,V> import(
                 keySerializer:Serializer<K>,
                 valueSerializer:Serializer<V>,
                 volume: Volume,
@@ -56,6 +133,7 @@ class SortedTableMap<K,V>(
                         volume.ensureAvailable(start.toLong())
                     volume.putLong(SIZE_OFFSET, counter)
                     volume.putLong(PAGE_COUNT_OFFSET, (fileTail-pageSize)/pageSize)
+                    volume.putLong(PAGE_SIZE_OFFSET, pageSize.toLong())
                     volume.sync()
                     return SortedTableMap(
                             keySerializer = keySerializer,

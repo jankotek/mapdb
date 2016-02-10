@@ -8,11 +8,11 @@ class SortedTableMapBenchmark{
     val size = HTreeMapBenchmark.size
 
     @Test fun get(){
-        val consumer = SortedTableMap.import(
+        val consumer = SortedTableMap.create(
                 keySerializer = Serializer.INTEGER,
                 valueSerializer = Serializer.INTEGER,
                 volume = Volume.ByteArrayVol.FACTORY.makeVolume(null, false)
-        )
+            ).consumer()
         for(i in 0 until size ){
             consumer.take(Pair(i,i))
         }
