@@ -31,7 +31,7 @@ Once file is created, it can be reopened:
 
 Binary search
 ----------------
-Storage is split into `pages`. Page size is N^2, with maximal size 1MB. First key on each page is stored on-heap.
+Storage is split into `pages`. Page size is power of two, with maximal size 1MB. First key on each page is stored on-heap.
 
 Each page contains several nodes composed of keys and values. Those are very similar to BTreeMap Leaf nodes.
 Node offsets are known, so fast seek to beginning of node is used.
@@ -57,7 +57,7 @@ Parameters
 Value Array `TODO link to serializers`. They can be compressed together to save space.
 Serializer is trade-off between space usage and performance.
 
-Another setting is **Page Size**. Default and maximal value is 1MB. Its value must be power of two, other values
+Another setting is **Page Size**. Default and maximal value is 1MB. Its value must be power of two, other valuaes
 are rounded up to nearest power of two. Smaller value typically means faster access. But for each page
 one key is stored on-heap, smaller Page Size also means larger memory usage.
 
@@ -65,12 +65,20 @@ And finally there is **Node Size**. It has similar implications as BTreeMap node
 means better compression, since large chunks are better compressible. But it also means slower access times,
 since more entries are loaded to get single entry. Default node size is 32 entries, it should be lowered for large values.
 
+Parameters are set following way
+
+.. literalinclude:: ../src/test/java/doc/sortedtablemap_params.java
+    :start-after: //a
+    :end-before: //z
+    :language: java
+    :dedent: 8
+
+
 Volume
 ----------
 
 ``SortedTableMap`` does not use ``DB`` object, but operates directly on ``Volume`` (MapDB abstraction over ByteBuffer).
 Following example show how to construct various ``Volume`` using in-memory byte array or memory-mapped file:
-
 
 .. literalinclude:: ../src/test/java/doc/sortedtablemap_volume.java
     :start-after: //a

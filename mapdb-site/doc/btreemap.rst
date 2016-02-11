@@ -25,7 +25,7 @@ fields on ``Serializer`` interface:
     :language: java
     :dedent: 8
 
-Another usefull parameter is **size counter**. By default, a BTreeMap does not keep
+Another useful parameter is **size counter**. By default, a BTreeMap does not keep
 track of its size and calling ``map.size()`` requires linear scan to count
 all entries. If you enable size counter, in that case
 ``map.size()`` is instant, but there is some overhead on inserts.

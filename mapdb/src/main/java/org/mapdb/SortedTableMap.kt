@@ -33,7 +33,7 @@ class SortedTableMap<K,V>(
             internal var _nodeSize:Int = CC.BTREEMAP_MAX_NODE_SIZE
 
             fun pageSize(pageSize:Int):Maker<K,V>{
-                _pageSize = pageSize
+                _pageSize = DataIO.nextPowTwo(pageSize)
                 return this
             }
 
