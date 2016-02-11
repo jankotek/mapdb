@@ -207,16 +207,16 @@ public abstract class JSR166TestCase extends TestCase {
                 try { MINUTES.sleep(timeoutMinutes); }
                 catch (InterruptedException unexpected) { break; }
                 if (lastTestCase == currentTestCase) {
-                    System.err.printf(
-                        "Looks like we're stuck running test: %s%n",
-                        lastTestCase);
+//                    System.err.printf(
+//                        "Looks like we're stuck running test: %s%n",
+//                        lastTestCase);
 //                     System.err.printf(
 //                         "Looks like we're stuck running test: %s (%d/%d)%n",
 //                         lastTestCase, currentRun, runsPerTest);
 //                     System.err.println("availableProcessors=" +
 //                         Runtime.getRuntime().availableProcessors());
 //                     System.err.printf("cpu model = %s%n", cpuModel());
-                    dumpTestThreads();
+//                    dumpTestThreads();
                     // one stack dump is probably enough; more would be spam
                     break;
                 }
