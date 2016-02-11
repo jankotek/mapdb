@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentNavigableMap
 
 @RunWith(Parameterized::class)
 class BTreeMap_ConcurrentSkipListMapTest_JSR166Test(
-        val mapMaker:(generic:Boolean)-> ConcurrentNavigableMap<Int, String>
+        val mapMaker:(generic:Boolean?)-> ConcurrentNavigableMap<Int, String>
 ) : ConcurrentSkipListMapTest()
 {
 
@@ -18,7 +18,7 @@ class BTreeMap_ConcurrentSkipListMapTest_JSR166Test(
     }
 
     override fun emptyIntMap(): ConcurrentNavigableMap<Int, Int>? {
-        return mapMaker(true) as ConcurrentNavigableMap<Int, Int>
+        return mapMaker(null) as ConcurrentNavigableMap<Int, Int>
     }
 
     companion object {

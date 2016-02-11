@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentMap
 
 @RunWith(Parameterized::class)
 class BTreeMap_ConcurrentMap_GuavaTest(
-        val mapMaker:(generic:Boolean)-> ConcurrentMap<Any?, Any?>
+        val mapMaker:(generic:Boolean?)-> ConcurrentMap<Any?, Any?>
     ):ConcurrentMapInterfaceTest<Int, String>(
             false,  // boolean allowsNullKeys,
             false,  // boolean allowsNullValues,
@@ -38,7 +38,7 @@ class BTreeMap_ConcurrentMap_GuavaTest(
             for(threadSafe in bools)
             for(counter in bools)
             {
-                ret.add(arrayOf<Any>({generic:Boolean->
+                ret.add(arrayOf<Any>({generic:Boolean?->
                     val store = when(storeType){
                         0-> StoreOnHeap()
                         1-> StoreTrivial()
@@ -48,8 +48,12 @@ class BTreeMap_ConcurrentMap_GuavaTest(
 
                     val nodeSize = if(small) 4 else 32
                     val counterRecid = if(counter) store.put(0L, Serializer.LONG) else 0L
-                    val keySer = if(generic) Serializer.JAVA as Serializer<Int> else Serializer.INTEGER
-                    val valSer = if(generic) Serializer.JAVA as Serializer<String> else Serializer.STRING
+                    val keySer = if(generic==null) Serializer.INTEGER else {
+                            if(generic) Serializer.JAVA as Serializer<Int> else Serializer.INTEGER
+                        }
+                    val valSer = if(generic==null) Serializer.INTEGER else{
+                            if(generic) Serializer.JAVA as Serializer<String> else Serializer.STRING
+                        }
                     BTreeMap.make(keySerializer = keySer, valueSerializer = valSer,
                             comparator = if(reversedComparator) Serializer.INTEGER.reversed() else Serializer.INTEGER ,
                             store = store, maxNodeSize =  nodeSize, threadSafe = threadSafe,
