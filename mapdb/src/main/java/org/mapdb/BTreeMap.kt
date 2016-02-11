@@ -1062,31 +1062,44 @@ class BTreeMap<K,V>(
             }
 
             fun init(hi:K){
-                //TODO this should search for keys and follow children where the key is
                 var node = getNode(rootRecid)
                 while(node.isDir){
+                    var pos = keySerializer.valueArraySearch(node.keys, hi)
+                    if(pos<0)
+                        pos=-pos-1
+
                     val linkedStack = LinkedList<Node>()
-                    while(node.isRightEdge.not()){
+
+                    //follow link until needed
+                    while(pos>=keySerializer.valueArraySize(node.keys) && node.link!=0L){
                         linkedStack.add(node)
                         node = getNode(node.link)
+                        pos = keySerializer.valueArraySearch(node.keys, hi)
+                        if(pos<0)
+                            pos=-pos-1
                     }
                     val inode = INode(
                             linked=linkedStack,
                             node=node,
-                            nodePos = node.children.size-2,
+                            nodePos = pos-1,
                             linkLimit = linkRecidLimit)
 
                     stack.add(inode)
 
-                    linkRecidLimit = node.children[node.children.size-1]
+                    linkRecidLimit = node.children[pos]
                     node = getNode(linkRecidLimit)
-
                 }
+                var pos = keySerializer.valueArraySearch(node.keys, hi)
+                if(pos<0)
+                    pos=-pos-1
 
                 //fill leafLinkedStack
-                while(node.isRightEdge.not()){
+                while(pos>=keySerializer.valueArraySize(node.keys) && node.link!=0L){
                     leafLinkedStack.add(node)
                     node = getNode(node.link)
+                    pos = keySerializer.valueArraySearch(node.keys, hi)
+                    if(pos<0)
+                        pos=-pos-1
                 }
                 nextNode = node;
             }
@@ -1148,6 +1161,7 @@ class BTreeMap<K,V>(
                 //no more leaf records, ascend one level and find previous leaf
                 val inode = stack.last
                 val childRecid = inode.node.children[inode.nodePos--]
+
                 var node = getNode(childRecid)
 
 
@@ -1237,7 +1251,7 @@ class BTreeMap<K,V>(
             val hiInclusive: Boolean
         ){
 
-        protected val descLeafIter = m.descendingLeafIterator(lo)
+        protected val descLeafIter = m.descendingLeafIterator(hi)
         protected var currentPos = -1
         protected var currentLeaf:Node? = null
         protected var lastReturnedKey: K? = null

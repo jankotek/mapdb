@@ -754,6 +754,72 @@ class BTreeMapTest {
         for (i in 1..100){
             assertTrue(ref.contains(i))
         }
-
     }
+
+    @Test fun descendingNodeIterator_one() {
+        val map = BTreeMap.make<Int, Int>()
+
+        val node3 = Node(
+                RIGHT,
+                0L,
+                arrayOf(70, 80, 90),
+                arrayOf(8, 9)
+        )
+        val recid3 = map.store.put(node3, map.nodeSerializer)
+
+        val node2 = Node(
+                LAST_KEY_DOUBLE,
+                recid3,
+                arrayOf(50, 60, 70),
+                arrayOf(6, 7)
+        )
+        val recid2 = map.store.put(node2, map.nodeSerializer)
+
+        val node1 = Node(
+                LEFT + LAST_KEY_DOUBLE,
+                recid2,
+                arrayOf(20, 30, 40, 50),
+                arrayOf(2, 3, 4, 5)
+        )
+        val recid1 = map.store.put(node1, map.nodeSerializer)
+
+        val dir = Node(
+                DIR + LEFT + RIGHT,
+                0L,
+                arrayOf(50, 70),
+                longArrayOf(recid1, recid2, recid3)
+        )
+        val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
+        map.store.update(rootRecid, dir, map.nodeSerializer)
+        map.verify()
+
+        fun checkNode(key:Int, expectedLowKey:Int?) {
+            println("key $key")
+            var iter = map.descendingLeafIterator(key)
+            if(expectedLowKey==null){
+                assertFalse(iter.hasNext())
+                return
+            }
+            var key2 = expectedLowKey as Int;
+            assertTrue(iter.hasNext())
+            assertEquals(expectedLowKey, (iter.next().keys as Array<Any>)[0])
+
+            while(iter.hasNext()){
+                val node = iter.next()
+                val lowKey = (node.keys as Array<Any>)[0] as Int
+                if(key2<=lowKey)
+                    throw AssertionError()
+                key2 = lowKey
+            }
+        }
+
+        for(key in 71..100){
+            checkNode(key, 70)
+        }
+
+        for(key in 51..70){
+            checkNode(key, 50)
+        }
+    }
+
 }
