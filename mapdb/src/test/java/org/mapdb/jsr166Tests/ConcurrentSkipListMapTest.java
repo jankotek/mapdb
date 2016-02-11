@@ -1241,12 +1241,8 @@ public abstract class ConcurrentSkipListMapTest extends JSR166Test {
             if (bsContainsI)
                 size++;
         }
-        try {
-            assertEquals(size, map.size());
-        }catch(Throwable e){
-            map.size();
-            throw e;
-        }
+
+        assertEquals(size, map.size());
 
         // Test contents using contains keySet iterator
         int size2 = 0;

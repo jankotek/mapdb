@@ -204,6 +204,7 @@ class BTreeMap<K,V>(
                                 else valueSerializer.valueArrayUpdateVal(A.values, pos, value)
                         var flags = A.flags.toInt();
                         if(linkValue){
+                            counterIncrement(1)
                             if(CC.ASSERT && A.isLastKeyDouble)
                                 throw AssertionError()
                             //duplicate last key by adding flag
