@@ -8,6 +8,7 @@ import java.util.*;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mapdb.BTreeKeySerializer.*;
 
@@ -490,5 +491,37 @@ public class BTreeKeySerializerTest {
 
     }
 
+    @Test
+    public void testContainsUnicode() {
 
+    	String nonUnicodeCharactersSmall[] = {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", 
+    			"o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"};
+
+    	String nonUnicodeCharactersBig[] = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N",
+    			"O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"};
+
+    	String unicodeCharacters[] = {"À", "Á", "Â", "Ã", "Ä", "Ç", "È", "É", "Ê", "Ë", "Ì", "Í", "Î", "Ï",
+    			"Ñ", "Ò", "Ó", "Ô", "Õ", "Ö", "Š", "Ú", "Û", "Ü", "Ù", "Ý", "Ÿ", "Ž", "à", "á", "â", "ã",
+    			"ä", "ç", "è", "é", "ê", "ë", "ì", "í", "î", "ï", "ñ", "ò", "ó", "ô", "õ", "ö", "š", "ù",
+    			"ú", "û", "ü", "ý", "ÿ", "ž"};
+
+    	// Test for known issues: https://en.wikipedia.org/wiki/Bush_hid_the_facts
+    	assertEquals(false, BTreeKeySerializer.ByteArrayKeys.containsUnicode("Bush hid the facts"));
+    	assertEquals(false, BTreeKeySerializer.ByteArrayKeys.containsUnicode("this app can break"));
+    	assertEquals(false, BTreeKeySerializer.ByteArrayKeys.containsUnicode("acre vai pra globo"));
+    	assertEquals(false, BTreeKeySerializer.ByteArrayKeys.containsUnicode("aaaa aaa aaa aaaaa"));
+    	assertEquals(false, BTreeKeySerializer.ByteArrayKeys.containsUnicode("a "));
+
+    	for(String s: nonUnicodeCharactersSmall){
+    		assertFalse("containsUnicode() must return false for "+ s, BTreeKeySerializer.ByteArrayKeys.containsUnicode(s));
+    	}
+    	for(String s: nonUnicodeCharactersBig){
+    		assertFalse("containsUnicode() must return false for "+ s, BTreeKeySerializer.ByteArrayKeys.containsUnicode(s));
+    	}
+    	for (String s: unicodeCharacters) {
+    		assertTrue("containsUnicode() must return true for "+ s, BTreeKeySerializer.ByteArrayKeys.containsUnicode(s));
+    	}
+
+    }
+    
 }
