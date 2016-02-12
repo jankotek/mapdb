@@ -3,7 +3,10 @@ package org.mapdb;
 
 import org.junit.Ignore;
 import org.junit.Test;
+import org.mapdb.Fun.Function1;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.Executors;
 
@@ -620,5 +623,57 @@ public class PumpTest {
                 .pumpSource(m)
                 .make();
         assertEquals(m,m2);
+    }
+
+    @Test public void testIgnoreDuplicatesIterator() throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    	Comparator<String> comparator = new Comparator<String>() {
+    		public int compare(String arg0, String arg1) {
+    			return arg0.compareTo(arg1);
+    		}
+    	};
+    	Function1<String, String> keyExtractor = Fun.extractNoTransform();
+    	Random rnd = new Random(System.currentTimeMillis());
+
+    	// Lets test for 100 different arrays
+    	for (int i=0; i<100; i++) {
+    		int size = rnd.nextInt(26);
+    		List<String> originalList = new ArrayList<String>();
+    		for (int j=0; j<size; j++) {
+    			// Pick a random letter from 'A' to 'Z'
+    			String c = Character.toString((char) (65 + rnd.nextInt(26)));
+    			originalList.add(c);
+    		}
+    		assertIgnoreDuplicates(originalList, comparator, keyExtractor);
+    	}
+    }
+
+    private void assertIgnoreDuplicates(List<String> originalList, Comparator<String> comparator,
+    		Function1<String, String> keyExtractor) throws NoSuchMethodException, SecurityException,
+    		IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    	Collections.sort(originalList);
+    	Iterator<String> originalIterator = originalList.listIterator();
+
+    	// Prepare a de-duplicated list of elements in originalList
+    	Set<String> expectedSet = new TreeSet<String>();
+    	expectedSet.addAll(originalList);
+    	List<String> expectedList = new ArrayList<String>();
+    	expectedList.addAll(expectedSet);
+
+    	// Lets call the ignoreDuplicatesIterator private method using reflection
+    	Method method = Pump.class.getDeclaredMethod("ignoreDuplicatesIterator",
+    			new Class[]{Iterator.class, Comparator.class, Function1.class});
+    	method.setAccessible(true);
+    	Iterator<String> noDuplicatesIterator = (Iterator<String>)method.invoke(null, originalIterator,
+    			comparator, keyExtractor);
+
+    	// Create a list of elements returned by the iterator
+    	List<String> outputList = new ArrayList<String>();
+    	while(noDuplicatesIterator.hasNext()){
+    		String element = noDuplicatesIterator.next();
+    		outputList.add(element);
+    	}
+
+    	assertEquals("There shouldn't have been duplicates in expected list. "
+    			+ "Original list was " + originalList, expectedList, outputList);
     }
 }
