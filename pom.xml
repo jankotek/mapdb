@@ -5,7 +5,7 @@
 
     <groupId>org.mapdb</groupId>
     <artifactId>mapdb-root</artifactId>
-    <version>3.0.0-M2-SNAPSHOT</version>
+    <version>3.0.0-M2</version>
 
     <packaging>pom</packaging>
 

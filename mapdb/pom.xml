@@ -5,12 +5,12 @@
 
     <groupId>org.mapdb</groupId>
     <artifactId>mapdb</artifactId>
-    <version>3.0.0-M2-SNAPSHOT</version>
+    <version>3.0.0-M2</version>
 
     <parent>
         <groupId>org.mapdb</groupId>
         <artifactId>mapdb-root</artifactId>
-        <version>3.0.0-M2-SNAPSHOT</version>
+        <version>3.0.0-M2</version>
         <relativePath>..</relativePath>
     </parent>
 
