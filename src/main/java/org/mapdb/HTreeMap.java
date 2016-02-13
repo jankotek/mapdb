@@ -544,9 +544,9 @@ public class HTreeMap<K,V>
         if(counterRecids!=null){
             for(int i=0;i<counterRecids.length;i++){
                 if(0==engines[i].get(counterRecids[i],Serializer.LONG))
-                    return true;
+                    return false;
             }
-            return false;
+            return true;
         }
 
         //search tree, until we find first non null
