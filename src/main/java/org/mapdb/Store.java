@@ -1019,8 +1019,8 @@ public abstract class Store implements Engine {
             try{
                 //TODO howto correctly shutdown queue? possible memory leak here?
                 items.clear();
-                items = null;
                 flushGCed();
+                items = null;
                 queue = null;
             }finally {
                 if(lock!=null)
