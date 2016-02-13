@@ -224,5 +224,15 @@ public class StoreAppendTest<E extends StoreAppend> extends EngineTest<E>{
         }
 
     }
+    
+	@Test public void test_getCurrSize_returns_zero() {
+		e = openEngine();
+		assertEquals("For StoreAppend, getCurrSize should always return 0", 0, e.getCurrSize());
+	}
+	
+	@Test public void test_getFreeSize_returns_zero() {
+		e = openEngine();
+		assertEquals("For StoreAppend, getFreeSize should always return 0", 0, e.getFreeSize());
+	}
 
 }

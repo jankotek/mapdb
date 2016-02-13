@@ -772,6 +772,14 @@ public class DBMakerTest{
     @Test public void cc() throws IllegalAccessException {
         assertEquals(CC.DEFAULT_CACHE, DBMaker.CC().get("DEFAULT_CACHE"));
     }
+    
+	@Test(expected = NoSuchElementException.class)
+    public void testStrictDBGet() throws Exception {
+		DB db = DBMaker.memoryDB().strictDBGet().make();
+		db.hashMap("test");
+		fail("A NoSuchElementException should have been thrown by now as strictDBGet is enabled and "
+				+ "the database does not have a record named 'test'");
+    }
 
     @Test public void fileMmapPreclearDisable1(){
         File f = TT.tempDbFile();

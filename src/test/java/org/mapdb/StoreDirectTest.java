@@ -843,6 +843,38 @@ public class StoreDirectTest <E extends StoreDirect> extends EngineTest<E>{
         e.close();
     }
 
+	@Test (expected = UnsupportedOperationException.class)
+	public void test_snapshot_fails_when_snapshots_are_disabled(){
+    	 e = openEngine();
+    	 e.snapshot();
+    }
+	
+	@Test(expected = AssertionError.class)
+	public void test_storeSizeSet_throws_exception_when_zero_is_passed(){
+		e = openEngine();
+		e.storeSizeSet(0);
+	}
+	
+	@Test public void test_storeSizeSet_throws_exception_when_value_is_less_than_page_size(){
+		e = openEngine();
+		for (int storeSize = 0; storeSize < PAGE_SIZE; storeSize++) {
+			try {
+				e.storeSizeSet(storeSize);
+				fail("AssertionError was expected, but not thrown. storeSize=" + storeSize);
+			} catch (AssertionError ae) {
+
+			}
+		}
+		e.storeSizeSet(PAGE_SIZE * 2);
+	}
+	
+	@Test(expected = AssertionError.class)
+	public void test_storeSizeSet_throws_exception_when_not_multiple_of_page_size(){
+		e = openEngine();
+		long longValueGreaterThanPageSizeButNotAMultiple = StoreDirect.PAGE_SIZE * 2 - 1;
+		e.storeSizeSet(longValueGreaterThanPageSizeButNotAMultiple);
+	}
+
     @Test public void index_pages_overflow_compact_after_delete(){
         StoreDirect e = (StoreDirect) DBMaker.memoryDB()
                 .transactionDisable()

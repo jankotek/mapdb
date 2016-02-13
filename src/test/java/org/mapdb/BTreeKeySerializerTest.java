@@ -57,6 +57,21 @@ public class BTreeKeySerializerTest {
         }
     }
 
+    @Test public void testLong3(){
+        BTreeKeySerializer<Long, long[]> keySerializer = BTreeKeySerializer.LONG;
+        final int SIZE = 5;
+        long[] testData = new long[SIZE];
+
+        for(int testDataIndex = 0; testDataIndex < SIZE; testDataIndex++){
+          testData[testDataIndex] = (long)(testDataIndex + 1);
+        }
+
+        for(int testDataIndex = 0; testDataIndex < SIZE; testDataIndex++){
+           assertEquals("The returned data for the indexed key for BTreeKeySerializer did not match the data for the key.",
+               (long)keySerializer.getKey(testData, testDataIndex), testData[testDataIndex]);
+        }
+    }
+
     @Test public void testInt2() throws IOException {
         Object[][] vals = new Object[][]{
                 {Integer.MIN_VALUE,Integer.MAX_VALUE},
@@ -70,6 +85,20 @@ public class BTreeKeySerializerTest {
         }
     }
 
+    @Test public void testInt3(){
+        BTreeKeySerializer<Integer, int[]> keySerializer = BTreeKeySerializer.INTEGER;
+        final int TEST_DATA_SIZE = 5;
+        int[] testData = new int[TEST_DATA_SIZE];
+
+        for(int i = 0; i < TEST_DATA_SIZE; i++){
+          testData[i] = (int)(i + 1);
+        }
+
+        for(int i = 0; i < TEST_DATA_SIZE; i++){
+            assertEquals("The returned data for the indexed key for BTreeKeySerializer did not match the data for the key.", 
+                (long)keySerializer.getKey(testData, i), testData[i]);
+        }
+    }
 
     @Test public void testString(){
 
