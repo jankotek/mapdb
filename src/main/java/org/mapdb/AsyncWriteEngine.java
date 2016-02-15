@@ -423,9 +423,9 @@ public class AsyncWriteEngine extends EngineWrapper implements Engine {
         try {
 
             if(closeInProgress) return;
-            checkState();
-            closeInProgress = true;
             try {
+                checkState();
+                closeInProgress = true;
                 //notify background threads
                 if (!action.compareAndSet(null, new CountDownLatch(0)))
                     throw new AssertionError();
