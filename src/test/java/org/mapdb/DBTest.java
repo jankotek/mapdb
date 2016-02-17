@@ -1,13 +1,17 @@
 package org.mapdb;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mapdb.Atomic.Boolean;
 
 import java.io.*;
 import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.WeakHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -656,4 +660,76 @@ public class DBTest {
         db = DBMaker.fileDB(f).transactionDisable().make();
         s = db.hashSetCreate("set").serializer(new Issue546_SerializableSerializer()).makeOrGet();
     }
+    
+    @Test(expected = IllegalArgumentException.class)
+    public void test_BTreeMapMaker_setNodeSize_throws_exception_when_parameter_exceeds_maximum() {
+        int sizeLargerThanSerializerSizeMask = BTreeMap.NodeSerializer.SIZE_MASK + 1;
+        new DB.BTreeMapMaker("test").nodeSize(sizeLargerThanSerializerSizeMask);
+    }
+
+    @Test(expected = IllegalAccessError.class)
+    public void test_BTreeMapMaker_make_throws_exception_when_no_db_attached(){
+        new DB.BTreeMapMaker("test", null).make();
+    }
+
+    @Test(expected = IllegalAccessError.class)
+    public void test_BTreeMapMaker_makeOrGet_throws_exception_when_no_db_attached(){
+        new DB.BTreeMapMaker("test", null).makeOrGet();
+    }
+
+    @Test public void test_delete() {
+        db.atomicBooleanCreate("test", true);
+        db.delete("test");
+        db.checkNameNotExists("test");
+    }
+
+    @Test public void test_create_delete_createSameName(){
+        db.atomicBooleanCreate("test", true);
+        db.delete("test");
+        db.atomicBooleanCreate("test", true);
+    }
+
+    @Test public void test_exists_returns_false_for_non_existent(){
+        assertFalse("DB should return false from exists method for non-existent object name", db.exists("non_existent"));
+    }
+
+    @Test public void test_exists_returns_true_for_existing(){
+        db.atomicBoolean("test");
+        assertTrue("DB should return true from exists method if the named object exists",db.exists("test"));
+    }
+
+    @Test public void test_getNameForObject() {
+        String objectName = "test";
+        Boolean object = db.atomicBoolean(objectName);
+        assertEquals("getNameForObject should return the name used to create the object", objectName, db.getNameForObject(object));
+    }
+    
+    @Test public void testSerializableOrPlaceHolderString() throws IOException{
+    	//String should be serializable
+    	Object placeHolderEmptyString = db.serializableOrPlaceHolder("");
+    	assertNotEquals("String must be serializable", Fun.PLACEHOLDER, placeHolderEmptyString);
+    }
+
+    @Test public void testSerializableOrPlaceHolderWeakHashMap() throws IOException{
+    	WeakHashMap<String, String> weakHashMap = new WeakHashMap<String, String>();
+    	weakHashMap.put("1", "one");
+    	//A weak hash map is not serializable, so test it
+    	Object placeHolderWeakHashMap = db.serializableOrPlaceHolder(weakHashMap);
+    	assertEquals("Weak HashMap must not be serializable", Fun.PLACEHOLDER, placeHolderWeakHashMap);
+    }
+
+    @Test public void testSerializableOrPlaceHolderTreeMap() throws IOException{
+    	TreeMap<String, String> treeMap = new TreeMap<String, String>();
+    	treeMap.put("Name", "Tree");
+    	//A tree map is serializable, so test it
+    	Object placeHolderTreeMap = db.serializableOrPlaceHolder(treeMap);
+    	assertNotEquals("Tree map must be serializable", Fun.PLACEHOLDER, placeHolderTreeMap);
+    }
+
+    @Test public void testSerializableOrPlaceHolderInteger() throws IOException{
+    	//Integer is serializable, so test it
+    	Object placeHolderInteger = db.serializableOrPlaceHolder(2);
+    	assertNotEquals("Integer must be serializable", Fun.PLACEHOLDER, placeHolderInteger);
+    }
+
 }

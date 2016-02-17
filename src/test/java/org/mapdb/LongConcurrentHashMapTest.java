@@ -11,9 +11,15 @@ package org.mapdb;
 import junit.framework.TestCase;
 
 import java.util.Iterator;
+import java.util.Random;
+
+import org.junit.Test;
+import org.mapdb.LongConcurrentHashMap.LongMapIterator;
+
+import static org.junit.Assert.*;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
-public class LongConcurrentHashMapTest extends TestCase{
+public class LongConcurrentHashMapTest {
 
     /*
      * Create a map from Integers 1-5 to Strings "A"-"E".
@@ -31,21 +37,19 @@ public class LongConcurrentHashMapTest extends TestCase{
         return map;
     }
 
-    /*
+     /*
      *  clear removes all pairs
      */
-    public void testClear() {
+    @Test public void testClear() {
         LongConcurrentHashMap map = map5();
         map.clear();
         assertEquals(map.size(), 0);
     }
 
-
-
     /*
      *  containsKey returns true for contained key
      */
-    public void testContainsKey() {
+    @Test public void testContainsKey() {
         LongConcurrentHashMap map = map5();
         assertTrue(map.containsKey(1));
         assertFalse(map.containsKey(0));
@@ -54,7 +58,7 @@ public class LongConcurrentHashMapTest extends TestCase{
     /*
      *  containsValue returns true for held values
      */
-    public void testContainsValue() {
+    @Test public void testContainsValue() {
         LongConcurrentHashMap map = map5();
         assertTrue(map.containsValue("A"));
         assertFalse(map.containsValue("Z"));
@@ -64,7 +68,7 @@ public class LongConcurrentHashMapTest extends TestCase{
      *   enumeration returns an enumeration containing the correct
      *   elements
      */
-    public void testEnumeration() {
+    @Test public void testEnumeration() {
         LongConcurrentHashMap map = map5();
         Iterator e = map.valuesIterator();
         int count = 0;
@@ -72,14 +76,31 @@ public class LongConcurrentHashMapTest extends TestCase{
             count++;
             e.next();
         }
-        assertEquals(5, count);
+        assertEquals("Sizes do not match.", 5, count);
+    }
+
+    /*
+     * Iterates over LongMap keys and values and checks if the expected and the actual
+     * values are equal.
+     */
+    @Test public void testLongMapIterator() {
+    	LongConcurrentHashMap map = map5();
+    	LongMapIterator mapIterator = map.longMapIterator();
+    	int count = 0;
+    	while(mapIterator.moveToNext()) {
+    		count++;
+    		long key = mapIterator.key();
+    		String expected = Character.toString((char) ('A'+(int)key-1));
+    		assertEquals(expected, mapIterator.value());
+    	}
+    	assertEquals("Sizes do not match.", 5, count);
     }
 
     /*
      *  get returns the correct element at the given key,
      *  or null if not present
      */
-    public void testGet() {
+    @Test public void testGet() {
         LongConcurrentHashMap map = map5();
         assertEquals("A", (String)map.get(1));
         assertNull(map.get(-1));
@@ -88,20 +109,17 @@ public class LongConcurrentHashMapTest extends TestCase{
     /*
      *  isEmpty is true of empty map and false for non-empty
      */
-    public void testIsEmpty() {
+    @Test public void testIsEmpty() {
         LongConcurrentHashMap empty = new LongConcurrentHashMap();
         LongConcurrentHashMap map = map5();
         assertTrue(empty.isEmpty());
         assertFalse(map.isEmpty());
     }
 
-
-
-
     /*
      *   putIfAbsent works when the given key is not present
      */
-    public void testPutIfAbsent() {
+    @Test public void testPutIfAbsent() {
         LongConcurrentHashMap map = map5();
         map.putIfAbsent(6, "Z");
         assertTrue(map.containsKey(6));
@@ -110,7 +128,7 @@ public class LongConcurrentHashMapTest extends TestCase{
     /*
      *   putIfAbsent does not add the pair if the key is already present
      */
-    public void testPutIfAbsent2() {
+    @Test public void testPutIfAbsent2() {
         LongConcurrentHashMap map = map5();
         assertEquals("A", map.putIfAbsent(1, "Z"));
     }
@@ -118,7 +136,7 @@ public class LongConcurrentHashMapTest extends TestCase{
     /*
      *   replace fails when the given key is not present
      */
-    public void testReplace() {
+    @Test public void testReplace() {
         LongConcurrentHashMap map = map5();
         assertNull(map.replace(6, "Z"));
         assertFalse(map.containsKey(6));
@@ -127,17 +145,16 @@ public class LongConcurrentHashMapTest extends TestCase{
     /*
      *   replace succeeds if the key is already present
      */
-    public void testReplace2() {
+    @Test public void testReplace2() {
         LongConcurrentHashMap map = map5();
         assertNotNull(map.replace(1, "Z"));
         assertEquals("Z", map.get(1));
     }
 
-
     /*
      * replace value fails when the given key not mapped to expected value
      */
-    public void testReplaceValue() {
+    @Test public void testReplaceValue() {
         LongConcurrentHashMap map = map5();
         assertEquals("A", map.get(1));
         assertFalse(map.replace(1, "Z", "Z"));
@@ -147,7 +164,7 @@ public class LongConcurrentHashMapTest extends TestCase{
     /*
      * replace value succeeds when the given key mapped to expected value
      */
-    public void testReplaceValue2() {
+    @Test public void testReplaceValue2() {
         LongConcurrentHashMap map = map5();
         assertEquals("A", map.get(1));
         assertTrue(map.replace(1, "A", "Z"));
@@ -158,7 +175,7 @@ public class LongConcurrentHashMapTest extends TestCase{
     /*
      *   remove removes the correct key-value pair from the map
      */
-    public void testRemove() {
+    @Test public void testRemove() {
         LongConcurrentHashMap map = map5();
         map.remove(5);
         assertEquals(4, map.size());
@@ -168,7 +185,7 @@ public class LongConcurrentHashMapTest extends TestCase{
     /*
      * remove(key,value) removes only if pair present
      */
-    public void testRemove2() {
+    @Test public void testRemove2() {
         LongConcurrentHashMap map = map5();
         map.remove(5, "E");
         assertEquals(4, map.size());
@@ -182,66 +199,46 @@ public class LongConcurrentHashMapTest extends TestCase{
     /*
      *   size returns the correct values
      */
-    public void testSize() {
+    @Test public void testSize() {
         LongConcurrentHashMap map = map5();
         LongConcurrentHashMap empty = new LongConcurrentHashMap();
         assertEquals(0, empty.size());
-        assertEquals(5, map.size());
+        assertEquals("Sizes do not match.", 5, map.size());
     }
-
 
     // Exception tests
 
     /*
      * Cannot create with negative capacity
      */
+    @Test (expected = IllegalArgumentException.class)
     public void testConstructor1() {
-        try {
-            new LongConcurrentHashMap(-1,0,1);
-            shouldThrow();
-        } catch(IllegalArgumentException e){}
+    	new LongConcurrentHashMap(-1,0,1);
     }
 
     /*
      * Cannot create with negative concurrency level
      */
+    @Test (expected = IllegalArgumentException.class)
     public void testConstructor2() {
-        try {
-            new LongConcurrentHashMap(1,0,-1);
-            shouldThrow();
-        } catch(IllegalArgumentException e){}
+    	new LongConcurrentHashMap(1,0,-1);
     }
 
     /*
      * Cannot create with only negative capacity
      */
+    @Test (expected = IllegalArgumentException.class)
     public void testConstructor3() {
-        try {
-            new LongConcurrentHashMap(-1);
-            shouldThrow();
-        } catch(IllegalArgumentException e){}
+    	new LongConcurrentHashMap(-1);
     }
-
-
 
     /*
      * containsValue(null) throws NPE
      */
+    @Test (expected = NullPointerException.class)
     public void testContainsValue_NullPointerException() {
-        try {
-            LongConcurrentHashMap c = new LongConcurrentHashMap(5);
-            c.containsValue(null);
-            shouldThrow();
-        } catch(NullPointerException e){}
-    }
-
-
-
-    /*
-     * fail with message "should throw exception"
-     */
-    public void shouldThrow() {
-        fail("Should throw exception");
+    	LongConcurrentHashMap c = new LongConcurrentHashMap(5);
+    	c.containsValue(null);
     }
 
 }

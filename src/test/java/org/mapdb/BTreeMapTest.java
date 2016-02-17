@@ -795,7 +795,45 @@ public class BTreeMapTest{
         assertEquals(4, BTreeKeySerializer.BASIC.findChildren2(n,50));
         assertEquals(-6, BTreeKeySerializer.BASIC.findChildren2(n,51));
     }
+    
+	@Test public void testChildArrayForDirNode() {
+		BTreeMap.DirNode dirNode = new BTreeMap.DirNode(new Object[] { 1, 2, 3 }, false, true, false,
+				mkchild(4, 5, 6, 0));
 
+		assertNotNull("Child array should not be null since it was passed in the constructor", dirNode.childArray());
+	}
+
+	@Test(expected = NullPointerException.class)
+	public void testNullKeyInsertion() {
+		BTreeMap map = new BTreeMap(engine, false,
+				BTreeMap.createRootRef(engine, BTreeKeySerializer.BASIC, Serializer.BASIC, valsOutside, 0), 6,
+				valsOutside, 0, BTreeKeySerializer.BASIC, Serializer.BASIC, 0);
+
+		map.put(null, "NULL VALUE");
+		fail("A NullPointerException should have been thrown since the inserted key was null");
+	}
+
+	@Test(expected = NullPointerException.class)
+	public void testNullValueInsertion() {
+		BTreeMap map = new BTreeMap(engine, false,
+				BTreeMap.createRootRef(engine, BTreeKeySerializer.BASIC, Serializer.BASIC, valsOutside, 0), 6,
+				valsOutside, 0, BTreeKeySerializer.BASIC, Serializer.BASIC, 0);
+
+		map.put(1, null);
+		fail("A NullPointerException should have been thrown since the inserted key value null");
+	}
+
+	@Test public void testUnicodeCharacterKeyInsertion() {
+		BTreeMap map = new BTreeMap(engine, false,
+				BTreeMap.createRootRef(engine, BTreeKeySerializer.BASIC, Serializer.BASIC, valsOutside, 0), 6,
+				valsOutside, 0, BTreeKeySerializer.BASIC, Serializer.BASIC, 0);
+
+		map.put('\u00C0', '\u00C0');
+		
+		assertEquals("unicode character value entered against the unicode character key could not be retrieved",
+				'\u00C0', map.get('\u00C0'));
+	}
+    
 }
 
 

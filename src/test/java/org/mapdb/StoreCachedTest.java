@@ -2,12 +2,16 @@ package org.mapdb;
 
 
 import org.junit.Test;
+import org.mapdb.DBException.DataCorruption;
+import org.mapdb.Store.LongObjectMap;
+
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.locks.LockSupport;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 @SuppressWarnings({"rawtypes","unchecked"})
 public class
@@ -100,5 +104,54 @@ public class
             e.close();
         }
     }
+    
+	@Test public void test_assertLongStackPage_throws_exception_when_offset_lessthan_page_size() {
+		e = openEngine();
+		for (long offset = 0; offset < StoreDirect.PAGE_SIZE; offset++) {
+			try {
+				e.assertLongStackPage(offset, null);
+				fail("DataCorruption exception was expected, but not thrown. " + "Offset=" + offset + ", PAGE_SIZE="
+						+ StoreDirect.PAGE_SIZE);
+			} catch (DBException.DataCorruption dbe) {
+
+			} 
+		}
+		e.assertLongStackPage(StoreDirect.PAGE_SIZE, new byte[16]);
+	}
+	
+	@Test public void test_assertLongStackPage_throws_exception_when_parameter_length_not_multiple_of_16() {
+		e = openEngine();
+		for (int parameterLength = 1; parameterLength < 16; parameterLength++) {
+			try {
+				e.assertLongStackPage(StoreDirect.PAGE_SIZE, new byte[parameterLength]);
+				fail("Assertion error was expected but not thrown " + "Parameter length=" + parameterLength);
+			} catch (AssertionError ae) {
+
+			}
+		}
+		e.assertLongStackPage(StoreDirect.PAGE_SIZE, new byte[16]);
+	}
+	
+	@Test(expected = DataCorruption.class)
+	public void test_assertLongStackPage_throws_exception_when_parameter_length_is_zero() {
+		e = openEngine();
+		e.assertLongStackPage(StoreDirect.PAGE_SIZE, new byte[0]);
+	}
+	
+	@Test(expected = DataCorruption.class)
+	public void test_assertLongStackPage_throws_exception_when_parameter_length_exceeds_maximum() {
+		e = openEngine();
+		e.assertLongStackPage(StoreDirect.PAGE_SIZE, new byte[StoreDirect.MAX_REC_SIZE + 1]);
+	}
+	
+	@Test(expected = AssertionError.class)
+	public void test_assertNoOverlaps_throws_exception_when_overlaps_exist() {
+		e = openEngine();
+		LongObjectMap<byte[]> pages = new LongObjectMap<byte[]>();
+		pages.put(1, new byte[2]);
+		pages.put(3, new byte[2]);
+		pages.put(4, new byte[1]);
+		e.assertNoOverlaps(pages);
+	}
 
 }

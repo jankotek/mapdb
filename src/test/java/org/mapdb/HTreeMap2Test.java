@@ -3,10 +3,14 @@ package org.mapdb;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mapdb.HTreeMap.KeyIterator;
+import org.mapdb.HTreeMap.LinkedNode;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.*;
@@ -576,6 +580,93 @@ public class HTreeMap2Test {
         assertEquals(new Integer(500), m.get(5));
         assertEquals(1,c.get());
     }
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testNullKeyInsertion() {
+		Engine[] engines = HTreeMap.fillEngineArray(engine);
+		HTreeMap map = new HTreeMap(engines, false, null, 0, HTreeMap.preallocateSegments(engines), Serializer.BASIC,
+				Serializer.BASIC, 0, 0, 0, 0, 0, 0, null, null, null, null, 0L, false, null);
+
+		map.put(null, "NULL VALUE");
+		fail("A NullPointerException should have been thrown since the inserted key was null");
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testNullValueInsertion() {
+		Engine[] engines = HTreeMap.fillEngineArray(engine);
+		HTreeMap map = new HTreeMap(engines, false, null, 0, HTreeMap.preallocateSegments(engines), Serializer.BASIC,
+				Serializer.BASIC, 0, 0, 0, 0, 0, 0, null, null, null, null, 0L, false, null);
+
+		map.put("Test", null);
+		fail("A NullPointerException should have been thrown since the inserted value was null");
+	}
+
+	@Test public void testUnicodeCharacterKeyInsertion() {
+		Engine[] engines = HTreeMap.fillEngineArray(engine);
+		HTreeMap map = new HTreeMap(engines, false, null, 0, HTreeMap.preallocateSegments(engines), Serializer.BASIC,
+				Serializer.BASIC, 0, 0, 0, 0, 0, 0, null, null, null, null, 0L, false, null);
+
+		map.put('\u00C0', '\u00C0');
+		
+		assertEquals("unicode character value entered against the unicode character key could not be retrieved",
+				'\u00C0', map.get('\u00C0'));
+		
+		map.close();
+	}
+
+ 
+	@Test public void testAdvanceForHahsIterator()
+			throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+		HTreeMap map = null;
+		try {
+			Engine[] engines = HTreeMap.fillEngineArray(engine);
+			map = new HTreeMap(engines, false, null, 0, HTreeMap.preallocateSegments(engines), Serializer.BASIC,
+					Serializer.BASIC, 0, 0, 0, 0, 0, 0, null, null, null, null, 0L, false, null);
+
+			map.put("a", 1);
+			map.put("b", 2);
+
+			HTreeMap.HashIterator iterator = (KeyIterator) map.keySet().iterator();
+
+			Class<?> iteratorClass = HTreeMap.HashIterator.class;
+			Method methods[] = iteratorClass.getDeclaredMethods();
+			for (Method method : methods) {
+				if ("advance".equals(method.getName())) {
+					method.setAccessible(true);
+					LinkedNode nextNodes[] = (LinkedNode[]) method.invoke(iterator, 0);
+					assertEquals("There should've been exactly one next node", 1, nextNodes.length);
+					assertEquals(
+							"advance() should've returned the first entry from the iterator, " + "but key didn't match",
+							"a", nextNodes[0].key);
+					assertEquals("advance() should've returned the first entry from the iterator, "
+							+ "but value didn't match", 1, nextNodes[0].value);
+				}
+			}
+		} finally {
+			if (map != null) {
+				map.close();
+			}
+		}
+	}
+	
+	@Test public void testIsEmpty() {
+		HTreeMap map = null;
+		try {
+			Engine[] engines = HTreeMap.fillEngineArray(engine);
+			map = new HTreeMap(engines, false, null, 0, HTreeMap.preallocateSegments(engines), Serializer.BASIC,
+					Serializer.BASIC, 0, 0, 0, 0, 0, 0, null, null, null, null, 0L, false, null);
+			assertTrue("Map should be empty just after creation", map.isEmpty());
+			Long key = Long.valueOf(1);
+			map.put(key, 100);
+			assertFalse("Map should not be empty after adding an entry", map.isEmpty());
+			map.remove(key);
+			assertTrue("Map should be empty after removing the only entry", map.isEmpty());
+		} finally {
+			if (map != null) {
+				map.close();
+			}
+		}
+	}
 }
 
 

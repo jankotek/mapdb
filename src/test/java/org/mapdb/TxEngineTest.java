@@ -3,6 +3,8 @@ package org.mapdb;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Map;
 
 import static org.junit.Assert.*;
@@ -109,5 +111,52 @@ public class TxEngineTest {
 //            }});
 //        }
 //    }
+    
+	@Test public void testCreateSnapshotFor_retruns_same_reference_when_readonly() throws IOException {
+        File tmpFile = File.createTempFile("mapdbTest","mapdb");
+        DB db = DBMaker.fileDB(tmpFile).make();
+        db.close();
+        Engine readonlyEngine = DBMaker.fileDB(tmpFile).readOnly().deleteFilesAfterClose().makeEngine();
+		Engine snapshot = TxEngine.createSnapshotFor(readonlyEngine);
+		assertSame("createSnapshotFor should return passed parameter itself if it is readonly", readonlyEngine,
+				snapshot);
+	}
+    
+	
+	@Test(expected = UnsupportedOperationException.class)
+	public void testCreateSnapshotFor_throws_exception_when_snapshots_disabled() throws IOException {
+		Engine nonSnapshottableEngine = DBMaker.memoryDB().makeEngine();
+		TxEngine.createSnapshotFor(nonSnapshottableEngine);
+		fail("An UnsupportedOperationException should have occurred by now as snaphosts are disabled for the parameter");
+	}
+
+	@Test public void testCanSnapshot(){
+		assertTrue("TxEngine should be snapshottable", e.canSnapshot());
+	}
+	
+	@Test public void preallocate_get_update_delete_update_get() {
+		//test similar to EngineTest#preallocate_get_update_delete_update_get
+		long recid = e.preallocate();
+		assertNull("There should be no value for preallocated record id", e.get(recid, Serializer.ILLEGAL_ACCESS));
+		e.update(recid, 1L, Serializer.LONG);
+		assertEquals("Update call should update value at preallocated record id", (Long) 1L,
+				e.get(recid, Serializer.LONG));
+		e.delete(recid, Serializer.LONG);
+		assertNull("Get should return null for a record id whose value was deleted",
+				e.get(recid, Serializer.ILLEGAL_ACCESS));
+		e.update(recid, 1L, Serializer.LONG);
+		assertEquals("Update call should update value at record id with deleted value", (Long) 1L,
+				e.get(recid, Serializer.LONG));
+	}
+	
+    @Test public void rollback(){
+    	//test similar to EngineTest#rollback
+        long recid = e.put("aaa", Serializer.STRING_NOSIZE);
+        e.commit();
+        e.update(recid, "bbb", Serializer.STRING_NOSIZE);
+        e.rollback();
+		assertEquals("Uncommitted changes should be rolled back when rollback is called", "aaa",
+				e.get(recid, Serializer.STRING_NOSIZE));
+    }
 
 }
