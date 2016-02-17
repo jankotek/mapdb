@@ -14,20 +14,28 @@ public class Issue656Test {
         DBMaker.Maker m = DBMaker.tempFileDB();
         DB db = m.make();
 
-        //Build a map with the counterEnable option
-        Map<Object, Object> mCounterEnabled = db.hashMapCreate("mCounterEnabled")
-                .counterEnable()
-                .makeOrGet();
-        mCounterEnabled.put(1, 1);
-        assertEquals(1,mCounterEnabled.size());
-        assertEquals(false, mCounterEnabled.isEmpty());
+        {
+            //Build a map with the counterEnable option
+            Map<Object, Object> mCounterEnabled = db.hashMapCreate("mCounterEnabled")
+                    .counterEnable()
+                    .makeOrGet();
 
-        //Build a map without the counterEnable option
-        Map<Object, Object> mCounterDisabled = db.hashMapCreate("mCounterDisabled")
-                .makeOrGet();
-        mCounterDisabled.put(1, 1);
+            assertEquals(true, mCounterEnabled.isEmpty());
+            mCounterEnabled.put(1, 1);
+            assertEquals(1, mCounterEnabled.size());
+            assertEquals(false, mCounterEnabled.isEmpty());
+        }
 
-        assertEquals(1,mCounterDisabled.size());
-        assertEquals(false, mCounterDisabled.isEmpty());
+        {
+            //Build a map without the counterEnable option
+            Map<Object, Object> mCounterDisabled = db.hashMapCreate("mCounterDisabled")
+                    .makeOrGet();
+
+            assertEquals(true, mCounterDisabled.isEmpty());
+            mCounterDisabled.put(1, 1);
+
+            assertEquals(1, mCounterDisabled.size());
+            assertEquals(false, mCounterDisabled.isEmpty());
+        }
     }
 }

@@ -543,7 +543,7 @@ public class HTreeMap<K,V>
     public boolean isEmpty() {
         if(counterRecids!=null){
             for(int i=0;i<counterRecids.length;i++){
-                if(0==engines[i].get(counterRecids[i],Serializer.LONG))
+                if(0L!=engines[i].get(counterRecids[i],Serializer.LONG).longValue())
                     return false;
             }
             return true;
