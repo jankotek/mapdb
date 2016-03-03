@@ -35,6 +35,7 @@
 
     <properties>
         <kotlin.version>1.0.0</kotlin.version>
+        <dokka.version>0.9.7</dokka.version>
 
         <java.target.version>1.8</java.target.version>
         <java.source.version>1.8</java.source.version>
@@ -245,11 +246,39 @@
                     </filesets>
                 </configuration>
             </plugin>
-        </plugins>
 
+
+            <plugin>
+                <groupId>org.jetbrains.dokka</groupId>
+                <artifactId>dokka-maven-plugin</artifactId>
+                <version>${dokka.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>dokka</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <sourceLinks>
+                        <link>
+                            <dir>src/main/java</dir>
+                            <url>http://github.com/jankotek/mapdb</url>
+                        </link>
+                    </sourceLinks>
+                </configuration>
+            </plugin>
+        </plugins>
 
     </build>
 
+    <pluginRepositories>
+        <pluginRepository>
+            <id>jcenter</id>
+            <name>JCenter</name>
+            <url>https://jcenter.bintray.com/</url>
+        </pluginRepository>
+    </pluginRepositories>
 
     <parent>
         <groupId>org.sonatype.oss</groupId>
