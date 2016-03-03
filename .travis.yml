@@ -4,7 +4,7 @@ cache:
   - $HOME/.m2
 
 jdk:
-  - openjdk8
+  - oraclejdk8
 
 install: true
 
