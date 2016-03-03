@@ -4,6 +4,8 @@ package org.mapdb;/*
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
+import org.mapdb.jsr166Tests.JSR166TestCase;
+
 import java.io.Serializable;
 import java.util.*;
 
@@ -37,9 +39,9 @@ public class BTreeMapSubSetTest extends JSR166TestCase {
         return s;
     }
 
-    protected <E> NavigableSet<E> newNavigableSet() {
-        return DBMaker.memoryDB().transactionDisable()
-                .make().treeSetCreate("test").serializer(Serializer.INTEGER).make();
+    protected NavigableSet<Integer> newNavigableSet() {
+        return DBMaker.memoryDB()
+                .make().treeSet("test").serializer(Serializer.INTEGER).make();
     }
 
     /*

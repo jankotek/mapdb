@@ -10,8 +10,8 @@ public class AtomicStringTest extends TestCase {
 
     @Override
     protected void setUp() throws Exception {
-        db = DBMaker.memoryDB().transactionDisable().make();
-        ai = db.atomicStringCreate("test", "test");
+        db = DBMaker.memoryDB().make();
+        ai = db.atomicString("test", "test").create();
     }
 
     @Override
@@ -31,8 +31,8 @@ public class AtomicStringTest extends TestCase {
      * default constructed initializes to empty string
      */
     public void testConstructor2() {
-        Atomic.String ai = db.atomicString("test2");
-        assertEquals("", ai.get());
+        Atomic.String ai = db.atomicString("test2").create();
+        assertEquals(null, ai.get());
     }
 
     /*

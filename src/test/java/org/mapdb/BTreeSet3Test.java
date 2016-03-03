@@ -6,6 +6,8 @@ package org.mapdb;
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
+import org.mapdb.jsr166Tests.JSR166TestCase;
+
 import java.util.*;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -23,7 +25,7 @@ public class BTreeSet3Test extends JSR166TestCase {
      */
     private NavigableSet<Integer> populatedSet(int n) {
         NavigableSet<Integer> q =
-                DBMaker.memoryDB().transactionDisable().make().treeSetCreate("test").serializer(Serializer.INTEGER).make();
+                DBMaker.memoryDB().make().treeSet("test").serializer(Serializer.INTEGER).make();
         assertTrue(q.isEmpty());
 
         for (int i = n-1; i >= 0; i-=2)
@@ -43,7 +45,7 @@ public class BTreeSet3Test extends JSR166TestCase {
      */
     private NavigableSet set5() {
         NavigableSet q =
-                DBMaker.memoryDB().transactionDisable().make().treeSetCreate("test").serializer(Serializer.INTEGER).make();
+                DBMaker.memoryDB().make().treeSet("test").serializer(Serializer.INTEGER).make();
         assertTrue(q.isEmpty());
         q.add(one);
         q.add(two);
@@ -61,7 +63,7 @@ public class BTreeSet3Test extends JSR166TestCase {
      * Returns a new set of first 5 negative ints.
      */
     private NavigableSet dset5() {
-        NavigableSet q = DBMaker.memoryDB().transactionDisable().make().treeSet("test");
+        NavigableSet q = DBMaker.memoryDB().make().treeSet("test").make();
         assertTrue(q.isEmpty());
         q.add(m1);
         q.add(m2);
@@ -75,14 +77,14 @@ public class BTreeSet3Test extends JSR166TestCase {
 
     private static NavigableSet set0() {
         NavigableSet set =
-                DBMaker.memoryDB().transactionDisable().make().treeSetCreate("test").serializer(Serializer.INTEGER).make();
+                DBMaker.memoryDB().make().treeSet("test").serializer(Serializer.INTEGER).make();
         assertTrue(set.isEmpty());
         return set.tailSet(m1, true);
     }
 
     private static NavigableSet dset0() {
         NavigableSet set =
-                DBMaker.memoryDB().transactionDisable().make().treeSetCreate("test").serializer(Serializer.INTEGER).make();
+                DBMaker.memoryDB().make().treeSet("test").serializer(Serializer.INTEGER).make();
         assertTrue(set.isEmpty());
         return set;
     }

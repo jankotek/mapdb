@@ -15,8 +15,8 @@ public class AtomicBooleanTest extends TestCase{
 
     @Override
     protected void setUp() throws Exception {
-        db = DBMaker.memoryDB().transactionDisable().make();
-        ai= db.atomicBooleanCreate("test", true);;
+        db = DBMaker.memoryDB().make();
+        ai= db.atomicBoolean("test", true).create();
     }
 
     @Override
@@ -36,7 +36,7 @@ public class AtomicBooleanTest extends TestCase{
      * default constructed initializes to false
      */
     public void testConstructor2() {
-        Atomic.Boolean ai = db.atomicBoolean("test2");
+        Atomic.Boolean ai = db.atomicBoolean("test2").create();
         assertEquals(false,ai.get());
     }
 
@@ -98,7 +98,7 @@ public class AtomicBooleanTest extends TestCase{
      * toString returns current value.
      */
     public void testToString() {
-        Atomic.Boolean ai = db.atomicBoolean("test2");
+        Atomic.Boolean ai = db.atomicBoolean("test2").create();
         assertEquals(ai.toString(), Boolean.toString(false));
         ai.set(true);
         assertEquals(ai.toString(), Boolean.toString(true));

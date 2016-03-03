@@ -65,14 +65,17 @@ public class BTreeMapExtendTest extends TestCase {
     Object objArray[] = new Object[1000];
 
     protected BTreeMap newBTreeMap() {
-        return DBMaker.memoryDB().transactionDisable().make().treeMap("Test");
+        return DBMaker.memoryDB().make().treeMap("Test", Serializer.STRING, Serializer.INTEGER).create();
     }
 
 
     public static class Outside extends BTreeMapExtendTest{
         @Override protected BTreeMap newBTreeMap() {
-            return DBMaker.memoryDB().transactionDisable().make()
-                    .treeMapCreate("Test").valuesOutsideNodesEnable().make();
+            return DBMaker.memoryDB().make()
+                    .treeMap("Test", Serializer.STRING, Serializer.INTEGER)
+                    //TODO enable this once external values are supported
+                    // .valuesOutsideNodesEnable()
+                    .create();
         }
 
     }
@@ -101,25 +104,25 @@ public class BTreeMapExtendTest extends TestCase {
         assertNull(treeMap.lastEntry());
 
         try {
-            treeMap.ceilingKey(1);
+            treeMap.ceilingKey("1");
         } catch (NoSuchElementException e) {
             // Expected
         }
-        assertNull(treeMap.ceilingEntry(1));
+        assertNull(treeMap.ceilingEntry("1"));
 
         try {
-            treeMap.floorKey(1);
+            treeMap.floorKey("1");
         } catch (NoSuchElementException e) {
             // Expected
         }
-        assertNull(treeMap.floorEntry(1));
-        assertNull(treeMap.lowerKey(1));
-        assertNull(treeMap.lowerEntry(1));
-        assertNull(treeMap.higherKey(1));
-        assertNull(treeMap.higherEntry(1));
-        assertFalse(treeMap.containsKey(1));
-        assertFalse(treeMap.containsValue(1));
-        assertNull(treeMap.get(1));
+        assertNull(treeMap.floorEntry("1"));
+        assertNull(treeMap.lowerKey("1"));
+        assertNull(treeMap.lowerEntry("1"));
+        assertNull(treeMap.higherKey("1"));
+        assertNull(treeMap.higherEntry("1"));
+        assertFalse(treeMap.containsKey("1"));
+        assertFalse(treeMap.containsValue("1"));
+        assertNull(treeMap.get("1"));
 
         assertNull(treeMap.pollFirstEntry());
         assertNull(treeMap.pollLastEntry());
@@ -7503,7 +7506,7 @@ public class BTreeMapExtendTest extends TestCase {
 
     @Override
     protected void tearDown() {
-        tm.engine.close();
+        tm.getStore().close();
         tm = null;
         tm_comparator = null;
 
@@ -7769,8 +7772,8 @@ public class BTreeMapExtendTest extends TestCase {
 
     public void test_headMap() throws Exception {
         BTreeMap tree = newBTreeMap();
-        tree.put(new Integer(0), "11");
-        tree.put(new Integer(1), "ads");
+        tree.put("11", new Integer(0));
+        tree.put("ads", new Integer(1));
         Map submap = tree.subMap(tree.firstKey(), tree.lastKey());
         tree.remove(tree.lastKey());
         assertEquals(submap, tree);

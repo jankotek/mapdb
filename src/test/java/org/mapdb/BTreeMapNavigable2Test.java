@@ -31,13 +31,17 @@ public  class BTreeMapNavigable2Test extends TestCase
     }
 
     protected NavigableMap<Integer, String> newMap() {
-        return DBMaker.memoryDB().transactionDisable().make().treeMapCreate("map").make();
+        return DBMaker.memoryDB().make().treeMap("map",Serializer.INTEGER, Serializer.STRING).create();
     }
 
 
     public static class Outside extends BTreeMapNavigable2Test{
         @Override protected NavigableMap<Integer, String> newMap() {
-            return DBMaker.memoryDB().transactionDisable().make().treeMapCreate("map").valuesOutsideNodesEnable().make();
+            return DBMaker.memoryDB().make()
+					.treeMap("map",Serializer.INTEGER, Serializer.STRING)
+					//TODO enable external vals, once enabled
+			        // .valuesOutsideNodesEnable()
+					.create();
         }
     }
 

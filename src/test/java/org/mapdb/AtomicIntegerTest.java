@@ -16,8 +16,8 @@ public class AtomicIntegerTest extends TestCase {
 
     @Override
     protected void setUp() throws Exception {
-        db = DBMaker.memoryDB().transactionDisable().make();
-        ai = db.atomicIntegerCreate("test", 1);
+        db = DBMaker.memoryDB().make();
+        ai = db.atomicInteger("test", 1).createOrOpen();
     }
 
     @Override
@@ -37,7 +37,7 @@ public class AtomicIntegerTest extends TestCase {
      * default constructed initializes to zero
      */
     public void testConstructor2(){
-        Atomic.Integer  ai = db.atomicInteger("test2");
+        Atomic.Integer  ai = db.atomicInteger("test2").createOrOpen();
         assertEquals(0,ai.get());
     }
 

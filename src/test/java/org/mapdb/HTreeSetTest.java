@@ -22,6 +22,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
@@ -38,38 +39,27 @@ import static org.junit.Assert.assertTrue;
 @SuppressWarnings({"unchecked","rawtypes"})
 public class HTreeSetTest{
 
-    Store engine;
+    DB db;
 
     Set hs;
 
-    static Object[] objArray;
+    Object[] objArray;
 
-    static {
+    {
         objArray = new Object[1000];
         for (int i = 0; i < objArray.length; i++)
             objArray[i] = i;
     }
 
     @Before public void init(){
-        engine =  new StoreDirect(null);
-        engine.init();
-        Engine[] engines = HTreeMap.fillEngineArray(engine);
-        hs = new HTreeMap(engines,
-                false, null, 0,HTreeMap.preallocateSegments(engines),Serializer.BASIC,null,0,0,0,0,0,0,null,null,null,null, 0L, false, null).keySet();
+        db = DBMaker.memoryDB().make();
+        hs = db.treeSet("set1").make();
         Collections.addAll(hs, objArray);
-    }
-
-    @Test public void test_Constructor() {
-        // Test for method java.util.HashSet()
-        Engine[] engines = HTreeMap.fillEngineArray(engine);
-        Set hs2 = new HTreeMap(engines,
-                false, null,0,HTreeMap.preallocateSegments(engines),Serializer.BASIC,null,0,0,0,0,0,0,null,null,null,null,0L, false, null).keySet();
-        assertEquals("Created incorrect HashSet", 0, hs2.size());
     }
 
     @After
     public void close(){
-        engine.close();
+        db.close();
     }
 
 
@@ -105,9 +95,7 @@ public class HTreeSetTest{
 
     @Test public void test_isEmpty() {
         // Test for method boolean java.util.HashSet.isEmpty()
-        Engine[] engines = HTreeMap.fillEngineArray(engine);
-        assertTrue("Empty set returned false", new HTreeMap(engines,
-                false, null,0,HTreeMap.preallocateSegments(engines),Serializer.BASIC,null,0,0,0,0,0,0,null,null,null,null,0L, false,null).keySet().isEmpty());
+        assertTrue("Empty set returned false", db.treeSet("set2").make().isEmpty());
         assertTrue("Non-empty set returned true", !hs.isEmpty());
     }
 
@@ -143,10 +131,11 @@ public class HTreeSetTest{
 
 
     @Test public void issue116_isEmpty(){
-        Set s = DBMaker.fileDB(TT.tempDbFile())
-                .transactionDisable()
+        File f = TT.tempFile();
+        Set s = DBMaker.fileDB(f.getPath())
                 .make()
-                .hashSet("name");
+                .hashSet("name")
+                .make();
         assertTrue(s.isEmpty());
         assertEquals(0,s.size());
         s.add("aa");
@@ -155,6 +144,7 @@ public class HTreeSetTest{
         s.remove("aa");
         assertTrue(s.isEmpty());
         assertEquals(0,s.size());
+        f.delete();
     }
 
 }

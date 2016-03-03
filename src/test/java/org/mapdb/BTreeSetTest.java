@@ -10,11 +10,9 @@ public class BTreeSetTest extends HTreeSetTest{
 
 	@Before
     public void setUp() throws Exception {
+        db = DBMaker.memoryDB().make();
 
-        hs = new BTreeMap(engine,false,
-                BTreeMap.createRootRef(engine,BTreeKeySerializer.BASIC,null,false, 0),
-                6,false,0, BTreeKeySerializer.BASIC,null,
-                0).keySet();
+        hs = db.treeSet("name").make();
 
         Collections.addAll(hs, objArray);
     }

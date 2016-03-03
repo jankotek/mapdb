@@ -110,11 +110,11 @@ final public class Atomic {
 
 		private static final long serialVersionUID = 4615119399830853054L;
 		
-		protected final Engine engine;
+		protected final Store store;
         protected final long recid;
 
-        public Integer(Engine engine, long recid) {
-            this.engine = engine;
+        public Integer(Store store, long recid) {
+            this.store = store;
             this.recid = recid;
         }
 
@@ -131,7 +131,7 @@ final public class Atomic {
          * @return the current value
          */
         public final int get() {
-            return engine.get(recid, Serializer.INTEGER);
+            return store.get(recid, Serializer.INTEGER);
         }
 
         /**
@@ -140,7 +140,7 @@ final public class Atomic {
          * @param newValue the new value
          */
         public final void set(int newValue) {
-            engine.update(recid, newValue, Serializer.INTEGER);
+            store.update(recid, newValue, Serializer.INTEGER);
         }
 
 
@@ -172,7 +172,7 @@ final public class Atomic {
          * the actual value was not equal to the expected value.
          */
         public final boolean compareAndSet(int expect, int update) {
-            return engine.compareAndSwap(recid, expect, update, Serializer.INTEGER);
+            return store.compareAndSwap(recid, expect, update, Serializer.INTEGER);
         }
 
 
@@ -332,11 +332,11 @@ final public class Atomic {
 
 		private static final long serialVersionUID = 2882620413591274781L;
 		
-		protected final Engine engine;
+		protected final Store store;
         protected final long recid;
 
-        public Long(Engine engine, long recid) {
-            this.engine = engine;
+        public Long(Store store, long recid) {
+            this.store = store;
             this.recid = recid;
         }
 
@@ -354,7 +354,7 @@ final public class Atomic {
          * @return the current value
          */
         public final long get() {
-            return engine.get(recid, Serializer.LONG);
+            return store.get(recid, Serializer.LONG);
         }
 
         /**
@@ -363,7 +363,7 @@ final public class Atomic {
          * @param newValue the new value
          */
         public final void set(long newValue) {
-            engine.update(recid, newValue, Serializer.LONG);
+            store.update(recid, newValue, Serializer.LONG);
         }
 
 
@@ -396,7 +396,7 @@ final public class Atomic {
          * the actual value was not equal to the expected value.
          */
         public final boolean compareAndSet(long expect, long update) {
-            return engine.compareAndSwap(recid, expect, update, Serializer.LONG);
+            return store.compareAndSwap(recid, expect, update, Serializer.LONG);
         }
 
 
@@ -549,11 +549,11 @@ final public class Atomic {
      */
     public final static class Boolean {
 
-        protected final Engine engine;
+        protected final Store store;
         protected final long recid;
 
-        public Boolean(Engine engine, long recid) {
-            this.engine = engine;
+        public Boolean(Store store, long recid) {
+            this.store = store;
             this.recid = recid;
         }
 
@@ -571,7 +571,7 @@ final public class Atomic {
          * @return the current value
          */
         public final boolean get() {
-            return engine.get(recid, Serializer.BOOLEAN);
+            return store.get(recid, Serializer.BOOLEAN);
         }
 
         /**
@@ -584,7 +584,7 @@ final public class Atomic {
          * the actual value was not equal to the expected value.
          */
         public final boolean compareAndSet(boolean expect, boolean update) {
-            return engine.compareAndSwap(recid, expect, update, Serializer.BOOLEAN);
+            return store.compareAndSwap(recid, expect, update, Serializer.BOOLEAN);
         }
 
 
@@ -594,7 +594,7 @@ final public class Atomic {
          * @param newValue the new value
          */
         public final void set(boolean newValue) {
-            engine.update(recid, newValue, Serializer.BOOLEAN);
+            store.update(recid, newValue, Serializer.BOOLEAN);
         }
 
 
@@ -632,11 +632,11 @@ final public class Atomic {
     */
     public final static class String{
 
-        protected final Engine engine;
+        protected final Store store;
         protected final long recid;
 
-        public String(Engine engine, long recid) {
-            this.engine = engine;
+        public String(Store store, long recid) {
+            this.store = store;
             this.recid = recid;
         }
 
@@ -658,7 +658,7 @@ final public class Atomic {
          * @return the current value
          */
         public final java.lang.String get() {
-            return engine.get(recid, Serializer.STRING_NOSIZE);
+            return store.get(recid, Serializer.STRING_NOSIZE);
         }
 
         /**
@@ -671,7 +671,7 @@ final public class Atomic {
          * the actual value was not equal to the expected value.
          */
         public final boolean compareAndSet(java.lang.String expect, java.lang.String update) {
-            return engine.compareAndSwap(recid, expect, update, Serializer.STRING_NOSIZE);
+            return store.compareAndSwap(recid, expect, update, Serializer.STRING_NOSIZE);
         }
 
 
@@ -681,7 +681,7 @@ final public class Atomic {
          * @param newValue the new value
          */
         public final void set(java.lang.String newValue) {
-            engine.update(recid, newValue, Serializer.STRING_NOSIZE);
+            store.update(recid, newValue, Serializer.STRING_NOSIZE);
         }
 
 
@@ -711,23 +711,23 @@ final public class Atomic {
      */
     public static final class Var<E> {
 
-        protected final Engine engine;
+        protected final Store store;
         protected final long recid;
         protected final Serializer<E> serializer;
 
-        public Var(Engine engine, long recid, Serializer<E> serializer) {
-            this.engine = engine;
+        public Var(Store store, long recid, Serializer<E> serializer) {
+            this.store = store;
             this.recid = recid;
             this.serializer = serializer;
         }
-
-        /* used for deserialization */
-        protected Var(Engine engine, SerializerBase serializerBase, DataInput is, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
-            objectStack.add(this);
-            this.engine = engine;
-            this.recid = DataIO.unpackLong(is);
-            this.serializer = (Serializer<E>) serializerBase.deserialize(is,objectStack);
-        }
+//
+//        /* used for deserialization */
+//        protected Var(Store store, SerializerBase serializerBase, DataInput is, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
+//            objectStack.add(this);
+//            this.store = store;
+//            this.recid = DBUtil.unpackLong(is);
+//            this.serializer = (Serializer<E>) serializerBase.deserialize(is,objectStack);
+//        }
 
         /**
          * @return recid under which value is saved
@@ -748,7 +748,7 @@ final public class Atomic {
          * @return the current value
          */
         public final E get() {
-            return engine.get(recid, serializer);
+            return store.get(recid, serializer);
         }
 
         /**
@@ -761,7 +761,7 @@ final public class Atomic {
          * the actual value was not equal to the expected value.
          */
         public final boolean compareAndSet(E expect, E update) {
-            return engine.compareAndSwap(recid, expect, update, serializer);
+            return store.compareAndSwap(recid, expect, update, serializer);
         }
 
 
@@ -771,7 +771,7 @@ final public class Atomic {
          * @param newValue the new value
          */
         public final void set(E newValue) {
-            engine.update(recid, newValue, serializer);
+            store.update(recid, newValue, serializer);
         }
 
 
