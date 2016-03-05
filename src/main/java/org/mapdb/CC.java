@@ -37,4 +37,7 @@ public interface CC{
     int HTREEMAP_CONC_SHIFT = 3;
     int HTREEMAP_DIR_SHIFT = 4;
     int HTREEMAP_LEVELS = 4;
+
+    int INDEX_TREE_LONGLONGMAP_DIR_SHIFT = 7;
+    int INDEX_TREE_LONGLONGMAP_LEVELS = 4;
 }

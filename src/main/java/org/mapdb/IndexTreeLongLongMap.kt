@@ -55,8 +55,8 @@ public class IndexTreeLongLongMap(
         fun make(
                 store:Store = StoreTrivial(),
                 rootRecid:Long = store.put(dirEmpty(), dirSer),
-                dirShift: Int = CC.HTREEMAP_DIR_SHIFT,
-                levels:Int = CC.HTREEMAP_LEVELS,
+                dirShift: Int = CC.INDEX_TREE_LONGLONGMAP_DIR_SHIFT,
+                levels:Int = CC.INDEX_TREE_LONGLONGMAP_LEVELS,
                 collapseOnRemove: Boolean = true
         ) = IndexTreeLongLongMap(
                 store = store,

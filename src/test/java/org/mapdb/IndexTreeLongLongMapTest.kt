@@ -13,6 +13,17 @@ import kotlin.test.assertFailsWith
 
 class IndexTreeLongLongMapTest{
 
+    @Test fun defaultSize(){
+
+        val maxSize = Math.pow(1L.shl(CC.INDEX_TREE_LONGLONGMAP_DIR_SHIFT).toDouble(),CC.INDEX_TREE_LONGLONGMAP_LEVELS.toDouble())
+        val expected = 100L * 1024*1024
+        assertTrue(maxSize> expected)
+        val map = IndexTreeLongLongMap.make()
+        map.put(expected, 100L)
+        assertEquals(1, map.size())
+        assertEquals(100L, map.get(expected))
+    }
+
     @Test fun get_Set(){
         val map = IndexTreeLongLongMap.make()
 
