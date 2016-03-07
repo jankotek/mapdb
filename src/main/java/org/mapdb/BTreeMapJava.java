@@ -132,6 +132,7 @@ public class BTreeMapJava {
 
             if(CC.ASSERT && value.flags>>>4!=0)
                 throw new AssertionError();
+            int keysLenOrig = keySerializer.valueArraySize(value.keys);
             int keysLen = keySerializer.valueArraySize(value.keys)<<4;
             keysLen += value.flags;
             keysLen = DBUtil.parity1Set(keysLen<<1);
@@ -140,7 +141,8 @@ public class BTreeMapJava {
             out.packInt(keysLen);
             if(!value.isRightEdge())
                 out.packLong(value.link);
-            keySerializer.valueArraySerialize(out, value.keys);
+            if(keysLenOrig>0)
+                keySerializer.valueArraySerialize(out, value.keys);
             if(value.isDir()) {
                 long[] child = (long[]) value.values;
                 out.packLongArray(child, 0, child.length );
@@ -157,7 +159,7 @@ public class BTreeMapJava {
                     ? 0L :
                     input.unpackLong();
 
-            Object keys = keySerializer.valueArrayDeserialize(input, keysLen);
+            Object keys = keysLen==0? keySerializer.valueArrayEmpty() : keySerializer.valueArrayDeserialize(input, keysLen);
             if(CC.ASSERT && keysLen!=keySerializer.valueArraySize(keys))
                 throw new AssertionError();
 
@@ -294,6 +296,8 @@ public class BTreeMapJava {
             int keysLen = DBUtil.parity1Get(input.unpackInt())>>>1;
             int flags = keysLen&0xF;
             keysLen = keysLen>>>4;
+            if(keysLen==0)
+                return -1L;
 
             long link =  (flags&RIGHT)!=0
                     ? 0L :
