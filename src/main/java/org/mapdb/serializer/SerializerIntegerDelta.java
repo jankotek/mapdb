@@ -58,12 +58,25 @@ public class SerializerIntegerDelta extends SerializerInteger {
         return a;
     }
 
+
     @Override
     public int valueArrayBinarySearch(Integer key, DataInput2 input, int keysLen, Comparator comparator) throws IOException {
-        int[] keys = valueArrayDeserialize(input, keysLen);
-        return valueArraySearch(keys, key, comparator);
-    }
+        if (comparator != this)
+            return super.valueArrayBinarySearch(key, input, keysLen, comparator);
+        int key2 = key;
+        int from = 0;
+        for (int pos = 0; pos < keysLen; pos++) {
+            from += input.unpackInt();
 
+            if (key2 <= from) {
+                input.unpackLongSkip(keysLen-pos-1);
+                return (key2 == from) ? pos : -(pos + 1);
+            }
+        }
+
+        //not found
+        return -(keysLen + 1);
+    }
 
     @Override
     public int fixedSize() {

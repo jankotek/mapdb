@@ -90,6 +90,12 @@ public abstract class SerializerEightByte<E> implements GroupSerializer<E> {
         return ret;
     }
 
+    @Override
+    public E valueArrayBinaryGet(DataInput2 input, int keysLen, int pos) throws IOException {
+        input.skipBytes(pos*8);
+        return unpack(input.readLong());
+    }
+
 
     @Override
     public boolean isTrusted() {

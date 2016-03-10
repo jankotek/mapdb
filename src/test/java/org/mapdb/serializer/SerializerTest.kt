@@ -98,30 +98,32 @@ abstract class GroupSerializerTest<E>:SerializerTest<E>(){
         Collections.sort(v, serializer)
         val keys = serializer2.valueArrayFromArray(v.toArray())
 
-        fun check(keys:Any?, binary:ByteArray, e:E){
+        fun check(keys:Any?, binary:ByteArray, e:E, diPos:Int){
             val v1 = serializer2.valueArraySearch(keys, e)
             val v2 = serializer2.valueArraySearch(keys, e, serializer)
             val v3 = Arrays.binarySearch(serializer2.valueArrayToArray(keys), e as Any, serializer as Comparator<Any>)
 
             assertEquals(v1, v3);
             assertEquals(v1, v2);
-
-            val v4 = serializer2.valueArrayBinarySearch(e, DataInput2.ByteArray(binary), v.size, serializer)
+            val di = DataInput2.ByteArray(binary);
+            val v4 = serializer2.valueArrayBinarySearch(e, di, v.size, serializer)
+            assertEquals(diPos, di.pos)
             assertEquals(v1, v4)
         }
 
         val out = DataOutput2();
         serializer2.valueArraySerialize(out, keys)
         val deserialized = serializer2.valueArrayDeserialize(DataInput2.ByteArray(out.buf), v.size);
+        val diPos = out.pos
         assertTrue(Arrays.deepEquals(serializer2.valueArrayToArray(keys), serializer2.valueArrayToArray(deserialized)))
 
         for (i in 0..max*10) {
             val e = randomValue()
-            check(keys, out.buf, e)
+            check(keys, out.buf, e, diPos)
         }
 
         for(e in v){
-            check(keys, out.buf, e)
+            check(keys, out.buf, e, diPos)
         }
     }
 

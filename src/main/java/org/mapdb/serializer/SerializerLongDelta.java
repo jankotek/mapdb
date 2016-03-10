@@ -5,6 +5,7 @@ import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
 
 import java.io.IOException;
+import java.util.Comparator;
 
 /**
  * Created by jan on 2/28/16.
@@ -48,6 +49,25 @@ public class SerializerLongDelta extends SerializerLong {
             a += input.unpackLong();
         }
         return a;
+    }
+
+    @Override
+    public int valueArrayBinarySearch(Long key, DataInput2 input, int keysLen, Comparator comparator) throws IOException {
+        if (comparator != this)
+            return super.valueArrayBinarySearch(key, input, keysLen, comparator);
+        long key2 = key;
+        long from = 0;
+        for (int pos = 0; pos < keysLen; pos++) {
+            from += input.unpackLong();
+
+            if (key2 <= from) {
+                input.unpackLongSkip(keysLen-pos-1);
+                return (key2 == from) ? pos : -(pos + 1);
+            }
+        }
+
+        //not found
+        return -(keysLen + 1);
     }
 
 

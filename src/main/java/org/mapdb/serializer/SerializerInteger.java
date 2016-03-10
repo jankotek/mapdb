@@ -34,30 +34,22 @@ public class SerializerInteger extends SerializerFourByte<Integer> {
         return Arrays.binarySearch((int[]) keys, key);
     }
 
-    @Override
-    public Integer valueArrayBinaryGet(DataInput2 input, int keysLen, int pos) throws IOException {
-        int a = -Integer.MIN_VALUE;
-        while (pos-- >= 0) {
-            a = deserialize(input, -1);
-        }
-        return a;
-    }
 
     @Override
     public int valueArrayBinarySearch(Integer key, DataInput2 input, int keysLen, Comparator comparator) throws IOException {
         if (comparator != this)
             return super.valueArrayBinarySearch(key, input, keysLen, comparator);
-        int key2 = key;
-        boolean notFound = true;
+        final int key2 = key;
         for (int pos = 0; pos < keysLen; pos++) {
             int from = input.readInt();
 
-            if (notFound && key2 <= from) {
-                key2 = (key2 == from) ? pos : -(pos + 1);
-                notFound = false;
+            if (key2 <= from) {
+                input.skipBytes((keysLen-pos-1)*4);
+                return (key2 == from) ? pos : -(pos + 1);
             }
         }
 
-        return notFound ? -(keysLen + 1) : key2;
+        //not found
+        return -(keysLen + 1);
     }
 }

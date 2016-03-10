@@ -5,6 +5,7 @@ import org.mapdb.DataOutput2;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Comparator;
 
 /**
  * Created by jan on 2/28/16.
@@ -37,5 +38,23 @@ public class SerializerLong extends SerializerEightByte<Long> {
         return Arrays.binarySearch((long[])keys, key);
     }
 
+
+    @Override
+    public int valueArrayBinarySearch(Long key, DataInput2 input, int keysLen, Comparator comparator) throws IOException {
+        if (comparator != this)
+            return super.valueArrayBinarySearch(key, input, keysLen, comparator);
+        long key2 = key;
+        for (int pos = 0; pos < keysLen; pos++) {
+            long from = input.readLong();
+
+            if (key2 <= from) {
+                input.skipBytes((keysLen-pos-1)*8);
+                return (key2 == from) ? pos : -(pos + 1);
+            }
+        }
+
+        //not found
+        return -(keysLen + 1);
+    }
 
 }

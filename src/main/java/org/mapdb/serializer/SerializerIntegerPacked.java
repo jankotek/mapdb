@@ -35,27 +35,32 @@ public class SerializerIntegerPacked extends SerializerInteger {
     }
 
     @Override
+    public int fixedSize() {
+        return -1;
+    }
+
+    @Override
     public int valueArrayBinarySearch(Integer key, DataInput2 input, int keysLen, Comparator comparator) throws IOException {
         if (comparator != this)
             return super.valueArrayBinarySearch(key, input, keysLen, comparator);
         int key2 = key;
-        boolean notFound = true;
         for (int pos = 0; pos < keysLen; pos++) {
             int from = input.unpackInt();
 
-            if (notFound && key2 <= from) {
-                key2 = (key2 == from) ? pos : -(pos + 1);
-                notFound = false;
+            if (key2 <= from) {
+                input.unpackLongSkip(keysLen-pos-1);
+                return (key2 == from) ? pos : -(pos + 1);
             }
         }
 
-        return notFound ? -(keysLen + 1) : key2;
+        //not found
+        return -(keysLen + 1);
     }
 
-
     @Override
-    public int fixedSize() {
-        return -1;
+    public Integer valueArrayBinaryGet(DataInput2 input, int keysLen, int pos) throws IOException {
+        input.unpackLongSkip(pos);
+        return input.unpackInt();
     }
 
 }

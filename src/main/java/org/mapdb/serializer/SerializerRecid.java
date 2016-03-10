@@ -63,4 +63,10 @@ public class SerializerRecid extends SerializerEightByte<Long> {
         }
         return ret;
     }
+
+    @Override
+    public Long valueArrayBinaryGet(DataInput2 input, int keysLen, int pos) throws IOException {
+        input.unpackLongSkip(pos);
+        return deserialize(input,-1);
+    }
 }
