@@ -1,5 +1,6 @@
 package org.mapdb.volume
 
+import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -7,6 +8,7 @@ import org.junit.runners.Parameterized
 import java.io.File
 import java.util.*
 import org.junit.Assert.*
+import org.mapdb.DBUtil
 import org.mapdb.volume.*
 
 /**
@@ -35,8 +37,12 @@ abstract class VolumeSyncCrashTest(val volfab: VolumeFactory) : org.mapdb.CrashJ
             vol.ensureAvailable(fileSize.toLong())
             startSeed(seed)
             val random = Random(seed)
+            val used = LongHashSet();
             for(i in 0 until writeValues){
-                val offset = random.nextInt(fileSize - 8 ).toLong()
+                val offset = DBUtil.roundDown(random.nextInt(fileSize - 8 ),8).toLong()
+
+                if(!used.add(offset))
+                    continue;
                 val value = random.nextLong();
                 vol.putLong(offset, value);
             }
@@ -55,9 +61,11 @@ abstract class VolumeSyncCrashTest(val volfab: VolumeFactory) : org.mapdb.CrashJ
         val vol = volfab.makeVolume(file, true)
 
         val random = Random(endSeed)
-
+        val used = LongHashSet();
         for(i in 0 until writeValues){
-            val offset = random.nextInt(fileSize - 8 ).toLong()
+            val offset = DBUtil.roundDown(random.nextInt(fileSize - 8 ),8).toLong()
+            if(!used.add(offset))
+                continue;
             val value = random.nextLong();
             assertEquals(value, vol.getLong(offset));
         }
@@ -70,7 +78,7 @@ abstract class VolumeSyncCrashTest(val volfab: VolumeFactory) : org.mapdb.CrashJ
         return endSeed+10
     }
 
-    @org.junit.Test @org.junit.Ignore //TODO crash tests
+    @Test
     fun run(){
         org.mapdb.CrashJVM.Companion.run(this, time = org.mapdb.TT.testRuntime(10))
     }

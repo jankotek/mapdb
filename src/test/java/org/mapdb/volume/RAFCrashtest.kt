@@ -1,4 +1,4 @@
-package org.mapdb
+package org.mapdb.volume
 
 import org.junit.Ignore
 import org.junit.Test
@@ -6,11 +6,13 @@ import java.io.File
 import java.io.RandomAccessFile
 import java.util.*
 import org.junit.Assert.*
+import org.mapdb.CrashJVM
+import org.mapdb.TT
 
 
-class RAFCrashtest:CrashJVM(){
+class RAFCrashtest: CrashJVM(){
 
-    val max = 4L*1024*1024
+    val max = 8L//4L*1024*1024
     val count = 100;
     fun fileForSeed(seed:Long) = getTestDir().toString()+"/"+seed;
 
@@ -24,7 +26,8 @@ class RAFCrashtest:CrashJVM(){
 
             val random = Random(seed)
             for(i in 0 until count) {
-                raf.seek(random.nextInt(max.toInt() - 8).toLong())
+                //raf.seek(random.nextInt(max.toInt() - 8).toLong())
+                raf.seek(0)
                 raf.writeLong(random.nextLong())
             }
             raf.fd.sync()
@@ -41,10 +44,11 @@ class RAFCrashtest:CrashJVM(){
         val raf = RandomAccessFile(file, "r")
         assertEquals(max, raf.length())
         val random = Random(endSeed)
-        for(i in 0 until count) {
-            raf.seek(random.nextInt(max.toInt() - 8).toLong())
-            assertEquals(random.nextLong(), raf.readLong())
+        for(i in 0 until count-1) {
+            random.nextLong()
+//            raf.seek(random.nextInt(max.toInt() - 8).toLong())
         }
+        assertEquals(random.nextLong(), raf.readLong())
 
         raf.close()
         return endSeed+10
@@ -52,8 +56,8 @@ class RAFCrashtest:CrashJVM(){
 
     override fun createParams() = ""
 
-    @Test @Ignore //TODO crash tests
+    @Test
     fun run() {
-        CrashJVM.run(this, time = TT.testRuntime(10))
+        run(this, time = TT.testRuntime(10))
     }
 }
