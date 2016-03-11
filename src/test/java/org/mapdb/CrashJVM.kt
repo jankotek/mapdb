@@ -1,5 +1,6 @@
 package org.mapdb
 
+import org.junit.After
 import java.io.File
 import java.io.IOException
 
@@ -8,6 +9,7 @@ import org.junit.Test
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import org.junit.Assert.*
+import org.junit.Before
 import kotlin.test.assertFailsWith
 
 /**
@@ -31,6 +33,21 @@ abstract class CrashJVM {
     fun getTestDir():File = testDir!!;
 
 
+    @Before fun init(){
+        val testDir = File.createTempFile("mapdb", "jvmCrashTest")
+
+        testDir.delete()
+        testDir.mkdirs()
+        val seedEndDir = File(testDir, "seedEndDir")
+        seedEndDir.mkdirs()
+        val seedStartDir = File(testDir, "seedStartDir")
+        seedStartDir.mkdirs()
+        setTestDir(testDir);
+    }
+
+    @After fun delete(){
+        TT.tempDelete(testDir?:return);
+    }
 
     abstract fun doInJVM(startSeed: Long, params:String)
 
@@ -130,58 +147,45 @@ abstract class CrashJVM {
 
 
         fun run(test: CrashJVM, killDelay: Long=500, time: Long=60*1000, params:String="") {
-            val testDir = File.createTempFile("mapdb", "jvmCrashTest")
-            try {
-                testDir.delete()
-                testDir.mkdirs()
-                val seedEndDir = File(testDir, "seedEndDir")
-                seedEndDir.mkdirs()
-                val seedStartDir = File(testDir, "seedStartDir")
-                seedStartDir.mkdirs()
-                test.setTestDir(testDir);
 
-                val endTimestamp = System.currentTimeMillis() + time
+            val endTimestamp = System.currentTimeMillis() + time
 
-                var seed = 0L;
-                while (System.currentTimeMillis() < endTimestamp) {
-                    val b = ProcessBuilder(
-                            jvmExecutable(),
-                            "-classpath",
-                            System.getProperty("java.class.path"),
-                            CrashJVM::class.java.name,
-                            test.javaClass.name,
-                            testDir.getAbsolutePath(),
-                            "" + killDelay,
-                            "" + seed,
-                            params)
-                    val pr = b.start()
-                    pr.waitFor() //it should kill itself after some time
+            var seed = 0L;
+            while (System.currentTimeMillis() < endTimestamp) {
+                val b = ProcessBuilder(
+                        jvmExecutable(),
+                        "-classpath",
+                        System.getProperty("java.class.path"),
+                        CrashJVM::class.java.name,
+                        test.javaClass.name,
+                        test.testDir!!.getAbsolutePath(),
+                        "" + killDelay,
+                        "" + seed,
+                        params)
+                val pr = b.start()
+                pr.waitFor() //it should kill itself after some time
 
-                    Thread.sleep(100)// just in case
+                Thread.sleep(100)// just in case
 
-                    //handle output streams
-                    val out = outStreamToString(pr.inputStream)
+                //handle output streams
+                val out = outStreamToString(pr.inputStream)
 
-                    val err = outStreamToString(pr.errorStream);
-                    if(err.length>0) {
-                        System.err.print("\n=====FORKED JVM START=====\n" +
-                                err +
-                                "\n======FORKED JVM END======\n")
-                    }
-                    assertTrue(out, out.startsWith("started_"))
-                    assertTrue(out, out.endsWith("_killed"))
-                    assertEquals(137, pr.exitValue().toLong())
-
-                    // handle seeds
-                    val startSeed = findHighestSeed(seedStartDir)
-                    val endSeed = findHighestSeed(seedEndDir)
-
-                    if(endSeed!=-1L)
-                        seed = test.verifySeed(startSeed, endSeed, params);
-
+                val err = outStreamToString(pr.errorStream);
+                if(err.length>0) {
+                    System.err.print("\n=====FORKED JVM START=====\n" +
+                            err +
+                            "\n======FORKED JVM END======\n")
                 }
-            }finally{
-                TT.tempDelete(testDir);
+                assertTrue(out, out.startsWith("started_"))
+                assertTrue(out, out.endsWith("_killed"))
+                assertEquals(137, pr.exitValue().toLong())
+
+                // handle seeds
+                val startSeed = findHighestSeed(test.seedStartDir!!)
+                val endSeed = findHighestSeed(test.seedEndDir!!)
+
+                if(endSeed!=-1L)
+                    seed = test.verifySeed(startSeed, endSeed, params);
             }
         }
     }
