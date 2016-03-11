@@ -10,7 +10,7 @@ import org.junit.Assert.*
 abstract class StoreCrashTest:CrashJVM(){
     abstract fun openStore(file: File):Store;
 
-    override fun createParams():String{
+    fun createParams():String{
         val store = openStore(File(getTestDir(),"store"))
         val recid = store.put(0L, Serializer.LONG)
         store.commit()
@@ -45,7 +45,7 @@ abstract class StoreCrashTest:CrashJVM(){
     }
 
     @Test fun crashTest(){
-        CrashJVM.run(this, time = TT.testRuntime(6))
+        CrashJVM.run(this, time = TT.testRuntime(6), params = createParams())
     }
 }
 

@@ -23,9 +23,6 @@ abstract class VolumeSyncCrashTest(val volfab: VolumeFactory) : org.mapdb.CrashJ
     val fileSize = 4 * 1024*1024
     val writeValues = 100;
 
-    override fun createParams(): String {
-        return ""
-    }
 
     fun fileForSeed(seed:Long) = getTestDir().toString()+"/"+seed;
 

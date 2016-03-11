@@ -37,8 +37,6 @@ abstract class CrashJVM {
 
     abstract fun verifySeed(startSeed:Long, endSeed: Long, params:String):Long
 
-    abstract fun createParams():String;
-
 
 
     fun startSeed(seed: Long) {
@@ -131,7 +129,7 @@ abstract class CrashJVM {
         }
 
 
-        fun run(test: CrashJVM, killDelay: Long=500, time: Long=60*1000) {
+        fun run(test: CrashJVM, killDelay: Long=500, time: Long=60*1000, params:String="") {
             val testDir = File.createTempFile("mapdb", "jvmCrashTest")
             try {
                 testDir.delete()
@@ -143,8 +141,6 @@ abstract class CrashJVM {
                 test.setTestDir(testDir);
 
                 val endTimestamp = System.currentTimeMillis() + time
-
-                val params = test.createParams()
 
                 var seed = 0L;
                 while (System.currentTimeMillis() < endTimestamp) {
@@ -195,9 +191,6 @@ abstract class CrashJVM {
 
 class CrashJVMTestFail:CrashJVM(){
 
-    override fun createParams() = ""
-
-
     override fun verifySeed(startSeed: Long, endSeed: Long, params:String): Long {
         val f = File(getTestDir(), "aaa")
         val seed = f.inputStream().use {
@@ -233,8 +226,6 @@ class CrashJVMTestFail:CrashJVM(){
 
 
 class CrashJVMTest:CrashJVM(){
-
-    override fun createParams() = ""
 
     override fun verifySeed(startSeed: Long, endSeed: Long, params:String): Long {
         for(seed in startSeed .. endSeed){

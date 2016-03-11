@@ -16,8 +16,6 @@ class FileChannelCrashTest: CrashJVM(){
 
     val maxSize = 4*1024*1024
 
-    override fun createParams() = ""
-
     override fun verifySeed(startSeed: Long, endSeed: Long, params:String): Long {
         println("verify")
         val seed = endSeed

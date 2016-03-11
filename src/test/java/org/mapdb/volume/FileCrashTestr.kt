@@ -17,7 +17,6 @@ import kotlin.test.assertTrue
  */
 class FileCrashTestr: CrashJVM(){
 
-    override fun createParams() = ""
 
     override fun verifySeed(startSeed: Long, endSeed: Long, params:String): Long {
         val seed = endSeed
