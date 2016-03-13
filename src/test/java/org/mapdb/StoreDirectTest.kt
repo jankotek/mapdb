@@ -215,16 +215,37 @@ class StoreDirectTest:StoreReopenTest(){
     }
 
     @Test fun longStack_putTake_many() {
+        val max2 = 10000L
+        val min2 = if(TT.shortTest()) max2 else 1
         val s = openStore()
         s.structuralLock?.lock()
         for(a in 1 .. 10) {
-            for (i in 1L .. 10000L) {
-                s.longStackPut(LONG_STACK_UNUSED1, i*16, false)
+            for(max in min2..max2) {
+                for (i in 1L..max) {
+                    s.longStackPut(LONG_STACK_UNUSED1, i * 16, false)
+                }
+                for (i in max downTo  1L) {
+                    val t = s.longStackTake(LONG_STACK_UNUSED1, false)
+                    assertEquals(i * 16, t)
+                }
+                assertEquals(0L, s.longStackTake(LONG_STACK_UNUSED1, false))
             }
-            for (i in 10000L downTo  1L) {
-                val t = s.longStackTake(LONG_STACK_UNUSED1, false)
-                assertEquals(i*16, t)
-            }
+        }
+    }
+
+    @Test fun longStack_triple(){
+        val vals = longArrayOf(16L, 160L, 32000L) //various packed sizes
+        val s = openStore()
+        s.structuralLock?.lock()
+
+        for(v1 in vals) for (v2 in vals) for(v3 in vals){
+            s.longStackPut(LONG_STACK_UNUSED1, v1, false)
+            s.longStackPut(LONG_STACK_UNUSED1, v2, false)
+            s.longStackPut(LONG_STACK_UNUSED1, v3, false)
+            assertEquals(v3, s.longStackTake(LONG_STACK_UNUSED1, false))
+            assertEquals(v2, s.longStackTake(LONG_STACK_UNUSED1, false))
+            assertEquals(v1, s.longStackTake(LONG_STACK_UNUSED1, false))
+            assertEquals(0L, s.longStackTake(LONG_STACK_UNUSED1, false))
         }
     }
 

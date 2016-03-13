@@ -25,10 +25,8 @@ import org.mapdb.DataInput2;
 
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileLock;
-import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -130,7 +128,7 @@ public abstract class Volume implements Closeable{
                 }
             }
 
-            return MemoryVol.FACTORY.makeVolume(file, readOnly, fileLockDisabled, sliceShift, initSize, fixedSize);
+            return ByteBufferMemoryVol.FACTORY.makeVolume(file, readOnly, fileLockDisabled, sliceShift, initSize, fixedSize);
         }
 
         @NotNull
@@ -274,11 +272,11 @@ public abstract class Volume implements Closeable{
         int shift = 63-Long.numberOfLeadingZeros(value);
         shift -= shift%7; // round down to nearest multiple of 7
         while(shift!=0){
-            putByte(pos + (ret++), (byte) (((value >>> shift) & 0x7F) | 0x80));
+            putByte(pos + (ret++), (byte) ((value >>> shift) & 0x7F));
             //$DELAY$
             shift-=7;
         }
-        putByte(pos+(ret++),(byte) (value & 0x7F));
+        putByte(pos+(ret++),(byte) ((value & 0x7F)| 0x80));
         return ret;
     }
 
@@ -298,7 +296,7 @@ public abstract class Volume implements Closeable{
         do{
             v = getByte(position+(pos2++));
             ret = (ret<<7 ) | (v & 0x7F);
-        }while(v<0);
+        }while((v&0x80)==0);
 
         return (pos2<<60) | ret;
     }
@@ -494,213 +492,6 @@ public abstract class Volume implements Closeable{
         h64 ^= h64 >>> 32;
 
         return h64;
-    }
-
-
-    public static final class MemoryVol extends ByteBufferVol {
-
-        /** factory for DirectByteBuffer storage*/
-        public static final VolumeFactory FACTORY = new VolumeFactory() {
-            @Override
-            public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize, boolean fixedSize) {
-                //TODO optimize for fixedSize smaller than 2GB
-                return new MemoryVol(true,sliceShift,false, initSize);
-            }
-
-            @NotNull
-            @Override
-            public boolean exists(@Nullable String file) {
-                return false;
-            }
-        };
-
-
-        /** factory for DirectByteBuffer storage*/
-        public static final VolumeFactory FACTORY_WITH_CLEANER_HACK = new VolumeFactory() {
-            @Override
-            public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize, boolean fixedSize) {//TODO prealocate initSize
-                //TODO optimize for fixedSize smaller than 2GB
-                return new MemoryVol(true,sliceShift,true, initSize);
-            }
-
-            @NotNull
-            @Override
-            public boolean exists(@Nullable String file) {
-                return false;
-            }
-        };
-
-        protected final boolean useDirectBuffer;
-
-        @Override
-        public String toString() {
-            return super.toString()+",direct="+useDirectBuffer;
-        }
-
-        public MemoryVol(final boolean useDirectBuffer, final int sliceShift,boolean cleanerHackEnabled, long initSize) {
-            super(false, sliceShift, cleanerHackEnabled);
-            this.useDirectBuffer = useDirectBuffer;
-            if(initSize!=0)
-                ensureAvailable(initSize);
-        }
-
-
-        @Override
-        public final void ensureAvailable(long offset) {
-            offset= DBUtil.roundUp(offset,1L<<sliceShift);
-            int slicePos = (int) (offset >>> sliceShift);
-
-            //check for most common case, this is already mapped
-            if (slicePos < slices.length){
-                return;
-            }
-
-            growLock.lock();
-            try{
-                //check second time
-                if(slicePos <= slices.length)
-                    return;
-
-                int oldSize = slices.length;
-                ByteBuffer[] slices2 = slices;
-
-                slices2 = Arrays.copyOf(slices2, slicePos);
-
-                for(int pos=oldSize;pos<slices2.length;pos++) {
-                    ByteBuffer b =  useDirectBuffer ?
-                            ByteBuffer.allocateDirect(sliceSize) :
-                            ByteBuffer.allocate(sliceSize);
-                    if(CC.ASSERT && b.order()!= ByteOrder.BIG_ENDIAN)
-                        throw new AssertionError("little-endian");
-                    slices2[pos]=b;
-                }
-
-                slices = slices2;
-            }catch(OutOfMemoryError e){
-                throw new DBException.OutOfMemory(e);
-            }finally{
-                growLock.unlock();
-            }
-        }
-
-
-        @Override
-        public void truncate(long size) {
-            final int maxSize = 1+(int) (size >>> sliceShift);
-            if(maxSize== slices.length)
-                return;
-            if(maxSize> slices.length) {
-                ensureAvailable(size);
-                return;
-            }
-            growLock.lock();
-            try{
-                if(maxSize>= slices.length)
-                    return;
-                ByteBuffer[] old = slices;
-                slices = Arrays.copyOf(slices,maxSize);
-
-                //unmap remaining buffers
-                for(int i=maxSize;i<old.length;i++){
-                    if(cleanerHackEnabled && old[i] instanceof  MappedByteBuffer)
-                        unmap((MappedByteBuffer) old[i]);
-                    old[i] = null;
-                }
-
-            }finally {
-                growLock.unlock();
-            }
-        }
-
-        @Override public void close() {
-            growLock.lock();
-            try{
-                closed = true;
-                if(cleanerHackEnabled) {
-                    for (ByteBuffer b : slices) {
-                        if (b != null && (b instanceof MappedByteBuffer)) {
-                            unmap((MappedByteBuffer) b);
-                        }
-                    }
-                }
-                Arrays.fill(slices,null);
-                slices = null;
-            }finally{
-                growLock.unlock();
-            }
-        }
-
-        @Override public void sync() {}
-
-        @Override
-        public long length() {
-            return ((long)slices.length)*sliceSize;
-        }
-
-        @Override
-        public File getFile() {
-            return null;
-        }
-
-        @Override
-        public boolean getFileLocked() {
-            return false;
-        }
-    }
-
-
-    public static final class MemoryVolSingle extends ByteBufferVolSingle {
-
-        protected final boolean useDirectBuffer;
-
-        @Override
-        public String toString() {
-            return super.toString() + ",direct=" + useDirectBuffer;
-        }
-
-        public MemoryVolSingle(final boolean useDirectBuffer, final long maxSize, boolean cleanerHackEnabled) {
-            super(false, maxSize, cleanerHackEnabled);
-            this.useDirectBuffer = useDirectBuffer;
-            this.buffer = useDirectBuffer?
-                    ByteBuffer.allocateDirect((int) maxSize):
-                    ByteBuffer.allocate((int) maxSize);
-        }
-
-        @Override
-        public void truncate(long size) {
-            //TODO truncate
-        }
-
-        @Override
-        synchronized public void close() {
-            if(closed)
-                return;
-
-            if(cleanerHackEnabled && buffer instanceof MappedByteBuffer){
-                ByteBufferVol.unmap((MappedByteBuffer) buffer);
-            }
-            buffer = null;
-            closed = true;
-        }
-
-        @Override
-        public void sync() {
-        }
-
-        @Override
-        public long length() {
-            return maxSize;
-        }
-
-        @Override
-        public File getFile() {
-            return null;
-        }
-
-        @Override
-        public boolean getFileLocked() {
-            return false;
-        }
     }
 
 

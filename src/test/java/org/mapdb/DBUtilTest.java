@@ -1,10 +1,13 @@
 package org.mapdb;
 
 import org.junit.Test;
+import org.mapdb.volume.SingleByteArrayVol;
+import org.mapdb.volume.Volume;
 
 import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 import static org.junit.Assert.*;
 import static org.mapdb.DBUtil.*;
@@ -198,6 +201,33 @@ public class DBUtilTest {
         assertEquals(0x7fffffffL, DBUtil.intToLong(0x7fffffff));
         assertEquals(0x80000000L, DBUtil.intToLong(0x80000000));
         assertTrue(-1L != DBUtil.intToLong(-1));
+    }
+
+    @Test public void packedLong_volume() throws IOException {
+        DataOutput2 out = new DataOutput2();
+        DataInput2.ByteArray in = new DataInput2.ByteArray(out.buf);
+        Volume v = new SingleByteArrayVol(out.buf);
+
+        for (long i = 0; i < 1e6; i++) {
+            Arrays.fill(out.buf, (byte) 0);
+            out.pos=10;
+            out.packLong(i);
+            assertEquals(i, v.getPackedLong(10)&DBUtil.PACK_LONG_RESULT_MASK);
+            assertEquals(DBUtil.packLongSize(i), v.getPackedLong(10)>>>60);
+
+            Arrays.fill(out.buf, (byte) 0);
+            out.pos=10;
+            out.packInt((int)i);
+            assertEquals(i, v.getPackedLong(10)&DBUtil.PACK_LONG_RESULT_MASK);
+            assertEquals(DBUtil.packLongSize(i), v.getPackedLong(10)>>>60);
+
+            Arrays.fill(out.buf, (byte) 0);
+            v.putPackedLong(10, i);
+            in.pos=10;
+            assertEquals(i, in.unpackLong());
+            in.pos=10;
+            assertEquals(i, in.unpackInt());
+        }
     }
 
 }

@@ -28,7 +28,7 @@ class VolumeTest {
 
         internal val BYTE_ARRAY_FAB:Function1<String, Volume> = { file -> ByteArrayVol(CC.PAGE_SHIFT, 0L) }
 
-        internal val MEMORY_VOL_FAB:Function1<String, Volume> = { file -> Volume.MemoryVol(false, CC.PAGE_SHIFT, false, 0L) }
+        internal val MEMORY_VOL_FAB:Function1<String, Volume> = { file -> ByteBufferMemoryVol(false, CC.PAGE_SHIFT, false, 0L) }
 
         val VOL_FABS: Array<Function1<String, Volume>> =
                 if(org.mapdb.TT.shortTest())
@@ -38,13 +38,13 @@ class VolumeTest {
                             BYTE_ARRAY_FAB,
                             MEMORY_VOL_FAB,
                         {file -> SingleByteArrayVol(4e7.toInt()) },
-                        {file -> Volume.MemoryVol(true, CC.PAGE_SHIFT, false, 0L) },
+                        {file -> ByteBufferMemoryVol(true, CC.PAGE_SHIFT, false, 0L) },
                         {file ->  Volume.UNSAFE_VOL_FACTORY.makeVolume(null, false, false, CC.PAGE_SHIFT, 0, false)},
                         {file -> FileChannelVol(File(file), false, false, CC.PAGE_SHIFT, 0L) },
                         {file -> RandomAccessFileVol(File(file), false, false, 0L) },
                         {file -> MappedFileVol(File(file), false, false, CC.PAGE_SHIFT, false, 0L, false) },
                         {file -> MappedFileVolSingle(File(file), false, false, 4e7.toLong(), false) },
-                        {file -> Volume.MemoryVolSingle(false, 4e7.toLong(), false) }
+                        {file -> ByteBufferMemoryVolSingle(false, 4e7.toLong(), false) }
                     )
     }
 
@@ -361,7 +361,7 @@ class VolumeTest {
         if (org.mapdb.TT.shortTest())
             return
 
-        val vol = Volume.MemoryVol(true, CC.PAGE_SHIFT, false, 0L)
+        val vol = ByteBufferMemoryVol(true, CC.PAGE_SHIFT, false, 0L)
         try {
             vol.ensureAvailable(1e10.toLong())
         } catch (e: DBException.OutOfMemory) {
@@ -516,8 +516,8 @@ class VolumeTest {
                 FileChannelVol.FACTORY,
                 MappedFileVol.FACTORY,
                 MappedFileVol.FACTORY,
-                Volume.MemoryVol.FACTORY,
-                Volume.MemoryVol.FACTORY_WITH_CLEANER_HACK,
+                ByteBufferMemoryVol.FACTORY,
+                ByteBufferMemoryVol.FACTORY_WITH_CLEANER_HACK,
                 RandomAccessFileVol.FACTORY,
                 SingleByteArrayVol.FACTORY,
                 MappedFileVolSingle.FACTORY,

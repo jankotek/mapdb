@@ -484,11 +484,13 @@ class StoreDirect(
         if(CC.ASSERT && masterLinkOffset!=RECID_LONG_STACK && value % 16L !=0L)
             throw AssertionError()
 
+        /** size of value after it was packed */
+        val valueSize:Long = DBUtil.packLongSize(value).toLong()
 
-        val masterLinkVal = parity4Get(volume.getLong(masterLinkOffset))
+        val masterLinkVal:Long = parity4Get(volume.getLong(masterLinkOffset))
         if (masterLinkVal == 0L) {
             //empty stack, create new chunk
-            longStackNewChunk(masterLinkOffset, 0L, value, true)
+            longStackNewChunk(masterLinkOffset, 0L, value, valueSize, true)
             return
         }
         val chunkOffset = masterLinkVal and MOFFSET
@@ -497,20 +499,20 @@ class StoreDirect(
         val pageSize = prevLinkVal.ushr(48)
 
         //is there enough space in current chunk?
-        if (currSize + 8 > pageSize) {
+        if (currSize + valueSize > pageSize) {
             //no there is not enough space
             //allocate new chunk
-            longStackNewChunk(masterLinkOffset, chunkOffset, value, true) //TODO recursive=true here is too paranoid, and could be improved
+            longStackNewChunk(masterLinkOffset, chunkOffset, value, valueSize, true) //TODO recursive=true here is too paranoid, and could be improved
             return
         }
         //there is enough free space here, so put it there
-        volume.putLong(chunkOffset+currSize, value)
+        volume.putPackedLong(chunkOffset+currSize, value)
         //and update master link with new size
-        val newMasterLinkValue = (currSize+8).shl(48) + chunkOffset
+        val newMasterLinkValue = (currSize+valueSize).shl(48) + chunkOffset
         volume.putLong(masterLinkOffset, parity4Set(newMasterLinkValue))
     }
 
-    internal fun longStackNewChunk(masterLinkOffset: Long, prevPageOffset: Long, value: Long, recursive: Boolean) {
+    internal fun longStackNewChunk(masterLinkOffset: Long, prevPageOffset: Long, value: Long, valueSize:Long, recursive: Boolean) {
         if(CC.ASSERT) {
             Utils.assertLocked(structuralLock)
         }
@@ -572,9 +574,9 @@ class StoreDirect(
         //write size of current chunk with link to prev chunk
         volume.putLong(newChunkOffset, parity4Set((newChunkSize shl 48) + prevPageOffset))
         //put value
-        volume.putLong(newChunkOffset+8, value)
+        volume.putPackedLong(newChunkOffset+8, value)
         //update master link
-        val newSize:Long = 8+8;
+        val newSize:Long = 8+valueSize;
         val newMasterLinkValue = newSize.shl(48) + newChunkOffset
         volume.putLong(masterLinkOffset, parity4Set(newMasterLinkValue))
     }
@@ -592,8 +594,14 @@ class StoreDirect(
             return 0;
         }
 
-        val pos:Long = masterLinkVal.ushr(48)-8
         val offset = masterLinkVal and MOFFSET
+
+        //find position to read from
+        var pos:Long = Math.max(masterLinkVal.ushr(48)-1, 8)
+        //now decrease position to find ending byte of
+        while(pos>8 && (volume.getUnsignedByte(offset+pos-1) and 0x80)==0){
+            pos--
+        }
 
         if(CC.ASSERT && pos<8L)
             throw DBException.DataCorruption("position too small")
@@ -602,8 +610,8 @@ class StoreDirect(
             throw DBException.DataCorruption("position beyond chunk "+masterLinkOffset);
 
         //get value and zero it out
-        val ret = volume.getLong(offset+pos)
-        volume.putLong(offset+pos, 0L)
+        val ret = volume.getPackedLong(offset+pos) and DBUtil.PACK_LONG_RESULT_MASK
+        volume.clear(offset+pos, offset+pos+DBUtil.packLongSize(ret))
 
         //update size on master link
         if(pos>8L) {
@@ -625,8 +633,9 @@ class StoreDirect(
 
         //does previous page exists?
         val masterLinkPos:Long = if (prevChunkOffset != 0L) {
-            //yes previous page exists, return its size
-            parity4Get(volume.getLong(prevChunkOffset)).ushr(48)
+            //yes previous page exists, return its size, decreased by start
+            val pos = parity4Get(volume.getLong(prevChunkOffset)).ushr(48)
+            longStackFindEnd(prevChunkOffset, pos)
         }else{
             0L
         }
@@ -647,6 +656,13 @@ class StoreDirect(
         return ret;
     }
 
+    internal fun longStackFindEnd(pageOffset:Long, pos:Long):Long{
+        var pos2 = pos
+        while(pos2>8 && volume.getUnsignedByte(pageOffset+pos2-1)==0){
+            pos2--
+        }
+        return pos2
+    }
 
     internal fun longStackForEach(masterLinkOffset: Long, body: (value: Long) -> Unit) {
 
@@ -654,15 +670,20 @@ class StoreDirect(
         val linkVal = parity4Get(volume.getLong(masterLinkOffset))
         var endSize = indexValToSize(linkVal)
         var offset = indexValToOffset(linkVal)
+        endSize = longStackFindEnd(offset, endSize)
+
 
 
         while (offset != 0L) {
             var currHead = parity4Get(volume.getLong(offset))
-            val currSize = indexValToSize(currHead)
 
             //iterate over values
-            for (pos in 8 until endSize step 8) {
-                val stackVal = volume.getLong(offset + pos)
+            var pos = 8L
+            while(pos< endSize) {
+                var stackVal = volume.getPackedLong(offset + pos)
+                pos+=stackVal.ushr(60)
+                stackVal = stackVal and DBUtil.PACK_LONG_RESULT_MASK
+
                 if (stackVal.ushr(48) != 0L)
                     throw AssertionError()
                 if (masterLinkOffset!=RECID_LONG_STACK && stackVal % 16L != 0L)
@@ -672,8 +693,10 @@ class StoreDirect(
 
             //set values for next page
             offset = indexValToOffset(currHead)
-            if (offset != 0L)
+            if (offset != 0L) {
                 endSize = indexValToSize(parity4Get(volume.getLong(offset)))
+                endSize = longStackFindEnd(offset, endSize)
+            }
         }
     }
 
@@ -1113,9 +1136,9 @@ class StoreDirect(
 
                 // assert first page
                 val linkVal = parity4Get(volume.getLong(masterLinkOffset))
-                var endSize = indexValToSize(linkVal)
                 var offset = indexValToOffset(linkVal)
-
+                var endSize = indexValToSize(linkVal)
+                //endSize = longStackFindEnd(offset, endSize)
 
                 while (offset != 0L) {
                     var currHead = parity4Get(volume.getLong(offset))
@@ -1126,8 +1149,11 @@ class StoreDirect(
                     volume.assertZeroes(offset + endSize, offset + currSize)
 
                     //iterate over values
-                    for (pos in 8 until endSize step 8) {
-                        val stackVal = volume.getLong(offset + pos)
+                    var pos = 8L
+                    while(pos< endSize) {
+                        var stackVal = volume.getPackedLong(offset + pos)
+                        pos+=stackVal.ushr(60)
+                        stackVal = stackVal and DBUtil.PACK_LONG_RESULT_MASK
                         if (stackVal.ushr(48) != 0L)
                             throw AssertionError()
                         if (masterLinkOffset!=RECID_LONG_STACK && stackVal % 16L != 0L)
@@ -1137,8 +1163,10 @@ class StoreDirect(
 
                     //set values for next page
                     offset = indexValToOffset(currHead)
-                    if (offset != 0L)
+                    if (offset != 0L) {
                         endSize = indexValToSize(parity4Get(volume.getLong(offset)))
+                        endSize = longStackFindEnd(offset, endSize)
+                    }
                 }
             }
 

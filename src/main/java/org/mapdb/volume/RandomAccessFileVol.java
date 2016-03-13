@@ -349,11 +349,11 @@ public final class RandomAccessFileVol extends Volume {
             shift -= shift % 7; // round down to nearest multiple of 7
             while (shift != 0) {
                 ret++;
-                raf.write((int) (((value >>> shift) & 0x7F) | 0x80));
+                raf.write((int) (((value >>> shift) & 0x7F)));
                 //$DELAY$
                 shift -= 7;
             }
-            raf.write((int) (value & 0x7F));
+            raf.write((int) ((value & 0x7F)|0x80));
             return ret;
         } catch (IOException e) {
             throw new DBException.VolumeIOError(e);
@@ -374,7 +374,7 @@ public final class RandomAccessFileVol extends Volume {
                 pos2++;
                 v = raf.readByte();
                 ret = (ret << 7) | (v & 0x7F);
-            } while (v < 0);
+            } while ((v&0x80)==0);
 
             return (pos2 << 60) | ret;
         } catch (IOException e) {

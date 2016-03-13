@@ -269,11 +269,11 @@ abstract public class ByteBufferVol extends Volume {
         int shift = 63-Long.numberOfLeadingZeros(value);
         shift -= shift%7; // round down to nearest multiple of 7
         while(shift!=0){
-            b.put(bpos + (ret++), (byte) (((value >>> shift) & 0x7F) | 0x80));
+            b.put(bpos + (ret++), (byte) (((value >>> shift) & 0x7F) ));
             //$DELAY$
             shift-=7;
         }
-        b.put(bpos +(ret++),(byte) (value & 0x7F));
+        b.put(bpos +(ret++),(byte) ((value & 0x7F) | 0x80));
         return ret;
     }
 
@@ -288,7 +288,7 @@ abstract public class ByteBufferVol extends Volume {
         do{
             v = b.get(bpos +(pos2++));
             ret = (ret<<7 ) | (v & 0x7F);
-        }while(v<0);
+        }while((v&0x80)==0);
 
         return (((long)pos2)<<60) | ret;
     }
