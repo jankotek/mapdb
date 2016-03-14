@@ -53,7 +53,7 @@ class BTreeMap_ConcurrentMap_GuavaTest(
                             if(generic) Serializer.JAVA as GroupSerializer<Int> else Serializer.INTEGER
                         }
 
-                    if(otherComparator)
+                    if(otherComparator && generic!=null && generic.not())
                         keySer = object: GroupSerializer<Int> by keySer{
                             override fun compare(o1: Int?, o2: Int?): Int {
                                 throw AssertionError()
