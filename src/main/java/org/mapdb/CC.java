@@ -40,4 +40,6 @@ public interface CC{
 
     int INDEX_TREE_LONGLONGMAP_DIR_SHIFT = 7;
     int INDEX_TREE_LONGLONGMAP_LEVELS = 4;
+
+    boolean LOG_WAL_CONTENT = false;
 }

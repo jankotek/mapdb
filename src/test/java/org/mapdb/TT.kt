@@ -20,7 +20,7 @@ object TT{
     val boolsTrue = booleanArrayOf(true)
     val boolsFalse = booleanArrayOf(false)
 
-    fun randomByteArray(size: Int, seed: Int= Random().nextInt()): ByteArray {
+    @JvmStatic fun randomByteArray(size: Int, seed: Int= Random().nextInt()): ByteArray {
         var randomSeed = seed
         val ret = ByteArray(size)
         for (i in ret.indices) {
@@ -30,7 +30,7 @@ object TT{
         return ret
     }
 
-    fun randomFillStore(store:Store, size:Int=1000, seed:Long=Random().nextLong()){
+    @JvmStatic fun randomFillStore(store:Store, size:Int=1000, seed:Long=Random().nextLong()){
         val random = Random(seed)
         for(i in 0..size){
             val bytes = randomByteArray(random.nextInt(100),seed=random.nextInt());
@@ -40,7 +40,7 @@ object TT{
         }
     }
 
-    fun randomString(size: Int, seed: Int=Random().nextInt()): String {
+    @JvmStatic fun randomString(size: Int, seed: Int=Random().nextInt()): String {
         val chars = "0123456789abcdefghijklmnopqrstuvwxyz !@#$%^&*()_+=-{}[]:\",./<>?|\\".toCharArray()
         var seed = seed
         val b = StringBuilder(size)
