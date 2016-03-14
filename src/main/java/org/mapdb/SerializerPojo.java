@@ -16,10 +16,7 @@
 package org.mapdb;
 
 import java.io.*;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -275,13 +272,44 @@ public class SerializerPojo extends SerializerBase implements Serializable{
         } catch (NoSuchMethodException e) {
         }
 
+        return getInheritableMethod(clazz, "writeReplace", null, Object.class) != null;
+    }
 
-        try {
-            if(clazz.getDeclaredMethod("writeReplace")!=null) return true;
-        } catch (NoSuchMethodException e) {
+    /**
+     * Returns non-static, non-abstract method with given signature provided it
+     * is defined by or accessible (via inheritance) by the given class, or
+     * null if no match found.  Access checks are disabled on the returned
+     * method (if any).
+     */
+    private static Method getInheritableMethod(Class<?> cl, String name,
+                                               Class<?>[] argTypes,
+                                               Class<?> returnType)
+    {
+        Method meth = null;
+        Class<?> defCl = cl;
+        while (defCl != null) {
+            try {
+                meth = defCl.getDeclaredMethod(name, argTypes);
+                break;
+            } catch (NoSuchMethodException ex) {
+                defCl = defCl.getSuperclass();
+            }
         }
 
-        return false;
+        if ((meth == null) || (meth.getReturnType() != returnType)) {
+            return null;
+        }
+        meth.setAccessible(true);
+        int mods = meth.getModifiers();
+        if ((mods & (Modifier.STATIC | Modifier.ABSTRACT)) != 0) {
+            return null;
+        } else if ((mods & (Modifier.PUBLIC | Modifier.PROTECTED)) != 0) {
+            return meth;
+        } else if ((mods & Modifier.PRIVATE) != 0) {
+            return (cl == defCl) ? meth : null;
+        } else {
+            return meth;
+        }
     }
 
     /** action performed after classInfo was modified, feel free to override */
