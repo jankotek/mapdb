@@ -1,4 +1,4 @@
-package org.mapdb
+package org.mapdb.crash
 
 import org.junit.After
 import java.io.File
@@ -10,6 +10,8 @@ import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import org.junit.Assert.*
 import org.junit.Before
+import org.mapdb.DBUtil
+import org.mapdb.TT
 import kotlin.test.assertFailsWith
 
 /**
@@ -30,7 +32,7 @@ abstract class CrashJVM {
         assertTrue(seedStartDir!!.isDirectory)
 
     }
-    fun getTestDir():File = testDir!!;
+    fun getTestDir(): File = testDir!!;
 
 
     @Before fun init(){
@@ -193,7 +195,7 @@ abstract class CrashJVM {
 }
 
 
-class CrashJVMTestFail:CrashJVM(){
+class CrashJVMTestFail: CrashJVM(){
 
     override fun verifySeed(startSeed: Long, endSeed: Long, params:String): Long {
         val f = File(getTestDir(), "aaa")
@@ -222,18 +224,20 @@ class CrashJVMTestFail:CrashJVM(){
 
     @Test fun test(){
         assertFailsWith(Throwable::class, {
-            CrashJVM.run(this,time=2000, killDelay = 200)
+            run(this, time = 2000, killDelay = 200)
         })
     }
 
 }
 
 
-class CrashJVMTest:CrashJVM(){
+class CrashJVMTest: CrashJVM(){
 
+    var verifyCalled = 0L
     override fun verifySeed(startSeed: Long, endSeed: Long, params:String): Long {
+        verifyCalled++
         for(seed in startSeed .. endSeed){
-            assertTrue(File(getTestDir(),""+seed).exists())
+            assertTrue(File(getTestDir(), "" + seed).exists())
         }
 
         return Math.max(startSeed,endSeed)+1;
@@ -245,7 +249,7 @@ class CrashJVMTest:CrashJVM(){
         while(true){
             seed++
             startSeed(seed)
-            val f = File(getTestDir(), ""+seed)
+            val f = File(getTestDir(), "" + seed)
             f.createNewFile()
             commitSeed(seed)
         }
@@ -254,7 +258,8 @@ class CrashJVMTest:CrashJVM(){
     @Test fun test(){
         val runtime = 4000L + TT.testScale()*60*1000;
         val start = System.currentTimeMillis()
-        CrashJVM.run(this, time=runtime, killDelay = 200)
+        run(this, time=runtime, killDelay = 200)
         assertTrue(System.currentTimeMillis()-start >= runtime)
+        assertTrue(verifyCalled>0)
     }
 }

@@ -9,12 +9,13 @@ import java.io.File
 import java.util.*
 import org.junit.Assert.*
 import org.mapdb.DBUtil
+import org.mapdb.crash.CrashJVM
 import org.mapdb.volume.*
 
 /**
  * Checks if [Volume.sync()] really flushes disk cache, it should survive JVM crash...
  */
-abstract class VolumeSyncCrashTest(val volfab: VolumeFactory) : org.mapdb.CrashJVM(){
+abstract class VolumeSyncCrashTest(val volfab: VolumeFactory) : CrashJVM(){
 
     class RAF       : VolumeSyncCrashTest(RandomAccessFileVol.FACTORY)
     class FileChan  : VolumeSyncCrashTest(FileChannelVol.FACTORY)
@@ -77,6 +78,6 @@ abstract class VolumeSyncCrashTest(val volfab: VolumeFactory) : org.mapdb.CrashJ
 
     @Test
     fun run(){
-        org.mapdb.CrashJVM.Companion.run(this, time = org.mapdb.TT.testRuntime(10))
+        CrashJVM.Companion.run(this, time = org.mapdb.TT.testRuntime(10))
     }
 }

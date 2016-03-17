@@ -1,14 +1,19 @@
-package org.mapdb
+package org.mapdb.crash
 
 import org.junit.Test
 import java.io.File
 import org.junit.Assert.*
+import org.mapdb.Serializer
+import org.mapdb.Store
+import org.mapdb.StoreTrivialTx
+import org.mapdb.TT
+import org.mapdb.crash.CrashJVM
 
 /**
  * Check of commits are durable and survive JVM crash (kill PID -9)
  */
-abstract class StoreCrashTest:CrashJVM(){
-    abstract fun openStore(file: File):Store;
+abstract class StoreCrashTest: CrashJVM(){
+    abstract fun openStore(file: File): Store;
 
 
     override fun doInJVM(startSeed: Long, params:String) {
@@ -37,17 +42,17 @@ abstract class StoreCrashTest:CrashJVM(){
     }
 
     @Test fun crashTest(){
-        val store = openStore(File(getTestDir(),"store"))
+        val store = openStore(File(getTestDir(), "store"))
         val recid = store.put(0L, Serializer.LONG)
         store.commit()
         store.close()
-        CrashJVM.run(this, time = TT.testRuntime(6), params = recid.toString())
+        run(this, time = TT.testRuntime(6), params = recid.toString())
     }
 }
 
-class StoreTrivialCrashTest:StoreCrashTest(){
+class StoreTrivialCrashTest: StoreCrashTest(){
 
-    override fun openStore(file: File):Store {
+    override fun openStore(file: File): Store {
         return StoreTrivialTx(file);
     }
 

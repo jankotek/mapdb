@@ -1,10 +1,12 @@
-package org.mapdb
+package org.mapdb.crash
 
 import org.mapdb.volume.Volume
 import org.junit.Assert.*
 import org.junit.Test
+import org.mapdb.TT
+import org.mapdb.*
 
-class WALCrashTest:CrashJVM(){
+class WALCrashTest: CrashJVM(){
 
     override fun doInJVM(startSeed: Long, params: String) {
         val file = getTestDir().path+"/wal"
@@ -25,7 +27,7 @@ class WALCrashTest:CrashJVM(){
         val wal = WriteAheadLog(file, CC.DEFAULT_FILE_VOLUME_FACTORY, 0L)
         var lastLong:Long?=null
         var lastBB:ByteArray?=null
-        wal.replayWAL(object:WriteAheadLog.WALReplay by WriteAheadLog.NOREPLAY{
+        wal.replayWAL(object: WriteAheadLog.WALReplay by WriteAheadLog.NOREPLAY{
             override fun writeLong(offset: Long, value: Long) {
                 lastLong=value
             }

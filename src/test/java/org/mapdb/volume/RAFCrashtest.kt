@@ -6,7 +6,7 @@ import java.io.File
 import java.io.RandomAccessFile
 import java.util.*
 import org.junit.Assert.*
-import org.mapdb.CrashJVM
+import org.mapdb.crash.CrashJVM
 import org.mapdb.TT
 
 

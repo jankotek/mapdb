@@ -7,7 +7,7 @@ import java.io.RandomAccessFile
 import java.util.*
 import org.junit.Assert.*
 import org.mapdb.CC
-import org.mapdb.CrashJVM
+import org.mapdb.crash.CrashJVM
 import org.mapdb.DBUtil
 import org.mapdb.TT
 

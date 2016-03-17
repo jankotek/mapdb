@@ -2,7 +2,7 @@ package org.mapdb.volume
 
 import org.junit.Assert
 import org.junit.Test
-import org.mapdb.CrashJVM
+import org.mapdb.crash.CrashJVM
 import org.mapdb.TT
 import java.io.File
 import java.io.RandomAccessFile

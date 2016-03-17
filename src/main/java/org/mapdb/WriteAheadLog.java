@@ -577,7 +577,7 @@ public class WriteAheadLog {
         return 0;
     }
 
-    void replayWAL(WALReplay replay){
+    public void replayWAL(WALReplay replay){
         replay.beforeReplayStart();
 
         long fileNum2=-1;
@@ -963,7 +963,7 @@ public class WriteAheadLog {
      * @param offset where data will be written in main store, after WAL replay (6 bytes)
      * @param value
      */
-    protected void walPutLong(long offset, long value){
+    public void walPutLong(long offset, long value){
         ensureFileReady(false);
         final int plusSize = +1+8+6;
         long walOffset2 = allocate(plusSize,0);

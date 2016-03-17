@@ -1,6 +1,8 @@
 package org.mapdb;
 
 import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.Arrays;
 
 import static java.lang.Long.rotateLeft;
@@ -341,6 +343,12 @@ public final class DBUtil {
 
     public static void readFully(InputStream in, byte[] data) throws IOException {
         readFully(in, data, 0, data.length);
+    }
+
+    public static void writeFully(FileChannel f, ByteBuffer buf ) throws IOException {
+        int rem = buf.remaining();
+        while(rem>0)
+            rem-=f.write(buf);
     }
 
 
