@@ -438,12 +438,12 @@ public class SerializerPojoTest extends TestCase {
         }
     }
 
-    public static class MM extends AbstractMap implements Serializable{
+    public static class MMCore extends AbstractMap implements Serializable{
 
         Map m = new HashMap();
 
-        private Object writeReplace() throws ObjectStreamException {
-            return new LinkedHashMap(this);
+        protected Object writeReplace() throws ObjectStreamException {
+            return new LinkedHashMap(m);
         }
 
         @Override
@@ -457,10 +457,25 @@ public class SerializerPojoTest extends TestCase {
         }
     }
 
+    public static class MM extends MMCore {
+        @Override
+        public Set<Entry> entrySet() {
+            return super.entrySet();
+        }
+
+        @Override
+        public Object put(Object key, Object value) {
+            return super.put(key, value);
+        }
+    }
+
     public void testWriteReplace() throws ObjectStreamException {
         Map m = new MM();
         m.put("11","111");
-        assertEquals(new LinkedHashMap(m),UtilsTest.clone(m,p));
+
+        Object clone = UtilsTest.clone(m,p);
+        assertEquals(LinkedHashMap.class, clone.getClass());
+        assertEquals(new LinkedHashMap(m), clone);
     }
 
     public void testWriteReplace2() throws IOException {
