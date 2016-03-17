@@ -469,7 +469,7 @@ public class SerializerPojoTest extends TestCase {
         }
     }
 
-    public void testWriteReplace() throws ObjectStreamException {
+    public void testWriteReplace_inheritance() throws ObjectStreamException {
         Map m = new MM();
         m.put("11","111");
 
@@ -477,6 +477,35 @@ public class SerializerPojoTest extends TestCase {
         assertEquals(LinkedHashMap.class, clone.getClass());
         assertEquals(new LinkedHashMap(m), clone);
     }
+
+    public void testWriteReplace() throws ObjectStreamException {
+        Map m = new MMCore();
+        m.put("11","111");
+
+        Object clone = UtilsTest.clone(m,p);
+        assertEquals(LinkedHashMap.class, clone.getClass());
+        assertEquals(new LinkedHashMap(m), clone);
+    }
+
+
+    public void testWriteReplace_inheritance_java() throws ObjectStreamException {
+        Map m = new MM();
+        m.put("11","111");
+
+        Object clone = UtilsTest.clone(m,Serializer.JAVA);
+        assertEquals(LinkedHashMap.class, clone.getClass());
+        assertEquals(new LinkedHashMap(m), clone);
+    }
+
+    public void testWriteReplace_java() throws ObjectStreamException {
+        Map m = new MMCore();
+        m.put("11","111");
+
+        Object clone = UtilsTest.clone(m,Serializer.JAVA);
+        assertEquals(LinkedHashMap.class, clone.getClass());
+        assertEquals(new LinkedHashMap(m), clone);
+    }
+
 
     public void testWriteReplace2() throws IOException {
         File f = File.createTempFile("mapdb","mapdb");
