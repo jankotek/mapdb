@@ -35,7 +35,7 @@ class SortedTableMap<K,V>(
             internal var _nodeSize:Int = CC.BTREEMAP_MAX_NODE_SIZE
 
             fun pageSize(pageSize:Int):Maker<K,V>{
-                _pageSize = DBUtil.nextPowTwo(pageSize)
+                _pageSize = DataIO.nextPowTwo(pageSize)
                 return this
             }
 
@@ -188,13 +188,13 @@ class SortedTableMap<K,V>(
                     val bytes = bytes
                     val headSize = if(fileTail==0L) start else 0
                     var intPos = headSize
-                    DBUtil.putInt(bytes, intPos, nodeKeys.size)
+                    DataIO.putInt(bytes, intPos, nodeKeys.size)
                     intPos+=4
                     var pos = headSize + 4 + 2 * 4 * nodeKeys.size;
 
                     for(array in arrayOf(nodeKeys, nodeVals))
                     for(bb in array){
-                        DBUtil.putInt(bytes, intPos, pos)
+                        DataIO.putInt(bytes, intPos, pos)
                         if(pos+bb.size>bytes.size)
                             throw AssertionError()
                         System.arraycopy(bb, 0, bytes, pos, bb.size)

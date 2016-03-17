@@ -48,11 +48,11 @@ public class WriteAheadLog {
     protected final long featureBitMap;
 
     protected final int pointerOffsetBites=32;
-    protected final long pointerOffsetMask = DBUtil.fillLowBits(pointerOffsetBites);
+    protected final long pointerOffsetMask = DataIO.fillLowBits(pointerOffsetBites);
     protected final int pointerSizeBites=16;
-    protected final long pointerSizeMask = DBUtil.fillLowBits(pointerSizeBites);
+    protected final long pointerSizeMask = DataIO.fillLowBits(pointerSizeBites);
     protected final int pointerFileBites=16;
-    protected final long pointerFileMask = DBUtil.fillLowBits(pointerFileBites);
+    protected final long pointerFileMask = DataIO.fillLowBits(pointerFileBites);
 
     protected int lastChecksum=0;
     protected long lastChecksumOffset=16;
@@ -181,7 +181,7 @@ public class WriteAheadLog {
     }
 
     protected int checksum(Volume vol, long startOffset, long endOffset){
-        int ret =  DBUtil.longHash(vol.hash(startOffset, endOffset-startOffset, 111L));
+        int ret =  DataIO.longHash(vol.hash(startOffset, endOffset-startOffset, 111L));
         return ret==0?1:ret;
     }
 
@@ -658,10 +658,10 @@ public class WriteAheadLog {
     private long instTombstone(Volume wal, long pos, int checksum, WALReplay replay) {
         long recid = wal.getPackedLong(pos);
         pos += recid >>> 60;
-        recid &= DBUtil.PACK_LONG_RESULT_MASK;
+        recid &= DataIO.PACK_LONG_RESULT_MASK;
 
         if(CC.LOG_WAL_CONTENT && LOG.isLoggable(Level.FINER))
-            LOG.log(Level.FINER, "WAL TOMBSTONE: pos="+(pos-1-DBUtil.packLongSize(recid))+", recid="+recid);
+            LOG.log(Level.FINER, "WAL TOMBSTONE: pos="+(pos-1- DataIO.packLongSize(recid))+", recid="+recid);
 
         if(((1+Long.bitCount(recid))&15)!=checksum)
             throw new  DBException.DataCorruption("WAL corrupted");
@@ -674,10 +674,10 @@ public class WriteAheadLog {
     private long instPreallocate(Volume wal, long pos, int checksum, WALReplay replay) {
         long recid = wal.getPackedLong(pos);
         pos += recid >>> 60;
-        recid &= DBUtil.PACK_LONG_RESULT_MASK;
+        recid &= DataIO.PACK_LONG_RESULT_MASK;
 
         if(CC.LOG_WAL_CONTENT && LOG.isLoggable(Level.FINER))
-            LOG.log(Level.FINER, "WAL PREALLOC: pos="+(pos-1-DBUtil.packLongSize(recid))+", recid="+recid);
+            LOG.log(Level.FINER, "WAL PREALLOC: pos="+(pos-1- DataIO.packLongSize(recid))+", recid="+recid);
 
 
         if (((1 + Long.bitCount(recid)) & 15) != checksum)
@@ -694,11 +694,11 @@ public class WriteAheadLog {
         // read record
         long recid = wal.getPackedLong(pos);
         pos += recid >>> 60;
-        recid &= DBUtil.PACK_LONG_RESULT_MASK;
+        recid &= DataIO.PACK_LONG_RESULT_MASK;
 
         long size = wal.getPackedLong(pos);
         pos += size >>> 60;
-        size &= DBUtil.PACK_LONG_RESULT_MASK;
+        size &= DataIO.PACK_LONG_RESULT_MASK;
 
         if(CC.LOG_WAL_CONTENT && LOG.isLoggable(Level.FINER))
             LOG.log(Level.FINER, "WAL RECORD: pos="+(pos2)+", recid="+recid+", size="+size);
@@ -846,7 +846,7 @@ public class WriteAheadLog {
 
         long recid = vol.getPackedLong(dataOffset);
         dataOffset += recid >>> 60;
-        recid &= DBUtil.PACK_LONG_RESULT_MASK;
+        recid &= DataIO.PACK_LONG_RESULT_MASK;
 
         if(CC.ASSERT && expectedRecid!=0 && recid!=expectedRecid){
             throw new AssertionError();
@@ -854,7 +854,7 @@ public class WriteAheadLog {
 
         long size = vol.getPackedLong(dataOffset);
         dataOffset += size >>> 60;
-        size &= DBUtil.PACK_LONG_RESULT_MASK;
+        size &= DataIO.PACK_LONG_RESULT_MASK;
 
         if (size == 0) {
             return null;
@@ -932,7 +932,7 @@ public class WriteAheadLog {
             throw new AssertionError();
         ensureFileReady(true);
         long sizeToWrite = buf==null?0:(size+1);
-        final int plusSize = +1+ DBUtil.packLongSize(recid)+DBUtil.packLongSize(sizeToWrite)+size;
+        final int plusSize = +1+ DataIO.packLongSize(recid)+ DataIO.packLongSize(sizeToWrite)+size;
         long walOffset2 = allocate(plusSize-size, size);
         long startPos = walOffset2;
         if(CC.ASSERT && startPos>=MAX_FILE_SIZE)
@@ -1001,7 +1001,7 @@ public class WriteAheadLog {
 
     public void walPutTombstone(long recid) {
         ensureFileReady(false);
-        int plusSize = 1+DBUtil.packLongSize(recid);
+        int plusSize = 1+ DataIO.packLongSize(recid);
         long walOffset2 = allocate(plusSize, 0);
 
         Volume curVol2 = curVol;
@@ -1018,7 +1018,7 @@ public class WriteAheadLog {
 
     public void walPutPreallocate(long recid) {
         ensureFileReady(false);
-        int plusSize = 1+DBUtil.packLongSize(recid);
+        int plusSize = 1+ DataIO.packLongSize(recid);
         long walOffset2 = allocate(plusSize,0);
 
         Volume curVol2 = curVol;

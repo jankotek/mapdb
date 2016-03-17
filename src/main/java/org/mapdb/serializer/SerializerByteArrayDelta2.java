@@ -2,7 +2,7 @@ package org.mapdb.serializer;
 
 import org.jetbrains.annotations.NotNull;
 import static org.mapdb.serializer.SerializerStringDelta2.ByteArrayKeys;
-import org.mapdb.DBUtil;
+import org.mapdb.DataIO;
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
 import org.mapdb.Serializer;
@@ -140,7 +140,7 @@ public class SerializerByteArrayDelta2 implements GroupSerializer<byte[]> {
     public ByteArrayKeys valueArrayDeleteValue(Object keys, int pos) {
         //return keys.deleteKey(pos);
         Object[] vv = valueArrayToArray(keys);
-        vv = DBUtil.arrayDelete(vv, pos, 1);
+        vv = DataIO.arrayDelete(vv, pos, 1);
         return valueArrayFromArray(vv);
     }
 

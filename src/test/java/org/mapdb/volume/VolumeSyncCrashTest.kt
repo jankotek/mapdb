@@ -8,7 +8,7 @@ import org.junit.runners.Parameterized
 import java.io.File
 import java.util.*
 import org.junit.Assert.*
-import org.mapdb.DBUtil
+import org.mapdb.DataIO
 import org.mapdb.crash.CrashJVM
 import org.mapdb.volume.*
 
@@ -37,7 +37,7 @@ abstract class VolumeSyncCrashTest(val volfab: VolumeFactory) : CrashJVM(){
             val random = Random(seed)
             val used = LongHashSet();
             for(i in 0 until writeValues){
-                val offset = DBUtil.roundDown(random.nextInt(fileSize - 8 ),8).toLong()
+                val offset = DataIO.roundDown(random.nextInt(fileSize - 8 ),8).toLong()
 
                 if(!used.add(offset))
                     continue;
@@ -61,7 +61,7 @@ abstract class VolumeSyncCrashTest(val volfab: VolumeFactory) : CrashJVM(){
         val random = Random(endSeed)
         val used = LongHashSet();
         for(i in 0 until writeValues){
-            val offset = DBUtil.roundDown(random.nextInt(fileSize - 8 ),8).toLong()
+            val offset = DataIO.roundDown(random.nextInt(fileSize - 8 ),8).toLong()
             if(!used.add(offset))
                 continue;
             val value = random.nextLong();

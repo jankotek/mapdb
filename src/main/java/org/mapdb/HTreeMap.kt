@@ -229,7 +229,7 @@ class HTreeMap<K,V>(
     internal fun hash(key:K):Int{
         return keySerializer.hashCode(key, 0)
     }
-    internal fun hashToIndex(hash:Int) = DBUtil.intToLong(hash) and indexMask
+    internal fun hashToIndex(hash:Int) = DataIO.intToLong(hash) and indexMask
     internal fun hashToSegment(hash:Int) = hash.ushr(levels*dirShift) and concMask
 
 
@@ -471,7 +471,7 @@ class HTreeMap<K,V>(
                 } else {
                     //more entries, update leaf
                     store.update(leafRecid,
-                            DBUtil.arrayDelete(leaf, i + 3, 3),
+                            DataIO.arrayDelete(leaf, i + 3, 3),
                             leafSerializer)
                 }
 

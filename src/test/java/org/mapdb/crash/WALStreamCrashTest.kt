@@ -1,7 +1,7 @@
 package org.mapdb.crash
 
 import org.junit.Test
-import org.mapdb.DBUtil
+import org.mapdb.DataIO
 import org.mapdb.crash.CrashJVM
 import java.io.*
 import java.util.*
@@ -26,7 +26,7 @@ class WALStreamCrashTest: CrashJVM(){
             r.nextBytes(br)
             out.write(br)
 
-            DBUtil.putLong(b, 0, seed)
+            DataIO.putLong(b, 0, seed)
             out.write(b)
             out.flush()
             commitSeed(seed)
@@ -44,12 +44,12 @@ class WALStreamCrashTest: CrashJVM(){
         var lastSeed = 0L
         while(true){
             try{
-                DBUtil.readFully(ins, br1)
+                DataIO.readFully(ins, br1)
                 r.nextBytes(br2)
                 assertTrue(Arrays.equals(br1, br2))
 
-                DBUtil.readFully(ins, b)
-                lastSeed = DBUtil.getLong(b,0)
+                DataIO.readFully(ins, b)
+                lastSeed = DataIO.getLong(b,0)
             }catch(e: IOException){
                 break
             }

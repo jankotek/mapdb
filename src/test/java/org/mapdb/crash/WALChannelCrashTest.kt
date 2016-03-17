@@ -6,7 +6,7 @@ import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.nio.file.StandardOpenOption
 import org.junit.Assert.*
-import org.mapdb.DBUtil
+import org.mapdb.DataIO
 import org.mapdb.crash.CrashJVM
 
 /**
@@ -42,8 +42,8 @@ class WALChannelCrashTest: CrashJVM(){
         var lastSeed = 0L
         while(true){
             try{
-                DBUtil.readFully(ins, b)
-                lastSeed = DBUtil.getLong(b,0)
+                DataIO.readFully(ins, b)
+                lastSeed = DataIO.getLong(b,0)
             }catch(e: IOException){
                 break
             }

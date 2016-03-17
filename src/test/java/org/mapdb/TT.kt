@@ -25,7 +25,7 @@ object TT{
         val ret = ByteArray(size)
         for (i in ret.indices) {
             ret[i] = randomSeed.toByte()
-            randomSeed = 269 * randomSeed + DBUtil.intHash(randomSeed)
+            randomSeed = 269 * randomSeed + DataIO.intHash(randomSeed)
         }
         return ret
     }
@@ -46,7 +46,7 @@ object TT{
         val b = StringBuilder(size)
         for (i in 0..size - 1) {
             b.append(chars[Math.abs(seed) % chars.size])
-            seed = 31 * seed + DBUtil.intHash(seed)
+            seed = 31 * seed + DataIO.intHash(seed)
         }
         return b.toString()
     }

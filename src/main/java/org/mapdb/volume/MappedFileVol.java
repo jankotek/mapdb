@@ -4,7 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.mapdb.CC;
 import org.mapdb.DBException;
-import org.mapdb.DBUtil;
+import org.mapdb.DataIO;
 
 import java.io.File;
 import java.io.IOException;
@@ -89,7 +89,7 @@ public final class MappedFileVol extends ByteBufferVol {
 
             if (endSize > 0) {
                 //map data
-                int chunksSize = (int) ((DBUtil.roundUp(endSize, sliceSize) >>> sliceShift));
+                int chunksSize = (int) ((DataIO.roundUp(endSize, sliceSize) >>> sliceShift));
                 if (endSize > fileSize && !readOnly) {
                     RandomAccessFileVol.clearRAF(raf, fileSize, endSize);
                     raf.getFD().sync();
@@ -112,7 +112,7 @@ public final class MappedFileVol extends ByteBufferVol {
 
     @Override
     public final void ensureAvailable(long offset) {
-        offset = DBUtil.roundUp(offset, 1L << sliceShift);
+        offset = DataIO.roundUp(offset, 1L << sliceShift);
         int slicePos = (int) (offset >>> sliceShift);
 
         //check for most common case, this is already mapped

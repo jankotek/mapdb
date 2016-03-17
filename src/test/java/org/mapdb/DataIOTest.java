@@ -10,9 +10,9 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import static org.junit.Assert.*;
-import static org.mapdb.DBUtil.*;
+import static org.mapdb.DataIO.*;
 
-public class DBUtilTest {
+public class DataIOTest {
 
     @Test public void parity1() {
         assertEquals(Long.parseLong("1", 2), parity1Set(0));
@@ -61,44 +61,44 @@ public class DBUtilTest {
     @Test public void testSixLong(){
         byte[] b = new byte[8];
         for(long i=0;i>>>48==0;i=i+1+i/10000){
-            DBUtil.putSixLong(b,2,i);
-            assertEquals(i, DBUtil.getSixLong(b,2));
+            DataIO.putSixLong(b,2,i);
+            assertEquals(i, DataIO.getSixLong(b,2));
         }
     }
 
     @Test public void testNextPowTwo(){
-        assertEquals(1, DBUtil.nextPowTwo(1));
-        assertEquals(2, DBUtil.nextPowTwo(2));
-        assertEquals(4, DBUtil.nextPowTwo(3));
-        assertEquals(4, DBUtil.nextPowTwo(4));
+        assertEquals(1, DataIO.nextPowTwo(1));
+        assertEquals(2, DataIO.nextPowTwo(2));
+        assertEquals(4, DataIO.nextPowTwo(3));
+        assertEquals(4, DataIO.nextPowTwo(4));
 
-        assertEquals(64, DBUtil.nextPowTwo(33));
-        assertEquals(64, DBUtil.nextPowTwo(61));
+        assertEquals(64, DataIO.nextPowTwo(33));
+        assertEquals(64, DataIO.nextPowTwo(61));
 
-        assertEquals(1024, DBUtil.nextPowTwo(777));
-        assertEquals(1024, DBUtil.nextPowTwo(1024));
+        assertEquals(1024, DataIO.nextPowTwo(777));
+        assertEquals(1024, DataIO.nextPowTwo(1024));
 
-        assertEquals(1073741824, DBUtil.nextPowTwo(1073741824-100));
-        assertEquals(1073741824, DBUtil.nextPowTwo((int) (1073741824*0.7)));
-        assertEquals(1073741824, DBUtil.nextPowTwo(1073741824));
+        assertEquals(1073741824, DataIO.nextPowTwo(1073741824-100));
+        assertEquals(1073741824, DataIO.nextPowTwo((int) (1073741824*0.7)));
+        assertEquals(1073741824, DataIO.nextPowTwo(1073741824));
     }
 
 
     @Test public void testNextPowTwoLong(){
-        assertEquals(1, DBUtil.nextPowTwo(1L));
-        assertEquals(2, DBUtil.nextPowTwo(2L));
-        assertEquals(4, DBUtil.nextPowTwo(3L));
-        assertEquals(4, DBUtil.nextPowTwo(4L));
+        assertEquals(1, DataIO.nextPowTwo(1L));
+        assertEquals(2, DataIO.nextPowTwo(2L));
+        assertEquals(4, DataIO.nextPowTwo(3L));
+        assertEquals(4, DataIO.nextPowTwo(4L));
 
-        assertEquals(64, DBUtil.nextPowTwo(33L));
-        assertEquals(64, DBUtil.nextPowTwo(61L));
+        assertEquals(64, DataIO.nextPowTwo(33L));
+        assertEquals(64, DataIO.nextPowTwo(61L));
 
-        assertEquals(1024, DBUtil.nextPowTwo(777L));
-        assertEquals(1024, DBUtil.nextPowTwo(1024L));
+        assertEquals(1024, DataIO.nextPowTwo(777L));
+        assertEquals(1024, DataIO.nextPowTwo(1024L));
 
-        assertEquals(1073741824, DBUtil.nextPowTwo(1073741824L-100));
-        assertEquals(1073741824, DBUtil.nextPowTwo((long) (1073741824*0.7)));
-        assertEquals(1073741824, DBUtil.nextPowTwo(1073741824L));
+        assertEquals(1073741824, DataIO.nextPowTwo(1073741824L-100));
+        assertEquals(1073741824, DataIO.nextPowTwo((long) (1073741824*0.7)));
+        assertEquals(1073741824, DataIO.nextPowTwo(1073741824L));
     }
 
     @Test public void testNextPowTwo2(){
@@ -160,7 +160,7 @@ public class DBUtilTest {
 
     @Test public void testHexaConversion(){
         byte[] b = new byte[]{11,112,11,0,39,90};
-        assertTrue(Serializer.BYTE_ARRAY.equals(b, DBUtil.fromHexa(DBUtil.toHexa(b))));
+        assertTrue(Serializer.BYTE_ARRAY.equals(b, DataIO.fromHexa(DataIO.toHexa(b))));
     }
 
     @Test public void packLong() throws IOException {
@@ -171,8 +171,8 @@ public class DBUtilTest {
             in.pos = 10;
             out.pos = 10;
 
-            DBUtil.packLong((DataOutput)out,i);
-            long i2 = DBUtil.unpackLong(in);
+            DataIO.packLong((DataOutput)out,i);
+            long i2 = DataIO.unpackLong(in);
 
             assertEquals(i,i2);
             assertEquals(in.pos,out.pos);
@@ -188,8 +188,8 @@ public class DBUtilTest {
             in.pos = 10;
             out.pos = 10;
 
-            DBUtil.packInt((DataOutput)out,i);
-            long i2 = DBUtil.unpackInt(in);
+            DataIO.packInt((DataOutput)out,i);
+            long i2 = DataIO.unpackInt(in);
 
             assertEquals(i,i2);
             assertEquals(in.pos,out.pos);
@@ -198,9 +198,9 @@ public class DBUtilTest {
     }
 
     @Test public void int2Long(){
-        assertEquals(0x7fffffffL, DBUtil.intToLong(0x7fffffff));
-        assertEquals(0x80000000L, DBUtil.intToLong(0x80000000));
-        assertTrue(-1L != DBUtil.intToLong(-1));
+        assertEquals(0x7fffffffL, DataIO.intToLong(0x7fffffff));
+        assertEquals(0x80000000L, DataIO.intToLong(0x80000000));
+        assertTrue(-1L != DataIO.intToLong(-1));
     }
 
     @Test public void packedLong_volume() throws IOException {
@@ -212,14 +212,14 @@ public class DBUtilTest {
             Arrays.fill(out.buf, (byte) 0);
             out.pos=10;
             out.packLong(i);
-            assertEquals(i, v.getPackedLong(10)&DBUtil.PACK_LONG_RESULT_MASK);
-            assertEquals(DBUtil.packLongSize(i), v.getPackedLong(10)>>>60);
+            assertEquals(i, v.getPackedLong(10)& DataIO.PACK_LONG_RESULT_MASK);
+            assertEquals(DataIO.packLongSize(i), v.getPackedLong(10)>>>60);
 
             Arrays.fill(out.buf, (byte) 0);
             out.pos=10;
             out.packInt((int)i);
-            assertEquals(i, v.getPackedLong(10)&DBUtil.PACK_LONG_RESULT_MASK);
-            assertEquals(DBUtil.packLongSize(i), v.getPackedLong(10)>>>60);
+            assertEquals(i, v.getPackedLong(10)& DataIO.PACK_LONG_RESULT_MASK);
+            assertEquals(DataIO.packLongSize(i), v.getPackedLong(10)>>>60);
 
             Arrays.fill(out.buf, (byte) 0);
             v.putPackedLong(10, i);

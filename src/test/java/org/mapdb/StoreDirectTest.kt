@@ -7,7 +7,7 @@ import org.junit.Test
 import org.junit.Assert.*
 import java.io.File
 import org.mapdb.StoreDirectJava.*
-import org.mapdb.DBUtil.*
+import org.mapdb.DataIO.*
 import org.mapdb.volume.Volume
 import org.mapdb.volume.VolumeFactory
 import java.util.*

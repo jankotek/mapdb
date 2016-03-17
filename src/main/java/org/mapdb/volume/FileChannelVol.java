@@ -4,7 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.mapdb.CC;
 import org.mapdb.DBException;
-import org.mapdb.DBUtil;
+import org.mapdb.DataIO;
 import org.mapdb.DataInput2;
 
 import java.io.EOFException;
@@ -108,7 +108,7 @@ public final class FileChannelVol extends Volume {
 
     @Override
     public void ensureAvailable(long offset) {
-        offset= DBUtil.roundUp(offset,sliceSize);
+        offset= DataIO.roundUp(offset,sliceSize);
 
         if(offset>size){
             growLock.lock();

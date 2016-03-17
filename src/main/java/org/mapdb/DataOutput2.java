@@ -40,7 +40,7 @@ public class DataOutput2 extends OutputStream implements DataOutput{
 
     private void grow(int n) {
         //$DELAY$
-        int newSize = Math.max(DBUtil.nextPowTwo(n),buf.length);
+        int newSize = Math.max(DataIO.nextPowTwo(n),buf.length);
         sizeMask = 0xFFFFFFFF-(newSize-1);
         buf = Arrays.copyOf(buf, newSize);
     }

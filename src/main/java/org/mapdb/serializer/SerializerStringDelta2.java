@@ -328,7 +328,7 @@ public class SerializerStringDelta2 implements  GroupSerializer<String> {
 
         private void inReadFully(DataInput in, int from, int to) throws IOException {
             for(int i=from;i<to;i++){
-                array[i] = (char) DBUtil.unpackInt(in);
+                array[i] = (char) DataIO.unpackInt(in);
             }
         }
 
@@ -522,7 +522,7 @@ public class SerializerStringDelta2 implements  GroupSerializer<String> {
 
         private void outWrite(DataOutput out, int from, int to) throws IOException {
             for(int i=from;i<to;i++){
-                DBUtil.packInt(out,array[i]);
+                DataIO.packInt(out,array[i]);
             }
         }
 
@@ -577,7 +577,7 @@ public class SerializerStringDelta2 implements  GroupSerializer<String> {
     public StringArrayKeys valueArrayDeleteValue(Object vals, int pos) {
         //return vals.deleteKey(pos);
         Object[] vv = valueArrayToArray(vals);
-        vv = DBUtil.arrayDelete(vv, pos, 1);
+        vv = DataIO.arrayDelete(vv, pos, 1);
         return valueArrayFromArray(vv);
     }
 

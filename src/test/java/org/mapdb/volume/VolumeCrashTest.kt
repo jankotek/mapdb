@@ -8,7 +8,7 @@ import java.util.*
 import org.junit.Assert.*
 import org.mapdb.CC
 import org.mapdb.crash.CrashJVM
-import org.mapdb.DBUtil
+import org.mapdb.DataIO
 import org.mapdb.TT
 
 
@@ -35,7 +35,7 @@ class VolumeCrashTest(): CrashJVM(){
             val random = Random(seed)
             val alreadyWritten = LongHashSet();
             for(i in 0 until count) {
-                val offset = DBUtil.roundDown(random.nextInt(max-8).toLong(),8)
+                val offset = DataIO.roundDown(random.nextInt(max-8).toLong(),8)
                 if(!alreadyWritten.add(offset))
                     continue
                 v.putLong(offset, random.nextLong())
@@ -56,7 +56,7 @@ class VolumeCrashTest(): CrashJVM(){
         val random = Random(endSeed)
         val alreadyWritten = LongHashSet();
         for(i in 0 until count) {
-            val offset = DBUtil.roundDown(random.nextInt(max-8).toLong(),8)
+            val offset = DataIO.roundDown(random.nextInt(max-8).toLong(),8)
             if(!alreadyWritten.add(offset))
                 continue
             raf.seek(offset)

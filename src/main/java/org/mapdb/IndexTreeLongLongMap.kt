@@ -486,7 +486,7 @@ public class IndexTreeLongLongMap(
     override fun hashCode(): Int {
         var result = 0;
         forEachKeyValue { k, v ->
-            result += DBUtil.longHash(k + v + 10)
+            result += DataIO.longHash(k + v + 10)
         }
         return result
     }
@@ -958,7 +958,7 @@ internal abstract open class AbstractMutableLongCollection :
     override fun hashCode(): Int {
         var ret = 0;
         forEach{k->
-            ret += DBUtil.longHash(k)
+            ret += DataIO.longHash(k)
         }
         return ret;
     }

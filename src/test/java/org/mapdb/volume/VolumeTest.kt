@@ -12,7 +12,7 @@ import java.util.Random
 import org.junit.Assert.*
 import org.mapdb.CC
 import org.mapdb.DBException
-import org.mapdb.DBUtil
+import org.mapdb.DataIO
 import org.mapdb.Serializer
 import org.mapdb.volume.*
 import java.io.*
@@ -76,7 +76,7 @@ class VolumeTest {
             v.ensureAvailable(10000)
 
             var i: Long = 0
-            while (i < DBUtil.PACK_LONG_RESULT_MASK) {
+            while (i < DataIO.PACK_LONG_RESULT_MASK) {
                 v.clear(0, 20)
                 val size = v.putPackedLong(10, i).toLong()
                 assertTrue(i > 100000 || size < 6)
@@ -109,7 +109,7 @@ class VolumeTest {
             v.ensureAvailable(b.size.toLong())
             v.putData(0, b, 0, b.size)
 
-            assertEquals(DBUtil.hash(b, 0, b.size, 11), v.hash(0, b.size.toLong(), 11))
+            assertEquals(DataIO.hash(b, 0, b.size, 11), v.hash(0, b.size.toLong(), 11))
 
             v.close()
         }
@@ -267,7 +267,7 @@ class VolumeTest {
             val b = ByteArray(12)
 
             var i: Long = 0
-            while (i < DBUtil.PACK_LONG_RESULT_MASK) {
+            while (i < DataIO.PACK_LONG_RESULT_MASK) {
                 val len = v1.putPackedLong(7, i).toLong()
                 v1.getData(7, b, 0, 12)
                 v2.putData(7, b, 0, 12)
@@ -545,7 +545,7 @@ class VolumeTest {
             vol.putData(0, b, 0, b.size)
 
             assertEquals(
-                    DBUtil.hash(b, 0, b.size, 0),
+                    DataIO.hash(b, 0, b.size, 0),
                     vol.hash(0, b.size.toLong(), 0))
 
         }

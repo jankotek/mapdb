@@ -1,6 +1,6 @@
 package org.mapdb.serializer;
 
-import org.mapdb.DBUtil;
+import org.mapdb.DataIO;
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
 
@@ -41,7 +41,7 @@ public abstract class GroupSerializerObjectArray<A> implements GroupSerializer<A
     }
 
     @Override public Object[] valueArrayPut(Object vals, int pos, A newValue) {
-        return DBUtil.arrayPut((Object[])vals, pos, newValue);
+        return DataIO.arrayPut((Object[])vals, pos, newValue);
     }
 
     @Override public Object[] valueArrayUpdateVal(Object vals, int pos, A newValue) {
@@ -60,7 +60,7 @@ public abstract class GroupSerializerObjectArray<A> implements GroupSerializer<A
     }
 
     @Override public Object[] valueArrayDeleteValue(Object vals, int pos) {
-        return DBUtil.arrayDelete((Object[])vals, pos, 1);
+        return DataIO.arrayDelete((Object[])vals, pos, 1);
     }
 
     @Override public  int valueArraySearch(Object keys, A key){

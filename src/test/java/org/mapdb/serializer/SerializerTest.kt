@@ -195,7 +195,7 @@ abstract class GroupSerializerTest<E>:SerializerTest<E>(){
             val vals2 = serializer2.valueArrayDeleteValue(vals, pos);
             assertEquals(valsSize-1, serializer2.valueArraySize(vals2))
 
-            val arr1 = DBUtil.arrayDelete(serializer2.valueArrayToArray(vals), pos, 1);
+            val arr1 = DataIO.arrayDelete(serializer2.valueArrayToArray(vals), pos, 1);
             val arr2 = serializer2.valueArrayToArray(vals2);
 
             arr1.forEachIndexed { i, any ->

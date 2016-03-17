@@ -55,15 +55,15 @@ open class StoreTrivial(
 
         //fill recids
         recidLoop@ while (true) {
-            val recid = DBUtil.unpackLong(inStream)
+            val recid = DataIO.unpackLong(inStream)
             if (recid == 0L)
                 break@recidLoop
             maxRecid2 = Math.max(maxRecid2, recid)
-            var size = DBUtil.unpackLong(inStream) - 1
+            var size = DataIO.unpackLong(inStream) - 1
             var data = NULL_RECORD
             if (size >= 0) {
                 data = ByteArray((size).toInt())
-                DBUtil.readFully(inStream, data)
+                DataIO.readFully(inStream, data)
             }
 
             records.put(recid, data)
@@ -85,21 +85,21 @@ open class StoreTrivial(
             while (recidIter.hasNext()) {
                 val recid = recidIter.next();
                 val bytes = records.get(recid)
-                DBUtil.packLong(outStream, recid)
+                DataIO.packLong(outStream, recid)
                 val sizeToWrite: Long =
                         if (bytes === NULL_RECORD) {
                             -1L
                         } else {
                             bytes.size.toLong()
                         }
-                DBUtil.packLong(outStream, sizeToWrite + 1L)
+                DataIO.packLong(outStream, sizeToWrite + 1L)
 
                 if (sizeToWrite >= 0)
                     outStream.write(bytes)
             }
 
             //zero recid marks end
-            DBUtil.packLong(outStream, 0L)
+            DataIO.packLong(outStream, 0L)
 
             Utils.logDebug { "Saved ${records.size()} records" }
         }

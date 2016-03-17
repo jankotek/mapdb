@@ -282,13 +282,13 @@ public class WriteAheadLogTest {
         wal.walPutLong(111L, 1000);
         wal.commit();
         long offset1 = wal.fileOffset - 5;
-        int checksum1 = DBUtil.longHash(wal.curVol.hash(16, offset1 - 16, 111L));
+        int checksum1 = DataIO.longHash(wal.curVol.hash(16, offset1 - 16, 111L));
 
         assertEquals(checksum1, wal.curVol.getInt(offset1 + 1));
         wal.walPutLong(111L, 1000);
         wal.commit();
         long offset2 = wal.fileOffset - 5;
-        int checksum2 = checksum1 + DBUtil.longHash(wal.curVol.hash(offset1 + 5, offset2 - offset1 - 5, 111L));
+        int checksum2 = checksum1 + DataIO.longHash(wal.curVol.hash(offset1 + 5, offset2 - offset1 - 5, 111L));
         assertEquals(checksum2, wal.curVol.getInt(offset2 + 1));
     }
 

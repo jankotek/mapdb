@@ -1,7 +1,7 @@
 package org.mapdb.serializer;
 
 import org.jetbrains.annotations.NotNull;
-import org.mapdb.DBUtil;
+import org.mapdb.DataIO;
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
 
@@ -38,6 +38,6 @@ public class SerializerStringOrigHash extends SerializerString {
 
     @Override
     public int hashCode(@NotNull String s, int seed) {
-        return DBUtil.intHash(s.hashCode() + seed);
+        return DataIO.intHash(s.hashCode() + seed);
     }
 }

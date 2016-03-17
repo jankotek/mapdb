@@ -90,8 +90,8 @@ class SortedTableMapTest{
             val maxKey = size*3-3
             assertEquals(if(i>0 && notEmpty) Math.min(maxKey,((i-1)/3)*3) else null , map.lowerKey(i))
             assertEquals(if(i>=0 && notEmpty) Math.min(maxKey,(i/3)*3) else null , map.floorKey(i))
-            assertEquals(if(i<maxKey && notEmpty) Math.max(0, DBUtil.roundUp(i+1,3)) else null , map.higherKey(i))
-            assertEquals(if(i<=maxKey && notEmpty) Math.max(0, DBUtil.roundUp(i,3)) else null , map.ceilingKey(i))
+            assertEquals(if(i<maxKey && notEmpty) Math.max(0, DataIO.roundUp(i+1,3)) else null , map.higherKey(i))
+            assertEquals(if(i<=maxKey && notEmpty) Math.max(0, DataIO.roundUp(i,3)) else null , map.ceilingKey(i))
         }
 
         //do reverse iterators

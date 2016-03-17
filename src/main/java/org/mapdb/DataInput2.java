@@ -541,7 +541,7 @@ public abstract class DataInput2 implements DataInput {
 
         @Override
         public void readFully(byte[] b, int off, int len) throws IOException {
-            DBUtil.readFully(ins, b, off, len);
+            DataIO.readFully(ins, b, off, len);
         }
 
         @Override
@@ -673,12 +673,12 @@ public abstract class DataInput2 implements DataInput {
 
         @Override
         public long unpackLong() throws IOException {
-            return DBUtil.unpackLong(ins);
+            return DataIO.unpackLong(ins);
         }
 
         @Override
         public int unpackInt() throws IOException {
-            return DBUtil.unpackInt(ins);
+            return DataIO.unpackInt(ins);
         }
 
     }

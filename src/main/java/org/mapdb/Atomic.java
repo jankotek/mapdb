@@ -725,7 +725,7 @@ final public class Atomic {
 //        protected Var(Store store, SerializerBase serializerBase, DataInput is, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
 //            objectStack.add(this);
 //            this.store = store;
-//            this.recid = DBUtil.unpackLong(is);
+//            this.recid = DataIO.unpackLong(is);
 //            this.serializer = (Serializer<E>) serializerBase.deserialize(is,objectStack);
 //        }
 

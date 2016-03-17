@@ -375,7 +375,7 @@ open class DB(
 
         fun layout(concurrency:Int, dirSize:Int, levels:Int):HashMapMaker<K,V>{
             fun toShift(value:Int):Int{
-                return 31 - Integer.numberOfLeadingZeros(DBUtil.nextPowTwo(Math.max(1,value)))
+                return 31 - Integer.numberOfLeadingZeros(DataIO.nextPowTwo(Math.max(1,value)))
             }
             _concShift = toShift(concurrency)
             _dirShift = toShift(dirSize)
@@ -1268,7 +1268,7 @@ open class DB(
 
         fun layout(dirSize:Int, levels:Int):IndexTreeLongLongMapMaker{
             fun toShift(value:Int):Int{
-                return 31 - Integer.numberOfLeadingZeros(DBUtil.nextPowTwo(Math.max(1,value)))
+                return 31 - Integer.numberOfLeadingZeros(DataIO.nextPowTwo(Math.max(1,value)))
             }
             _dirShift = toShift(dirSize)
             _levels = levels
@@ -1326,7 +1326,7 @@ open class DB(
 
         fun layout(dirSize:Int, levels:Int):IndexTreeListMaker<E>{
             fun toShift(value:Int):Int{
-                return 31 - Integer.numberOfLeadingZeros(DBUtil.nextPowTwo(Math.max(1,value)))
+                return 31 - Integer.numberOfLeadingZeros(DataIO.nextPowTwo(Math.max(1,value)))
             }
             _dirShift = toShift(dirSize)
             _levels = levels

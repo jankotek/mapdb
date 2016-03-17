@@ -4,7 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.mapdb.CC;
 import org.mapdb.DBException;
-import org.mapdb.DBUtil;
+import org.mapdb.DataIO;
 
 import java.io.File;
 import java.nio.ByteBuffer;
@@ -69,7 +69,7 @@ public final class ByteBufferMemoryVol extends ByteBufferVol {
 
     @Override
     public final void ensureAvailable(long offset) {
-        offset = DBUtil.roundUp(offset, 1L << sliceShift);
+        offset = DataIO.roundUp(offset, 1L << sliceShift);
         int slicePos = (int) (offset >>> sliceShift);
 
         //check for most common case, this is already mapped

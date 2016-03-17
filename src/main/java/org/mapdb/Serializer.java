@@ -333,7 +333,7 @@ public interface Serializer<A> extends Comparator<A>{
     }
 
     default int hashCode(@NotNull A a, int seed){
-        return DBUtil.intHash(a.hashCode()+seed);
+        return DataIO.intHash(a.hashCode()+seed);
     }
 
     default boolean needsAvailableSizeHint(){

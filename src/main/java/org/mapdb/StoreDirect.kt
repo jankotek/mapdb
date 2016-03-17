@@ -2,7 +2,7 @@ package org.mapdb
 
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.mapdb.StoreDirectJava.*
-import org.mapdb.DBUtil.*
+import org.mapdb.DataIO.*
 import org.mapdb.volume.Volume
 import org.mapdb.volume.VolumeFactory
 import java.io.IOException
@@ -485,7 +485,7 @@ class StoreDirect(
             throw AssertionError()
 
         /** size of value after it was packed */
-        val valueSize:Long = DBUtil.packLongSize(value).toLong()
+        val valueSize:Long = DataIO.packLongSize(value).toLong()
 
         val masterLinkVal:Long = parity4Get(volume.getLong(masterLinkOffset))
         if (masterLinkVal == 0L) {
@@ -610,8 +610,8 @@ class StoreDirect(
             throw DBException.DataCorruption("position beyond chunk "+masterLinkOffset);
 
         //get value and zero it out
-        val ret = volume.getPackedLong(offset+pos) and DBUtil.PACK_LONG_RESULT_MASK
-        volume.clear(offset+pos, offset+pos+DBUtil.packLongSize(ret))
+        val ret = volume.getPackedLong(offset+pos) and DataIO.PACK_LONG_RESULT_MASK
+        volume.clear(offset+pos, offset+pos+ DataIO.packLongSize(ret))
 
         //update size on master link
         if(pos>8L) {
@@ -682,7 +682,7 @@ class StoreDirect(
             while(pos< endSize) {
                 var stackVal = volume.getPackedLong(offset + pos)
                 pos+=stackVal.ushr(60)
-                stackVal = stackVal and DBUtil.PACK_LONG_RESULT_MASK
+                stackVal = stackVal and DataIO.PACK_LONG_RESULT_MASK
 
                 if (stackVal.ushr(48) != 0L)
                     throw AssertionError()
@@ -1153,7 +1153,7 @@ class StoreDirect(
                     while(pos< endSize) {
                         var stackVal = volume.getPackedLong(offset + pos)
                         pos+=stackVal.ushr(60)
-                        stackVal = stackVal and DBUtil.PACK_LONG_RESULT_MASK
+                        stackVal = stackVal and DataIO.PACK_LONG_RESULT_MASK
                         if (stackVal.ushr(48) != 0L)
                             throw AssertionError()
                         if (masterLinkOffset!=RECID_LONG_STACK && stackVal % 16L != 0L)

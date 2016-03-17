@@ -20,7 +20,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.mapdb.CC;
 import org.mapdb.DBException;
-import org.mapdb.DBUtil;
+import org.mapdb.DataIO;
 import org.mapdb.DataInput2;
 
 import java.io.*;
@@ -31,7 +31,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static java.lang.Long.rotateLeft;
-import static org.mapdb.DBUtil.*;
+import static org.mapdb.DataIO.*;
 
 
 /**
@@ -51,7 +51,7 @@ public abstract class Volume implements Closeable{
 
     static int sliceShiftFromSize(long sizeIncrement) {
         //PERF optimize this method with bitcount operation
-        sizeIncrement = DBUtil.nextPowTwo(sizeIncrement);
+        sizeIncrement = DataIO.nextPowTwo(sizeIncrement);
         for(int i=0;i<32;i++){
             if((1L<<i)==sizeIncrement){
                 return i;
@@ -284,7 +284,7 @@ public abstract class Volume implements Closeable{
 
     /**
      * Unpack long value from the Volume. Highest 4 bits reused to indicate number of bytes read from Volume.
-     * One can use {@code result & DBUtil.PACK_LONG_RESULT_MASK} to remove size;
+     * One can use {@code result & DataIO.PACK_LONG_RESULT_MASK} to remove size;
      *
      * @param position to read value from
      * @return The long value, minus highest byte
@@ -344,18 +344,18 @@ public abstract class Volume implements Closeable{
 
         final long bufSize = 1L << CC.PAGE_SHIFT;
 
-        long offset = Math.min(endOffset, DBUtil.roundUp(startOffset, bufSize));
+        long offset = Math.min(endOffset, DataIO.roundUp(startOffset, bufSize));
         if (offset != startOffset) {
             clear(startOffset, offset);
         }
 
         long prevOffset = offset;
-        offset = Math.min(endOffset, DBUtil.roundUp(offset + 1, bufSize));
+        offset = Math.min(endOffset, DataIO.roundUp(offset + 1, bufSize));
 
         while (prevOffset < endOffset){
             clear(prevOffset, offset);
             prevOffset = offset;
-            offset = Math.min(endOffset, DBUtil.roundUp(offset + 1, bufSize));
+            offset = Math.min(endOffset, DataIO.roundUp(offset + 1, bufSize));
         }
 
         if(CC.ASSERT && prevOffset!=endOffset)

@@ -135,7 +135,7 @@ public class BTreeMapJava {
             int keysLenOrig = keySerializer.valueArraySize(value.keys);
             int keysLen = keySerializer.valueArraySize(value.keys)<<4;
             keysLen += value.flags;
-            keysLen = DBUtil.parity1Set(keysLen<<1);
+            keysLen = DataIO.parity1Set(keysLen<<1);
 
             //keysLen and flags are combined into single packed long, that saves a byte for small nodes
             out.packInt(keysLen);
@@ -152,7 +152,7 @@ public class BTreeMapJava {
 
         @Override
         public Node deserialize(@NotNull DataInput2 input, int available) throws IOException {
-            int keysLen = DBUtil.parity1Get(input.unpackInt())>>>1;
+            int keysLen = DataIO.parity1Get(input.unpackInt())>>>1;
             int flags = keysLen & 0xF;
             keysLen = keysLen>>>4;
             long link =  (flags&RIGHT)!=0
@@ -293,7 +293,7 @@ public class BTreeMapJava {
         @Override
         public long get(DataInput2 input, int size) throws IOException {
             //read size and flags
-            int keysLen = DBUtil.parity1Get(input.unpackInt())>>>1;
+            int keysLen = DataIO.parity1Get(input.unpackInt())>>>1;
             int flags = keysLen&0xF;
             keysLen = keysLen>>>4;
             if(keysLen==0)

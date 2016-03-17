@@ -38,7 +38,7 @@ fun main(args : Array<String>) {
         }
         try {
             File(d, "$a").createNewFile()
-            DBUtil.putLong(b, 0, 8)
+            DataIO.putLong(b, 0, 8)
             out.write(b)
             out.flush()
         }catch(e:Exception){

@@ -10,7 +10,7 @@ import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import org.junit.Assert.*
 import org.junit.Before
-import org.mapdb.DBUtil
+import org.mapdb.DataIO
 import org.mapdb.TT
 import kotlin.test.assertFailsWith
 
@@ -200,7 +200,7 @@ class CrashJVMTestFail: CrashJVM(){
     override fun verifySeed(startSeed: Long, endSeed: Long, params:String): Long {
         val f = File(getTestDir(), "aaa")
         val seed = f.inputStream().use {
-            DBUtil.unpackLong(it)
+            DataIO.unpackLong(it)
         }
         assertTrue(seed>=startSeed)
         assertTrue(endSeed==-1L && seed<=endSeed)
@@ -215,7 +215,7 @@ class CrashJVMTestFail: CrashJVM(){
             seed++
             startSeed(seed)
             f.outputStream().use {
-                DBUtil.packLong(it, seed)
+                DataIO.packLong(it, seed)
             }
             commitSeed(seed)
         }

@@ -66,7 +66,7 @@ public class SerializerStringDelta extends SerializerString{
 
         //find common prefix
         int prefixLen = commonPrefixLen(chars);
-        DBUtil.packInt(out,prefixLen);
+        DataIO.packInt(out,prefixLen);
         for (int i = 0; i < prefixLen; i++) {
             out.packInt(chars[0][i]);
         }
