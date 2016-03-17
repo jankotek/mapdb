@@ -16,6 +16,7 @@
 
 package org.mapdb.volume;
 
+import net.jpountz.xxhash.StreamingXXHash64;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.mapdb.CC;
@@ -29,9 +30,6 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import static java.lang.Long.rotateLeft;
-import static org.mapdb.DataIO.*;
 
 
 /**
@@ -386,112 +384,33 @@ public abstract class Volume implements Closeable{
     /**
      * <p>
      * Calculates XXHash64 from this Volume content.
-     * </p><p>
-     * This code comes from <a href="https://github.com/jpountz/lz4-java">LZ4-Java</a> created
-     * by Adrien Grand.
      * </p>
-     *
      * @param off offset to start calculation from
      * @param len length of data to calculate hash
      * @param seed  hash seed
      * @return XXHash.
      */
     public long hash(long off, long len, long seed){
-        if (len < 0) {
-            throw new IllegalArgumentException("lengths must be >= 0");
-        }
-        if(len==0)
-            return seed;
+        final int blen = 128;
+        byte[] b = new byte[blen];
+        StreamingXXHash64 s = CC.HASH_FACTORY.newStreamingHash64(seed);
+        len +=off;
 
-        long bufLen = length();
-        if(off<0 || off>=bufLen || off+len<0 || off+len>bufLen){
-            throw new IndexOutOfBoundsException();
-        }
+        //round size to multiple of blen
+        int size = (int)Math.min(len-off,Math.min(blen, DataIO.roundUp(off, blen) - off));
+        getData(off,b,0,size);
+        s.update(b,0,size);
+        off+=size;
 
-        while((off&0x7)!=0 && len>0){
-            //scroll until offset is not dividable by 8
-            seed = (seed<<8) | getUnsignedByte(off);
-            off++;
-            len--;
-        }
-
-
-        final long end = off + len;
-        long h64;
-
-        if (len >= 32) {
-            final long limit = end - 32;
-            long v1 = seed + PRIME64_1 + PRIME64_2;
-            long v2 = seed + PRIME64_2;
-            long v3 = seed + 0;
-            long v4 = seed - PRIME64_1;
-            do {
-                v1 += Long.reverseBytes(getLong(off)) * PRIME64_2;
-                v1 = rotateLeft(v1, 31);
-                v1 *= PRIME64_1;
-                off += 8;
-
-                v2 += Long.reverseBytes(getLong(off)) * PRIME64_2;
-                v2 = rotateLeft(v2, 31);
-                v2 *= PRIME64_1;
-                off += 8;
-
-                v3 += Long.reverseBytes(getLong(off)) * PRIME64_2;
-                v3 = rotateLeft(v3, 31);
-                v3 *= PRIME64_1;
-                off += 8;
-
-                v4 += Long.reverseBytes(getLong(off)) * PRIME64_2;
-                v4 = rotateLeft(v4, 31);
-                v4 *= PRIME64_1;
-                off += 8;
-            } while (off <= limit);
-
-            h64 = rotateLeft(v1, 1) + rotateLeft(v2, 7) + rotateLeft(v3, 12) + rotateLeft(v4, 18);
-
-            v1 *= PRIME64_2; v1 = rotateLeft(v1, 31); v1 *= PRIME64_1; h64 ^= v1;
-            h64 = h64 * PRIME64_1 + PRIME64_4;
-
-            v2 *= PRIME64_2; v2 = rotateLeft(v2, 31); v2 *= PRIME64_1; h64 ^= v2;
-            h64 = h64 * PRIME64_1 + PRIME64_4;
-
-            v3 *= PRIME64_2; v3 = rotateLeft(v3, 31); v3 *= PRIME64_1; h64 ^= v3;
-            h64 = h64 * PRIME64_1 + PRIME64_4;
-
-            v4 *= PRIME64_2; v4 = rotateLeft(v4, 31); v4 *= PRIME64_1; h64 ^= v4;
-            h64 = h64 * PRIME64_1 + PRIME64_4;
-        } else {
-            h64 = seed + PRIME64_5;
+        //read rest of the data
+        while (off<len) {
+            size = (int)Math.min(blen, len-off);
+            getData(off,b,0,size);
+            s.update(b,0,size);
+            off+=size;
         }
 
-        h64 += len;
-
-        while (off <= end - 8) {
-            long k1 = Long.reverseBytes(getLong(off));
-            k1 *= PRIME64_2; k1 = rotateLeft(k1, 31); k1 *= PRIME64_1; h64 ^= k1;
-            h64 = rotateLeft(h64, 27) * PRIME64_1 + PRIME64_4;
-            off += 8;
-        }
-
-        if (off <= end - 4) {
-            h64 ^= (Integer.reverseBytes(getInt(off)) & 0xFFFFFFFFL) * PRIME64_1;
-            h64 = rotateLeft(h64, 23) * PRIME64_2 + PRIME64_3;
-            off += 4;
-        }
-
-        while (off < end) {
-            h64 ^= (getByte(off) & 0xFF) * PRIME64_5;
-            h64 = rotateLeft(h64, 11) * PRIME64_1;
-            ++off;
-        }
-
-        h64 ^= h64 >>> 33;
-        h64 *= PRIME64_2;
-        h64 ^= h64 >>> 29;
-        h64 *= PRIME64_3;
-        h64 ^= h64 >>> 32;
-
-        return h64;
+        return s.getValue();
     }
 
 

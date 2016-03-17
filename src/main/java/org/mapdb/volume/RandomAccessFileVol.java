@@ -4,7 +4,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.mapdb.CC;
 import org.mapdb.DBException;
-import org.mapdb.DataIO;
 import org.mapdb.DataInput2;
 
 import java.io.File;
@@ -13,8 +12,6 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileLock;
 
-import static java.lang.Long.rotateLeft;
-import static org.mapdb.DataIO.*;
 
 /**
  * Created by jan on 2/29/16.
@@ -381,125 +378,6 @@ public final class RandomAccessFileVol extends Volume {
             throw new DBException.VolumeIOError(e);
         }
 
-    }
-
-    @Override
-    public synchronized long hash(long off, long len, long seed) {
-        if (len < 0) {
-            throw new IllegalArgumentException("lengths must be >= 0");
-        }
-        if (len == 0)
-            return seed;
-        long bufLen = length();
-        if (off < 0 || off >= bufLen || off + len < 0 || off + len > bufLen) {
-            throw new IndexOutOfBoundsException();
-        }
-        try {
-            raf.seek(off);
-
-            while ((off & 0x7) != 0 && len > 0) {
-                //scroll until offset is not dividable by 8
-                seed = (seed << 8) | raf.readUnsignedByte();
-                off++;
-                len--;
-            }
-
-            final long end = off + len;
-            long h64;
-
-            if (len >= 32) {
-                final long limit = end - 32;
-                long v1 = seed + PRIME64_1 + PRIME64_2;
-                long v2 = seed + PRIME64_2;
-                long v3 = seed + 0;
-                long v4 = seed - PRIME64_1;
-                byte[] buf = new byte[32];
-                do {
-                    raf.readFully(buf); //reading single byte[] is faster than 4xreadLong
-                    v1 += Long.reverseBytes(DataIO.getLong(buf, 0)) * PRIME64_2;
-                    v1 = rotateLeft(v1, 31);
-                    v1 *= PRIME64_1;
-                    off += 8;
-
-                    v2 += Long.reverseBytes(DataIO.getLong(buf, 8)) * PRIME64_2;
-                    v2 = rotateLeft(v2, 31);
-                    v2 *= PRIME64_1;
-                    off += 8;
-
-                    v3 += Long.reverseBytes(DataIO.getLong(buf, 16)) * PRIME64_2;
-                    v3 = rotateLeft(v3, 31);
-                    v3 *= PRIME64_1;
-                    off += 8;
-
-                    v4 += Long.reverseBytes(DataIO.getLong(buf, 24)) * PRIME64_2;
-                    v4 = rotateLeft(v4, 31);
-                    v4 *= PRIME64_1;
-                    off += 8;
-                } while (off <= limit);
-
-                h64 = rotateLeft(v1, 1) + rotateLeft(v2, 7) + rotateLeft(v3, 12) + rotateLeft(v4, 18);
-
-                v1 *= PRIME64_2;
-                v1 = rotateLeft(v1, 31);
-                v1 *= PRIME64_1;
-                h64 ^= v1;
-                h64 = h64 * PRIME64_1 + PRIME64_4;
-
-                v2 *= PRIME64_2;
-                v2 = rotateLeft(v2, 31);
-                v2 *= PRIME64_1;
-                h64 ^= v2;
-                h64 = h64 * PRIME64_1 + PRIME64_4;
-
-                v3 *= PRIME64_2;
-                v3 = rotateLeft(v3, 31);
-                v3 *= PRIME64_1;
-                h64 ^= v3;
-                h64 = h64 * PRIME64_1 + PRIME64_4;
-
-                v4 *= PRIME64_2;
-                v4 = rotateLeft(v4, 31);
-                v4 *= PRIME64_1;
-                h64 ^= v4;
-                h64 = h64 * PRIME64_1 + PRIME64_4;
-            } else {
-                h64 = seed + PRIME64_5;
-            }
-
-            h64 += len;
-
-            while (off <= end - 8) {
-                long k1 = Long.reverseBytes(raf.readLong());
-                k1 *= PRIME64_2;
-                k1 = rotateLeft(k1, 31);
-                k1 *= PRIME64_1;
-                h64 ^= k1;
-                h64 = rotateLeft(h64, 27) * PRIME64_1 + PRIME64_4;
-                off += 8;
-            }
-
-            if (off <= end - 4) {
-                h64 ^= (Integer.reverseBytes(raf.readInt()) & 0xFFFFFFFFL) * PRIME64_1;
-                h64 = rotateLeft(h64, 23) * PRIME64_2 + PRIME64_3;
-                off += 4;
-            }
-
-            while (off < end) {
-                h64 ^= (raf.readByte() & 0xFF) * PRIME64_5;
-                h64 = rotateLeft(h64, 11) * PRIME64_1;
-                ++off;
-            }
-
-            h64 ^= h64 >>> 33;
-            h64 *= PRIME64_2;
-            h64 ^= h64 >>> 29;
-            h64 *= PRIME64_3;
-            h64 ^= h64 >>> 32;
-
-            return h64;
-        } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
-        }
     }
 
 }

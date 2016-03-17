@@ -1,9 +1,7 @@
 package org.mapdb.serializer;
 
-import org.mapdb.DataIO;
-import org.mapdb.DataInput2;
-import org.mapdb.DataOutput2;
-import org.mapdb.Serializer;
+import net.jpountz.xxhash.XXHash32;
+import org.mapdb.*;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -13,6 +11,8 @@ import java.util.Comparator;
  * Created by jan on 2/28/16.
  */
 public class SerializerByteArray implements GroupSerializer<byte[]> {
+
+    private static final XXHash32 HASHER = CC.HASH_FACTORY.hash32();
 
     @Override
     public void serialize(DataOutput2 out, byte[] value) throws IOException {
@@ -40,8 +40,7 @@ public class SerializerByteArray implements GroupSerializer<byte[]> {
     }
 
     public int hashCode(byte[] bytes, int seed) {
-        return DataIO.longHash(
-                DataIO.hash(bytes, 0, bytes.length, seed));
+        return HASHER.hash(bytes, 0, bytes.length, seed);
     }
 
     @Override

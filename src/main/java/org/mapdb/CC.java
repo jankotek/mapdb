@@ -1,5 +1,6 @@
 package org.mapdb;
 
+import net.jpountz.xxhash.XXHashFactory;
 import org.mapdb.volume.ByteArrayVol;
 import org.mapdb.volume.RandomAccessFileVol;
 import org.mapdb.volume.VolumeFactory;
@@ -42,4 +43,7 @@ public interface CC{
     int INDEX_TREE_LONGLONGMAP_LEVELS = 4;
 
     boolean LOG_WAL_CONTENT = false;
+
+    //TODO setting to use unsafe hashing
+    XXHashFactory HASH_FACTORY = XXHashFactory.safeInstance();
 }

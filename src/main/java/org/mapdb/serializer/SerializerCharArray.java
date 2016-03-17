@@ -41,9 +41,12 @@ public class SerializerCharArray extends GroupSerializerObjectArray<char[]> {
     }
 
     @Override
-    public int hashCode(char[] bytes, int seed) {
-        return DataIO.longHash(
-                DataIO.hash(bytes, 0, bytes.length, seed));
+    public int hashCode(char[] chars, int seed) {
+        int res = 0;
+        for (char c : chars) {
+            res = (res + c) * -1640531527 ;
+        }
+        return res;
     }
 
     @Override
