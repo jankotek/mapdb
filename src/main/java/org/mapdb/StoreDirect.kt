@@ -103,16 +103,17 @@ class StoreDirect(
                 maxRecid = 0L
                 fileTail = CC.PAGE_SIZE
 
-                volume.putLong(FIRST_INDEX_PAGE_POINTER_OFFSET, parity16Set(0L))
-
                 //initialize long stack master links
-                for (offset in LONG_STACK_UNUSED1 until HEAD_END step 8) {
+                for (offset in RECID_LONG_STACK until HEAD_END step 8) {
                     volume.putLong(offset, parity4Set(0L))
                 }
+                //initialize zero link from first page
+                volume.putLong(ZERO_PAGE_LINK, parity16Set(0L))
+
                 commit()
             } else {
                 //load index pages
-                var indexPagePointerOffset = FIRST_INDEX_PAGE_POINTER_OFFSET;
+                var indexPagePointerOffset = ZERO_PAGE_LINK;
                 while (true) {
                     val nextPage = parity16Get(volume.getLong(indexPagePointerOffset))
                     if (nextPage == 0L)
@@ -128,7 +129,13 @@ class StoreDirect(
     }
 
     internal fun recidToOffset(recid2:Long):Long{
-        val recid = recid2-1; //normalize recid so it starts from zero
+        var recid = recid2-1; //normalize recid so it starts from zero
+        if(recid<RECIDS_PER_ZERO_INDEX_PAGE){
+            //zero index page
+            return HEAD_END + 16 + recid*8
+        }
+        //strip zero index page
+        recid -= RECIDS_PER_ZERO_INDEX_PAGE
         val pageNum = recid/RECIDS_PER_INDEX_PAGE
         return indexPages.get(pageNum.toInt()) + 16 + ((recid)%RECIDS_PER_INDEX_PAGE)*8
     }
@@ -141,7 +148,10 @@ class StoreDirect(
 
         try {
             val offset = recidToOffset(recid)
-            return parity1Get(volume.getLong(offset));
+            val indexVal = volume.getLong(offset);
+            if(indexVal == 0L)
+                throw DBException.GetVoid(recid)
+            return parity1Get(indexVal);
         }catch (e:IndexOutOfBoundsException){
             throw DBException.GetVoid(recid);
         }
@@ -226,7 +236,7 @@ class StoreDirect(
         //update pointer to previous page
         val pagePointerOffset =
                 if(indexPages.isEmpty)
-                    FIRST_INDEX_PAGE_POINTER_OFFSET
+                    ZERO_PAGE_LINK
                 else
                     indexPages[indexPages.size()-1] + 8
 
@@ -255,11 +265,6 @@ class StoreDirect(
         }
 
         val maxRecid2 = maxRecid;
-        if(maxRecid2==0L) {
-            allocateNewIndexPage()
-            maxRecid = 1;
-            return 1;
-        }
 
         val maxRecidOffset = recidToOffset(maxRecid2);
 
@@ -1095,19 +1100,13 @@ class StoreDirect(
                 bit.set(start0, end0)
             }
 
-            set(0, StoreDirectJava.HEAD_END, false)
-            //TODO this section should be used by index page
-            set(StoreDirectJava.HEAD_END, CC.PAGE_SIZE, true)
+            set(0, HEAD_END, false)
 
             if (dataTail % CC.PAGE_SIZE != 0L) {
                 set(dataTail, roundUp(dataTail, CC.PAGE_SIZE), true)
             }
 
-
-            //iterate over index pages and mark their head
-            indexPages.forEach { indexPage ->
-                set(indexPage, indexPage + 16, false)
-                val end = Math.min(indexPage + CC.PAGE_SIZE, recidToOffset(maxRecid) + 8)
+            fun iterateOverIndexValues(indexPage:Long, end:Long){
                 for (indexOffset in indexPage + 16 until end step 8) {
                     //TODO preallocated versus deleted recids
                     set(indexOffset, indexOffset + 8, false)
@@ -1124,8 +1123,23 @@ class StoreDirect(
                     val size = roundUp(indexValToSize(indexVal), 16)
                     if (size <= MAX_RECORD_SIZE)
                         set(offset, offset + size, false)
-
                 }
+            }
+
+            //analyze zero index page
+            val zeroIndexPageEnd = Math.min(CC.PAGE_SIZE, recidToOffset(maxRecid) + 8)
+            set(HEAD_END, HEAD_END+16,false)
+            iterateOverIndexValues(HEAD_END, zeroIndexPageEnd);
+            if(zeroIndexPageEnd<CC.PAGE_SIZE){
+                //expect zero at unused part
+                set(zeroIndexPageEnd, CC.PAGE_SIZE, true)
+            }
+
+            //iterate over index pages and mark their head
+            indexPages.forEach { indexPage ->
+                set(indexPage, indexPage + 16, false)
+                val end = Math.min(indexPage + CC.PAGE_SIZE, recidToOffset(maxRecid) + 8)
+                iterateOverIndexValues(indexPage, end)
                 //if last index page, expect zeroes for unused part
                 if (end < indexPage + CC.PAGE_SIZE) {
                     set(end, indexPage + CC.PAGE_SIZE, true)

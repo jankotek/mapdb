@@ -24,6 +24,13 @@ class StoreDirectTest:StoreReopenTest(){
 
     @Test fun constants(){
         assertEquals(0, MAX_RECORD_SIZE%16)
+        assertEquals(3*8, DATA_TAIL_OFFSET)
+        assertEquals(4*8, INDEX_TAIL_OFFSET)
+        assertEquals(5*8, FILE_TAIL_OFFSET)
+        assertEquals(8*8, RECID_LONG_STACK)
+        assertEquals(8*(8+4095+1), UNUSED1_LONG_STACK)
+
+        assertEquals(8*(8+4095+4+1), HEAD_END)
     }
 
     @Test fun init_values(){
@@ -33,20 +40,23 @@ class StoreDirectTest:StoreReopenTest(){
         assertEquals(0L, s.dataTail)
         assertEquals(CC.PAGE_SIZE, s.volume.length())
 
-        for(masterLinkOffset in LONG_STACK_UNUSED1 until HEAD_END step 8){
+        for(masterLinkOffset in RECID_LONG_STACK until HEAD_END step 8){
             assertEquals(0L, parity4Get(s.volume.getLong(masterLinkOffset)))
         }
+
+        //zero index page is set to zero
+        assertEquals(0L, parity16Get(s.volume.getLong(HEAD_END)))
     }
 
     @Test fun prealloc1(){
         val s = openStore()
         val recid = s.preallocate()
         assertEquals(1L, recid)
-        assertEquals(LongArrayList.newListWith(CC.PAGE_SIZE), s.indexPages)
+        assertTrue(s.indexPages.isEmpty)
 
         assertEquals(1, s.maxRecid)
         assertEquals(0L, s.dataTail)
-        assertEquals(2L * CC.PAGE_SIZE, s.volume.length())
+        assertEquals(1L * CC.PAGE_SIZE, s.volume.length())
         s.verify()
         s.locks.forEach { it?.readLock()?.lock() }
         assertEquals(
@@ -100,7 +110,7 @@ class StoreDirectTest:StoreReopenTest(){
         //control bitset with expected recid layout
         val b = BitSet((CC.PAGE_SIZE * 7).toInt())
         //fill bitset at places where recids should be
-//        b.set(StoreDirect.HEAD_END as Int + 8, PAGE_SIZE as Int)
+        b.set(HEAD_END.toInt() + 16, CC.PAGE_SIZE.toInt())
         b.set(CC.PAGE_SIZE.toInt() * 3 + 16, CC.PAGE_SIZE.toInt() * 4)
         b.set(CC.PAGE_SIZE.toInt() * 6 + 16, CC.PAGE_SIZE.toInt() * 7)
         b.set(CC.PAGE_SIZE.toInt() * 11 + 16, CC.PAGE_SIZE.toInt() * 12)
@@ -132,7 +142,7 @@ class StoreDirectTest:StoreReopenTest(){
         val s = openStore()
         s.structuralLock?.lock()
         val c = LongArrayList()
-        var prevOffset = FIRST_INDEX_PAGE_POINTER_OFFSET
+        var prevOffset = ZERO_PAGE_LINK
         assertEquals(0, parity16Get(s.volume.getLong(prevOffset)))
         for(i in 1L until 16) {
             assertEquals(c, s.indexPages)
@@ -197,21 +207,21 @@ class StoreDirectTest:StoreReopenTest(){
     @Test fun longStack_putTake(){
         val s = openStore()
         s.structuralLock?.lock()
-        assertEquals(0, s.longStackTake(LONG_STACK_UNUSED1,false))
-        s.longStackPut(LONG_STACK_UNUSED1, 160,false)
-        assertEquals(160, s.longStackTake(LONG_STACK_UNUSED1,false))
-        assertEquals(0, s.longStackTake(LONG_STACK_UNUSED1,false))
+        assertEquals(0, s.longStackTake(UNUSED1_LONG_STACK,false))
+        s.longStackPut(UNUSED1_LONG_STACK, 160,false)
+        assertEquals(160, s.longStackTake(UNUSED1_LONG_STACK,false))
+        assertEquals(0, s.longStackTake(UNUSED1_LONG_STACK,false))
     }
 
     @Test fun longStack_putTake2(){
         val s = openStore()
         s.structuralLock?.lock()
-        assertEquals(0, s.longStackTake(LONG_STACK_UNUSED1,false))
-        s.longStackPut(LONG_STACK_UNUSED1, 160L,false)
-        s.longStackPut(LONG_STACK_UNUSED1, 320L,false)
-        assertEquals(320L, s.longStackTake(LONG_STACK_UNUSED1,false))
-        assertEquals(160L, s.longStackTake(LONG_STACK_UNUSED1,false))
-        assertEquals(0, s.longStackTake(LONG_STACK_UNUSED1,false))
+        assertEquals(0, s.longStackTake(UNUSED1_LONG_STACK,false))
+        s.longStackPut(UNUSED1_LONG_STACK, 160L,false)
+        s.longStackPut(UNUSED1_LONG_STACK, 320L,false)
+        assertEquals(320L, s.longStackTake(UNUSED1_LONG_STACK,false))
+        assertEquals(160L, s.longStackTake(UNUSED1_LONG_STACK,false))
+        assertEquals(0, s.longStackTake(UNUSED1_LONG_STACK,false))
     }
 
     @Test fun longStack_putTake_many() {
@@ -222,13 +232,13 @@ class StoreDirectTest:StoreReopenTest(){
         for(a in 1 .. 10) {
             for(max in min2..max2) {
                 for (i in 1L..max) {
-                    s.longStackPut(LONG_STACK_UNUSED1, i * 16, false)
+                    s.longStackPut(UNUSED1_LONG_STACK, i * 16, false)
                 }
                 for (i in max downTo  1L) {
-                    val t = s.longStackTake(LONG_STACK_UNUSED1, false)
+                    val t = s.longStackTake(UNUSED1_LONG_STACK, false)
                     assertEquals(i * 16, t)
                 }
-                assertEquals(0L, s.longStackTake(LONG_STACK_UNUSED1, false))
+                assertEquals(0L, s.longStackTake(UNUSED1_LONG_STACK, false))
             }
         }
     }
@@ -239,13 +249,13 @@ class StoreDirectTest:StoreReopenTest(){
         s.structuralLock?.lock()
 
         for(v1 in vals) for (v2 in vals) for(v3 in vals){
-            s.longStackPut(LONG_STACK_UNUSED1, v1, false)
-            s.longStackPut(LONG_STACK_UNUSED1, v2, false)
-            s.longStackPut(LONG_STACK_UNUSED1, v3, false)
-            assertEquals(v3, s.longStackTake(LONG_STACK_UNUSED1, false))
-            assertEquals(v2, s.longStackTake(LONG_STACK_UNUSED1, false))
-            assertEquals(v1, s.longStackTake(LONG_STACK_UNUSED1, false))
-            assertEquals(0L, s.longStackTake(LONG_STACK_UNUSED1, false))
+            s.longStackPut(UNUSED1_LONG_STACK, v1, false)
+            s.longStackPut(UNUSED1_LONG_STACK, v2, false)
+            s.longStackPut(UNUSED1_LONG_STACK, v3, false)
+            assertEquals(v3, s.longStackTake(UNUSED1_LONG_STACK, false))
+            assertEquals(v2, s.longStackTake(UNUSED1_LONG_STACK, false))
+            assertEquals(v1, s.longStackTake(UNUSED1_LONG_STACK, false))
+            assertEquals(0L, s.longStackTake(UNUSED1_LONG_STACK, false))
         }
     }
 

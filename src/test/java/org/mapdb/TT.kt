@@ -3,11 +3,10 @@ package org.mapdb
 import org.junit.Test
 import org.junit.Assert.*
 import java.io.*
-import java.lang.reflect.InvocationTargetException
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
-import java.util.concurrent.ThreadFactory
+
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
@@ -194,6 +193,19 @@ object TT{
             t
         }
     }
+
+    fun <T : Throwable> assertFailsWith(exceptionClass: Class<T>, block: () -> Unit) {
+        try {
+            block()
+        } catch (e: Throwable) {
+            if (exceptionClass.isInstance(e)) {
+                @Suppress("UNCHECKED_CAST")
+                return
+            }
+            throw e
+        }
+    }
+
 
 }
 
