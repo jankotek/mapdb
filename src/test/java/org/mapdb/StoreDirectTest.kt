@@ -1,8 +1,10 @@
 package org.mapdb
 
+import org.eclipse.collections.api.list.primitive.MutableLongList
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
+import org.fest.reflect.core.Reflection
 import org.junit.Test
 import org.junit.Assert.*
 import java.io.File
@@ -11,8 +13,112 @@ import org.mapdb.DataIO.*
 import org.mapdb.volume.Volume
 import org.mapdb.volume.VolumeFactory
 import java.util.*
+import java.util.concurrent.locks.Lock
+import java.util.concurrent.locks.ReadWriteLock
 
 class StoreDirectTest:StoreReopenTest(){
+
+
+    val StoreDirect.maxRecid:Long
+        get() =  Reflection.method("getMaxRecid").withReturnType(Long::class.java).`in`(this).invoke()
+
+    val StoreDirect.dataTail:Long
+        get() =  Reflection.method("getDataTail").withReturnType(Long::class.java).`in`(this).invoke()
+
+    val StoreDirect.volume: Volume
+        get() = Reflection.method("getVolume").withReturnType(Volume::class.java).`in`(this).invoke()
+
+    val StoreDirect.indexPages: MutableLongList
+        get() = Reflection.method("getIndexPages").withReturnType(MutableLongList::class.java).`in`(this).invoke()
+
+    val StoreDirect.structuralLock: Lock?
+        get() = Reflection.method("getStructuralLock").`in`(this).invoke() as Lock?
+
+
+    val StoreDirect.locks: Array<ReadWriteLock?>
+        get() = Reflection.method("getLocks").`in`(this).invoke() as Array<ReadWriteLock?>
+
+    fun StoreDirect.indexValCompose(size:Long,
+                        offset:Long,
+                        linked:Int,
+                        unused:Int,
+                        archive:Int
+    ):Long = Reflection.method("indexValCompose")
+            .withParameterTypes(size.javaClass, offset.javaClass, linked.javaClass, unused.javaClass, archive.javaClass)
+            .`in`(this)
+            .invoke(size, offset, linked, unused, archive) as Long
+
+
+    fun StoreDirect.allocateNewPage():Long =
+            Reflection.method("allocateNewPage")
+            .`in`(this)
+            .invoke() as Long
+
+    fun StoreDirect.allocateRecid():Long =
+            Reflection.method("allocateRecid")
+                    .`in`(this)
+                    .invoke() as Long
+
+
+    fun StoreDirect.calculateFreeSize():Long =
+            Reflection.method("calculateFreeSize")
+                    .`in`(this)
+                    .invoke() as Long
+
+    fun StoreDirect.allocateNewIndexPage():Long =
+            Reflection.method("allocateNewIndexPage")
+                    .`in`(this)
+                    .invoke() as Long
+
+
+    fun StoreDirect.getIndexVal(recid:Long):Long =
+            Reflection.method("getIndexVal")
+                .withParameterTypes(recid.javaClass)
+                .`in`(this)
+                .invoke(recid) as Long
+
+    fun StoreDirect.recidToOffset(recid:Long):Long =
+            Reflection.method("recidToOffset")
+                    .withParameterTypes(recid.javaClass)
+                    .`in`(this)
+                    .invoke(recid) as Long
+
+    fun StoreDirect.allocateData(size:Int, recursive:Boolean):Long =
+            Reflection.method("allocateData")
+                    .withParameterTypes(size.javaClass, recursive.javaClass)
+                    .`in`(this)
+                    .invoke(size, recursive) as Long
+
+    fun StoreDirect.longStackTake(masterLinkOffset:Long, recursive:Boolean):Long =
+            Reflection.method("longStackTake")
+                    .withParameterTypes(masterLinkOffset.javaClass, recursive.javaClass)
+                    .`in`(this)
+                    .invoke(masterLinkOffset, recursive) as Long
+
+    fun StoreDirect.longStackPut(masterLinkOffset:Long, value:Long, recursive:Boolean) {
+        Reflection.method("longStackPut")
+                .withParameterTypes(masterLinkOffset.javaClass, value.javaClass, recursive.javaClass)
+                .`in`(this)
+                .invoke(masterLinkOffset, value, recursive)
+    }
+
+    fun StoreDirect.linkedRecordPut(output:ByteArray, size:Int):Long =
+            Reflection.method("linkedRecordPut")
+                    .withParameterTypes(output.javaClass, size.javaClass)
+                    .`in`(this)
+                    .invoke(output, size) as Long
+
+    fun StoreDirect.indexValFlagLinked(indexValue:Long):Boolean =
+            Reflection.method("indexValFlagLinked")
+                    .withParameterTypes(indexValue.javaClass)
+                    .`in`(this)
+                    .invoke(indexValue) as Boolean
+
+    fun StoreDirect.linkedRecordGet(indexValue:Long):ByteArray =
+            Reflection.method("linkedRecordGet")
+                    .withParameterTypes(indexValue.javaClass)
+                    .`in`(this)
+                    .invoke(indexValue) as ByteArray
 
     override fun openStore(file: File): StoreDirect {
         return StoreDirect.make(file.path)

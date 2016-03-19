@@ -43,27 +43,27 @@ class StoreDirect(
         )
     }
 
-    internal val freeSize = AtomicLong(-1L)
+    protected val freeSize = AtomicLong(-1L)
 
     private val segmentCount = 1.shl(concShift)
     private val segmentMask = 1L.shl(concShift)-1
-    internal val locks:Array<ReadWriteLock?> = Array(segmentCount, {Utils.newReadWriteLock(isThreadSafe)})
-    internal val structuralLock = Utils.newLock(isThreadSafe)
+    protected val locks:Array<ReadWriteLock?> = Array(segmentCount, {Utils.newReadWriteLock(isThreadSafe)})
+    protected val structuralLock = Utils.newLock(isThreadSafe)
 
     private val volumeExistsAtStart = volumeFactory.exists(file)
-    val volume: Volume = {
+    protected val volume: Volume = {
         volumeFactory.makeVolume(file, readOnly, false, CC.PAGE_SHIFT,
                 roundUp(allocateStartSize, CC.PAGE_SIZE), false)
     }()
 
-    internal @Volatile var closed = false;
+    protected @Volatile var closed = false;
 
-    internal fun recidToSegment(recid:Long):Int{
+    protected fun recidToSegment(recid:Long):Int{
         return (recid and segmentMask).toInt()
     }
 
     /** end of last record */
-    internal var dataTail: Long
+    protected var dataTail: Long
         get() = parity4Get(volume.getLong(DATA_TAIL_OFFSET))
         set(v:Long){
             if(CC.ASSERT && (v%16)!=0L)
@@ -74,7 +74,7 @@ class StoreDirect(
         }
 
     /** maximal allocated recid */
-    internal var maxRecid: Long
+    protected var maxRecid: Long
         get() = parity3Get(volume.getLong(INDEX_TAIL_OFFSET)).ushr(3)
         set(v:Long){
             if(CC.ASSERT)
@@ -83,6 +83,7 @@ class StoreDirect(
         }
 
     /** end of file (last allocated page) */
+    //TODO add fileSize into Store interface, make this var protected
     internal var fileTail: Long
         get() = parity16Get(volume.getLong(FILE_TAIL_OFFSET))
         set(v:Long){
@@ -91,7 +92,7 @@ class StoreDirect(
             volume.putLong(FILE_TAIL_OFFSET, parity16Set(v))
         }
 
-    internal val indexPages = LongArrayList()
+    protected val indexPages = LongArrayList()
 
 
     init{
@@ -128,7 +129,7 @@ class StoreDirect(
 
     }
 
-    internal fun recidToOffset(recid2:Long):Long{
+    protected fun recidToOffset(recid2:Long):Long{
         var recid = recid2-1; //normalize recid so it starts from zero
         if(recid<RECIDS_PER_ZERO_INDEX_PAGE){
             //zero index page
@@ -142,7 +143,7 @@ class StoreDirect(
 
 
 
-    internal fun getIndexVal(recid:Long):Long{
+    protected fun getIndexVal(recid:Long):Long{
         if(CC.PARANOID) //should be ASSERT, but this method is accessed way too often
             Utils.assertReadLock(locks[recidToSegment(recid)])
 
@@ -157,14 +158,14 @@ class StoreDirect(
         }
     }
 
-    internal fun setIndexVal(recid:Long, value:Long){
+    protected fun setIndexVal(recid:Long, value:Long){
         if(CC.ASSERT)
             Utils.assertWriteLock(locks[recidToSegment(recid)])
 
         val offset = recidToOffset(recid)
         volume.putLong(offset, parity1Set(value));
     }
-    internal fun indexValCompose(size:Long,
+    protected fun indexValCompose(size:Long,
                                   offset:Long,
                                   linked:Int,
                                   unused:Int,
@@ -192,7 +193,7 @@ class StoreDirect(
     }
 
 
-    internal fun <R> deserialize(serializer: Serializer<R>, di: DataInput2, size: Long): R? {
+    protected fun <R> deserialize(serializer: Serializer<R>, di: DataInput2, size: Long): R? {
         try{
             val ret = serializer.deserialize(di, size.toInt());
             return ret
@@ -203,7 +204,7 @@ class StoreDirect(
         }
     }
 
-    internal fun <R> serialize(record: R, serializer:Serializer<R>):DataOutput2{
+    protected fun <R> serialize(record: R, serializer:Serializer<R>):DataOutput2{
         try {
             val out = DataOutput2()
             serializer.serialize(out, record);
@@ -213,7 +214,7 @@ class StoreDirect(
         }
     }
 
-    internal fun allocateNewPage():Long{
+    protected fun allocateNewPage():Long{
         if(CC.ASSERT)
             Utils.assertLocked(structuralLock)
 
@@ -226,7 +227,7 @@ class StoreDirect(
         return eof
     }
 
-    internal fun allocateNewIndexPage():Long{
+    protected fun allocateNewIndexPage():Long{
         if(CC.ASSERT)
             Utils.assertLocked(structuralLock)
 
@@ -254,7 +255,7 @@ class StoreDirect(
 
     }
 
-    internal fun allocateRecid():Long{
+    protected fun allocateRecid():Long{
         if(CC.ASSERT)
             Utils.assertLocked(structuralLock)
 
@@ -281,7 +282,7 @@ class StoreDirect(
         return ret;
     }
 
-    internal fun allocateData(size:Int, recursive:Boolean):Long{
+    protected fun allocateData(size:Int, recursive:Boolean):Long{
         if(CC.ASSERT)
             Utils.assertLocked(structuralLock)
 
@@ -350,7 +351,7 @@ class StoreDirect(
         return allocateData(size, recursive);
     }
 
-    internal fun releaseData(size:Long, offset:Long, recursive:Boolean){
+    protected fun releaseData(size:Long, offset:Long, recursive:Boolean){
         if(CC.ASSERT)
             Utils.assertLocked(structuralLock)
 
@@ -367,24 +368,24 @@ class StoreDirect(
         longStackPut(longStackMasterLinkOffset(size), offset, recursive);
     }
 
-    internal fun releaseRecid(recid:Long){
+    protected fun releaseRecid(recid:Long){
         longStackPut(RECID_LONG_STACK, recid, false)
     }
 
-    internal fun indexValFlagLinked(indexValue:Long):Boolean{
+    protected fun indexValFlagLinked(indexValue:Long):Boolean{
         return indexValue and MLINKED != 0L
     }
 
-    internal fun indexValFlagUnused(indexValue:Long):Boolean{
+    protected fun indexValFlagUnused(indexValue:Long):Boolean{
         return indexValue and MUNUSED != 0L
     }
 
-    internal fun indexValFlagArchive(indexValue:Long):Boolean{
+    protected fun indexValFlagArchive(indexValue:Long):Boolean{
         return indexValue and MARCHIVE != 0L
     }
 
 
-    internal fun linkedRecordGet(indexValue:Long):ByteArray{
+    protected fun linkedRecordGet(indexValue:Long):ByteArray{
 
         if(CC.ASSERT && !indexValFlagLinked(indexValue))
             throw AssertionError("not linked record")
@@ -414,7 +415,7 @@ class StoreDirect(
         return Arrays.copyOf(b,bpos) //TODO PERF this copy can be avoided with boundary checking DataInput
     }
 
-    internal fun linkedRecordDelete(indexValue:Long){
+    protected fun linkedRecordDelete(indexValue:Long){
         if(CC.ASSERT && !indexValFlagLinked(indexValue))
             throw AssertionError("not linked record")
 
@@ -436,7 +437,7 @@ class StoreDirect(
         }
     }
 
-    internal fun linkedRecordPut(output:ByteArray, size:Int):Long{
+    protected fun linkedRecordPut(output:ByteArray, size:Int):Long{
         var remSize = size.toLong();
         //insert first non linked record
         var chunkSize:Long = Math.min(MAX_RECORD_SIZE, remSize);
@@ -470,7 +471,7 @@ class StoreDirect(
     }
 
 
-    internal fun longStackMasterLinkOffset(size: Long): Long {
+    protected fun longStackMasterLinkOffset(size: Long): Long {
         if (CC.ASSERT && size % 16 != 0L)
             throw AssertionError()
         if(CC.ASSERT && size>MAX_RECORD_SIZE)
@@ -479,7 +480,7 @@ class StoreDirect(
     }
 
 
-    internal fun longStackPut(masterLinkOffset:Long, value:Long, recursive:Boolean){
+    protected fun longStackPut(masterLinkOffset:Long, value:Long, recursive:Boolean){
         if(CC.ASSERT)
             Utils.assertLocked(structuralLock)
         if (CC.ASSERT && (masterLinkOffset <= 0 || masterLinkOffset > CC.PAGE_SIZE || masterLinkOffset % 8 != 0L))
@@ -517,7 +518,7 @@ class StoreDirect(
         volume.putLong(masterLinkOffset, parity4Set(newMasterLinkValue))
     }
 
-    internal fun longStackNewChunk(masterLinkOffset: Long, prevPageOffset: Long, value: Long, valueSize:Long, recursive: Boolean) {
+    protected fun longStackNewChunk(masterLinkOffset: Long, prevPageOffset: Long, value: Long, valueSize:Long, recursive: Boolean) {
         if(CC.ASSERT) {
             Utils.assertLocked(structuralLock)
         }
@@ -586,7 +587,7 @@ class StoreDirect(
         volume.putLong(masterLinkOffset, parity4Set(newMasterLinkValue))
     }
 
-    internal fun longStackTake(masterLinkOffset:Long, recursive:Boolean):Long {
+    protected fun longStackTake(masterLinkOffset:Long, recursive:Boolean):Long {
         if(CC.ASSERT)
             Utils.assertLocked(structuralLock)
 
@@ -661,7 +662,7 @@ class StoreDirect(
         return ret;
     }
 
-    internal fun longStackFindEnd(pageOffset:Long, pos:Long):Long{
+    protected fun longStackFindEnd(pageOffset:Long, pos:Long):Long{
         var pos2 = pos
         while(pos2>8 && volume.getUnsignedByte(pageOffset+pos2-1)==0){
             pos2--
@@ -669,7 +670,7 @@ class StoreDirect(
         return pos2
     }
 
-    internal fun longStackForEach(masterLinkOffset: Long, body: (value: Long) -> Unit) {
+    protected fun longStackForEach(masterLinkOffset: Long, body: (value: Long) -> Unit) {
 
         // assert first page
         val linkVal = parity4Get(volume.getLong(masterLinkOffset))
@@ -826,11 +827,11 @@ class StoreDirect(
                 else serialize(record, serializer);
 
         Utils.lockWrite(locks[recidToSegment(recid)]) {
-            updateInternal(recid, di)
+            updateprotected(recid, di)
         }
     }
 
-    private fun updateInternal(recid: Long, di: DataOutput2?){
+    private fun updateprotected(recid: Long, di: DataOutput2?){
         if(CC.ASSERT)
             Utils.assertWriteLock(locks[recidToSegment(recid)])
 
@@ -903,7 +904,7 @@ class StoreDirect(
                     if(newRecord==null) null
                     else serialize(newRecord, serializer);
 
-            updateInternal(recid, di)
+            updateprotected(recid, di)
             return true;
         }
     }
@@ -1245,7 +1246,7 @@ class StoreDirect(
         }
     }
 
-    internal fun calculateFreeSize(): Long {
+    protected fun calculateFreeSize(): Long {
         Utils.assertLocked(structuralLock)
 
         //traverse list of records
