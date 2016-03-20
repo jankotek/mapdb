@@ -195,6 +195,7 @@ task(release_debug) << {
 
     ant.replace(file: destDir.path+'/src/main/java/org/mapdb/CC.java', token: 'boolean PARANOID = false;', value: 'boolean PARANOID = true;')
     ant.replace(file: destDir.path+'/src/main/java/org/mapdb/CC.java', token: 'boolean LOG_FINE = false;', value: 'boolean LOG_FINE = true;')
+    ant.replace(file: destDir.path+'/src/main/java/org/mapdb/CC.java', token: 'boolean CTORSTACKTRACE = false;', value: 'boolean CTORSTACKTRACE = true;')
     gitAndRelease(destDir)
 }
 
