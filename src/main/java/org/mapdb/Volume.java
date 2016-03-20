@@ -2676,6 +2676,10 @@ public abstract class Volume implements Closeable{
                     }
                 }
             } catch (IOException e) {
+                // At this point, the caller will not be able to get a handle on this
+                // object and therefore the finalizer may incorrectly print that the
+                // object was unclosed on GC.
+                closed = true;
                 throw new DBException.VolumeIOError(e);
             }
         }
