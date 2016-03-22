@@ -202,7 +202,8 @@ open class StoreTrivial(
         closed = true
     }
 
-    override fun isClosed() = closed
+    override val isClosed:Boolean
+        get()= closed
 
     override fun <R> get(recid: Long, serializer: Serializer<R>): R? {
         val bytes:ByteArray? =

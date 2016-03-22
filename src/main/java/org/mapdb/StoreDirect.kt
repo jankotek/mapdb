@@ -5,24 +5,26 @@ import org.mapdb.StoreDirectJava.*
 import org.mapdb.DataIO.*
 import org.mapdb.volume.Volume
 import org.mapdb.volume.VolumeFactory
-import java.io.IOException
 import java.util.*
 import java.util.concurrent.atomic.AtomicLong
-import java.util.concurrent.locks.ReadWriteLock
 
 /**
  * Store which uses binary storage (file, memory buffer...) and updates records on place.
  * It has memory allocator, so it reuses space freed by deletes and updates.
  */
 class StoreDirect(
-        val file:String?,
-        val volumeFactory: VolumeFactory,
+        file:String?,
+        volumeFactory: VolumeFactory,
         val readOnly:Boolean,
-        override val isThreadSafe:Boolean,
-        val concShift:Int,
+        isThreadSafe:Boolean,
+        concShift:Int,
         allocateStartSize:Long
-
-):Store, StoreBinary{
+):StoreDirectAbstract(
+        file=file,
+        volumeFactory=volumeFactory,
+        isThreadSafe = isThreadSafe,
+        concShift =  concShift
+),StoreBinary{
 
 
     companion object{
@@ -45,59 +47,17 @@ class StoreDirect(
 
     protected val freeSize = AtomicLong(-1L)
 
-    private val segmentCount = 1.shl(concShift)
-    private val segmentMask = 1L.shl(concShift)-1
-    protected val locks:Array<ReadWriteLock?> = Array(segmentCount, {Utils.newReadWriteLock(isThreadSafe)})
-    protected val structuralLock = Utils.newLock(isThreadSafe)
-
-    private val volumeExistsAtStart = volumeFactory.exists(file)
-    protected val volume: Volume = {
+    override protected val volume: Volume = {
         volumeFactory.makeVolume(file, readOnly, false, CC.PAGE_SHIFT,
                 roundUp(allocateStartSize, CC.PAGE_SIZE), false)
     }()
 
-    protected @Volatile var closed = false;
-
-    protected fun recidToSegment(recid:Long):Int{
-        return (recid and segmentMask).toInt()
-    }
-
-    /** end of last record */
-    protected var dataTail: Long
-        get() = parity4Get(volume.getLong(DATA_TAIL_OFFSET))
-        set(v:Long){
-            if(CC.ASSERT && (v%16)!=0L)
-                throw DBException.DataCorruption("unaligned data tail")
-            if(CC.ASSERT)
-                Utils.assertLocked(structuralLock)
-            volume.putLong(DATA_TAIL_OFFSET, parity4Set(v))
-        }
-
-    /** maximal allocated recid */
-    protected var maxRecid: Long
-        get() = parity3Get(volume.getLong(INDEX_TAIL_OFFSET)).ushr(3)
-        set(v:Long){
-            if(CC.ASSERT)
-                Utils.assertLocked(structuralLock)
-            volume.putLong(INDEX_TAIL_OFFSET, parity3Set(v.shl(3)))
-        }
-
-    /** end of file (last allocated page) */
-    //TODO add fileSize into Store interface, make this var protected
-    internal var fileTail: Long
-        get() = parity16Get(volume.getLong(FILE_TAIL_OFFSET))
-        set(v:Long){
-            if(CC.ASSERT)
-                Utils.assertLocked(structuralLock)
-            volume.putLong(FILE_TAIL_OFFSET, parity16Set(v))
-        }
-
-    protected val indexPages = LongArrayList()
-
+    override protected val headVol = volume
 
     init{
         Utils.lock(structuralLock) {
             if (!volumeExistsAtStart) {
+                //TODO crash resistance while file is being created
                 //initialize values
                 volume.ensureAvailable(CC.PAGE_SIZE)
                 dataTail = 0L
@@ -113,37 +73,13 @@ class StoreDirect(
 
                 commit()
             } else {
-                //load index pages
-                var indexPagePointerOffset = ZERO_PAGE_LINK;
-                while (true) {
-                    val nextPage = parity16Get(volume.getLong(indexPagePointerOffset))
-                    if (nextPage == 0L)
-                        break;
-                    if (CC.ASSERT && nextPage % CC.PAGE_SIZE != 0L)
-                        throw DBException.DataCorruption("wrong page pointer")
-                    indexPages.add(nextPage)
-                    indexPagePointerOffset = nextPage + 8
-                }
+                loadIndexPages(indexPages)
             }
         }
-
-    }
-
-    protected fun recidToOffset(recid2:Long):Long{
-        var recid = recid2-1; //normalize recid so it starts from zero
-        if(recid<RECIDS_PER_ZERO_INDEX_PAGE){
-            //zero index page
-            return HEAD_END + 16 + recid*8
-        }
-        //strip zero index page
-        recid -= RECIDS_PER_ZERO_INDEX_PAGE
-        val pageNum = recid/RECIDS_PER_INDEX_PAGE
-        return indexPages.get(pageNum.toInt()) + 16 + ((recid)%RECIDS_PER_INDEX_PAGE)*8
     }
 
 
-
-    protected fun getIndexVal(recid:Long):Long{
+    override protected fun getIndexVal(recid:Long):Long{
         if(CC.PARANOID) //should be ASSERT, but this method is accessed way too often
             Utils.assertReadLock(locks[recidToSegment(recid)])
 
@@ -158,63 +94,17 @@ class StoreDirect(
         }
     }
 
-    protected fun setIndexVal(recid:Long, value:Long){
+    override protected fun setIndexVal(recid:Long, value:Long){
         if(CC.ASSERT)
             Utils.assertWriteLock(locks[recidToSegment(recid)])
 
         val offset = recidToOffset(recid)
         volume.putLong(offset, parity1Set(value));
     }
-    protected fun indexValCompose(size:Long,
-                                  offset:Long,
-                                  linked:Int,
-                                  unused:Int,
-                                  archive:Int
-                                  ):Long{
-
-        if(CC.ASSERT && size<0 || size>0xFFFF)
-            throw AssertionError()
-
-        if(CC.ASSERT && (offset%16) != 0L)
-            throw DBException.DataCorruption("unaligned offset")
-
-        if(CC.ASSERT && (offset and MOFFSET) != offset)
-            throw DBException.DataCorruption("unaligned offset")
 
 
-        if(CC.ASSERT && (linked in 0..1).not())
-            throw AssertionError()
-        if(CC.ASSERT && (archive in 0..1).not())
-            throw AssertionError()
-        if(CC.ASSERT && (unused in 0..1).not())
-            throw AssertionError()
 
-        return size.shl(48) + offset + linked*MLINKED + unused*MUNUSED + archive*MARCHIVE
-    }
-
-
-    protected fun <R> deserialize(serializer: Serializer<R>, di: DataInput2, size: Long): R? {
-        try{
-            val ret = serializer.deserialize(di, size.toInt());
-            return ret
-            //TODO assert number of bytes read
-            //TODO wrap di, if untrusted serializer
-        }catch(e: IOException){
-            throw DBException.SerializationError(e)
-        }
-    }
-
-    protected fun <R> serialize(record: R, serializer:Serializer<R>):DataOutput2{
-        try {
-            val out = DataOutput2()
-            serializer.serialize(out, record);
-            return out;
-        }catch(e:IOException){
-            throw DBException.SerializationError(e)
-        }
-    }
-
-    protected fun allocateNewPage():Long{
+    override protected fun allocateNewPage():Long{
         if(CC.ASSERT)
             Utils.assertLocked(structuralLock)
 
@@ -227,10 +117,9 @@ class StoreDirect(
         return eof
     }
 
-    protected fun allocateNewIndexPage():Long{
+    override protected fun allocateNewIndexPage():Long{
         if(CC.ASSERT)
             Utils.assertLocked(structuralLock)
-
 
         val indexPage = allocateNewPage();
 
@@ -252,138 +141,7 @@ class StoreDirect(
         //zero out pointer to next page with valid parity
         volume.putLong(indexPage+8, parity16Set(0))
         return indexPage;
-
     }
-
-    protected fun allocateRecid():Long{
-        if(CC.ASSERT)
-            Utils.assertLocked(structuralLock)
-
-        val reusedRecid = longStackTake(RECID_LONG_STACK,false)
-        if(reusedRecid!=0L){
-            //TODO ensure old value is zero
-            return reusedRecid
-        }
-
-        val maxRecid2 = maxRecid;
-
-        val maxRecidOffset = recidToOffset(maxRecid2);
-
-        // check if maxRecid is last on its index page
-        if(maxRecidOffset % CC.PAGE_SIZE == CC.PAGE_SIZE-8){
-            //yes, we can not increment recid without allocating new index page
-            allocateNewIndexPage()
-        }
-        // increment maximal recid
-        val ret = maxRecid2+1;
-        maxRecid = ret;
-        if(CC.ZEROS && volume.getLong(recidToOffset(ret))!=0L)
-            throw AssertionError();
-        return ret;
-    }
-
-    protected fun allocateData(size:Int, recursive:Boolean):Long{
-        if(CC.ASSERT)
-            Utils.assertLocked(structuralLock)
-
-        if(CC.ASSERT && size>MAX_RECORD_SIZE)
-            throw AssertionError()
-        if(CC.ASSERT && size<=0)
-            throw AssertionError()
-        if(CC.ASSERT && size%16!=0)
-            throw AssertionError()
-
-
-        val reusedDataOffset = if(recursive) 0L else
-            longStackTake(longStackMasterLinkOffset(size.toLong()), recursive)
-        if(reusedDataOffset!=0L){
-            if(CC.ZEROS)
-                volume.assertZeroes(reusedDataOffset, reusedDataOffset+size)
-            if(CC.ASSERT && reusedDataOffset%16!=0L)
-                throw DBException.DataCorruption("wrong offset")
-
-            freeSizeIncrement(-size.toLong())
-            return reusedDataOffset
-        }
-
-        val dataTail2 = dataTail;
-
-        //no data were allocated yet
-        if(dataTail2==0L){
-            //create new page and return it
-            val page = allocateNewPage();
-            dataTail = page+size
-            if(CC.ZEROS)
-                volume.assertZeroes(page, page+size)
-            if(CC.ASSERT && page%16!=0L)
-                throw DBException.DataCorruption("wrong offset")
-            return page;
-        }
-
-        //is there enough space on current page?
-        if((dataTail2 % CC.PAGE_SIZE) + size <= CC.PAGE_SIZE) {
-            //yes, so just increment data tail and return
-            dataTail =
-                //check for case when page is completely filled
-                if((dataTail2+size)%CC.PAGE_SIZE==0L)
-                    0L //in that case reset dataTail
-                else
-                    dataTail2+size; //still space on current page, increment data tail
-
-            if(CC.ZEROS)
-                volume.assertZeroes(dataTail2, dataTail2+size)
-            if(CC.ASSERT && dataTail2%16!=0L)
-                throw DBException.DataCorruption("wrong offset")
-            return dataTail2
-        }
-
-        // There is not enough space on current page to fit this record.
-        // Must start new page
-        // reset the dataTail, that will force new page creation
-        dataTail = 0
-
-        //and mark remaining space on old page as free
-        val remSize = CC.PAGE_SIZE - (dataTail2 % CC.PAGE_SIZE)
-        if(remSize!=0L){
-            releaseData(remSize, dataTail2, recursive)
-        }
-        //now start new allocation on fresh page
-        return allocateData(size, recursive);
-    }
-
-    protected fun releaseData(size:Long, offset:Long, recursive:Boolean){
-        if(CC.ASSERT)
-            Utils.assertLocked(structuralLock)
-
-        if(CC.ASSERT && size%16!=0L)
-            throw AssertionError()
-        if(CC.ASSERT && size>MAX_RECORD_SIZE)
-            throw AssertionError()
-
-        if(CC.ZEROS)
-            volume.assertZeroes(offset, offset+size)
-
-        freeSizeIncrement(size)
-
-        longStackPut(longStackMasterLinkOffset(size), offset, recursive);
-    }
-
-    protected fun releaseRecid(recid:Long){
-        longStackPut(RECID_LONG_STACK, recid, false)
-    }
-
-    protected fun indexValFlagLinked(indexValue:Long):Boolean{
-        return indexValue and MLINKED != 0L
-    }
-
-    protected fun indexValFlagUnused(indexValue:Long):Boolean{
-        return indexValue and MUNUSED != 0L
-    }
-
-    protected fun indexValFlagArchive(indexValue:Long):Boolean{
-        return indexValue and MARCHIVE != 0L
-    }
-
 
     protected fun linkedRecordGet(indexValue:Long):ByteArray{
 
@@ -471,16 +229,7 @@ class StoreDirect(
     }
 
 
-    protected fun longStackMasterLinkOffset(size: Long): Long {
-        if (CC.ASSERT && size % 16 != 0L)
-            throw AssertionError()
-        if(CC.ASSERT && size>MAX_RECORD_SIZE)
-            throw AssertionError()
-        return size / 2 + RECID_LONG_STACK // really is size*8/16
-    }
-
-
-    protected fun longStackPut(masterLinkOffset:Long, value:Long, recursive:Boolean){
+    override protected fun longStackPut(masterLinkOffset:Long, value:Long, recursive:Boolean){
         if(CC.ASSERT)
             Utils.assertLocked(structuralLock)
         if (CC.ASSERT && (masterLinkOffset <= 0 || masterLinkOffset > CC.PAGE_SIZE || masterLinkOffset % 8 != 0L))
@@ -587,7 +336,7 @@ class StoreDirect(
         volume.putLong(masterLinkOffset, parity4Set(newMasterLinkValue))
     }
 
-    protected fun longStackTake(masterLinkOffset:Long, recursive:Boolean):Long {
+    override protected fun longStackTake(masterLinkOffset:Long, recursive:Boolean):Long {
         if(CC.ASSERT)
             Utils.assertLocked(structuralLock)
 
@@ -754,6 +503,7 @@ class StoreDirect(
     }
 
 
+
     override fun getBinaryLong(recid:Long, f: StoreBinaryGetLong): Long {
         assertNotClosed()
 
@@ -783,9 +533,7 @@ class StoreDirect(
     override fun <R> put(record: R?, serializer: Serializer<R>): Long {
         assertNotClosed()
 
-        val di =
-                if(record==null) null
-                else serialize(record, serializer);
+        val di = serialize(record, serializer);
 
         val recid = Utils.lock(structuralLock) {
             allocateRecid()
@@ -822,16 +570,14 @@ class StoreDirect(
 
     override fun <R> update(recid: Long, record: R?, serializer: Serializer<R>) {
         assertNotClosed()
-        val di =
-                if(record==null) null
-                else serialize(record, serializer);
+        val di = serialize(record, serializer);
 
         Utils.lockWrite(locks[recidToSegment(recid)]) {
-            updateprotected(recid, di)
+            updateProtected(recid, di)
         }
     }
 
-    private fun updateprotected(recid: Long, di: DataOutput2?){
+    private fun updateProtected(recid: Long, di: DataOutput2?){
         if(CC.ASSERT)
             Utils.assertWriteLock(locks[recidToSegment(recid)])
 
@@ -900,11 +646,9 @@ class StoreDirect(
             if (old !== expectedOldRecord && !serializer.equals(old!!, expectedOldRecord!!))
                 return false
 
-            val di =
-                    if(newRecord==null) null
-                    else serialize(newRecord, serializer);
+            val di = serialize(newRecord, serializer);
 
-            updateprotected(recid, di)
+            updateProtected(recid, di)
             return true;
         }
     }
@@ -1039,13 +783,6 @@ class StoreDirect(
 
         closed = true;
         volume.close()
-    }
-
-    override fun isClosed() = closed
-
-    protected fun assertNotClosed(){
-        if(closed)
-            throw IllegalAccessError("Store was closed");
     }
 
     override fun getAllRecids(): LongIterator {
@@ -1217,8 +954,7 @@ class StoreDirect(
     }
 
 
-
-    protected fun freeSizeIncrement(increment: Long) {
+    override protected fun freeSizeIncrement(increment: Long) {
         if(CC.ASSERT && increment%16!=0L)
             throw AssertionError()
         while (true) {

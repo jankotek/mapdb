@@ -1132,7 +1132,7 @@ class HTreeMap<K,V>(
 
 
     override fun isClosed(): Boolean {
-        return stores[0].isClosed()
+        return stores[0].isClosed
     }
 
     protected fun listenerNotify(key:K, oldValue:V?, newValue: V?, triggered:Boolean){

@@ -1619,7 +1619,7 @@ class BTreeMap<K,V>(
 
 
     override fun isClosed(): Boolean {
-        return store.isClosed()
+        return store.isClosed
     }
 
 

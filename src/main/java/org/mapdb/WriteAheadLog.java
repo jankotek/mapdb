@@ -794,8 +794,10 @@ public class WriteAheadLog {
      * @param walPointer pointer returned by {@link WriteAheadLog#walPutByteArray(long, byte[], int, int)}
      * @return DataInput
      */
-    public DataInput walGetByteArray(long walPointer) {
+    public DataInput2 walGetByteArray(long walPointer) {
         int arraySize = walPointerToSize(walPointer);
+        if(CC.ASSERT && arraySize==0)
+            throw new AssertionError();
         int fileNum = (int) (walPointerToFileNum(walPointer));
         long dataOffset = (walPointerToOffset(walPointer));
 

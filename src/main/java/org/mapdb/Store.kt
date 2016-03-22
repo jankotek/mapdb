@@ -33,7 +33,7 @@ interface Store: StoreImmutable, Verifiable {
     fun compact()
 
     fun close();
-    fun isClosed():Boolean;
+    val isClosed:Boolean;
 
     val isThreadSafe:Boolean;
 

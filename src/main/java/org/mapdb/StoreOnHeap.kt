@@ -120,7 +120,7 @@ class StoreOnHeap(
         }
     }
 
-    override fun isClosed() = false
+    override val isClosed = false
 
     override fun <R> get(recid: Long, serializer: Serializer<R>): R? {
         val record = Utils.lockRead(lock) {
