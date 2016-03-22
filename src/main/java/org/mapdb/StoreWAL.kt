@@ -9,6 +9,7 @@ import org.mapdb.volume.Volume
 import org.mapdb.volume.VolumeFactory
 import org.mapdb.DataIO.*
 import org.mapdb.StoreDirectJava.*
+import java.util.*
 
 /**
  * StoreDirect with write ahead log
@@ -40,6 +41,8 @@ class StoreWAL(
                 concShift = concShift,
                 allocateStartSize = allocateStartSize
         )
+
+        @JvmStatic protected val TOMB1 = -1L;
     }
 
     protected val realVolume: Volume = {
@@ -110,6 +113,8 @@ class StoreWAL(
         var ret = cacheIndexVals[segment].get(indexOffset)
         if(ret==0L)
             ret = volume.getLong(indexOffset)
+        if(ret == 0L)
+            throw DBException.GetVoid(recid)
 
         return DataIO.parity1Get(ret)
     }
@@ -125,15 +130,196 @@ class StoreWAL(
 
 
     override fun <R> compareAndSwap(recid: Long, expectedOldRecord: R?, newRecord: R?, serializer: Serializer<R>): Boolean {
-        throw UnsupportedOperationException()
+        assertNotClosed()
+        Utils.lockWrite(locks[recidToSegment(recid)]) {
+            //compare old value
+            val old = get(recid, serializer)
+
+            if (old === null && expectedOldRecord !== null)
+                return false;
+            if (old !== null && expectedOldRecord === null)
+                return false;
+
+            if (old !== expectedOldRecord && !serializer.equals(old!!, expectedOldRecord!!))
+                return false
+
+            val di = serialize(newRecord, serializer);
+
+            updateProtected(recid, di)
+            return true;
+        }
     }
 
+
     override fun <R> delete(recid: Long, serializer: Serializer<R>) {
-        throw UnsupportedOperationException()
+        assertNotClosed()
+        val segment = recidToSegment(recid)
+
+        Utils.lockWrite(locks[segment]) {
+            val oldIndexVal = getIndexVal(recid);
+            val oldSize = indexValToSize(oldIndexVal);
+            if (oldSize == DELETED_RECORD_SIZE)
+                throw DBException.GetVoid(recid)
+
+            if (oldSize != NULL_RECORD_SIZE) {
+                Utils.lock(structuralLock) {
+                    if (indexValFlagLinked(oldIndexVal)) {
+                        linkedRecordDelete(oldIndexVal,recid)
+                    } else if(oldSize!=0L){
+                        val oldOffset = indexValToOffset(oldIndexVal);
+                        val sizeUp = roundUp(oldSize, 16)
+                        //TODO clear into WAL
+//                        if(CC.ZEROS)
+//                            volume.clear(oldOffset,oldOffset+sizeUp)
+                        releaseData(sizeUp, oldOffset, false)
+                        cacheRecords[segment].remove(indexValToOffset(oldIndexVal));
+                    }
+                    releaseRecid(recid)
+                }
+            }
+            setIndexVal(recid, indexValCompose(size = DELETED_RECORD_SIZE, offset = 0L, linked = 0, unused = 0, archive = 1))
+        }
     }
 
     override fun preallocate(): Long {
-        throw UnsupportedOperationException()
+        assertNotClosed()
+        val recid = Utils.lock(structuralLock){
+            allocateRecid()
+        }
+        Utils.lockWrite(locks[recidToSegment(recid)]) {
+//            if (CC.ASSERT) {
+//                val oldVal = volume.getLong(recidToOffset(recid))
+//                if(oldVal!=0L && indexValToSize(oldVal)!=DELETED_RECORD_SIZE)
+//                    throw DBException.DataCorruption("old recid is not empty")
+//            }
+
+            //set allocated flag
+            setIndexVal(recid, indexValCompose(size = NULL_RECORD_SIZE, offset = 0, linked = 0, unused = 1, archive = 1))
+            return recid
+        }
+    }
+
+
+    protected fun linkedRecordGet(indexValue:Long, recid:Long):ByteArray{
+        if(CC.ASSERT && !indexValFlagLinked(indexValue))
+            throw AssertionError("not linked record")
+
+        val segment = recidToSegment(recid);
+        val cacheRec = cacheRecords[segment]
+        var b = ByteArray(128*1024)
+        var bpos = 0
+        var pointer = indexValue
+        chunks@ while(true) {
+            val isLinked = indexValFlagLinked(pointer);
+            val nextPointerSize = if(isLinked)8 else 0; //last (non linked) chunk does not have a pointer
+            val size = indexValToSize(pointer).toInt() - nextPointerSize
+            val offset = indexValToOffset(pointer)
+
+            //grow b if needed
+            if(bpos+size>=b.size)
+                b = Arrays.copyOf(b,b.size*2)
+
+            val walId = cacheRec.get(offset)
+
+            if(walId!=null){
+                //load from wal
+                val ba = wal.walGetRecord(walId,recid)
+                System.arraycopy(ba,nextPointerSize,b,bpos,size)
+                bpos += size;
+
+                if (!isLinked)
+                    break@chunks
+
+                pointer = parity3Get(getLong(ba,0))
+
+            }else{
+                //load from volume
+                volume.getData(offset + nextPointerSize, b, bpos, size)
+                bpos += size;
+
+                if (!isLinked)
+                    break@chunks
+
+                pointer = parity3Get(volume.getLong(offset))
+            }
+        }
+
+        return Arrays.copyOf(b,bpos) //TODO PERF this copy can be avoided with boundary checking DataInput
+    }
+
+    protected fun linkedRecordDelete(indexValue:Long, recid:Long){
+        if(CC.ASSERT && !indexValFlagLinked(indexValue))
+            throw AssertionError("not linked record")
+
+        val segment = recidToSegment(recid);
+        val cacheRec = cacheRecords[segment]
+
+        var pointer = indexValue
+        chunks@ while(pointer!=0L) {
+            val isLinked = indexValFlagLinked(pointer);
+            val size = indexValToSize(pointer)
+            val offset = indexValToOffset(pointer)
+
+            //read next pointer
+            pointer = if(isLinked) {
+                val walId = cacheRec.get(offset)
+                if(walId==0L) {
+                    parity3Get(volume.getLong(offset))
+                }else{
+                    val ba = wal.walGetRecord(walId, recid)
+                    parity3Get(getLong(ba,0))
+                }
+            }else
+                0L
+            val sizeUp = roundUp(size,16);
+            //TODO data clear
+//            if(CC.ZEROS)
+//                volume.clear(offset,offset+sizeUp)
+            releaseData(sizeUp, offset, false);
+        }
+    }
+
+    protected fun linkedRecordPut(output:ByteArray, size:Int, recid:Long):Long{
+        val segment = recidToSegment(recid);
+        val cacheRec = cacheRecords[segment]
+
+        var remSize = size.toLong();
+        //insert first non linked record
+        var chunkSize:Long = Math.min(MAX_RECORD_SIZE, remSize);
+        var chunkOffset = Utils.lock(structuralLock){
+            allocateData(roundUp(chunkSize.toInt(),16), false)
+        }
+        var walId = wal.walPutRecord(recid,output, (remSize-chunkSize).toInt(), chunkSize.toInt())
+        cacheRec.put(chunkOffset,walId)
+        //volume.putData(chunkOffset, output, (remSize-chunkSize).toInt(), chunkSize.toInt())
+        remSize-=chunkSize
+        var isLinked = 0L // holds linked flag, last set is not linked, so initialized with zero
+
+        // iterate in reverse order (from tail and from end of record)
+        while(remSize>0){
+            val prevLink = parity3Set((chunkSize+isLinked).shl(48) + chunkOffset + isLinked)
+            isLinked = MLINKED;
+
+            //allocate stuff
+            chunkSize = Math.min(MAX_RECORD_SIZE - 8, remSize);
+            chunkOffset = Utils.lock(structuralLock){
+                allocateData(roundUp(chunkSize+8,16).toInt(), false)
+            }
+
+            //write link
+//            volume.putLong(chunkOffset, prevLink)
+            //and write data
+            remSize-=chunkSize
+            val ba = ByteArray(chunkSize.toInt()+8)
+            putLong(ba,0,prevLink)
+            System.arraycopy(output,remSize.toInt(), ba, 8 , chunkSize.toInt())
+            walId = wal.walPutRecord(recid, ba, 0, ba.size)
+            cacheRec.put(chunkOffset,walId)
+//            volume.putData(chunkOffset+8, output, remSize.toInt(), chunkSize.toInt())
+        }
+        if(CC.ASSERT && remSize!=0L)
+            throw AssertionError();
+        return (chunkSize+8).shl(48) + chunkOffset + isLinked + MARCHIVE
     }
 
     override fun <R> put(record: R?, serializer: Serializer<R>): Long {
@@ -147,15 +333,24 @@ class StoreWAL(
         val segment = recidToSegment(recid)
         Utils.lockWrite(locks[segment]) {
             if (di != null) {
-                //allocate space
-                val volOffset = Utils.lock(structuralLock) {
-                    allocateData(roundUp(di.pos,16), false)
+                if(di.pos==0){
+                    val indexVal = indexValCompose(size=0, offset = 0L, archive = 1, linked = 0, unused = 0)
+                    setIndexVal(recid,indexVal)
+                }else if(di.pos>MAX_RECORD_SIZE){
+                    //linked record
+                    val indexVal = linkedRecordPut(di.buf,di.pos,recid)
+                    setIndexVal(recid,indexVal)
+                }else{
+                    //allocate space
+                    val volOffset = Utils.lock(structuralLock) {
+                        allocateData(roundUp(di.pos, 16), false)
+                    }
+                    val walId = wal.walPutRecord(recid, di.buf, 0, di.pos)
+                    //TODO linked record
+                    cacheRecords[segment].put(volOffset, walId)
+                    val indexVal = indexValCompose(size = di.pos.toLong(), offset = volOffset, archive = 1, linked = 0, unused = 0)
+                    setIndexVal(recid,indexVal)
                 }
-                val walId = wal.walPutRecord(recid, di.buf, 0, di.pos)
-                //TODO linked record
-                cacheRecords[segment].put(volOffset, walId)
-                val indexVal = indexValCompose(size=di.pos.toLong(), offset = volOffset, archive = 1, linked = 0, unused = 0)
-                cacheIndexVals[segment].put(indexOffset, indexVal)
             }else{
                 //null record
                 val indexVal = indexValCompose(size=NULL_RECORD_SIZE, offset = 0L, archive = 1, linked = 0, unused = 0)
@@ -166,8 +361,71 @@ class StoreWAL(
         return recid
     }
 
+
     override fun <R> update(recid: Long, record: R?, serializer: Serializer<R>) {
-        throw UnsupportedOperationException()
+        assertNotClosed()
+        val di = serialize(record, serializer);
+
+        Utils.lockWrite(locks[recidToSegment(recid)]) {
+            updateProtected(recid, di)
+        }
+    }
+
+    private fun updateProtected(recid: Long, di: DataOutput2?){
+        if(CC.ASSERT)
+            Utils.assertWriteLock(locks[recidToSegment(recid)])
+
+        val oldIndexVal = getIndexVal(recid);
+        val oldLinked = indexValFlagLinked(oldIndexVal);
+        val oldSize = indexValToSize(oldIndexVal);
+        if (oldSize == DELETED_RECORD_SIZE)
+            throw DBException.GetVoid(recid)
+        val newUpSize: Long = if (di == null) -16L else roundUp(di.pos.toLong(), 16)
+        //try to reuse record if possible, if not possible, delete old record and allocate new
+        if ((oldLinked || newUpSize != roundUp(oldSize, 16)) &&
+                oldSize != NULL_RECORD_SIZE && oldSize != 0L ) {
+            Utils.lock(structuralLock) {
+                if (oldLinked) {
+                    linkedRecordDelete(oldIndexVal,recid)
+                } else {
+                    val oldOffset = indexValToOffset(oldIndexVal);
+                    val sizeUp = roundUp(oldSize, 16)
+                    if (CC.ZEROS)
+                        volume.clear(oldOffset, oldOffset + sizeUp)
+                    releaseData(sizeUp, oldOffset, false)
+                }
+            }
+        }
+
+        if (di == null) {
+            //null values
+            setIndexVal(recid, indexValCompose(size = NULL_RECORD_SIZE, offset = 0L, linked = 0, unused = 0, archive = 1))
+            return
+        }
+
+        if (di.pos > MAX_RECORD_SIZE) {
+            //linked record
+            val newIndexVal = linkedRecordPut(di.buf, di.pos, recid)
+            setIndexVal(recid, newIndexVal);
+            return
+        }
+        val size = di.pos;
+        val offset =
+                if (!oldLinked && newUpSize == roundUp(oldSize, 16) ) {
+                    //reuse existing offset
+                    indexValToOffset(oldIndexVal)
+                } else if (size == 0) {
+                    0L
+                } else {
+                    Utils.lock(structuralLock) {
+                        allocateData(roundUp(size, 16), false)
+                    }
+                }
+        //volume.putData(offset, di.buf, 0, size)
+        val walId = wal.walPutRecord(recid, di.buf, 0, size)
+        cacheRecords[recidToSegment(recid)].put(offset, walId)
+        setIndexVal(recid, indexValCompose(size = size.toLong(), offset = offset, linked = 0, unused = 0, archive = 1))
+        return
     }
 
     override fun <R> get(recid: Long, serializer: Serializer<R>): R? {
@@ -177,6 +435,14 @@ class StoreWAL(
             val size = indexValToSize(indexVal)
             if(size==NULL_RECORD_SIZE)
                 return null
+            if(size==DELETED_RECORD_SIZE)
+                throw DBException.GetVoid(recid)
+
+            if(indexValFlagLinked(indexVal)){
+                val ba = linkedRecordGet(indexVal, recid)
+                return deserialize(serializer, DataInput2.ByteArray(ba), ba.size.toLong())
+            }
+
 
             val volOffset = indexValToOffset(indexVal)
 
