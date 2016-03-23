@@ -297,6 +297,55 @@ public final class DataIO {
     }
 
 
+    public static int packInt(byte[] buf, int pos, int value){
+        int pos2 = pos;
+        int shift = 31-Integer.numberOfLeadingZeros(value);
+        shift -= shift%7; // round down to nearest multiple of 7
+        while(shift!=0){
+            buf[pos++] = (byte) ((value>>>shift) & 0x7F);
+            shift-=7;
+        }
+        buf[pos++] = (byte) ((value & 0x7F)|0x80);
+        return pos-pos2;
+    }
+
+    public static int packLong(byte[] buf, int pos, long value){
+        int pos2 = pos;
+
+        int shift = 63-Long.numberOfLeadingZeros(value);
+        shift -= shift%7; // round down to nearest multiple of 7
+        while(shift!=0){
+            buf[pos++] = (byte) ((value>>>shift) & 0x7F);
+            shift-=7;
+        }
+        buf[pos++] = (byte) ((value & 0x7F) | 0x80);
+        return pos - pos2;
+    }
+
+
+    public static int unpackInt(byte[] buf, int pos){
+        int ret = 0;
+        byte v;
+        do{
+            //$DELAY$
+            v = buf[pos++];
+            ret = (ret<<7 ) | (v & 0x7F);
+        }while((v&0x80)==0);
+        return ret;
+    }
+
+
+    public static long unpackLong(byte[] buf, int pos){
+        long ret = 0;
+        byte v;
+        do{
+            //$DELAY$
+            v = buf[pos++];
+            ret = (ret<<7 ) | (v & 0x7F);
+        }while((v&0x80)==0);
+        return ret;
+    }
+
     public static long getSixLong(byte[] buf, int pos) {
         return
                         ((long) (buf[pos++] & 0xff) << 40) |

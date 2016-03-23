@@ -62,6 +62,7 @@ class StoreWAL(
 
     /** modified indexVals, key is offset, value is indexValue */
     protected val cacheIndexVals = Array(segmentCount, { LongLongHashMap() })
+    protected val cacheIndexLinks = LongLongHashMap()
     /** modified records, key is offset, value is WAL ID */
     protected val cacheRecords = Array(segmentCount, { LongLongHashMap() })
 
@@ -99,6 +100,7 @@ class StoreWAL(
             } else {
                 loadIndexPages(indexPages)
                 indexPagesBackup = indexPages.toArray()
+                volume.getData(0, headBytes, 0, headBytes.size)
             }
         }
     }
@@ -221,7 +223,7 @@ class StoreWAL(
 
             val walId = cacheRec.get(offset)
 
-            if(walId!=null){
+            if(walId!=0L){
                 //load from wal
                 val ba = wal.walGetRecord(walId,recid)
                 System.arraycopy(ba,nextPointerSize,b,bpos,size)
@@ -466,11 +468,50 @@ class StoreWAL(
 
     }
     override fun close() {
+        //TODO lock this somehow?
+        if(closed)
+            return
 
+        closed = true;
+        volume.close()
     }
 
     override fun commit() {
-        throw UnsupportedOperationException()
+        //write index page
+        realVolume.putData(0, headBytes, 0, headBytes.size)
+
+        //flush index values
+        for(indexVals in cacheIndexVals){
+            indexVals.forEachKeyValue { indexOffset, indexVal ->
+                realVolume.putLong(indexOffset, indexVal)
+            }
+            indexVals.clear()
+        }
+        cacheIndexLinks.forEachKeyValue { indexOffset, indexVal ->
+            realVolume.putLong(indexOffset, indexVal)
+        }
+        cacheIndexLinks.clear()
+
+        //flush long stack pages
+        cacheStacks.forEachKeyValue { offset, bytes ->
+            realVolume.putData(offset, bytes, 0, bytes.size)
+        }
+        cacheStacks.clear()
+
+        //move modified records from indexPages
+        for(records in cacheRecords){
+            records.forEachKeyValue { offset, walId ->
+                val bytes = wal.walGetRecord(walId, 0)
+                realVolume.putData(offset, bytes, 0, bytes.size)
+            }
+            records.clear()
+        }
+
+        indexPagesBackup = indexPages.toArray()
+        realVolume.sync()
+        //TODO delete WAL
+        wal.destroyWalFiles()
+        wal.close()
     }
 
     override fun compact() {
@@ -506,6 +547,7 @@ class StoreWAL(
 //            throw DBException.DataCorruption("index pointer not empty")
 
         wal.walPutLong(pagePointerOffset, parity16Get(indexPage))
+        cacheIndexLinks.put(pagePointerOffset, parity16Set(indexPage))
         //volume.putLong(pagePointerOffset, parity16Set(indexPage))
 
         //add this page to list of pages
@@ -513,6 +555,7 @@ class StoreWAL(
 
         //zero out pointer to next page with valid parity
         wal.walPutLong(indexPage+8, parity16Set(0))
+        cacheIndexLinks.put(indexPage+8, parity16Set(0))
         //volume.putLong(indexPage+8, parity16Set(0))
         return indexPage;
     }
@@ -521,14 +564,221 @@ class StoreWAL(
         //TODO free size ignored
     }
 
-    override fun longStackPut(masterLinkOffset: Long, value: Long, recursive: Boolean) {
-        //TODO
+
+
+    override protected fun longStackPut(masterLinkOffset:Long, value:Long, recursive:Boolean){
+        if(CC.ASSERT)
+            Utils.assertLocked(structuralLock)
+        if (CC.ASSERT && (masterLinkOffset <= 0 || masterLinkOffset > CC.PAGE_SIZE || masterLinkOffset % 8 != 0L))
+            throw DBException.DataCorruption("wrong master link")
+        if(CC.ASSERT && value.shr(48)!=0L)
+            throw AssertionError()
+        if(CC.ASSERT && masterLinkOffset!=RECID_LONG_STACK && value % 16L !=0L)
+            throw AssertionError()
+
+        /** size of value after it was packed */
+        val valueSize:Long = DataIO.packLongSize(value).toLong()
+
+        val masterLinkVal:Long = parity4Get(headVol.getLong(masterLinkOffset))
+        if (masterLinkVal == 0L) {
+            //empty stack, create new chunk
+            longStackNewChunk(masterLinkOffset, 0L, value, valueSize, true)
+            return
+        }
+        val chunkOffset = masterLinkVal and MOFFSET
+        val currSize = masterLinkVal.ushr(48)
+        var ba = longStackLoadChunk(chunkOffset)
+
+        //is there enough space in current chunk?
+        if (currSize + valueSize > ba.size) {
+            //no there is not enough space
+            //allocate new chunk
+            longStackNewChunk(masterLinkOffset, chunkOffset, value, valueSize, true) //TODO recursive=true here is too paranoid, and could be improved
+            return
+        }
+        //there is enough free space here, so put it there
+        packLong(ba, currSize.toInt(), value)
+        //volume.putPackedLong(chunkOffset+currSize, value)
+        //and update master link with new size
+        val newMasterLinkValue = (currSize+valueSize).shl(48) + chunkOffset
+        headVol.putLong(masterLinkOffset, parity4Set(newMasterLinkValue))
     }
 
-    override fun longStackTake(masterLinkOffset: Long, recursive: Boolean): Long {
-        //TODO
-        return 0L
+    private fun longStackLoadChunk(chunkOffset: Long): ByteArray {
+        var ba = cacheStacks.get(chunkOffset)
+        if(ba!=null)
+            return ba
+        val prevLinkVal = parity4Get(volume.getLong(chunkOffset))
+        val pageSize = prevLinkVal.ushr(48).toInt()
+        //load from volume
+        ba = ByteArray(pageSize)
+        volume.getData(chunkOffset, ba, 0, pageSize)
+        cacheStacks.put(chunkOffset,ba)
+        return ba
     }
+
+    protected fun longStackNewChunk(masterLinkOffset: Long, prevPageOffset: Long, value: Long, valueSize:Long, recursive: Boolean) {
+        if(CC.ASSERT) {
+            Utils.assertLocked(structuralLock)
+        }
+        if(CC.PARANOID){
+            //ensure that this  longStackPut() method is not twice on stack trace
+            val stack = Thread.currentThread().stackTrace
+            if(stack.filter { it.methodName.startsWith("longStackPut")}.count()>1)
+                throw AssertionError("longStackNewChunk called in recursion, longStackPut() is more then once on stack frame")
+            if(stack.filter { it.methodName.startsWith("longStackTake")}.count()>1)
+                throw AssertionError("longStackNewChunk called in recursion, longStackTake() is more then once on stack frame")
+        }
+
+        if (CC.ASSERT && (masterLinkOffset <= 0 || masterLinkOffset > CC.PAGE_SIZE || masterLinkOffset % 8 != 0L))
+            throw DBException.DataCorruption("wrong master link")
+
+        var newChunkSize:Long = -1L
+        if(!recursive){
+            // In this case do not allocate fixed size, but try to reuse existing free space.
+            // That reduces fragmentation. But can not be used in recursion
+
+            sizeLoop@ for(size in LONG_STACK_MAX_SIZE downTo  LONG_STACK_MIN_SIZE step 16){
+                val masterLinkOffset2 = longStackMasterLinkOffset(size)
+                if (masterLinkOffset == masterLinkOffset2) {
+                    //we can not modify the same long stack, so skip
+                    continue@sizeLoop
+                }
+                val indexVal = parity4Get(headVol.getLong(masterLinkOffset2))
+                if (indexVal != 0L) {
+                    newChunkSize = size
+                    break@sizeLoop
+                }
+            }
+        }
+
+        val dataTail = dataTail
+        val remainderSize = roundUp(dataTail, CC.PAGE_SIZE) - dataTail
+        if(newChunkSize==-1L) {
+            val dataTail = dataTail
+            if (dataTail == 0L) {
+                // will have to allocate new data page, plenty of size
+                newChunkSize = LONG_STACK_PREF_SIZE
+            }else{
+                // Check space before end of data page.
+                // Set size so it fully fits remainder of page
+
+                newChunkSize =
+                        if(remainderSize>LONG_STACK_MAX_SIZE || remainderSize<LONG_STACK_MIN_SIZE)
+                            LONG_STACK_PREF_SIZE
+                        else
+                            remainderSize
+            }
+        }
+
+        if(CC.ASSERT && newChunkSize % 16!=0L)
+            throw AssertionError()
+
+        //by now we should have determined size to take, so just take it
+        val newChunkOffset:Long = allocateData(newChunkSize.toInt(), true)  //TODO recursive=true here is too paranoid, and could be improved
+        val ba = ByteArray(newChunkOffset.toInt())
+        cacheStacks.put(newChunkOffset,ba)
+        //write size of current chunk with link to prev chunk
+        //volume.putLong(newChunkOffset, parity4Set((newChunkSize shl 48) + prevPageOffset))
+        putLong(ba,0, parity4Set((newChunkSize shl 48) + prevPageOffset))
+        //put value
+        //volume.putPackedLong(newChunkOffset+8, value)
+        packLong(ba, 8, value)
+        //update master link
+        val newSize:Long = 8+valueSize;
+        val newMasterLinkValue = newSize.shl(48) + newChunkOffset
+        headVol.putLong(masterLinkOffset, parity4Set(newMasterLinkValue))
+    }
+
+    override protected fun longStackTake(masterLinkOffset:Long, recursive:Boolean):Long {
+        if(CC.ASSERT)
+            Utils.assertLocked(structuralLock)
+
+        if (CC.ASSERT && (masterLinkOffset <= 0 || masterLinkOffset > CC.PAGE_SIZE || masterLinkOffset % 8 != 0L))
+            throw DBException.DataCorruption("wrong master link")
+
+        val masterLinkVal = parity4Get(headVol.getLong(masterLinkOffset))
+        if (masterLinkVal == 0L) {
+            //empty stack
+            return 0;
+        }
+
+        val offset = masterLinkVal and MOFFSET
+        var ba = longStackLoadChunk(offset)
+
+        //find position to read from
+        var pos:Int = Math.max(masterLinkVal.ushr(48)-1, 8).toInt()
+        //now decrease position to find ending byte of
+        while(pos>8 && (ba[pos-1].toInt() and 0x80)==0){
+            pos--
+        }
+
+        if(CC.ASSERT && pos<8L)
+            throw DBException.DataCorruption("position too small")
+
+        if(CC.ASSERT && getLong(ba, 0).ushr(48)<=pos)
+            throw DBException.DataCorruption("position beyond chunk "+masterLinkOffset);
+
+        //get value and zero it out
+        val ret = unpackLong(ba,pos)
+        for(i in pos until pos+packLongSize(ret)) {
+            ba[i] = 0
+            //volume.clear(offset+pos, offset+pos+ DataIO.packLongSize(ret))
+        }
+
+        //update size on master link
+        if(pos>8L) {
+            //there is enough space on current chunk, so just decrease its size
+            headVol.putLong(masterLinkOffset, parity4Set(pos.toLong().shl(48) + offset))
+            if(CC.ASSERT && ret.shr(48)!=0L)
+                throw AssertionError()
+            if(CC.ASSERT && masterLinkOffset!= RECID_LONG_STACK && ret % 16 !=0L)
+                throw AssertionError()
+
+            return ret;
+        }
+
+        //current chunk become empty, so delete it
+        val prevChunkValue = parity4Get(getLong(ba,0))
+        putLong(ba,0,0)
+        val currentSize = prevChunkValue.ushr(48)
+        val prevChunkOffset = prevChunkValue and MOFFSET
+
+        //does previous page exists?
+        val masterLinkPos:Long = if (prevChunkOffset != 0L) {
+            //yes previous page exists, return its size, decreased by start
+            val pos = parity4Get(volume.getLong(prevChunkOffset)).ushr(48)
+            longStackFindEnd(prevChunkOffset, pos)
+        }else{
+            0L
+        }
+
+        //update master pointer
+        headVol.putLong(masterLinkOffset, parity4Set(masterLinkPos.shl(48) + prevChunkOffset))
+
+        //release old page
+        //TODO clear
+//        if(CC.ZEROS)
+//            volume.clear(offset,offset+currentSize) //TODO incremental clear
+
+        releaseData(currentSize, offset, true);
+
+        if(CC.ASSERT && ret.shr(48)!=0L)
+            throw AssertionError()
+        if(CC.ASSERT && masterLinkOffset!=RECID_LONG_STACK && ret and 7 !=0L)
+            throw AssertionError()
+        return ret;
+    }
+
+    protected fun longStackFindEnd(pageOffset:Long, pos:Long):Long{
+        val ba = longStackLoadChunk(pageOffset)
+        var pos2 = pos.toInt()
+        while(pos2>8 && ba[pos2-1]==0.toByte()){
+            pos2--
+        }
+        return pos2.toLong()
+    }
+
 
 
 }

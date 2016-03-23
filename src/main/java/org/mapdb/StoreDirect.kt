@@ -778,6 +778,7 @@ class StoreDirect(
     }
 
     override fun close() {
+        //TODO lock this somehow?
         if(closed)
             return
 
