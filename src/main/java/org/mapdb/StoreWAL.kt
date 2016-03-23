@@ -25,7 +25,7 @@ class StoreWAL(
         volumeFactory=volumeFactory,
         isThreadSafe = isThreadSafe,
         concShift =  concShift
-){
+), StoreTx{
 
     companion object{
         @JvmStatic fun make(
@@ -476,9 +476,22 @@ class StoreWAL(
         volume.close()
     }
 
+    override fun rollback() {
+        realVolume.getData(0,headBytes, 0, headBytes.size)
+        cacheIndexLinks.clear()
+        cacheIndexVals.forEach { it.clear() }
+        cacheRecords.forEach { it.clear() }
+        cacheStacks.clear()
+        indexPages.clear()
+        for(page in indexPagesBackup)
+            indexPages.add(page)
+        wal.rollback()
+    }
+
     override fun commit() {
         //write index page
         realVolume.putData(0, headBytes, 0, headBytes.size)
+        realVolume.ensureAvailable(fileTail)
 
         //flush index values
         for(indexVals in cacheIndexVals){
