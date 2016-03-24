@@ -16,109 +16,8 @@ import java.util.*
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReadWriteLock
 
-class StoreDirectTest:StoreReopenTest(){
+class StoreDirectTest:StoreDirectAbstractTest(){
 
-
-    val StoreDirect.maxRecid:Long
-        get() =  Reflection.method("getMaxRecid").withReturnType(Long::class.java).`in`(this).invoke()
-
-    val StoreDirect.dataTail:Long
-        get() =  Reflection.method("getDataTail").withReturnType(Long::class.java).`in`(this).invoke()
-
-    val StoreDirect.volume: Volume
-        get() = Reflection.method("getVolume").withReturnType(Volume::class.java).`in`(this).invoke()
-
-    val StoreDirect.indexPages: MutableLongList
-        get() = Reflection.method("getIndexPages").withReturnType(MutableLongList::class.java).`in`(this).invoke()
-
-    val StoreDirect.structuralLock: Lock?
-        get() = Reflection.method("getStructuralLock").`in`(this).invoke() as Lock?
-
-
-    val StoreDirect.locks: Array<ReadWriteLock?>
-        get() = Reflection.method("getLocks").`in`(this).invoke() as Array<ReadWriteLock?>
-
-    fun StoreDirect.indexValCompose(size:Long,
-                        offset:Long,
-                        linked:Int,
-                        unused:Int,
-                        archive:Int
-    ):Long = Reflection.method("indexValCompose")
-            .withParameterTypes(size.javaClass, offset.javaClass, linked.javaClass, unused.javaClass, archive.javaClass)
-            .`in`(this)
-            .invoke(size, offset, linked, unused, archive) as Long
-
-
-    fun StoreDirect.allocateNewPage():Long =
-            Reflection.method("allocateNewPage")
-            .`in`(this)
-            .invoke() as Long
-
-    fun StoreDirect.allocateRecid():Long =
-            Reflection.method("allocateRecid")
-                    .`in`(this)
-                    .invoke() as Long
-
-
-    fun StoreDirect.calculateFreeSize():Long =
-            Reflection.method("calculateFreeSize")
-                    .`in`(this)
-                    .invoke() as Long
-
-    fun StoreDirect.allocateNewIndexPage():Long =
-            Reflection.method("allocateNewIndexPage")
-                    .`in`(this)
-                    .invoke() as Long
-
-
-    fun StoreDirect.getIndexVal(recid:Long):Long =
-            Reflection.method("getIndexVal")
-                .withParameterTypes(recid.javaClass)
-                .`in`(this)
-                .invoke(recid) as Long
-
-    fun StoreDirect.recidToOffset(recid:Long):Long =
-            Reflection.method("recidToOffset")
-                    .withParameterTypes(recid.javaClass)
-                    .`in`(this)
-                    .invoke(recid) as Long
-
-    fun StoreDirect.allocateData(size:Int, recursive:Boolean):Long =
-            Reflection.method("allocateData")
-                    .withParameterTypes(size.javaClass, recursive.javaClass)
-                    .`in`(this)
-                    .invoke(size, recursive) as Long
-
-    fun StoreDirect.longStackTake(masterLinkOffset:Long, recursive:Boolean):Long =
-            Reflection.method("longStackTake")
-                    .withParameterTypes(masterLinkOffset.javaClass, recursive.javaClass)
-                    .`in`(this)
-                    .invoke(masterLinkOffset, recursive) as Long
-
-    fun StoreDirect.longStackPut(masterLinkOffset:Long, value:Long, recursive:Boolean) {
-        Reflection.method("longStackPut")
-                .withParameterTypes(masterLinkOffset.javaClass, value.javaClass, recursive.javaClass)
-                .`in`(this)
-                .invoke(masterLinkOffset, value, recursive)
-    }
-
-    fun StoreDirect.linkedRecordPut(output:ByteArray, size:Int):Long =
-            Reflection.method("linkedRecordPut")
-                    .withParameterTypes(output.javaClass, size.javaClass)
-                    .`in`(this)
-                    .invoke(output, size) as Long
-
-    fun StoreDirect.indexValFlagLinked(indexValue:Long):Boolean =
-            Reflection.method("indexValFlagLinked")
-                    .withParameterTypes(indexValue.javaClass)
-                    .`in`(this)
-                    .invoke(indexValue) as Boolean
-
-    fun StoreDirect.linkedRecordGet(indexValue:Long):ByteArray =
-            Reflection.method("linkedRecordGet")
-                    .withParameterTypes(indexValue.javaClass)
-                    .`in`(this)
-                    .invoke(indexValue) as ByteArray
 
     override fun openStore(file: File): StoreDirect {
         return StoreDirect.make(file.path)
@@ -139,6 +38,177 @@ class StoreDirectTest:StoreReopenTest(){
         assertEquals(8*(8+4095+4+1), HEAD_END)
     }
 
+
+    @Test fun linked_getSet(){
+        fun test(size:Int) {
+            val b = TT.randomByteArray(size, 1)
+            val s = openStore()
+            val indexVal = s.linkedRecordPut(b, b.size)
+            assertTrue(s.indexValFlagLinked(indexVal))
+            assertTrue(indexValToSize(indexVal) > 0)
+            assertTrue(indexValToOffset(indexVal) != 0L)
+
+            val b2 = s.linkedRecordGet(indexVal)
+            assertArrayEquals(b, b2)
+        }
+        test(100000)
+        test(1000000)
+        test(10000000)
+    }
+
+    @Test fun freeSpace(){
+        val count = 100000
+        val arraySize = 1024
+        val div = count * arraySize / 100
+
+        val s = openStore()
+        val recids = LongHashSet()
+        for(i in 0..count){
+            val recid = s.put(ByteArray(arraySize), Serializer.BYTE_ARRAY_NOSIZE)
+            recids.add(recid)
+        }
+
+        recids.forEach { recid->
+            s.delete(recid, Serializer.BYTE_ARRAY_NOSIZE)
+        }
+
+        assertTrue( Math.abs(count*arraySize - s.getFreeSize())<div)
+        s.structuralLock!!.lock()
+        assertEquals(s.getFreeSize(), s.calculateFreeSize())
+    }
+
+
+    @Test fun freeSpace2() {
+        val count = 100000
+        val arraySize = 1024
+        val div = count * arraySize / 100
+
+        val s = openStore()
+        val recids = LongHashSet()
+        s.getFreeSize()
+        for (i in 0..count) {
+            val recid = s.put(ByteArray(arraySize), Serializer.BYTE_ARRAY_NOSIZE)
+            recids.add(recid)
+        }
+
+        recids.forEach { recid ->
+            s.delete(recid, Serializer.BYTE_ARRAY_NOSIZE)
+        }
+
+        assertTrue(Math.abs(count * arraySize - s.getFreeSize()) < div)
+        s.structuralLock!!.lock()
+        assertEquals(s.getFreeSize(), s.calculateFreeSize())
+    }
+}
+
+abstract class StoreDirectAbstractTest:StoreReopenTest() {
+    abstract override fun openStore(file: File): StoreDirectAbstract
+
+    abstract override fun openStore(): StoreDirectAbstract
+
+
+    val StoreDirectAbstract.maxRecid:Long
+        get() =  Reflection.method("getMaxRecid").withReturnType(Long::class.java).`in`(this).invoke()
+
+    val StoreDirectAbstract.dataTail:Long
+        get() =  Reflection.method("getDataTail").withReturnType(Long::class.java).`in`(this).invoke()
+
+    val StoreDirectAbstract.volume: Volume
+        get() = Reflection.method("getVolume").withReturnType(Volume::class.java).`in`(this).invoke()
+
+    val StoreDirectAbstract.indexPages: MutableLongList
+        get() = Reflection.method("getIndexPages").withReturnType(MutableLongList::class.java).`in`(this).invoke()
+
+    val StoreDirectAbstract.structuralLock: Lock?
+        get() = Reflection.method("getStructuralLock").`in`(this).invoke() as Lock?
+
+
+    val StoreDirectAbstract.locks: Array<ReadWriteLock?>
+        get() = Reflection.method("getLocks").`in`(this).invoke() as Array<ReadWriteLock?>
+
+    fun StoreDirectAbstract.indexValCompose(size:Long,
+                                            offset:Long,
+                                            linked:Int,
+                                            unused:Int,
+                                            archive:Int
+    ):Long = Reflection.method("indexValCompose")
+            .withParameterTypes(size.javaClass, offset.javaClass, linked.javaClass, unused.javaClass, archive.javaClass)
+            .`in`(this)
+            .invoke(size, offset, linked, unused, archive) as Long
+
+
+    fun StoreDirectAbstract.allocateNewPage():Long =
+            Reflection.method("allocateNewPage")
+                    .`in`(this)
+                    .invoke() as Long
+
+    fun StoreDirectAbstract.allocateRecid():Long =
+            Reflection.method("allocateRecid")
+                    .`in`(this)
+                    .invoke() as Long
+
+
+    fun StoreDirectAbstract.calculateFreeSize():Long =
+            Reflection.method("calculateFreeSize")
+                    .`in`(this)
+                    .invoke() as Long
+
+    fun StoreDirectAbstract.allocateNewIndexPage():Long =
+            Reflection.method("allocateNewIndexPage")
+                    .`in`(this)
+                    .invoke() as Long
+
+
+    fun StoreDirectAbstract.getIndexVal(recid:Long):Long =
+            Reflection.method("getIndexVal")
+                    .withParameterTypes(recid.javaClass)
+                    .`in`(this)
+                    .invoke(recid) as Long
+
+    fun StoreDirectAbstract.recidToOffset(recid:Long):Long =
+            Reflection.method("recidToOffset")
+                    .withParameterTypes(recid.javaClass)
+                    .`in`(this)
+                    .invoke(recid) as Long
+
+    fun StoreDirectAbstract.allocateData(size:Int, recursive:Boolean):Long =
+            Reflection.method("allocateData")
+                    .withParameterTypes(size.javaClass, recursive.javaClass)
+                    .`in`(this)
+                    .invoke(size, recursive) as Long
+
+    fun StoreDirectAbstract.longStackTake(masterLinkOffset:Long, recursive:Boolean):Long =
+            Reflection.method("longStackTake")
+                    .withParameterTypes(masterLinkOffset.javaClass, recursive.javaClass)
+                    .`in`(this)
+                    .invoke(masterLinkOffset, recursive) as Long
+
+    fun StoreDirectAbstract.longStackPut(masterLinkOffset:Long, value:Long, recursive:Boolean) {
+        Reflection.method("longStackPut")
+                .withParameterTypes(masterLinkOffset.javaClass, value.javaClass, recursive.javaClass)
+                .`in`(this)
+                .invoke(masterLinkOffset, value, recursive)
+    }
+
+    fun StoreDirectAbstract.linkedRecordPut(output:ByteArray, size:Int):Long =
+            Reflection.method("linkedRecordPut")
+                    .withParameterTypes(output.javaClass, size.javaClass)
+                    .`in`(this)
+                    .invoke(output, size) as Long
+
+    fun StoreDirectAbstract.indexValFlagLinked(indexValue:Long):Boolean =
+            Reflection.method("indexValFlagLinked")
+                    .withParameterTypes(indexValue.javaClass)
+                    .`in`(this)
+                    .invoke(indexValue) as Boolean
+
+    fun StoreDirectAbstract.linkedRecordGet(indexValue:Long):ByteArray =
+            Reflection.method("linkedRecordGet")
+                    .withParameterTypes(indexValue.javaClass)
+                    .`in`(this)
+                    .invoke(indexValue) as ByteArray
+
+
     @Test fun init_values(){
         val s = openStore()
         assertEquals(CC.PAGE_SIZE, s.fileTail)
@@ -153,6 +223,7 @@ class StoreDirectTest:StoreReopenTest(){
         //zero index page is set to zero
         assertEquals(0L, parity16Get(s.volume.getLong(HEAD_END)))
     }
+
 
     @Test fun prealloc1(){
         val s = openStore()
@@ -185,6 +256,7 @@ class StoreDirectTest:StoreReopenTest(){
         for(i in 1L until 16) {
             assertEquals(i * CC.PAGE_SIZE, s.volume.length())
             assertEquals(i * CC.PAGE_SIZE, s.allocateNewPage())
+            s.commit()
         }
     }
 
@@ -254,6 +326,7 @@ class StoreDirectTest:StoreReopenTest(){
             assertEquals(c, s.indexPages)
             assertEquals(i * CC.PAGE_SIZE, s.volume.length())
             val indexPage = s.allocateNewIndexPage();
+            s.commit()
             assertEquals(i * CC.PAGE_SIZE, indexPage)
             c.add(indexPage)
             assertEquals(c, s.indexPages)
@@ -310,6 +383,7 @@ class StoreDirectTest:StoreReopenTest(){
         //TODO once free space works, make sure that `CC.PAGE_SIZE*2-1024+16` is free
     }
 
+
     @Test fun longStack_putTake(){
         val s = openStore()
         s.structuralLock?.lock()
@@ -365,67 +439,7 @@ class StoreDirectTest:StoreReopenTest(){
         }
     }
 
-    @Test fun linked_getSet(){
-        fun test(size:Int) {
-            val b = TT.randomByteArray(size, 1)
-            val s = openStore()
-            val indexVal = s.linkedRecordPut(b, b.size)
-            assertTrue(s.indexValFlagLinked(indexVal))
-            assertTrue(indexValToSize(indexVal) > 0)
-            assertTrue(indexValToOffset(indexVal) != 0L)
 
-            val b2 = s.linkedRecordGet(indexVal)
-            assertArrayEquals(b, b2)
-        }
-        test(100000)
-        test(1000000)
-        test(10000000)
-    }
-
-
-    @Test fun freeSpace(){
-        val count = 100000
-        val arraySize = 1024
-        val div = count * arraySize / 100
-
-        val s = openStore()
-        val recids = LongHashSet()
-        for(i in 0..count){
-            val recid = s.put(ByteArray(arraySize), Serializer.BYTE_ARRAY_NOSIZE)
-            recids.add(recid)
-        }
-
-        recids.forEach { recid->
-            s.delete(recid, Serializer.BYTE_ARRAY_NOSIZE)
-        }
-
-        assertTrue( Math.abs(count*arraySize - s.getFreeSize())<div)
-        s.structuralLock!!.lock()
-        assertEquals(s.getFreeSize(), s.calculateFreeSize())
-    }
-
-
-    @Test fun freeSpace2() {
-        val count = 100000
-        val arraySize = 1024
-        val div = count * arraySize / 100
-
-        val s = openStore()
-        val recids = LongHashSet()
-        s.getFreeSize()
-        for (i in 0..count) {
-            val recid = s.put(ByteArray(arraySize), Serializer.BYTE_ARRAY_NOSIZE)
-            recids.add(recid)
-        }
-
-        recids.forEach { recid ->
-            s.delete(recid, Serializer.BYTE_ARRAY_NOSIZE)
-        }
-
-        assertTrue(Math.abs(count * arraySize - s.getFreeSize()) < div)
-        s.structuralLock!!.lock()
-        assertEquals(s.getFreeSize(), s.calculateFreeSize())
-    }
 
 
     @Test fun freeSpace3(){

@@ -461,8 +461,26 @@ class StoreWAL(
     }
 
     override fun getAllRecids(): LongIterator {
-        throw UnsupportedOperationException()
+        val ret = LongArrayList()
+
+        Utils.lockReadAll(locks)
+        try {
+            val maxRecid = maxRecid
+            for (recid in 1..maxRecid) {
+                try {
+                    val indexVal = getIndexVal(recid)
+                    if (indexValFlagUnused(indexVal).not())
+                        ret.add(recid)
+                } catch(e: Exception) {
+                    //TODO better way to check for parity errors, EOF etc
+                }
+            }
+        }finally{
+            Utils.unlockReadAll(locks)
+        }
+        return ret.toArray().iterator()
     }
+
 
     override fun verify() {
 
@@ -528,7 +546,7 @@ class StoreWAL(
     }
 
     override fun compact() {
-        throw UnsupportedOperationException()
+        //TODO compaction
     }
 
 
@@ -559,7 +577,7 @@ class StoreWAL(
 //        if(CC.ASSERT && parity16Get(volume.getLong(pagePointerOffset))!=0L)
 //            throw DBException.DataCorruption("index pointer not empty")
 
-        wal.walPutLong(pagePointerOffset, parity16Get(indexPage))
+        wal.walPutLong(pagePointerOffset, parity16Set(indexPage))
         cacheIndexLinks.put(pagePointerOffset, parity16Set(indexPage))
         //volume.putLong(pagePointerOffset, parity16Set(indexPage))
 
@@ -619,14 +637,16 @@ class StoreWAL(
 
     private fun longStackLoadChunk(chunkOffset: Long): ByteArray {
         var ba = cacheStacks.get(chunkOffset)
-        if(ba!=null)
-            return ba
-        val prevLinkVal = parity4Get(volume.getLong(chunkOffset))
-        val pageSize = prevLinkVal.ushr(48).toInt()
-        //load from volume
-        ba = ByteArray(pageSize)
-        volume.getData(chunkOffset, ba, 0, pageSize)
-        cacheStacks.put(chunkOffset,ba)
+        if(ba==null) {
+            val prevLinkVal = parity4Get(volume.getLong(chunkOffset))
+            val pageSize = prevLinkVal.ushr(48).toInt()
+            //load from volume
+            ba = ByteArray(pageSize)
+            volume.getData(chunkOffset, ba, 0, pageSize)
+            cacheStacks.put(chunkOffset,ba)
+        }
+        if(CC.ASSERT && ba.size>LONG_STACK_MAX_SIZE)
+            throw AssertionError()
         return ba
     }
 
@@ -689,7 +709,7 @@ class StoreWAL(
 
         //by now we should have determined size to take, so just take it
         val newChunkOffset:Long = allocateData(newChunkSize.toInt(), true)  //TODO recursive=true here is too paranoid, and could be improved
-        val ba = ByteArray(newChunkOffset.toInt())
+        val ba = ByteArray(newChunkSize.toInt())
         cacheStacks.put(newChunkOffset,ba)
         //write size of current chunk with link to prev chunk
         //volume.putLong(newChunkOffset, parity4Set((newChunkSize shl 48) + prevPageOffset))
@@ -759,8 +779,10 @@ class StoreWAL(
 
         //does previous page exists?
         val masterLinkPos:Long = if (prevChunkOffset != 0L) {
+            //TODO in this case baPrev might be unmodified. Use some sort of flag to indicate modified fields
+            val baPrev = longStackLoadChunk(prevChunkOffset)
             //yes previous page exists, return its size, decreased by start
-            val pos = parity4Get(volume.getLong(prevChunkOffset)).ushr(48)
+            val pos = parity4Get(getLong(baPrev,0)).ushr(48)
             longStackFindEnd(prevChunkOffset, pos)
         }else{
             0L
