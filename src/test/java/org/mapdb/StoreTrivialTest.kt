@@ -5,12 +5,26 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
 import org.junit.Assert.*
+import org.mapdb.volume.RandomAccessFileVol
 
 class StoreTrivialTest : StoreReopenTest() {
 
     override fun openStore() = StoreTrivial();
 
     override fun openStore(file: File) = StoreTrivialTx(file);
+
+
+    override val headerType: Long = CC.FILE_TYPE_STORETRIVIAL
+
+    @Test fun headerType2(){
+        val s = openStore(file)
+        s.put(11L, Serializer.LONG)
+        s.commit()
+        s.close()
+        val vol = RandomAccessFileVol.FACTORY.makeVolume(file.path+".0.d", true)
+        assertEquals(CC.FILE_HEADER,vol.getUnsignedByte(0L).toLong())
+        assertEquals(headerType, vol.getUnsignedByte(1L).toLong())
+    }
 
     @Test fun load_save(){
         val e = openStore()

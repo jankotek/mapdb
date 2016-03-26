@@ -80,8 +80,7 @@ class StoreWAL(
             if (!volumeExistsAtStart) {
                 realVolume.ensureAvailable(CC.PAGE_SIZE)
                 //TODO crash resistance while file is being created
-                //initialize values
-                volume.ensureAvailable(CC.PAGE_SIZE)
+                headVol.putLong(0L, fileHeaderCompose())
                 dataTail = 0L
                 maxRecid = 0L
                 fileTail = CC.PAGE_SIZE
@@ -98,6 +97,8 @@ class StoreWAL(
                 realVolume.putData(0L, headBytes,0, headBytes.size)
                 realVolume.sync()
             } else {
+                fileHeaderCheck(volume.getLong(0L))
+
                 loadIndexPages(indexPages)
                 indexPagesBackup = indexPages.toArray()
                 volume.getData(0, headBytes, 0, headBytes.size)
@@ -508,6 +509,9 @@ class StoreWAL(
 
     override fun commit() {
         //write index page
+        wal.walPutByteArray(0, headBytes, 0, headBytes.size)
+        wal.commit()
+
         realVolume.putData(0, headBytes, 0, headBytes.size)
         realVolume.ensureAvailable(fileTail)
 
@@ -540,7 +544,7 @@ class StoreWAL(
 
         indexPagesBackup = indexPages.toArray()
         realVolume.sync()
-        //TODO delete WAL
+
         wal.destroyWalFiles()
         wal.close()
     }

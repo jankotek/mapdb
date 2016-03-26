@@ -32,6 +32,18 @@ class SortedTableMapTest{
     }
 
 
+    @Test fun header(){
+        val volume = CC.DEFAULT_MEMORY_VOLUME_FACTORY.makeVolume(null, false)
+        val consumer = SortedTableMap.import(
+                keySerializer = Serializer.INTEGER,
+                valueSerializer = Serializer.INTEGER,
+                volume = volume
+        )
+        consumer.take(1,1)
+        val map = consumer.finish()
+        assertEquals(CC.FILE_HEADER, volume.getUnsignedByte(0).toLong())
+        assertEquals(CC.FILE_TYPE_SORTED_SINGLE, volume.getUnsignedByte(1).toLong())
+    }
 
     fun test(size:Int){
         val consumer = SortedTableMap.import(

@@ -134,6 +134,7 @@ class SortedTableMap<K,V>(
                     }
                     if(counter==0L)
                         volume.ensureAvailable(start.toLong())
+                    volume.putLong(0L, CC.FILE_HEADER.shl(7*8) + CC.FILE_TYPE_SORTED_SINGLE.shl(6*8))
                     volume.putLong(SIZE_OFFSET, counter)
                     volume.putLong(PAGE_COUNT_OFFSET, (fileTail-pageSize)/pageSize)
                     volume.putLong(PAGE_SIZE_OFFSET, pageSize.toLong())

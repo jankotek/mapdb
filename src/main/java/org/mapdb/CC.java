@@ -46,4 +46,26 @@ public interface CC{
 
     //TODO setting to use unsafe hashing
     XXHashFactory HASH_FACTORY = XXHashFactory.safeInstance();
+
+    /** first byte on every file */
+    long FILE_HEADER = 0x4A;
+
+    /** second byte in {@link org.mapdb.StoreDirect} file format */
+    long FILE_TYPE_STOREDIRECT  = 1;
+
+    /** second byte in {@link org.mapdb.StoreWAL} write ahead log */
+    long FILE_TYPE_STOREWAL_WAL = 2;
+
+    /** second byte in {@link org.mapdb.SortedTableMap} file format,  with only single table (is probably read only)*/
+    long FILE_TYPE_SORTED_SINGLE = 10;
+
+    /** second byte in {@link org.mapdb.SortedTableMap} file format, with multiple tables (is probably writeable)*/
+    long FILE_TYPE_SORTED_MULTI = 11;
+
+    /** second byte in {@link org.mapdb.SortedTableMap} Write Ahead Log*/
+    long FILE_TYPE_SORTED_WAL = 12;
+
+    /** second byte in {@link org.mapdb.StoreTrivial} file format */
+    long FILE_TYPE_STORETRIVIAL  = 20;
+
 }

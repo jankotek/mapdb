@@ -106,6 +106,7 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
 
     abstract override fun openStore(): StoreDirectAbstract
 
+    override val headerType: Long = CC.FILE_TYPE_STOREDIRECT
 
     val StoreDirectAbstract.maxRecid:Long
         get() =  Reflection.method("getMaxRecid").withReturnType(Long::class.java).`in`(this).invoke()

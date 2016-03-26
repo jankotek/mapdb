@@ -84,6 +84,17 @@ abstract class StoreDirectAbstract(
             headVol.putLong(StoreDirectJava.FILE_TAIL_OFFSET, DataIO.parity16Set(v))
         }
 
+    protected fun fileHeaderCheck(header:Long){
+        if(header.ushr(7*8)!=CC.FILE_HEADER){
+            throw DBException.WrongFormat("Wrong file header, not MapDB file")
+        }
+        if(header.ushr(6*8) and 0xFF!=CC.FILE_TYPE_STOREDIRECT)
+            throw DBException.WrongFormat("Wrong file header, not StoreDirect file")
+    }
+
+    protected fun fileHeaderCompose():Long{
+        return CC.FILE_HEADER.shl(7*8) + CC.FILE_TYPE_STOREDIRECT.shl(6*8)
+    }
 
     abstract protected fun getIndexVal(recid:Long):Long;
 

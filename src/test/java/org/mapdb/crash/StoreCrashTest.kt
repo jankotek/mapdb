@@ -3,10 +3,7 @@ package org.mapdb.crash
 import org.junit.Test
 import java.io.File
 import org.junit.Assert.*
-import org.mapdb.Serializer
-import org.mapdb.Store
-import org.mapdb.StoreTrivialTx
-import org.mapdb.TT
+import org.mapdb.*
 import org.mapdb.crash.CrashJVM
 
 /**
@@ -54,6 +51,17 @@ class StoreTrivialCrashTest: StoreCrashTest(){
 
     override fun openStore(file: File): Store {
         return StoreTrivialTx(file);
+    }
+
+
+
+}
+
+
+class StoreWALCrashTest: StoreCrashTest(){
+
+    override fun openStore(file: File): Store {
+        return StoreWAL.make(file=file.path);
     }
 
 

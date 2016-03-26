@@ -60,6 +60,7 @@ class StoreDirect(
                 //TODO crash resistance while file is being created
                 //initialize values
                 volume.ensureAvailable(CC.PAGE_SIZE)
+                volume.putLong(0L, fileHeaderCompose())
                 dataTail = 0L
                 maxRecid = 0L
                 fileTail = CC.PAGE_SIZE
@@ -73,6 +74,7 @@ class StoreDirect(
 
                 commit()
             } else {
+                fileHeaderCheck(volume.getLong(0L))
                 loadIndexPages(indexPages)
             }
         }

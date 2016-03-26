@@ -5,6 +5,7 @@ import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.eclipse.collections.impl.stack.mutable.primitive.LongArrayStack
 import java.io.*
+import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.nio.channels.FileLock
 import java.nio.channels.OverlappingFileLockException
@@ -45,9 +46,11 @@ open class StoreTrivial(
         }
     }
 
-    internal fun loadFromInternal(inStream: InputStream){
+    protected fun loadFromInternal(inStream: InputStream){
         if(CC.ASSERT)
             Utils.assertWriteLock(lock)
+
+        fileHeaderCheck(DataInputStream(inStream).readLong())
 
         var maxRecid2 = 0L;
         freeRecids.clear()
@@ -78,8 +81,21 @@ open class StoreTrivial(
         Utils.logDebug { "Loaded ${records.size()} objects" }
     }
 
+    protected fun fileHeaderCheck(header:Long){
+        if(header.ushr(7*8)!=CC.FILE_HEADER){
+            throw DBException.WrongFormat("Wrong file header, not MapDB file")
+        }
+        if(header.ushr(6*8) and 0xFF!=CC.FILE_TYPE_STORETRIVIAL)
+            throw DBException.WrongFormat("Wrong file header, not StoreTrivail file")
+    }
+
+    protected fun fileHeaderCompose():Long{
+        return CC.FILE_HEADER.shl(7*8) + CC.FILE_TYPE_STORETRIVIAL.shl(6*8)
+    }
+
     fun saveTo(outStream: OutputStream) {
         Utils.lockRead(lock) {
+            DataOutputStream(outStream).writeLong(fileHeaderCompose())
             val recidIter = records.keySet().longIterator()
             //ByteArray has no equal method, must compare one by one
             while (recidIter.hasNext()) {
@@ -310,11 +326,24 @@ class StoreTrivialTx(val file:File, isThreadSafe:Boolean=true)
 
     init{
         Utils.lockWrite(lock){
-            Utils.logDebug { "Opened file ${path}"}
-            val lattest = findLattestCommitMarker()
-            lastFileNum = lattest ?: -1L;
-            if(lattest!=null) {
-                loadFrom(lattest);
+            val buf = ByteBuffer.allocate(8)
+            if(fileChannel.size()>0L) {
+                fileChannel.read(buf, 0L)
+                val header = buf.getLong(0)
+                fileHeaderCheck(header)
+
+                Utils.logDebug { "Opened file ${path}" }
+                val lattest = findLattestCommitMarker()
+                lastFileNum = lattest ?: -1L;
+                if (lattest != null) {
+                    loadFrom(lattest);
+                }
+            }else{
+                //TODO protected by C marker
+                val header = fileHeaderCompose()
+                buf.putLong(0, header)
+                fileChannel.write(buf, 0L)
+                fileChannel.force(true)
             }
         }
     }
@@ -356,7 +385,7 @@ class StoreTrivialTx(val file:File, isThreadSafe:Boolean=true)
     }
 
 
-    internal fun loadFrom(number:Long){
+    protected fun loadFrom(number:Long){
         if(CC.ASSERT)
             Utils.assertWriteLock(lock)
         val readFrom = Utils.pathChangeSuffix(path, "."+number + DATA_SUFFIX)
@@ -374,6 +403,8 @@ class StoreTrivialTx(val file:File, isThreadSafe:Boolean=true)
 
             //save to file
             val saveTo = Utils.pathChangeSuffix(path, "." + next + DATA_SUFFIX)
+            //TODO provide File.newOutput... method protected by C marker
+            //TODO write using output stream should call FD.sync() at end
             Files.newOutputStream(saveTo, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE).buffered().use {
                 saveTo(it)
             }
