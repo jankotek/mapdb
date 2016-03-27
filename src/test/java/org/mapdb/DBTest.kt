@@ -977,5 +977,16 @@ class DBTest{
     }
 
 
+    @Test
+    fun testReopenExistingFile() {
+        //TODO test more configurations
+        val file = TT.tempFile()
+        for (i in 0..10) {
+            val db = DBMaker.fileDB(file.path).make()
+            db.close()
+        }
+        file.delete()
+    }
+
 
 }

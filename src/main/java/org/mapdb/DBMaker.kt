@@ -80,6 +80,7 @@ object DBMaker{
         }
 
         fun make():DB{
+            var storeOpened = false
             val store = when(storeType){
                 StoreType.onheap -> StoreOnHeap()
                 StoreType.direct -> {
@@ -93,11 +94,12 @@ object DBMaker{
                 }
                 StoreType.ondisk -> {
                     val volumeFactory = MappedFileVol.FACTORY
+                    storeOpened = volumeFactory.exists(file)
                     StoreDirect.make(file=file, volumeFactory=volumeFactory, allocateStartSize=_allocateStartSize)
                 }
             }
 
-            return DB(store=store, storeOpened = false)
+            return DB(store=store, storeOpened = storeOpened)
         }
     }
 

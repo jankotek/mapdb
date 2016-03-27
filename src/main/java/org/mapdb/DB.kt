@@ -100,7 +100,8 @@ open class DB(
     init{
         if(storeOpened.not()){
             //preallocate 16 recids
-            if(RECID_NAME_CATALOG != store.put(TreeMap<String, String>(), NAME_CATALOG_SERIALIZER))
+            val nameCatalogRecid = store.put(TreeMap<String, String>(), NAME_CATALOG_SERIALIZER)
+            if(RECID_NAME_CATALOG != nameCatalogRecid)
                 throw DBException.WrongConfiguration("Store does not support Reserved Recids: "+store.javaClass)
 
             for(recid in 2L..RECID_MAX_RESERVED){

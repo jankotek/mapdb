@@ -43,6 +43,16 @@ abstract class StoreTest {
     }
 
 
+    @Test fun reserved_recids(){
+        val e = openStore()
+        for(expectedRecid in 1 .. DB.RECID_MAX_RESERVED){
+            val allocRecid = e.put(1, Serializer.INTEGER)
+            assertEquals(expectedRecid, allocRecid)
+        }
+        e.verify()
+        e.close()
+    }
+
     @Test
     fun large_record() {
         val e = openStore()
