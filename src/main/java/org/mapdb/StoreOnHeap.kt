@@ -10,8 +10,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 
 /**
  * Store which does not use serialization, but puts everything into on-heap Map.
- *
- * Is thread unsafe
  */
 class StoreOnHeap(
         override val isThreadSafe:Boolean=true
