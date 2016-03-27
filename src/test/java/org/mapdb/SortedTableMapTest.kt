@@ -141,5 +141,37 @@ class SortedTableMapTest{
     }
 
 
+    @Test fun entry_iterator_values_issue685(){
+        val consumer = SortedTableMap.import(
+                keySerializer = Serializer.INTEGER,
+                valueSerializer = Serializer.INTEGER,
+                volume = CC.DEFAULT_MEMORY_VOLUME_FACTORY.makeVolume(null, false)
+        )
+        val size = 1e6.toInt()
+        for(i in 0 until size){
+            consumer.take(Pair(i, i*2))
+        }
+
+        val map = consumer.finish()
+
+        val iter = map.iterator()
+        var count = 0;
+        while(iter.hasNext()){
+            val next = iter.next()
+            assertEquals(count, next.key)
+            assertEquals(count*2, next.value)
+            count++
+        }
+
+        val iter3 = map.descendingMap().iterator()
+        while(iter3.hasNext()){
+            count--
+            val next = iter3.next()
+            assertEquals(count, next.key)
+            assertEquals(count*2, next.value)
+        }
+
+
+    }
 
 }
