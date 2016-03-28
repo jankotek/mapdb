@@ -67,7 +67,7 @@ class StoreWAL(
     protected val cacheRecords = Array(segmentCount, { LongLongHashMap() })
 
 
-    protected val wal = WriteAheadLog(file+".wal")
+    protected val wal = WriteAheadLog(file)
 
     /** backup for `indexPages`, restored on rollback */
     protected var indexPagesBackup = longArrayOf();
