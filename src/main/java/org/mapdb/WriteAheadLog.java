@@ -15,7 +15,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * WAL shared between {@link StoreWAL} and {@link StoreAppend}
+ * WAL shared between {@link StoreWAL}
  */
 public class WriteAheadLog {
 
