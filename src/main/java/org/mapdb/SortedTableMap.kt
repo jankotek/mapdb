@@ -19,9 +19,9 @@ class SortedTableMap<K,V>(
         override val hasValues: Boolean = false
 ): ConcurrentMap<K, V>, ConcurrentNavigableMap<K, V>, ConcurrentNavigableMapExtra<K,V> {
 
-    abstract class Consumer<K,V>:Pump.Consumer<Pair<K,V>, SortedTableMap<K,V>>(){
-        fun take(key:K, value:V){
-            take(Pair(key, value))
+    abstract class Sink<K,V>:Pump.Sink<Pair<K,V>, SortedTableMap<K,V>>(){
+        fun put(key:K, value:V){
+            put(Pair(key, value))
         }
     }
 
@@ -48,19 +48,19 @@ class SortedTableMap<K,V>(
             fun make(pairs:Iterable<Pair<K,V>>):SortedTableMap<K,V>{
                 val consumer = consumer()
                 for(pair in pairs)
-                    consumer.take(pair)
-                return consumer.finish()
+                    consumer.put(pair)
+                return consumer.create()
             }
 
             fun make(map:Map<K,V>):SortedTableMap<K,V>{
                 val consumer = consumer()
                 for(pair in map)
-                    consumer.take(Pair(pair.key, pair.value))
-                return consumer.finish()
+                    consumer.put(Pair(pair.key, pair.value))
+                return consumer.create()
             }
 
-            fun consumer():Consumer<K,V>{
-                return import(
+            fun consumer(): Sink<K,V>{
+                return createFromSink(
                         keySerializer = _keySerializer!!,
                         valueSerializer = _valueSerializer!!,
                         volume = _volume!!,
@@ -99,15 +99,15 @@ class SortedTableMap<K,V>(
             )
         }
 
-        internal fun <K,V> import(
+        internal fun <K,V> createFromSink(
                 keySerializer:GroupSerializer<K>,
                 valueSerializer:GroupSerializer<V>,
                 volume: Volume,
                 pageSize:Int = CC.PAGE_SIZE.toInt(),
                 nodeSize:Int = CC.BTREEMAP_MAX_NODE_SIZE
-        ):Consumer<K,V> {
+        ): Sink<K,V> {
 
-            return object:Consumer<K,V>(){
+            return object: Sink<K,V>(){
 
                 val bytes = ByteArray(pageSize)
 
@@ -118,7 +118,7 @@ class SortedTableMap<K,V>(
                 var nodesSize = start;
                 var fileTail = 0L
 
-                override fun take(e: Pair<K, V>) {
+                override fun put(e: Pair<K, V>) {
                     pairs.add(e)
                     counter++
                     if(pairs.size<nodeSize)
@@ -126,7 +126,7 @@ class SortedTableMap<K,V>(
                     pairsToNodes()
                 }
 
-                override fun finish():SortedTableMap<K,V> {
+                override fun create():SortedTableMap<K,V> {
                     pairsToNodes()
                     //there is a chance it overflowed to next page
                     if(nodeKeys.isEmpty().not()) {

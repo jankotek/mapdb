@@ -731,14 +731,15 @@ open class DB(
             .keySerializer(keySerializer)
             .valueSerializer(valueSerializer)
 
-    abstract class TreeMapPump<K,V>:Pump.Consumer<Pair<K,V>, BTreeMap<K,V>>(){
-        fun take(key:K, value:V) {
-            take(Pair(key, value))
+    abstract class TreeMapSink<K,V>:Pump.Sink<Pair<K,V>, BTreeMap<K,V>>(){
+
+        fun put(key:K, value:V) {
+            put(Pair(key, value))
         }
 
-        fun takeAll(map:SortedMap<K,V>){
+        fun putAll(map:SortedMap<K,V>){
             map.forEach { e ->
-                take(e.key, e.value)
+                put(e.key, e.value)
             }
         }
     }
@@ -808,15 +809,15 @@ open class DB(
         }
 
 
-        fun import(iterator:Iterator<Pair<K,V>>):BTreeMap<K,V>{
-            val consumer = import()
+        fun createFromStream(iterator:Iterator<Pair<K,V>>):BTreeMap<K,V>{
+            val consumer = createFromStream()
             while(iterator.hasNext()){
-                consumer.take(iterator.next())
+                consumer.put(iterator.next())
             }
-            return consumer.finish()
+            return consumer.create()
         }
 
-        fun import():TreeMapPump<K,V>{
+        fun createFromStream(): TreeMapSink<K,V>{
 
             val consumer = Pump.treeMap(
                 store = db.store,
@@ -827,14 +828,14 @@ open class DB(
                 leafNodeSize = _maxNodeSize *3/4
             )
 
-            return object:TreeMapPump<K,V>(){
+            return object: TreeMapSink<K,V>(){
 
-                override fun take(e: Pair<K, V>) {
-                    consumer.take(e)
+                override fun put(e: Pair<K, V>) {
+                    consumer.put(e)
                 }
 
-                override fun finish(): BTreeMap<K, V> {
-                    consumer.finish()
+                override fun create(): BTreeMap<K, V> {
+                    consumer.create()
                     this@TreeMapMaker._rootRecidRecid = consumer.rootRecidRecid
                         ?: throw AssertionError()
                     this@TreeMapMaker._counterRecid =

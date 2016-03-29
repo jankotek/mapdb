@@ -34,28 +34,28 @@ class SortedTableMapTest{
 
     @Test fun header(){
         val volume = CC.DEFAULT_MEMORY_VOLUME_FACTORY.makeVolume(null, false)
-        val consumer = SortedTableMap.import(
+        val consumer = SortedTableMap.createFromSink(
                 keySerializer = Serializer.INTEGER,
                 valueSerializer = Serializer.INTEGER,
                 volume = volume
         )
-        consumer.take(1,1)
-        val map = consumer.finish()
+        consumer.put(1,1)
+        val map = consumer.create()
         assertEquals(CC.FILE_HEADER, volume.getUnsignedByte(0).toLong())
         assertEquals(CC.FILE_TYPE_SORTED_SINGLE, volume.getUnsignedByte(1).toLong())
     }
 
     fun test(size:Int){
-        val consumer = SortedTableMap.import(
+        val consumer = SortedTableMap.createFromSink(
                 keySerializer = Serializer.INTEGER,
                 valueSerializer = Serializer.INTEGER,
                 volume = CC.DEFAULT_MEMORY_VOLUME_FACTORY.makeVolume(null, false)
         )
         for(i in 0 until size*3 step 3){
-            consumer.take(Pair(i, i*2))
+            consumer.put(Pair(i, i*2))
         }
 
-        val map = consumer.finish()
+        val map = consumer.create()
 
         if(size!=0 && size<10000)
             assertArrayEquals(arrayOf(0), map.keySerializer.valueArrayToArray(map.pageKeys))
@@ -142,17 +142,17 @@ class SortedTableMapTest{
 
 
     @Test fun entry_iterator_values_issue685(){
-        val consumer = SortedTableMap.import(
+        val consumer = SortedTableMap.createFromSink(
                 keySerializer = Serializer.INTEGER,
                 valueSerializer = Serializer.INTEGER,
                 volume = CC.DEFAULT_MEMORY_VOLUME_FACTORY.makeVolume(null, false)
         )
         val size = 1e6.toInt()
         for(i in 0 until size){
-            consumer.take(Pair(i, i*2))
+            consumer.put(Pair(i, i*2))
         }
 
-        val map = consumer.finish()
+        val map = consumer.create()
 
         val iter = map.iterator()
         var count = 0;

@@ -10,21 +10,21 @@ import org.mapdb.serializer.GroupSerializer
  */
 object Pump{
 
-    abstract class Consumer<E,R>{
+    abstract class Sink<E,R>{
 
         internal var rootRecidRecid:Long? = null
         internal var counter = 0L
 
-        abstract fun take(e:E)
-        abstract fun finish():R
+        abstract fun put(e:E)
+        abstract fun create():R
 
-        fun takeAll(i:Iterable<E>){
-            takeAll(i.iterator())
+        fun putAll(i:Iterable<E>){
+            putAll(i.iterator())
         }
 
-        fun takeAll(i:Iterator<E>){
+        fun putAll(i:Iterator<E>){
             while(i.hasNext())
-                take(i.next())
+                put(i.next())
         }
 
     }
@@ -36,7 +36,7 @@ object Pump{
             comparator:Comparator<K> = keySerializer,
             leafNodeSize:Int = CC.BTREEMAP_MAX_NODE_SIZE*3/4,
             dirNodeSize:Int = CC.BTREEMAP_MAX_NODE_SIZE*3/4
-    ): Consumer<Pair<K,V>,Unit>{
+    ): Sink<Pair<K,V>,Unit>{
 
         var prevKey:K? = null
 
@@ -47,7 +47,7 @@ object Pump{
             var nextDirLink = 0L
         }
 
-        return object: Consumer<Pair<K,V>,Unit>(){
+        return object: Sink<Pair<K,V>,Unit>(){
 
             val dirStack = LinkedList<DirData>()
 
@@ -58,7 +58,7 @@ object Pump{
 
             val nodeSer = NodeSerializer(keySerializer, valueSerializer)
 
-            override fun take(e: Pair<K, V>) {
+            override fun put(e: Pair<K, V>) {
                 if(prevKey!=null && comparator.compare(prevKey, e.first)>=0){
                     throw DBException.NotSorted()
                 }
@@ -150,7 +150,7 @@ object Pump{
 
             }
 
-            override fun finish() {
+            override fun create() {
                 //close leaf node
                 val endLeaf = BTreeMapJava.Node(
                     leftEdgeLeaf + RIGHT,

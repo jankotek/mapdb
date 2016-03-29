@@ -14,24 +14,24 @@ import java.util.concurrent.ConcurrentSkipListMap
 class SortedTableMap_ConcurrentSkipListMapTest_JSR166Test() : ConcurrentSkipListMapTest()
 {
     override fun map5(): ConcurrentNavigableMap<*, *>? {
-        val consumer = SortedTableMap.import(
+        val consumer = SortedTableMap.createFromSink(
                 keySerializer = Serializer.INTEGER,
                 valueSerializer = Serializer.STRING_INTERN,
                 volume = CC.DEFAULT_MEMORY_VOLUME_FACTORY.makeVolume(null, false))
-        consumer.take(Pair(JSR166TestCase.one, "A"))
-        consumer.take(Pair(JSR166TestCase.two, "B"))
-        consumer.take(Pair(JSR166TestCase.three, "C"))
-        consumer.take(Pair(JSR166TestCase.four, "D"))
-        consumer.take(Pair(JSR166TestCase.five, "E"))
-        return consumer.finish()
+        consumer.put(Pair(JSR166TestCase.one, "A"))
+        consumer.put(Pair(JSR166TestCase.two, "B"))
+        consumer.put(Pair(JSR166TestCase.three, "C"))
+        consumer.put(Pair(JSR166TestCase.four, "D"))
+        consumer.put(Pair(JSR166TestCase.five, "E"))
+        return consumer.create()
     }
 
     override fun emptyMap(): ConcurrentNavigableMap<Int, String>? {
-        return SortedTableMap.import(
+        return SortedTableMap.createFromSink(
                 keySerializer = Serializer.INTEGER,
                 valueSerializer = Serializer.STRING_INTERN,
                 volume = CC.DEFAULT_MEMORY_VOLUME_FACTORY.makeVolume(null, false))
-        .finish()
+        .create()
     }
 
     override fun emptyIntMap(): ConcurrentNavigableMap<Int, Int>? {
@@ -67,7 +67,7 @@ class SortedTableMap_ConcurrentSkipListMapTest_JSR166Test() : ConcurrentSkipList
     override fun testPutIfAbsent1_NullPointerException() {}
 
     override fun populatedIntMap(limit: Int): NavigableMap<Int, Int>? {
-        val consumer = SortedTableMap.import(
+        val consumer = SortedTableMap.createFromSink(
                 keySerializer = Serializer.INTEGER,
                 valueSerializer = Serializer.INTEGER,
                 volume = CC.DEFAULT_MEMORY_VOLUME_FACTORY.makeVolume(null, false))
@@ -82,9 +82,9 @@ class SortedTableMap_ConcurrentSkipListMapTest_JSR166Test() : ConcurrentSkipList
             i++
         }
         map.forEach { k, v ->
-            consumer.take(Pair(k, v))
+            consumer.put(Pair(k, v))
         }
 
-        return consumer.finish()
+        return consumer.create()
     }
 }

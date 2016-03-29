@@ -25,25 +25,25 @@ class SortedTableMap_ConcurrentMap_Guava:
     }
 
     override fun makeEmptyMap(): ConcurrentMap<Int, String>? {
-        val consumer = SortedTableMap.import(
+        val consumer = SortedTableMap.createFromSink(
                 keySerializer = Serializer.INTEGER,
                 valueSerializer = Serializer.STRING,
                 volume = CC.DEFAULT_MEMORY_VOLUME_FACTORY.makeVolume(null, false)
             )
-        return consumer.finish()
+        return consumer.create()
     }
 
     override fun makePopulatedMap(): ConcurrentMap<Int, String>? {
-        val consumer = SortedTableMap.import(
+        val consumer = SortedTableMap.createFromSink(
                 keySerializer = Serializer.INTEGER,
                 valueSerializer = Serializer.STRING,
                 volume = CC.DEFAULT_MEMORY_VOLUME_FACTORY.makeVolume(null, false)
             )
         for(i in 1..100){
-            consumer.take(Pair(i*2, ""+i*10))
+            consumer.put(Pair(i*2, ""+i*10))
         }
 
-        return consumer.finish()
+        return consumer.create()
     }
 
     override fun supportsValuesHashCode(map: MutableMap<Int, String>?): Boolean {

@@ -45,8 +45,8 @@ class PumpTest{
                 dirNodeSize = 10,
                 leafNodeSize = 10
         )
-        taker.takeAll(source)
-        taker.finish()
+        taker.putAll(source)
+        taker.create()
 
         val root = taker.rootRecidRecid
                 ?: throw AssertionError()
