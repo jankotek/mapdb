@@ -16,7 +16,7 @@ import kotlin.test.fail
 class HTreeMapTest{
 
     @Test fun hashAssertion(){
-        val map = HTreeMap.make<ByteArray,Int>(keySerializer = Serializer.JAVA as Serializer<ByteArray>)
+        val map = HTreeMap.make<ByteArray,Int>(keySerializer = Serializer.ELSA as Serializer<ByteArray>)
 
         try {
             for (i in 1..100)
@@ -26,7 +26,7 @@ class HTreeMapTest{
             assertTrue(e.message!!.contains("hash"))
         }
 
-        val map2 = HTreeMap.make<Any,Int>(keySerializer = Serializer.JAVA,
+        val map2 = HTreeMap.make<Any,Int>(keySerializer = Serializer.ELSA,
                 stores = arrayOf(StoreOnHeap()), concShift = 0)
 
         class NotSerializable{
@@ -327,7 +327,7 @@ class HTreeMapTest{
     fun inconsistentHash() {
         val db = DBMaker.memoryDB().make()
 
-        val m = db.hashMap("test", Serializer.JAVA, Serializer.INTEGER).create()
+        val m = db.hashMap("test", Serializer.ELSA, Serializer.INTEGER).create()
 
         var i = 0
         while (i < 1e50){

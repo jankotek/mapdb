@@ -51,8 +51,8 @@ class HTreeMap<K,V>(
     companion object{
         /** constructor with default values */
         fun <K,V> make(
-                keySerializer:Serializer<K> = Serializer.JAVA as Serializer<K>,
-                valueSerializer:Serializer<V> = Serializer.JAVA as Serializer<V>,
+                keySerializer:Serializer<K> = Serializer.ELSA as Serializer<K>,
+                valueSerializer:Serializer<V> = Serializer.ELSA as Serializer<V>,
                 valueInline:Boolean = false,
                 concShift: Int = CC.HTREEMAP_CONC_SHIFT,
                 dirShift: Int = CC.HTREEMAP_DIR_SHIFT,

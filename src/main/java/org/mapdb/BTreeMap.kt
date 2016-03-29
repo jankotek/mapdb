@@ -91,8 +91,8 @@ class BTreeMap<K,V>(
 
     companion object {
         fun <K, V> make(
-                keySerializer: GroupSerializer<K> = Serializer.JAVA as GroupSerializer<K>,
-                valueSerializer: GroupSerializer<V> = Serializer.JAVA as GroupSerializer<V>,
+                keySerializer: GroupSerializer<K> = Serializer.ELSA as GroupSerializer<K>,
+                valueSerializer: GroupSerializer<V> = Serializer.ELSA as GroupSerializer<V>,
                 store: Store = StoreTrivial(),
                 rootRecidRecid: Long = //insert recid of new empty node
                         putEmptyRoot(store, keySerializer, valueSerializer),

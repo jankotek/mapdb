@@ -183,6 +183,8 @@ public interface Serializer<A> extends Comparator<A>{
     /** Serializer which uses standard Java Serialization with {@link java.io.ObjectInputStream} and {@link java.io.ObjectOutputStream} */
     GroupSerializer JAVA = new SerializerJava();
 
+    GroupSerializer ELSA = new SerializerElsa();
+
     /** Serializers {@link java.util.UUID} class */
     GroupSerializer<java.util.UUID> UUID = new SerializerUUID();
 

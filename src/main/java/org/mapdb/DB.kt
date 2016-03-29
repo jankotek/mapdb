@@ -319,8 +319,8 @@ open class DB(
     ):Maker<HTreeMap<K,V>>(){
 
         override val type = "HashMap"
-        private var _keySerializer:Serializer<K> = Serializer.JAVA as Serializer<K>
-        private var _valueSerializer:Serializer<V> = Serializer.JAVA as Serializer<V>
+        private var _keySerializer:Serializer<K> = Serializer.ELSA as Serializer<K>
+        private var _valueSerializer:Serializer<V> = Serializer.ELSA as Serializer<V>
         private var _valueInline = false
 
         private var _concShift = CC.HTREEMAP_CONC_SHIFT
@@ -751,9 +751,9 @@ open class DB(
 
         override val type = "TreeMap"
 
-        private var _keySerializer:GroupSerializer<K> = Serializer.JAVA as GroupSerializer<K>
+        private var _keySerializer:GroupSerializer<K> = Serializer.ELSA as GroupSerializer<K>
         private var _valueSerializer:GroupSerializer<V> =
-                (if(hasValues) Serializer.JAVA else BTreeMap.NO_VAL_SERIALIZER) as GroupSerializer<V>
+                (if(hasValues) Serializer.ELSA else BTreeMap.NO_VAL_SERIALIZER) as GroupSerializer<V>
         private var _maxNodeSize = CC.BTREEMAP_MAX_NODE_SIZE
         private var _counterEnable: Boolean = false
         private var _valueLoader:((key:K)->V)? = null
@@ -1230,7 +1230,7 @@ open class DB(
 
     class AtomicVarMaker<E>(override val db:DB,
                             override val name:String,
-                            protected val serializer:Serializer<E> = Serializer.JAVA as Serializer<E>,
+                            protected val serializer:Serializer<E> = Serializer.ELSA as Serializer<E>,
                             protected val value:E? = null):Maker<Atomic.Var<E>>(){
 
         override val type = "AtomicVar"
@@ -1251,7 +1251,7 @@ open class DB(
         }
     }
 
-    fun atomicVar(name:String) = atomicVar(name, Serializer.JAVA)
+    fun atomicVar(name:String) = atomicVar(name, Serializer.ELSA)
     fun <E> atomicVar(name:String, serializer:Serializer<E> ) = AtomicVarMaker(this, name, serializer)
 
     fun <E> atomicVar(name:String, serializer:Serializer<E>, value:E? ) = AtomicVarMaker(this, name, serializer, value)
@@ -1384,6 +1384,6 @@ open class DB(
     }
 
     fun <E> indexTreeList(name: String, serializer:Serializer<E>) = IndexTreeListMaker(this, name, serializer)
-    fun indexTreeList(name: String) = indexTreeList(name, Serializer.JAVA)
+    fun indexTreeList(name: String) = indexTreeList(name, Serializer.ELSA)
 
 }

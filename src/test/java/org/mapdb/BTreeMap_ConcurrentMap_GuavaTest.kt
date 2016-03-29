@@ -50,7 +50,7 @@ class BTreeMap_ConcurrentMap_GuavaTest(
                     val nodeSize = if(small) 4 else 32
                     val counterRecid = if(counter) store.put(0L, Serializer.LONG) else 0L
                     var keySer:GroupSerializer<Int> = if(generic==null) Serializer.INTEGER else {
-                            if(generic) Serializer.JAVA as GroupSerializer<Int> else Serializer.INTEGER
+                            if(generic) Serializer.ELSA as GroupSerializer<Int> else Serializer.INTEGER
                         }
 
                     if(otherComparator && generic!=null && generic.not())
@@ -65,10 +65,10 @@ class BTreeMap_ConcurrentMap_GuavaTest(
                         }
 
                     val valSer = if(generic==null) Serializer.INTEGER else{
-                            if(generic) Serializer.JAVA as GroupSerializer<String> else Serializer.STRING
+                            if(generic) Serializer.ELSA as GroupSerializer<String> else Serializer.STRING
                         }
                     BTreeMap.make(keySerializer = keySer, valueSerializer = valSer,
-                            comparator = if(otherComparator) Serializer.JAVA as Comparator<Int> else keySer,
+                            comparator = if(otherComparator) Serializer.ELSA as Comparator<Int> else keySer,
                             store = store, maxNodeSize =  nodeSize, threadSafe = threadSafe,
                             counterRecid = counterRecid)
                 }))

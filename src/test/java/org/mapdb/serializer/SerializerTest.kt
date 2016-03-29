@@ -58,7 +58,7 @@ abstract class SerializerTest<E> {
     }
 
     @Test fun trusted(){
-        assertTrue(serializer.isTrusted || serializer== Serializer.JAVA)
+        assertTrue(serializer.isTrusted || serializer== Serializer.JAVA || serializer== Serializer.ELSA)
     }
 
     @Test fun fixedSize(){
@@ -473,6 +473,51 @@ class Serializer_JAVA: GroupSerializerTest<Any>(){
     }
 
 }
+
+
+
+class Serializer_ELSA: GroupSerializerTest<Any>(){
+    override fun randomValue() = TT.randomString(10)
+    override val serializer = Serializer.ELSA
+
+    internal class Object2 : Serializable
+
+    open internal class CollidingObject(val value: String) : Serializable {
+        override fun hashCode(): Int {
+            return this.value.hashCode() and 1
+        }
+
+        override fun equals(obj: Any?): Boolean {
+            return obj is CollidingObject && obj.value == value
+        }
+    }
+
+    internal class ComparableCollidingObject(value: String) : CollidingObject(value), Comparable<ComparableCollidingObject>, Serializable {
+        override fun compareTo(o: ComparableCollidingObject): Int {
+            return value.compareTo(o.value)
+        }
+    }
+
+    @Test fun clone1(){
+        val v = TT.clone(Object2(), Serializer.ELSA)
+        assertTrue(v is Object2)
+    }
+
+    @Test fun clone2(){
+        val v = TT.clone(CollidingObject("111"), Serializer.ELSA)
+        assertTrue(v is CollidingObject)
+        assertSerEquals("111", (v as CollidingObject).value)
+    }
+
+    @Test fun clone3(){
+        val v = TT.clone(ComparableCollidingObject("111"), Serializer.ELSA)
+        assertTrue(v is ComparableCollidingObject)
+        assertSerEquals("111", (v as ComparableCollidingObject).value)
+
+    }
+
+}
+
 
 class Serializer_UUID: GroupSerializerTest<UUID>(){
     override fun randomValue() = UUID(random.nextLong(), random.nextLong())
