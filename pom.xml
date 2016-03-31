@@ -34,7 +34,7 @@
     </scm>
 
     <properties>
-        <kotlin.version>1.0.0</kotlin.version>
+        <kotlin.version>1.0.1</kotlin.version>
         <dokka.version>0.9.7</dokka.version>
 
         <java.target.version>1.8</java.target.version>
