@@ -13,6 +13,11 @@ import java.util.concurrent.ConcurrentSkipListMap
 
 class SortedTableMap_ConcurrentSkipListMapTest_JSR166Test() : ConcurrentSkipListMapTest()
 {
+
+    override fun isReadOnly(): Boolean {
+        return true
+    }
+
     override fun map5(): ConcurrentNavigableMap<*, *>? {
         val consumer = SortedTableMap.createFromSink(
                 keySerializer = Serializer.INTEGER,

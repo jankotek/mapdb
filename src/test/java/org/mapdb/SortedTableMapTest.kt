@@ -154,7 +154,8 @@ class SortedTableMapTest{
 
         val map = consumer.create()
 
-        val iter = map.iterator()
+
+        var iter = map.iterator()
         var count = 0;
         while(iter.hasNext()){
             val next = iter.next()
@@ -163,14 +164,30 @@ class SortedTableMapTest{
             count++
         }
 
-        val iter3 = map.descendingMap().iterator()
-        while(iter3.hasNext()){
+        iter = map.descendingMap().iterator()
+        while(iter.hasNext()){
             count--
-            val next = iter3.next()
+            val next = iter.next()
             assertEquals(count, next.key)
             assertEquals(count*2, next.value)
         }
 
+        iter = map.tailMap(Integer.MIN_VALUE).iterator()
+        count = 0;
+        while(iter.hasNext()){
+            val next = iter.next()
+            assertEquals(count, next.key)
+            assertEquals(count*2, next.value)
+            count++
+        }
+
+        iter = map.tailMap(Integer.MIN_VALUE).descendingMap().iterator()
+        while(iter.hasNext()){
+            count--
+            val next = iter.next()
+            assertEquals(count, next.key)
+            assertEquals(count*2, next.value)
+        }
 
     }
 
