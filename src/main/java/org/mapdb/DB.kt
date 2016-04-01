@@ -809,15 +809,15 @@ open class DB(
         }
 
 
-        fun createFromStream(iterator:Iterator<Pair<K,V>>):BTreeMap<K,V>{
-            val consumer = createFromStream()
+        fun createFrom(iterator:Iterator<Pair<K,V>>):BTreeMap<K,V>{
+            val consumer = createFromSink()
             while(iterator.hasNext()){
                 consumer.put(iterator.next())
             }
             return consumer.create()
         }
 
-        fun createFromStream(): TreeMapSink<K,V>{
+        fun createFromSink(): TreeMapSink<K,V>{
 
             val consumer = Pump.treeMap(
                 store = db.store,

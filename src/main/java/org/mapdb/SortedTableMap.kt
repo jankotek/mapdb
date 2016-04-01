@@ -45,21 +45,21 @@ class SortedTableMap<K,V>(
             }
 
 
-            fun make(pairs: Iterable<Pair<K, V>>): SortedTableMap<K, V> {
-                val consumer = consumer()
+            fun createFrom(pairs: Iterable<Pair<K, V>>): SortedTableMap<K, V> {
+                val consumer = createFromSink()
                 for (pair in pairs)
                     consumer.put(pair)
                 return consumer.create()
             }
 
-            fun make(map: Map<K, V>): SortedTableMap<K, V> {
-                val consumer = consumer()
+            fun createFrom(map: Map<K, V>): SortedTableMap<K, V> {
+                val consumer = createFromSink()
                 for (pair in map)
                     consumer.put(Pair(pair.key, pair.value))
                 return consumer.create()
             }
 
-            fun consumer(): Sink<K, V> {
+            fun createFromSink(): Sink<K, V> {
                 return createFromSink(
                         keySerializer = _keySerializer!!,
                         valueSerializer = _valueSerializer!!,

@@ -386,7 +386,7 @@ class DBTest{
     @Test fun treeMap_import(){
         val db = DB(store=StoreTrivial(), storeOpened = false)
         val maker = db.treeMap("aa", Serializer.INTEGER, Serializer.INTEGER)
-                .createFromStream()
+                .createFromSink()
         maker.putAll((0..6).map{Pair(it, it*2)})
         val map = maker.create()
         assertEquals(7, map.size)
@@ -400,7 +400,7 @@ class DBTest{
         val db = DB(store=StoreTrivial(), storeOpened = false)
         val maker = db.treeMap("aa", Serializer.INTEGER, Serializer.INTEGER)
                 .counterEnable()
-                .createFromStream()
+                .createFromSink()
         maker.putAll((0..6).map{Pair(it, it*2)})
         val map = maker.create()
         assertEquals(7, map.size)
