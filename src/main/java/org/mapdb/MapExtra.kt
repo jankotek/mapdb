@@ -34,21 +34,21 @@ interface MapExtra<K, V> : ConcurrentMap<K, V> {
      * except that the action is performed atomically.
 
      * @param key   key with which the specified value is to be associated
-     * *
+     *
      * @param value value to be associated with the specified key
-     * *
+     *
      * @return true if a value was set.
-     * *
+     *
      * @throws NullPointerException  if key is null or value is null
-     * *
+     *
      * @throws IllegalStateException if the cache is [.isClosed]
-     * *
+     *
      * @throws ClassCastException    if the implementation is configured to perform
-     * *                               runtime-type-checking, and the key or value
-     * *                               types are incompatible with those that have been
-     * *                               configured with different serialziers
-     * *  TODO link to JCache standar
-     * *  TODO credits for javadoc
+     *                                runtime-type-checking, and the key or value
+     *                                types are incompatible with those that have been
+     *                                configured with different serialziers
+     * TODO link to JCache standard
+     * TODO credits for javadoc
      */
     fun putIfAbsentBoolean(key: K?, value: V?): Boolean
 
