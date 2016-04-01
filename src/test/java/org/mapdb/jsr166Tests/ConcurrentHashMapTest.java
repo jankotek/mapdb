@@ -18,7 +18,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
-import org.easymock.internal.matchers.Null;
 import org.junit.Test;
 
 public abstract class ConcurrentHashMapTest extends JSR166Test {

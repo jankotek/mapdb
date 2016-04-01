@@ -107,13 +107,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.mapdb</groupId>
-            <artifactId>thread-weaver</artifactId>
-            <version>3.0.mapdb</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
             <groupId>org.eclipse.collections</groupId>
             <artifactId>eclipse-collections-testutils</artifactId>
             <version>${ec.version}</version>
