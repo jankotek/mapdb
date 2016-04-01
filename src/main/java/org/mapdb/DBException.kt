@@ -28,8 +28,6 @@ open class DBException(message: String?, cause: Throwable?) : RuntimeException(m
     class Interrupted(e:InterruptedException) : DBException("One of threads was interrupted while accessing store", e);
     open class DataCorruption(msg: String) : DBException(msg);
 
-    class HeadChecksumBroken(msg:String):DataCorruption(msg);
-
 
     class PointerChecksumBroken():DataCorruption("Broken bit parity")
 

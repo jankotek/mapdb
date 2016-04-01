@@ -73,7 +73,7 @@ public class DBBrokenTest {
         try {
             DBMaker.fileDB(index.getPath()).make();
             Assert.fail("Expected exception not thrown");
-        } catch (final DBException.HeadChecksumBroken e) {
+        } catch (final DBException.WrongFormat e) {
             // expected
         }
 

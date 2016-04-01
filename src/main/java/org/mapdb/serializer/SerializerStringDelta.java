@@ -38,7 +38,7 @@ public class SerializerStringDelta extends SerializerString{
         int prefixLen = in.unpackInt();
         //$DELAY$
         for(int i=0;i<prefixLen;i++){
-            ret[0][i] = (char) in.readByte();
+            ret[0][i] = (char) in.unpackInt();
         }
 
         for(int i=1;i<ret.length;i++){
@@ -67,8 +67,9 @@ public class SerializerStringDelta extends SerializerString{
         //find common prefix
         int prefixLen = commonPrefixLen(chars);
         DataIO.packInt(out,prefixLen);
+        char[] first = chars[0];
         for (int i = 0; i < prefixLen; i++) {
-            out.packInt(chars[0][i]);
+            out.packInt(first[i]);
         }
         //$DELAY$
         for(char[] b:chars){

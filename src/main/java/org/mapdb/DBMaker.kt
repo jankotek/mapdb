@@ -3,6 +3,7 @@ package org.mapdb
 import org.mapdb.volume.MappedFileVol
 import org.mapdb.volume.Volume
 import org.mapdb.volume.VolumeFactory
+import java.io.File
 
 /**
  * Initializes DB object
@@ -17,6 +18,9 @@ object DBMaker{
         return Maker(StoreType.ondisk, file = file)
     }
 
+    @JvmStatic fun fileDB(file: File): Maker {
+        return fileDB(file.path)
+    }
 
     @JvmStatic fun heapDB(): Maker {
         return Maker(StoreType.onheap)
