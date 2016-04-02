@@ -8,25 +8,18 @@ package org.mapdb.jsr166Tests;/*
 
 //import jsr166e.*;
 import junit.framework.*;
+
+import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-public class ConcurrentHashMapV8Test extends JSR166TestCase {
-    public static void main(String[] args) {
-        junit.textui.TestRunner.run(suite());
-    }
-    public static Test suite() {
-        return new TestSuite(ConcurrentHashMapV8Test.class);
-    }
+public abstract class ConcurrentHashMapV8Test extends JSR166TestCase {
 
-    public ConcurrentMap newMap(){
-        return new ConcurrentHashMap();
-    }
 
-    public ConcurrentMap newMap(int size){
-        return new ConcurrentHashMap(size);
-    }
+    public abstract ConcurrentMap newMap();
+
+    public abstract ConcurrentMap newMap(int size);
 
     /**
      * Returns a new map from Integers 1-5 to Strings "A"-"E".
@@ -48,7 +41,7 @@ public class ConcurrentHashMapV8Test extends JSR166TestCase {
     static int compare(int x, int y) { return x < y ? -1 : x > y ? 1 : 0; }
 
     // classes for testing Comparable fallbacks
-    static class BI implements Comparable<BI> {
+    static class BI implements Comparable<BI>, Serializable {
         private final int value;
         BI(int value) { this.value = value; }
         public int compareTo(BI other) {
@@ -62,7 +55,7 @@ public class ConcurrentHashMapV8Test extends JSR166TestCase {
     static class CI extends BI { CI(int value) { super(value); } }
     static class DI extends BI { DI(int value) { super(value); } }
 
-    static class BS implements Comparable<BS> {
+    static class BS implements Comparable<BS>, Serializable {
         private final String value;
         BS(String value) { this.value = value; }
         public int compareTo(BS other) {
@@ -441,17 +434,6 @@ public class ConcurrentHashMapV8Test extends JSR166TestCase {
         assertEquals(5, map.size());
     }
 
-    /**
-     * toString contains toString of elements
-     */
-    public void testToString() {
-        ConcurrentMap map = map5();
-        String s = map.toString();
-        for (int i = 1; i <= 5; ++i) {
-            assertTrue(s.contains(String.valueOf(i)));
-        }
-    }
-
     // Exception tests
 
     /**
@@ -651,27 +633,28 @@ public class ConcurrentHashMapV8Test extends JSR166TestCase {
         } catch (NullPointerException success) {}
     }
 
-    /**
-     * remove(x, null) returns false
-     */
-    public void testRemove3() {
-        ConcurrentMap c = newMap(5);
-        c.put("sadsdf", "asdads");
-        assertFalse(c.remove("sadsdf", null));
-    }
+//    /**
+//     * remove(x, null) returns false
+//     */
+//    public void testRemove3() {
+//        ConcurrentMap c = newMap(5);
+//        c.put("sadsdf", "asdads");
+//        assertFalse(c.remove("sadsdf", null));
+//    }
 
     /**
      * A deserialized map equals original
      */
-    public void testSerialization() throws Exception {
-        Map x = map5();
-        Map y = serialClone(x);
-
-        assertNotSame(x, y);
-        assertEquals(x.size(), y.size());
-        assertEquals(x, y);
-        assertEquals(y, x);
-    }
+// TODO HTreeMap serialization
+//    public void testSerialization() throws Exception {
+//        Map x = map5();
+//        Map y = serialClone(x);
+//
+//        assertNotSame(x, y);
+//        assertEquals(x.size(), y.size());
+//        assertEquals(x, y);
+//        assertEquals(y, x);
+//    }
 
     /**
      * SetValue of an EntrySet entry sets value in the map.
