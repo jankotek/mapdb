@@ -185,6 +185,13 @@ class BTreeMap<K,V>(
         }
     }
 
+    init{
+        if(BTreeMap.NO_VAL_SERIALIZER==valueSerializer && hasValues)
+            throw IllegalArgumentException("wrong value serializer")
+        if(BTreeMap.NO_VAL_SERIALIZER!=valueSerializer && !hasValues)
+            throw IllegalArgumentException("wrong value serializer")
+    }
+
     private val hasBinaryStore = store is StoreBinary
 
     internal val nodeSerializer = NodeSerializer(this.keySerializer, this.valueSerializer);

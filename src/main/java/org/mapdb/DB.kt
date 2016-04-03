@@ -636,7 +636,7 @@ open class DB(
                     else {
                        db.nameCatalogGetClass(catalog, name + Keys.valueSerializer)?: _valueSerializer
                     }
-            _valueInline = if(hasValues) catalog[name + Keys.valueInline]!!.toBoolean() else false
+            _valueInline = if(hasValues) catalog[name + Keys.valueInline]!!.toBoolean() else true
 
             val hashSeed = catalog[name + Keys.hashSeed]!!.toInt()
             val rootRecids = catalog[name + Keys.rootRecids]!!.split(",").map { it.toLong() }.toLongArray()
@@ -985,6 +985,9 @@ open class DB(
 
         protected val maker = HashMapMaker<E, Any?>(db, name, hasValues=false)
 
+        init{
+            maker.valueSerializer(BTreeMap.NO_VAL_SERIALIZER).valueInline()
+        }
 
         fun <A> serializer(serializer:Serializer<A>):HashSetMaker<A>{
             maker.keySerializer(serializer)

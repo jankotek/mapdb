@@ -988,5 +988,36 @@ class DBTest{
         file.delete()
     }
 
+    @Test fun issue689_reopen_hashSet(){
+        val f = TT.tempFile()
+        var db = DBMaker.fileDB(f).make()
+        var set = db.hashSet("s").serializer(Serializer.STRING).create()
+        set.add("aa")
+        db.close()
+
+        db = DBMaker.fileDB(f).make()
+        set = db.hashSet("s").serializer(Serializer.STRING).createOrOpen()
+        assertEquals(1,set.size)
+        set.add("bb")
+        assertEquals(2,set.size)
+        db.close()
+        f.delete()
+    }
+
+    @Test fun issue689_reopen_treeSet(){
+        val f = TT.tempFile()
+        var db = DBMaker.fileDB(f).make()
+        var set = db.treeSet("s").serializer(Serializer.STRING).create()
+        set.add("aa")
+        db.close()
+
+        db = DBMaker.fileDB(f).make()
+        set = db.treeSet("s").serializer(Serializer.STRING).createOrOpen()
+        assertEquals(1,set.size)
+        set.add("bb")
+        assertEquals(2,set.size)
+        db.close()
+        f.delete()
+    }
 
 }

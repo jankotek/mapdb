@@ -130,6 +130,13 @@ class HTreeMap<K,V>(
             throw IllegalArgumentException("expireUpdateQueues size wrong")
         if(expireGetQueues!=null && segmentCount!=expireGetQueues.size)
             throw IllegalArgumentException("expireGetQueues size wrong")
+        if(BTreeMap.NO_VAL_SERIALIZER==valueSerializer && hasValues)
+            throw IllegalArgumentException("wrong value serializer")
+        if(BTreeMap.NO_VAL_SERIALIZER!=valueSerializer && !hasValues)
+            throw IllegalArgumentException("wrong value serializer")
+        if(!hasValues && !valueInline){
+            throw IllegalArgumentException("value inline must be enabled for KeySet")
+        }
 
         //schedule background expiration if needed
         if(expireExecutor!=null && (expireCreateQueues!=null || expireUpdateQueues!=null || expireGetQueues!=null)){
@@ -177,6 +184,32 @@ class HTreeMap<K,V>(
         }
     }
 
+    private fun leafKeySetSerializer() = object: Serializer<Array<Any>>{
+        override fun serialize(out: DataOutput2, value: kotlin.Array<Any>) {
+            out.packInt(value.size)
+            for(i in 0 until value.size step 3) {
+                keySerializer.serialize(out, value[i+0] as K)
+                out.packLong(value[i+2] as Long)
+            }
+        }
+
+        override fun deserialize(input: DataInput2, available: Int): kotlin.Array<Any> {
+            val ret:Array<Any?> = arrayOfNulls(input.unpackInt())
+            var i = 0;
+            while(i<ret.size) {
+                ret[i++] = keySerializer.deserialize(input, -1)
+                ret[i++] = true
+                ret[i++] = input.unpackLong()
+            }
+            return ret as Array<Any>;
+        }
+
+        override fun isTrusted(): Boolean {
+            return keySerializer.isTrusted && valueSerializer.isTrusted
+        }
+    }
+
+
 
     private fun leafValueExternalSerializer() = object: Serializer<Array<Any>>{
         override fun serialize(out: DataOutput2, value: Array<Any>) {
@@ -208,7 +241,9 @@ class HTreeMap<K,V>(
 
     //TODO Expiration QueueID is part of leaf, remove it if expiration is disabled!
     internal val leafSerializer:Serializer<Array<Any>> =
-            if(valueInline)
+            if(!hasValues)
+                leafKeySetSerializer()
+            else if(valueInline)
                 leafValueInlineSerializer()
             else
                 leafValueExternalSerializer()
