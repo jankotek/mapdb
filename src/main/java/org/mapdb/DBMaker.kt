@@ -77,6 +77,12 @@ object DBMaker{
             private val file:String?=null){
 
         private var _allocateStartSize:Long = 0L
+        private var _transactionEnable = false
+
+        fun transactionEnable():Maker{
+            _transactionEnable = true
+            return this
+        }
 
         fun allocateStartSize(size:Long):Maker{
             _allocateStartSize = size
@@ -94,12 +100,18 @@ object DBMaker{
                             }else {
                                 VolumeFactory.wrap(volume, volumeExist!!)
                             }
-                    StoreDirect.make(volumeFactory=volumeFactory, allocateStartSize=_allocateStartSize)
+                    if(_transactionEnable.not())
+                        StoreDirect.make(volumeFactory=volumeFactory, allocateStartSize=_allocateStartSize)
+                    else
+                        StoreWAL.make(volumeFactory=volumeFactory, allocateStartSize=_allocateStartSize)
                 }
                 StoreType.ondisk -> {
                     val volumeFactory = MappedFileVol.FACTORY
                     storeOpened = volumeFactory.exists(file)
-                    StoreDirect.make(file=file, volumeFactory=volumeFactory, allocateStartSize=_allocateStartSize)
+                    if(_transactionEnable.not())
+                        StoreDirect.make(file=file, volumeFactory=volumeFactory, allocateStartSize=_allocateStartSize)
+                    else
+                        StoreWAL.make(file=file, volumeFactory=volumeFactory, allocateStartSize=_allocateStartSize)
                 }
             }
 

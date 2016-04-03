@@ -1020,4 +1020,9 @@ class DBTest{
         f.delete()
     }
 
+    @Test fun store_wal_def(){
+        assertEquals(StoreWAL::class.java, DBMaker.memoryDB().transactionEnable().make().store.javaClass)
+        assertEquals(StoreDirect::class.java, DBMaker.memoryDB().make().store.javaClass)
+    }
+
 }
