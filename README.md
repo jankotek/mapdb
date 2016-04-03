@@ -11,6 +11,8 @@ It is free under Apache 2 license. MapDB is flexible and can be used in many rol
 Hello world
 -------------------
 
+[![Join the chat at https://gitter.im/jankotek/mapdb](https://badges.gitter.im/jankotek/mapdb.svg)](https://gitter.im/jankotek/mapdb?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 TODO Maven or JAR
 
 TODO hello world
