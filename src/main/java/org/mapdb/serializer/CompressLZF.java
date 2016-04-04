@@ -69,7 +69,9 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.mapdb;
+package org.mapdb.serializer;
+
+import org.mapdb.CC;
 
 import java.io.DataInput;
 import java.io.IOException;
@@ -108,7 +110,7 @@ import java.nio.ByteBuffer;
  * back-reference.
  * </p>
  */
-public final class CompressLZF{
+final class CompressLZF{
 
     /**
      * The number of entries in the hash table. The size is a trade-off between

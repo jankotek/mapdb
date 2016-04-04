@@ -16,11 +16,18 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 /**
  * A database with easy access to named maps and other collections.
  */
+//TODO Elsa integration with class catalog
+//TODO named objects in elsa
+//TODO Serializer.* singletons in elsa
+//TODO DB singleton in
+//TODO consistency lock
+//TODO delete named object
+//TOOD metrics logger
 open class DB(
         /** Stores all underlying data */
         val store:Store,
         /** True if store existed before and was opened, false if store was created and is completely empty */
-        val storeOpened:Boolean
+        protected val storeOpened:Boolean
 ): Closeable {
 
     companion object{

@@ -113,6 +113,18 @@ class StoreTrivialTest : StoreReopenTest() {
         assertTrue(!f2.exists())
         assertTrue(!m2.exists())
 
+    }
 
+
+    @Test fun delete_after_close(){
+        val dir = TT.tempDir()
+        val store = StoreTrivialTx(file=File(dir.path,"aa"),deleteFilesAfterClose = true)
+        store.put(11, Serializer.INTEGER)
+        store.commit()
+        store.put(11, Serializer.INTEGER)
+        store.commit()
+        assertNotEquals(0, dir.listFiles().size)
+        store.close()
+        assertEquals(0, dir.listFiles().size)
     }
 }

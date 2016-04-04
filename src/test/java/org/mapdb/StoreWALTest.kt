@@ -1,6 +1,7 @@
 package org.mapdb
 
 import org.junit.Assert.*
+import org.junit.Test
 import java.io.File
 
 /**
@@ -16,4 +17,16 @@ class StoreWALTest: StoreDirectAbstractTest() {
         return StoreWAL.make()
     }
 
+
+    @Test override fun delete_after_close(){
+        val dir = TT.tempDir()
+        val store = StoreWAL.make(dir.path+"/aa",deleteFilesAfterClose = true)
+        store.put(11, Serializer.INTEGER)
+        store.commit()
+        store.put(11, Serializer.INTEGER)
+        store.commit()
+        assertNotEquals(0, dir.listFiles().size)
+        store.close()
+        assertEquals(0, dir.listFiles().size)
+    }
 }

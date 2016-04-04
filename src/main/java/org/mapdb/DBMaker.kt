@@ -78,6 +78,7 @@ object DBMaker{
 
         private var _allocateStartSize:Long = 0L
         private var _transactionEnable = false
+        private var _deleteFilesAfterClose = false
 
         fun transactionEnable():Maker{
             _transactionEnable = true
@@ -86,6 +87,11 @@ object DBMaker{
 
         fun allocateStartSize(size:Long):Maker{
             _allocateStartSize = size
+            return this
+        }
+
+        fun deleteFilesAfterClose():Maker{
+            _deleteFilesAfterClose = true
             return this
         }
 
@@ -101,17 +107,17 @@ object DBMaker{
                                 VolumeFactory.wrap(volume, volumeExist!!)
                             }
                     if(_transactionEnable.not())
-                        StoreDirect.make(volumeFactory=volumeFactory, allocateStartSize=_allocateStartSize)
+                        StoreDirect.make(volumeFactory=volumeFactory, allocateStartSize=_allocateStartSize, deleteFilesAfterClose = _deleteFilesAfterClose)
                     else
-                        StoreWAL.make(volumeFactory=volumeFactory, allocateStartSize=_allocateStartSize)
+                        StoreWAL.make(volumeFactory=volumeFactory, allocateStartSize=_allocateStartSize, deleteFilesAfterClose = _deleteFilesAfterClose)
                 }
                 StoreType.ondisk -> {
                     val volumeFactory = MappedFileVol.FACTORY
                     storeOpened = volumeFactory.exists(file)
                     if(_transactionEnable.not())
-                        StoreDirect.make(file=file, volumeFactory=volumeFactory, allocateStartSize=_allocateStartSize)
+                        StoreDirect.make(file=file, volumeFactory=volumeFactory, allocateStartSize=_allocateStartSize, deleteFilesAfterClose = _deleteFilesAfterClose)
                     else
-                        StoreWAL.make(file=file, volumeFactory=volumeFactory, allocateStartSize=_allocateStartSize)
+                        StoreWAL.make(file=file, volumeFactory=volumeFactory, allocateStartSize=_allocateStartSize, deleteFilesAfterClose = _deleteFilesAfterClose)
                 }
             }
 

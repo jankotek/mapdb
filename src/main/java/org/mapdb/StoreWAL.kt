@@ -9,6 +9,7 @@ import org.mapdb.volume.Volume
 import org.mapdb.volume.VolumeFactory
 import org.mapdb.DataIO.*
 import org.mapdb.StoreDirectJava.*
+import java.io.File
 import java.util.*
 
 /**
@@ -19,12 +20,14 @@ class StoreWAL(
         volumeFactory: VolumeFactory,
         isThreadSafe:Boolean,
         concShift:Int,
-        allocateStartSize:Long
+        allocateStartSize:Long,
+        deleteFilesAfterClose:Boolean
 ):StoreDirectAbstract(
         file=file,
         volumeFactory=volumeFactory,
         isThreadSafe = isThreadSafe,
-        concShift =  concShift
+        concShift =  concShift,
+        deleteFilesAfterClose = deleteFilesAfterClose
 ), StoreTx{
 
     companion object{
@@ -33,13 +36,15 @@ class StoreWAL(
                 volumeFactory: VolumeFactory = if(file==null) CC.DEFAULT_MEMORY_VOLUME_FACTORY else CC.DEFAULT_FILE_VOLUME_FACTORY,
                 isThreadSafe:Boolean = true,
                 concShift:Int = 4,
-                allocateStartSize: Long = 0L
+                allocateStartSize: Long = 0L,
+                deleteFilesAfterClose:Boolean = false
         )=StoreWAL(
                 file = file,
                 volumeFactory = volumeFactory,
                 isThreadSafe = isThreadSafe,
                 concShift = concShift,
-                allocateStartSize = allocateStartSize
+                allocateStartSize = allocateStartSize,
+                deleteFilesAfterClose = deleteFilesAfterClose
         )
 
         @JvmStatic protected val TOMB1 = -1L;
@@ -493,6 +498,11 @@ class StoreWAL(
 
         closed = true;
         volume.close()
+        if(deleteFilesAfterClose && file!=null) {
+            File(file).delete()
+            wal.destroyWalFiles()
+        }
+
     }
 
     override fun rollback() {

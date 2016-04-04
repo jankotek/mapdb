@@ -5,6 +5,7 @@ import org.mapdb.StoreDirectJava.*
 import org.mapdb.DataIO.*
 import org.mapdb.volume.Volume
 import org.mapdb.volume.VolumeFactory
+import java.io.File
 import java.util.*
 import java.util.concurrent.atomic.AtomicLong
 
@@ -18,12 +19,14 @@ class StoreDirect(
         val readOnly:Boolean,
         isThreadSafe:Boolean,
         concShift:Int,
-        allocateStartSize:Long
+        allocateStartSize:Long,
+        deleteFilesAfterClose:Boolean
 ):StoreDirectAbstract(
         file=file,
         volumeFactory=volumeFactory,
         isThreadSafe = isThreadSafe,
-        concShift =  concShift
+        concShift =  concShift,
+        deleteFilesAfterClose=deleteFilesAfterClose
 ),StoreBinary{
 
 
@@ -34,14 +37,16 @@ class StoreDirect(
                 readOnly:Boolean = false,
                 isThreadSafe:Boolean = true,
                 concShift:Int = 4,
-                allocateStartSize: Long = 0L
+                allocateStartSize: Long = 0L,
+                deleteFilesAfterClose:Boolean = false
         ) = StoreDirect(
             file = file,
             volumeFactory = volumeFactory,
             readOnly = readOnly,
             isThreadSafe = isThreadSafe,
             concShift = concShift,
-            allocateStartSize = allocateStartSize
+            allocateStartSize = allocateStartSize,
+            deleteFilesAfterClose = deleteFilesAfterClose
         )
     }
 
@@ -786,6 +791,9 @@ class StoreDirect(
 
         closed = true;
         volume.close()
+        if(deleteFilesAfterClose && file!=null) {
+            File(file).delete()
+        }
     }
 
     override fun getAllRecids(): LongIterator {

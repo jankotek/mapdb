@@ -299,7 +299,7 @@ open class StoreTrivial(
 
 }
 
-class StoreTrivialTx(val file:File, isThreadSafe:Boolean=true)
+class StoreTrivialTx(val file:File, isThreadSafe:Boolean=true, val deleteFilesAfterClose:Boolean=false)
     :StoreTrivial(
         isThreadSafe = isThreadSafe
     ), StoreTx{
@@ -415,7 +415,7 @@ class StoreTrivialTx(val file:File, isThreadSafe:Boolean=true)
             Files.deleteIfExists(Utils.pathChangeSuffix(path, "." + prev + COMMIT_MARKER_SUFFIX))
             Files.deleteIfExists(Utils.pathChangeSuffix(path, "." + prev + DATA_SUFFIX))
 
-            Utils.logDebug { "Commited into ${saveTo} with length ${saveTo.toFile().length()}" }
+            Utils.logDebug { "Committed into ${saveTo} with length ${saveTo.toFile().length()}" }
         }
     }
 
@@ -435,6 +435,15 @@ class StoreTrivialTx(val file:File, isThreadSafe:Boolean=true)
             fileLock.release();
             fileChannel.close()
             super.close()
+            if(deleteFilesAfterClose){
+                val f = file.path
+                for(i in 0 .. lastFileNum){
+                    for(suffix in arrayOf(COMMIT_MARKER_SUFFIX,DATA_SUFFIX)){
+                        File(f+"."+i+suffix).delete()
+                    }
+                }
+                file.delete()
+            }
         }
     }
 

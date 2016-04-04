@@ -15,7 +15,8 @@ abstract class StoreDirectAbstract(
         val file:String?,
         val volumeFactory: VolumeFactory,
         override val isThreadSafe:Boolean,
-        val concShift:Int
+        val concShift:Int,
+        val deleteFilesAfterClose:Boolean
         ):Store{
 
     protected abstract val volume: Volume

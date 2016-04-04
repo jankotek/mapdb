@@ -448,7 +448,6 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
         val store = db.store as StoreDirect
         val map = db.hashMap("map",Serializer.LONG, Serializer.BYTE_ARRAY).create()
 
-        val random = Random()
         for(i in 0..10) for(key in 1L .. 10000){
             map.put(key, ByteArray(800))
             assertEquals( Utils.lock(store.structuralLock) {store.calculateFreeSize()}, store.getFreeSize() )
@@ -478,9 +477,21 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
 
         ref.forEachKeyValue { key, value ->
             val value2 = store.get(key, Serializer.BYTE_ARRAY_NOSIZE)
-            assertTrue(Arrays.equals(value,value))
+            assertTrue(Arrays.equals(value,value2))
         }
 
         assertNull(store.get(nullRecid,Serializer.BYTE_ARRAY_NOSIZE))
+    }
+
+    @Test open fun delete_after_close(){
+        val dir = TT.tempDir()
+        val store = StoreDirect.make(dir.path+"/aa",deleteFilesAfterClose = true)
+        store.put(11, Serializer.INTEGER)
+        store.commit()
+        store.put(11, Serializer.INTEGER)
+        store.commit()
+        assertNotEquals(0, dir.listFiles().size)
+        store.close()
+        assertEquals(0, dir.listFiles().size)
     }
 }

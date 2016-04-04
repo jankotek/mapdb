@@ -1025,4 +1025,14 @@ class DBTest{
         assertEquals(StoreDirect::class.java, DBMaker.memoryDB().make().store.javaClass)
     }
 
+
+    @Test fun delete_files_after_close(){
+        val dir = TT.tempDir()
+        val db = DBMaker.fileDB(dir.path+"/aa").deleteFilesAfterClose().make()
+        db.atomicBoolean("name").create()
+        db.commit()
+        assertNotEquals(0, dir.listFiles().size)
+        db.close()
+        assertEquals(0, dir.listFiles().size)
+    }
 }
