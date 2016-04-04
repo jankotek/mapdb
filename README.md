@@ -1,3 +1,11 @@
+<img src="https://raw.githubusercontent.com/jankotek/mapdb-site/master/art/rocket-small.png" width=90 height=90 align="left"/>
+
+MapDB: database engine 
+=======================
+[![Build Status](https://travis-ci.org/jankotek/mapdb.svg?branch=master)](https://travis-ci.org/jankotek/mapdb)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.mapdb/mapdb/badge.svg)](https://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.mapdb%22%20AND%20a%3Amapdb)
+[![Join the chat at https://gitter.im/jankotek/mapdb](https://badges.gitter.im/jankotek/mapdb.svg)](https://gitter.im/jankotek/mapdb?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 
 MapDB combines embedded database engine and Java collections.
 It is free under Apache 2 license. MapDB is flexible and can be used in many roles:
@@ -11,8 +19,6 @@ It is free under Apache 2 license. MapDB is flexible and can be used in many rol
 Hello world
 -------------------
 
-[![Join the chat at https://gitter.im/jankotek/mapdb](https://badges.gitter.im/jankotek/mapdb.svg)](https://gitter.im/jankotek/mapdb?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
 TODO Maven or JAR
 
 TODO hello world
@@ -20,19 +26,7 @@ TODO hello world
 Support
 ------------
 
-For questions and general support there is:
-
- * [Reddit Forum](https://www.reddit.com/r/mapdb)
- 
- * [Mail Group](https://groups.google.com/forum/#!forum/mapdb)
- 
- * [Slack Chat](https://mapdb.slack.com/)
-
-Issues (anything with stack-trace) go on [Github](https://github.com/jankotek/mapdb/issues). Pull requests are welcomed.
-
-You can also contact author [directly](mailto:jan@kotek.net).
-I work on MapDB full time, its development is sponsored by my consulting services.
-
+More [details](http://www.mapdb.org/support/).
 
 Development
 --------------------
