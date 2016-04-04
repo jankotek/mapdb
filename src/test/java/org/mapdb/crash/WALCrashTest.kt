@@ -51,6 +51,8 @@ class WALCrashTest: CrashJVM(){
     }
 
     @Test fun run(){
+        if(TT.shortTest())
+            return
         run(this)
     }
 }

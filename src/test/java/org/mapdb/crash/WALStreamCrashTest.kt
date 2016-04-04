@@ -2,6 +2,7 @@ package org.mapdb.crash
 
 import org.junit.Test
 import org.mapdb.DataIO
+import org.mapdb.TT
 import org.mapdb.crash.CrashJVM
 import java.io.*
 import java.util.*
@@ -61,15 +62,21 @@ class WALStreamCrashTest: CrashJVM(){
     }
 
     @Test fun run1(){
+        if(TT.shortTest())
+            return
         run(this, killDelay = 1000, params = "8")
     }
 
     @Test fun run2(){
+        if(TT.shortTest())
+            return
         run(this, killDelay = 1000, params = "100")
     }
 
 
     @Test fun run3(){
+        if(TT.shortTest())
+            return
         run(this, killDelay = 1000, params = "1000")
     }
 }
