@@ -1,5 +1,7 @@
 package org.mapdb;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
@@ -561,4 +563,8 @@ public final class DataIO {
         return number  - number % roundDownToMultipleOf;
     }
 
+
+    public static int shift(int value) {
+        return 31-Integer.numberOfLeadingZeros(value);
+    }
 }

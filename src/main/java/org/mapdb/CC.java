@@ -68,4 +68,7 @@ public interface CC{
     /** second byte in {@link org.mapdb.StoreTrivial} file format */
     long FILE_TYPE_STORETRIVIAL  = 20;
 
+    boolean LOG_VOLUME_GCED = false;
+
+    int STORE_DIRECT_CONC_SHIFT = 3;
 }

@@ -35,7 +35,7 @@ class StoreWAL(
                 file:String?= null,
                 volumeFactory: VolumeFactory = if(file==null) CC.DEFAULT_MEMORY_VOLUME_FACTORY else CC.DEFAULT_FILE_VOLUME_FACTORY,
                 isThreadSafe:Boolean = true,
-                concShift:Int = 4,
+                concShift:Int = CC.STORE_DIRECT_CONC_SHIFT,
                 allocateStartSize: Long = 0L,
                 deleteFilesAfterClose:Boolean = false
         )=StoreWAL(

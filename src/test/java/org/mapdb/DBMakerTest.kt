@@ -15,4 +15,24 @@ class DBMakerTest{
         assertTrue(executor.isShutdown)
         assertTrue(executor.isTerminated)
     }
+
+    @Test fun conc_scale(){
+        val db =DBMaker.memoryDB().concurrencyScale(32).make()
+        assertEquals(DataIO.shift(32), (db.store as StoreDirect).concShift)
+    }
+
+
+    @Test fun conc_disable(){
+        var db =DBMaker.memoryDB().make()
+        assertTrue(db.isThreadSafe)
+        assertTrue(db.store.isThreadSafe)
+        assertTrue(db.hashMap("aa1").create().threadSafe)
+        assertTrue(db.treeMap("aa2").create().threadSafe)
+
+        db =DBMaker.memoryDB().concurrencyDisable().make()
+        assertFalse(db.isThreadSafe)
+        assertFalse(db.store.isThreadSafe)
+        assertFalse(db.hashMap("aa1").create().threadSafe)
+        assertFalse(db.treeMap("aa2").create().threadSafe)
+    }
 }

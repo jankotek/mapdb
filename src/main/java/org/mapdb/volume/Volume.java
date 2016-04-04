@@ -146,7 +146,7 @@ public abstract class Volume implements Closeable{
 //    final private Throwable constructorStackTrace = new AssertionError();
 
     @Override protected void finalize(){
-        if(CC.ASSERT){
+        if(CC.LOG_VOLUME_GCED){
             if(!closed
                     && !(this instanceof ByteArrayVol)
                     && !(this instanceof SingleByteArrayVol)){

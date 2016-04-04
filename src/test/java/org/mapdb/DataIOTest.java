@@ -230,4 +230,14 @@ public class DataIOTest {
         }
     }
 
+
+    @Test public void shift(){
+        for(int i =0; i<30;i++){
+            assertEquals(i, DataIO.shift(1<<i));
+            assertEquals(i, DataIO.shift(nextPowTwo(1<<i)));
+            if(i>2)
+                assertEquals(i, DataIO.shift(nextPowTwo((1<<i)-1)));
+        }
+    }
+
 }

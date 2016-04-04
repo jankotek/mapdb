@@ -5,6 +5,7 @@ import com.google.common.cache.CacheBuilder
 import org.eclipse.collections.api.map.primitive.MutableLongLongMap
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.mapdb.serializer.GroupSerializer
+import sun.util.resources.`is`.CalendarData_is
 import java.io.Closeable
 import java.security.SecureRandom
 import java.util.*
@@ -27,7 +28,8 @@ open class DB(
         /** Stores all underlying data */
         val store:Store,
         /** True if store existed before and was opened, false if store was created and is completely empty */
-        protected val storeOpened:Boolean
+        protected val storeOpened:Boolean,
+        val isThreadSafe:Boolean
 ): Closeable {
 
     companion object{
@@ -120,7 +122,7 @@ open class DB(
         }
     }
 
-    internal val lock = ReentrantReadWriteLock();
+    internal val lock = if(isThreadSafe) ReentrantReadWriteLock() else null
 
     @Volatile private  var closed = false;
 
@@ -624,7 +626,7 @@ open class DB(
                     expireExecutor = _expireExecutor,
                     expireExecutorPeriod = _expireExecutorPeriod,
                     expireCompactThreshold = _expireCompactThreshold,
-                    threadSafe = true,
+                    threadSafe = db.isThreadSafe,
                     valueLoader = _valueLoader,
                     modificationListeners = if (_modListeners.isEmpty()) null else _modListeners.toTypedArray(),
                     closeable = db,
@@ -711,7 +713,7 @@ open class DB(
                     expireExecutor = _expireExecutor,
                     expireExecutorPeriod = _expireExecutorPeriod,
                     expireCompactThreshold = _expireCompactThreshold,
-                    threadSafe = true,
+                    threadSafe = db.isThreadSafe,
                     valueLoader = _valueLoader,
                     modificationListeners = if (_modListeners.isEmpty()) null else _modListeners.toTypedArray(),
                     closeable = db,
@@ -766,7 +768,6 @@ open class DB(
         private var _counterEnable: Boolean = false
         private var _valueLoader:((key:K)->V)? = null
         private var _modListeners:MutableList<MapModificationListener<K,V>>? = null
-        private var _threadSafe = true;
 
         private var _rootRecidRecid:Long? = null
         private var _counterRecid:Long? = null
@@ -798,12 +799,6 @@ open class DB(
 
         fun counterEnable():TreeMapMaker<K,V>{
             _counterEnable = true
-            return this;
-        }
-
-
-        fun threadSafeDisable():TreeMapMaker<K,V>{
-            _threadSafe = false
             return this;
         }
 
@@ -879,7 +874,7 @@ open class DB(
                     store = db.store,
                     maxNodeSize = _maxNodeSize,
                     comparator = _keySerializer, //TODO custom comparator
-                    threadSafe = _threadSafe, //TODO threadSafe in catalog?
+                    threadSafe = db.isThreadSafe,
                     counterRecid = counterRecid2,
                     hasValues = hasValues
             )
@@ -908,7 +903,7 @@ open class DB(
                     store = db.store,
                     maxNodeSize = _maxNodeSize,
                     comparator = _keySerializer, //TODO custom comparator
-                    threadSafe = _threadSafe, //TODO threadSafe in catalog?
+                    threadSafe = db.isThreadSafe,
                     counterRecid = counterRecid2,
                     hasValues = hasValues
             )
@@ -949,13 +944,6 @@ open class DB(
             maker.counterEnable()
             return this;
         }
-
-
-        fun threadSafeDisable():TreeSetMaker<E>{
-            maker.threadSafeDisable()
-            return this;
-        }
-
 
         override fun verify() {
             maker.verify()
@@ -1113,9 +1101,6 @@ open class DB(
         protected fun make2(create:Boolean?):E{
             Utils.lockWrite(db.lock){
                 verify()
-                val ref = db.namesInstanciated.getIfPresent(name)
-                if(ref!=null)
-                    return ref as E;
 
                 val catalog = db.nameCatalogLoad()
                 //check existence
@@ -1130,6 +1115,10 @@ open class DB(
                 if(typeFromDb!=null && type!=typeFromDb){
                     throw DBException.WrongConfiguration("Wrong type for named record '$name'. Expected '$type', but catalog has '$typeFromDb'")
                 }
+
+                val ref = db.namesInstanciated.getIfPresent(name)
+                if(ref!=null)
+                    return ref as E;
 
                 if(typeFromDb!=null) {
                     val ret = open2(catalog)
@@ -1372,7 +1361,7 @@ open class DB(
                     store = db.store,
                     map = map,
                     serializer = serializer,
-                    isThreadSafe = true,
+                    isThreadSafe = db.isThreadSafe,
                     counterRecid = counterRecid
             )
         }
@@ -1388,7 +1377,7 @@ open class DB(
                     store = db.store,
                     map = map,
                     serializer =  db.nameCatalogGetClass(catalog, name + Keys.serializer)?: serializer,
-                    isThreadSafe = true,
+                    isThreadSafe = db.isThreadSafe,
                     counterRecid = catalog[name+Keys.counterRecid]!!.toLong()
             )
         }
