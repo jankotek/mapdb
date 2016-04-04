@@ -30,7 +30,8 @@ import java.io.File
 object DBMaker{
 
     enum class StoreType{
-        onheap, directbuffer, bytearray, ondisk
+        onheap, directbuffer, bytearray,
+        fileRaf, fileMMap, fileChannel
     }
 
     /**
@@ -45,7 +46,7 @@ object DBMaker{
     }
 
     @JvmStatic fun fileDB(file:String): Maker {
-        return Maker(StoreType.ondisk, file = file)
+        return Maker(StoreType.fileRaf, file = file)
     }
 
     @JvmStatic fun fileDB(file: File): Maker {
@@ -123,7 +124,7 @@ object DBMaker{
 
 
     class Maker(
-            private val storeType:StoreType,
+            private var storeType:StoreType,
             private val volume: Volume?=null,
             private val volumeExist:Boolean?=null,
             private val file:String?=null){
@@ -133,6 +134,10 @@ object DBMaker{
         private var _deleteFilesAfterClose = false
         private var _isThreadSafe = true
         private var _concurrencyScale: Int = 1.shl(CC.STORE_DIRECT_CONC_SHIFT)
+        private var _cleanerHack = false
+        private var _fileMmapPreclearDisable = false
+        private var _fileLockDisable = false
+        private var _fileMmapfIfSupported = false
 
         fun transactionEnable():Maker{
             _transactionEnable = true
@@ -211,18 +216,133 @@ object DBMaker{
 //            return this;
 //        }
 
+        protected fun assertFile(){
+            if((storeType in arrayOf(StoreType.fileRaf, StoreType.fileMMap, StoreType.fileChannel)).not())
+                throw DBException.WrongConfiguration("File related options are not allowed for in-memory store")
+        }
+
+        /**
+         * <p>
+         * Enables Memory Mapped Files, much faster storage option. However on 32bit JVM this mode could corrupt
+         * your DB thanks to 4GB memory addressing limit.
+         * </p><p>
+         *
+         * You may experience {@code java.lang.OutOfMemoryError: Map failed} exception on 32bit JVM, if you enable this
+         * mode.
+         * </p>
+         */
+        fun fileMmapEnable():Maker{
+            assertFile()
+            storeType = StoreType.fileMMap
+            return this;
+        }
+
+        /**
+         * <p>
+         * Enables cleaner hack to close mmaped files and `DirectByteBuffers` at `DB.close()`, rather than at Garbage Collection.
+         * See relevant <a href="http://bugs.java.com/view_bug.do?bug_id=4724038">JVM bug</a>.
+         * Please note that this option closes files, but could cause all sort of problems,
+         * including JVM crash.
+         * </p><p>
+         * Memory mapped files in Java are not unmapped when file closes.
+         * Unmapping happens when {@code DirectByteBuffer} is garbage collected.
+         * Delay between file close and GC could be very long, possibly even hours.
+         * This causes file descriptor to remain open, causing all sort of problems:
+         * </p><p>
+         * On Windows opened file can not be deleted or accessed by different process.
+         * It remains locked even after JVM process exits until Windows restart.
+         * This is causing problems during compaction etc.
+         * </p><p>
+         * On Linux (and other systems) opened files consumes file descriptor. Eventually
+         * JVM process could run out of available file descriptors (couple of thousands)
+         * and would be unable to open new files or sockets.
+         * </p><p>
+         * On Oracle and OpenJDK JVMs there is option to unmap files after closing.
+         * However it is not officially supported and could result in all sort of strange behaviour.
+         * In MapDB it was linked to <a href="https://github.com/jankotek/mapdb/issues/442">JVM crashes</a>,
+         * and was disabled by default in MapDB 2.0.
+         * </p>
+         * @return this builder
+         */
+        fun cleanerHackEnable():Maker{
+            assertFile()
+            _cleanerHack = true
+            return this;
+        }
+
+
+        /**
+         * <p>
+         * Disables preclear workaround for JVM crash. This will speedup inserts on mmap files, if store is expanded.
+         * As sideffect JVM might crash if there is not enough free space.
+         * TODO document more, links
+         * </p>
+         * @return this builder
+         */
+        fun fileMmapPreclearDisable():Maker{
+            _fileMmapPreclearDisable = true
+            return this;
+        }
+
+        /**
+         * <p>
+         * MapDB needs exclusive lock over storage file it is using.
+         * When single file is used by multiple DB instances at the same time, storage file gets quickly corrupted.
+         * To prevent multiple opening MapDB uses {@link FileChannel#lock()}.
+         * If file is already locked, opening it fails with {@link DBException.FileLocked}
+         * </p><p>
+         * In some cases file might remain locked, if DB is not closed correctly or JVM crashes.
+         * This option disables exclusive file locking. Use it if you have troubles to reopen files
+         *
+         * </p>
+         * @return this builder
+         */
+        fun fileLockDisable():Maker{
+            assertFile()
+            _fileLockDisable = true
+            return this;
+        }
+
+        /**
+         * Enable Memory Mapped Files only if current JVM supports it (is 64bit).
+         */
+        fun fileMmapEnableIfSupported():Maker{
+            assertFile()
+            _fileMmapfIfSupported = true
+            return this;
+        }
+
+        /**
+         * Enable FileChannel access. By default MapDB uses {@link java.io.RandomAccessFile}.
+         * whic is slower and more robust. but does not allow concurrent access (parallel read and writes). RAF is still thread-safe
+         * but has global lock.
+         * FileChannel does not have global lock, and is faster compared to RAF. However memory-mapped files are
+         * probably best choice.
+         */
+        fun fileChannelEnable():Maker{
+            assertFile()
+            storeType = StoreType.fileChannel
+            return this;
+        }
+
 
         fun make():DB{
             var storeOpened = false
 
             val concShift = DataIO.shift(DataIO.nextPowTwo(_concurrencyScale))
 
+            var storeType2 = storeType
+            if(_fileMmapfIfSupported && DataIO.JVMSupportsLargeMappedFiles()){
+                storeType2 = StoreType.fileMMap
+            }
 
-            val volfab = when(storeType){
+            var volfab = when(storeType2){
                 StoreType.onheap -> null
                 StoreType.bytearray -> ByteArrayVol.FACTORY
-                StoreType.directbuffer -> ByteBufferMemoryVol.FACTORY //TODO cleaner hack
-                StoreType.ondisk -> RandomAccessFileVol.FACTORY //TODO mmap, filechannel etc
+                StoreType.directbuffer -> if(_cleanerHack) ByteBufferMemoryVol.FACTORY_WITH_CLEANER_HACK else ByteBufferMemoryVol.FACTORY
+                StoreType.fileRaf -> RandomAccessFileVol.FACTORY
+                StoreType.fileChannel -> FileChannelVol.FACTORY
+                StoreType.fileMMap -> MappedFileVol.MappedFileFactory(_cleanerHack, _fileMmapPreclearDisable)
             }
 
             val store = if(storeType== StoreType.onheap){
@@ -243,30 +363,6 @@ object DBMaker{
                                isThreadSafe = _isThreadSafe )
                     }
                 }
-            //
-//            val store = when(storeType){
-//                StoreType.onheap -> StoreOnHeap()
-//                StoreType.directbuffer -> {
-//                    val volumeFactory =
-//                            if(volume==null){
-//                                if(file==null) CC.DEFAULT_MEMORY_VOLUME_FACTORY else CC.DEFAULT_FILE_VOLUME_FACTORY
-//                            }else {
-//                                VolumeFactory.wrap(volume, volumeExist!!)
-//                            }
-//                    if(_transactionEnable.not())
-//                        StoreDirect.make(volumeFactory=volumeFactory, allocateStartSize=_allocateStartSize, deleteFilesAfterClose = _deleteFilesAfterClose)
-//                    else
-//                        StoreWAL.make(volumeFactory=volumeFactory, allocateStartSize=_allocateStartSize, deleteFilesAfterClose = _deleteFilesAfterClose)
-//                }
-//                StoreType.ondisk -> {
-//                    val volumeFactory = MappedFileVol.FACTORY
-//                    storeOpened = volumeFactory.exists(file)
-//                    if(_transactionEnable.not())
-//                        StoreDirect.make(file=file, volumeFactory=volumeFactory, allocateStartSize=_allocateStartSize, deleteFilesAfterClose = _deleteFilesAfterClose)
-//                    else
-//                        StoreWAL.make(file=file, volumeFactory=volumeFactory, allocateStartSize=_allocateStartSize, deleteFilesAfterClose = _deleteFilesAfterClose)
-//                }
-//            }
 
             return DB(store=store, storeOpened = storeOpened, isThreadSafe = _isThreadSafe)
         }

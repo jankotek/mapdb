@@ -567,4 +567,26 @@ public final class DataIO {
     public static int shift(int value) {
         return 31-Integer.numberOfLeadingZeros(value);
     }
+
+
+    /**
+     * Check if large files can be mapped into memory.
+     * For example 32bit JVM can only address 2GB and large files can not be mapped,
+     * so for 32bit JVM this function returns false.
+     *
+     */
+    static boolean JVMSupportsLargeMappedFiles() {
+        String arch = System.getProperty("os.arch");
+        if(arch==null || !arch.contains("64")) {
+            return false;
+        }
+
+        String os = System.getProperty("os.name");
+        if(os==null || os.toLowerCase().startsWith("windows")){
+            return false;
+        }
+        //TODO better check for 32bit JVM
+        return true;
+    }
+
 }

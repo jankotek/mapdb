@@ -2,6 +2,9 @@ package org.mapdb
 
 import org.junit.Assert.*
 import org.junit.Test
+import org.mapdb.volume.FileChannelVol
+import org.mapdb.volume.MappedFileVol
+import org.mapdb.volume.RandomAccessFileVol
 
 
 class DBMakerTest{
@@ -34,5 +37,39 @@ class DBMakerTest{
         assertFalse(db.store.isThreadSafe)
         assertFalse(db.hashMap("aa1").create().threadSafe)
         assertFalse(db.treeMap("aa2").create().threadSafe)
+    }
+
+    @Test fun raf(){
+        val file = TT.tempFile()
+        val db = DBMaker.fileDB(file).make()
+        assertTrue((db.store as StoreDirect).volumeFactory == RandomAccessFileVol.FACTORY)
+        file.delete()
+    }
+
+    @Test fun channel(){
+        val file = TT.tempFile()
+        val db = DBMaker.fileDB(file).fileChannelEnable().make()
+        assertTrue((db.store as StoreDirect).volumeFactory == FileChannelVol.FACTORY)
+        file.delete()
+    }
+
+
+    @Test fun mmap(){
+        val file = TT.tempFile()
+        val db = DBMaker.fileDB(file).fileMmapEnable().make()
+        assertTrue((db.store as StoreDirect).volumeFactory is MappedFileVol.MappedFileFactory)
+        file.delete()
+    }
+
+
+    @Test fun mmap_if_supported(){
+        val file = TT.tempFile()
+        val db = DBMaker.fileDB(file).fileChannelEnable().fileMmapEnableIfSupported().make()
+        if(DataIO.JVMSupportsLargeMappedFiles())
+            assertTrue((db.store as StoreDirect).volumeFactory is MappedFileVol.MappedFileFactory)
+        else
+            assertTrue((db.store as StoreDirect).volumeFactory == FileChannelVol.FACTORY)
+
+        file.delete()
     }
 }
