@@ -28,6 +28,11 @@ public final class SingleByteArrayVol extends Volume {
         public boolean exists(@Nullable String file) {
             return false;
         }
+
+        @Override
+        public boolean handlesReadonly() {
+            return false;
+        }
     };
 
     protected final byte[] data;
@@ -160,6 +165,11 @@ public final class SingleByteArrayVol extends Volume {
     @Override
     public long length() {
         return data.length;
+    }
+
+    @Override
+    public boolean isReadOnly() {
+        return false;
     }
 
     @Override

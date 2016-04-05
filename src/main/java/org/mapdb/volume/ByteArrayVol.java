@@ -30,6 +30,11 @@ public final class ByteArrayVol extends Volume {
         public boolean exists(@Nullable String file) {
             return false;
         }
+
+        @Override
+        public boolean handlesReadonly() {
+            return false;
+        }
     };
 
     protected final ReentrantLock growLock = new ReentrantLock();
@@ -292,6 +297,11 @@ public final class ByteArrayVol extends Volume {
     @Override
     public long length() {
         return ((long) slices.length) * sliceSize;
+    }
+
+    @Override
+    public boolean isReadOnly() {
+        return false;
     }
 
     @Override

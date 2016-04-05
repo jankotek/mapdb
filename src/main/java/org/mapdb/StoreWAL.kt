@@ -34,6 +34,8 @@ class StoreWAL(
         @JvmStatic fun make(
                 file:String?= null,
                 volumeFactory: VolumeFactory = if(file==null) CC.DEFAULT_MEMORY_VOLUME_FACTORY else CC.DEFAULT_FILE_VOLUME_FACTORY,
+                readOnly:Boolean = false,
+
                 isThreadSafe:Boolean = true,
                 concShift:Int = CC.STORE_DIRECT_CONC_SHIFT,
                 allocateStartSize: Long = 0L,
@@ -78,6 +80,8 @@ class StoreWAL(
     protected var indexPagesBackup = longArrayOf();
 
     protected val allocatedPages = LongArrayList();
+
+    override val isReadOnly = false
 
 
     init{

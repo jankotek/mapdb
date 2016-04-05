@@ -36,8 +36,14 @@ public abstract class VolumeFactory {
             public boolean exists(@Nullable String file) {
                 return exists;
             }
+
+            @Override
+            public boolean handlesReadonly() {
+                return false;
+            }
         };
     }
 
 
+    public abstract boolean handlesReadonly();
 }

@@ -38,6 +38,8 @@ interface Store: StoreImmutable, Verifiable {
     val isThreadSafe:Boolean;
 
     override fun verify()
+
+    val isReadOnly: Boolean
 }
 
 /**

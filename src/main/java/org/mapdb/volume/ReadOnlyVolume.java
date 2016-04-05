@@ -151,6 +151,11 @@ public final class ReadOnlyVolume extends Volume {
     }
 
     @Override
+    public boolean isReadOnly() {
+        return true;
+    }
+
+    @Override
     public File getFile() {
         return vol.getFile();
     }

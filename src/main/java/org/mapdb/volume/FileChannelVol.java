@@ -38,6 +38,11 @@ public final class FileChannelVol extends Volume {
             return new File(file).exists();
         }
 
+        @Override
+        public boolean handlesReadonly() {
+            return true;
+        }
+
     };
 
     protected final File file;
@@ -317,6 +322,11 @@ public final class FileChannelVol extends Volume {
         } catch (IOException e) {
             throw new DBException.VolumeIOError(e);
         }
+    }
+
+    @Override
+    public boolean isReadOnly() {
+        return readOnly;
     }
 
     @Override

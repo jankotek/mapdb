@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicLong
 class StoreDirect(
         file:String?,
         volumeFactory: VolumeFactory,
-        val readOnly:Boolean,
+        override val isReadOnly:Boolean,
         isThreadSafe:Boolean,
         concShift:Int,
         allocateStartSize:Long,
@@ -34,7 +34,7 @@ class StoreDirect(
         fun make(
                 file:String?= null,
                 volumeFactory: VolumeFactory = if(file==null) CC.DEFAULT_MEMORY_VOLUME_FACTORY else CC.DEFAULT_FILE_VOLUME_FACTORY,
-                readOnly:Boolean = false,
+                isReadOnly:Boolean = false,
                 isThreadSafe:Boolean = true,
                 concShift:Int = CC.STORE_DIRECT_CONC_SHIFT,
                 allocateStartSize: Long = 0L,
@@ -42,7 +42,7 @@ class StoreDirect(
         ) = StoreDirect(
             file = file,
             volumeFactory = volumeFactory,
-            readOnly = readOnly,
+            isReadOnly = isReadOnly,
             isThreadSafe = isThreadSafe,
             concShift = concShift,
             allocateStartSize = allocateStartSize,
@@ -53,7 +53,7 @@ class StoreDirect(
     protected val freeSize = AtomicLong(-1L)
 
     override protected val volume: Volume = {
-        volumeFactory.makeVolume(file, readOnly, false, CC.PAGE_SHIFT,
+        volumeFactory.makeVolume(file, isReadOnly, false, CC.PAGE_SHIFT,
                 roundUp(allocateStartSize, CC.PAGE_SIZE), false)
     }()
 

@@ -108,6 +108,10 @@ open class DB(
 
     init{
         if(storeOpened.not()){
+            //create new structure
+            if(store.isReadOnly){
+                throw DBException.WrongConfiguration("Can not create new store in read-only mode")
+            }
             //preallocate 16 recids
             val nameCatalogRecid = store.put(TreeMap<String, String>(), NAME_CATALOG_SERIALIZER)
             if(RECID_NAME_CATALOG != nameCatalogRecid)

@@ -51,6 +51,11 @@ public final class ByteBufferMemoryVolSingle extends ByteBufferVolSingle {
     }
 
     @Override
+    public boolean isReadOnly() {
+        return false;
+    }
+
+    @Override
     public File getFile() {
         return null;
     }

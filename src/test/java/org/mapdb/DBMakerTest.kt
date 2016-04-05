@@ -5,7 +5,7 @@ import org.junit.Test
 import org.mapdb.volume.FileChannelVol
 import org.mapdb.volume.MappedFileVol
 import org.mapdb.volume.RandomAccessFileVol
-
+import org.mapdb.StoreAccess.*
 
 class DBMakerTest{
 
@@ -71,5 +71,35 @@ class DBMakerTest{
             assertTrue((db.store as StoreDirect).volumeFactory == FileChannelVol.FACTORY)
 
         file.delete()
+    }
+
+
+    @Test fun readonly_vol(){
+        val f = TT.tempFile()
+        //fill with content
+        var db = DBMaker.fileDB(f).make()
+        db.atomicInteger("aa",1)
+        db.close()
+
+        fun checkReadOnly(){
+            assertTrue(((db.store) as StoreDirect).volume.isReadOnly)
+            TT.assertFailsWith(UnsupportedOperationException::class.java){
+                db.hashMap("zz")
+            }
+        }
+
+        db = DBMaker.fileDB(f).readOnly().make()
+        checkReadOnly()
+        db.close()
+
+        db = DBMaker.fileDB(f).readOnly().fileChannelEnable().make()
+        checkReadOnly()
+        db.close()
+
+        db = DBMaker.fileDB(f).readOnly().fileMmapEnable().make()
+        checkReadOnly()
+        db.close()
+
+        f.delete()
     }
 }

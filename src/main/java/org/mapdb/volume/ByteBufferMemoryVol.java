@@ -32,6 +32,11 @@ public final class ByteBufferMemoryVol extends ByteBufferVol {
         public boolean exists(@Nullable String file) {
             return false;
         }
+
+        @Override
+        public boolean handlesReadonly() {
+            return false;
+        }
     };
 
 
@@ -48,6 +53,11 @@ public final class ByteBufferMemoryVol extends ByteBufferVol {
         @NotNull
         @Override
         public boolean exists(@Nullable String file) {
+            return false;
+        }
+
+        @Override
+        public boolean handlesReadonly() {
             return false;
         }
     };
@@ -160,6 +170,11 @@ public final class ByteBufferMemoryVol extends ByteBufferVol {
     @Override
     public long length() {
         return ((long) slices.length) * sliceSize;
+    }
+
+    @Override
+    public boolean isReadOnly() {
+        return readOnly;
     }
 
     @Override

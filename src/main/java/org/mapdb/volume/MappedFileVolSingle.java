@@ -36,6 +36,11 @@ public final class MappedFileVolSingle extends ByteBufferVolSingle {
             return new File(file).exists();
         }
 
+        @Override
+        public boolean handlesReadonly() {
+            return true;
+        }
+
     };
 
     protected final static VolumeFactory FACTORY_WITH_CLEANER_HACK = new VolumeFactory() {
@@ -55,6 +60,11 @@ public final class MappedFileVolSingle extends ByteBufferVolSingle {
         @Override
         public boolean exists(@Nullable String file) {
             return new File(file).exists();
+        }
+
+        @Override
+        public boolean handlesReadonly() {
+            return true;
         }
 
     };
@@ -137,6 +147,11 @@ public final class MappedFileVolSingle extends ByteBufferVolSingle {
     @Override
     public long length() {
         return file.length();
+    }
+
+    @Override
+    public boolean isReadOnly() {
+        return readOnly;
     }
 
     @Override

@@ -44,6 +44,11 @@ public final class MappedFileVol extends ByteBufferVol {
             return new File(file).exists();
         }
 
+        @Override
+        public boolean handlesReadonly() {
+            return true;
+        }
+
         private static Volume factory(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift,
                                       boolean cleanerHackEnabled, long initSize, boolean preclearDisabled) {
             File f = new File(file);
@@ -225,6 +230,11 @@ public final class MappedFileVol extends ByteBufferVol {
     @Override
     public long length() {
         return file.length();
+    }
+
+    @Override
+    public boolean isReadOnly() {
+        return readOnly;
     }
 
     @Override

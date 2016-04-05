@@ -138,5 +138,6 @@ class StoreOnHeap(
     override fun verify() {
     }
 
+    override val isReadOnly = false
 }
 

@@ -32,14 +32,21 @@ public final class RandomAccessFileVol extends Volume {
             return new File(file).exists();
         }
 
+        @Override
+        public boolean handlesReadonly() {
+            return true;
+        }
+
     };
     protected final File file;
     protected final RandomAccessFile raf;
     protected final FileLock fileLock;
+    protected final boolean readOnly;
 
 
     public RandomAccessFileVol(File file, boolean readOnly, boolean fileLockDisable, long initSize) {
         this.file = file;
+        this.readOnly = readOnly;
         try {
             this.raf = new RandomAccessFile(file, readOnly ? "r" : "rw"); //TODO rwd, rws? etc
             this.fileLock = Volume.lockFile(file, raf, readOnly, fileLockDisable);
@@ -378,6 +385,11 @@ public final class RandomAccessFileVol extends Volume {
             throw new DBException.VolumeIOError(e);
         }
 
+    }
+
+    @Override
+    public boolean isReadOnly() {
+        return readOnly;
     }
 
 }

@@ -2,6 +2,7 @@ package org.mapdb
 
 import org.mapdb.volume.*
 import java.io.File
+import java.lang.ref.WeakReference
 
 
 /**
@@ -85,7 +86,7 @@ object DBMaker{
 
 
     @JvmStatic fun onVolume(volume: Volume, volumeExists: Boolean): Maker {
-        return Maker(storeType = StoreType.directbuffer, volume=volume, volumeExist=volumeExists)
+        return Maker(_storeType = StoreType.directbuffer, volume=volume, volumeExist=volumeExists)
     }
 
 
@@ -124,7 +125,7 @@ object DBMaker{
 
 
     class Maker(
-            private var storeType:StoreType,
+            private var _storeType:StoreType,
             private val volume: Volume?=null,
             private val volumeExist:Boolean?=null,
             private val file:String?=null){
@@ -138,6 +139,8 @@ object DBMaker{
         private var _fileMmapPreclearDisable = false
         private var _fileLockDisable = false
         private var _fileMmapfIfSupported = false
+        private var _closeOnJvmShutdown = false
+        private var _readOnly = false
 
         fun transactionEnable():Maker{
             _transactionEnable = true
@@ -217,7 +220,7 @@ object DBMaker{
 //        }
 
         protected fun assertFile(){
-            if((storeType in arrayOf(StoreType.fileRaf, StoreType.fileMMap, StoreType.fileChannel)).not())
+            if((_storeType in arrayOf(StoreType.fileRaf, StoreType.fileMMap, StoreType.fileChannel)).not())
                 throw DBException.WrongConfiguration("File related options are not allowed for in-memory store")
         }
 
@@ -233,7 +236,7 @@ object DBMaker{
          */
         fun fileMmapEnable():Maker{
             assertFile()
-            storeType = StoreType.fileMMap
+            _storeType = StoreType.fileMMap
             return this;
         }
 
@@ -321,17 +324,37 @@ object DBMaker{
          */
         fun fileChannelEnable():Maker{
             assertFile()
-            storeType = StoreType.fileChannel
+            _storeType = StoreType.fileChannel
             return this;
         }
 
+        /**
+         * Adds JVM shutdown hook and closes DB just before JVM;
+         *
+         * @return this builder
+         */
+        fun closeOnJvmShutdown():Maker{
+            _closeOnJvmShutdown = true
+            return this;
+        }
+
+        /**
+         * Open store in read-only mode. Any modification attempt will throw
+         * <code>UnsupportedOperationException("Read-only")</code>
+         *
+         * @return this builder
+         */
+        fun readOnly():Maker{
+            _readOnly = true
+            return this
+        }
 
         fun make():DB{
             var storeOpened = false
 
             val concShift = DataIO.shift(DataIO.nextPowTwo(_concurrencyScale))
 
-            var storeType2 = storeType
+            var storeType2 = _storeType
             if(_fileMmapfIfSupported && DataIO.JVMSupportsLargeMappedFiles()){
                 storeType2 = StoreType.fileMMap
             }
@@ -345,13 +368,20 @@ object DBMaker{
                 StoreType.fileMMap -> MappedFileVol.MappedFileFactory(_cleanerHack, _fileMmapPreclearDisable)
             }
 
-            val store = if(storeType== StoreType.onheap){
-                    StoreOnHeap()
+            if(_readOnly && volfab!=null && volfab.handlesReadonly().not())
+                volfab = ReadOnlyVolumeFactory(volfab)
+
+            var store = if(_storeType == StoreType.onheap){
+                    if(_readOnly)
+                        StoreReadOnlyWrapper(StoreOnHeap())
+                    else
+                        StoreOnHeap()
                 }else {
                     storeOpened = volfab!!.exists(file)
-                    if (_transactionEnable.not()) {
+                    if (_transactionEnable.not() || _readOnly) {
                        StoreDirect.make(file = file, volumeFactory = volfab!!,
                                allocateStartSize = _allocateStartSize,
+                               isReadOnly = _readOnly,
                                deleteFilesAfterClose = _deleteFilesAfterClose,
                                concShift = concShift,
                                isThreadSafe = _isThreadSafe )
@@ -359,12 +389,24 @@ object DBMaker{
                        StoreWAL.make(file = file, volumeFactory = volfab!!,
                                allocateStartSize = _allocateStartSize,
                                deleteFilesAfterClose = _deleteFilesAfterClose,
+                               readOnly = _readOnly,
                                concShift = concShift,
                                isThreadSafe = _isThreadSafe )
                     }
                 }
 
-            return DB(store=store, storeOpened = storeOpened, isThreadSafe = _isThreadSafe)
+            val db =  DB(store=store, storeOpened = storeOpened, isThreadSafe = _isThreadSafe)
+            if(_closeOnJvmShutdown) {
+                val weakDB = WeakReference(db)
+                Runtime.getRuntime().addShutdownHook(object:Thread(){
+                    override fun run() {
+                        val db = weakDB.get()
+                        if(db!=null && db.isClosed().not())
+                            db.close()
+                    }
+                })
+            }
+            return db
         }
     }
 

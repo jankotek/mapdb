@@ -134,6 +134,11 @@ public abstract class Volume implements Closeable{
         public boolean exists(@Nullable String file) {
             return false;
         }
+
+        @Override
+        public boolean handlesReadonly() {
+            return false; //TODO unsafe and reaodnly
+        }
     };
 
     protected volatile boolean closed;
@@ -299,6 +304,7 @@ public abstract class Volume implements Closeable{
         return (pos2<<60) | ret;
     }
 
+    abstract public boolean isReadOnly();
 
     /** returns underlying file if it exists */
     abstract public File getFile();
