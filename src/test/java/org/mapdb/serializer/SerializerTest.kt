@@ -361,6 +361,17 @@ class Serializer_RECID_ARRAY: GroupSerializerTest<LongArray>(){
 class Serializer_BYTE_ARRAY: GroupSerializerTest<ByteArray>(){
     override fun randomValue() = TT.randomByteArray(random.nextInt(50))
     override val serializer = Serializer.BYTE_ARRAY
+
+    @Test fun next_val(){
+        fun check(b1:ByteArray?, b2:ByteArray?){
+            assertArrayEquals(b1, Serializer.BYTE_ARRAY.nextValue(b2))
+        }
+
+        check(byteArrayOf(1,1), byteArrayOf(1,0))
+        check(byteArrayOf(2), byteArrayOf(1))
+        check(byteArrayOf(2,0), byteArrayOf(1,-1))
+        check(null, byteArrayOf(-1,-1))
+    }
 }
 
 

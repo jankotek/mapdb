@@ -1,6 +1,7 @@
 package org.mapdb
 
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet
+import org.junit.Assert
 import org.junit.Test
 import org.mapdb.BTreeMapJava.*
 import org.mapdb.serializer.GroupSerializer
@@ -820,6 +821,31 @@ class BTreeMapTest {
         for(key in 51..70){
             checkNode(key, 50)
         }
+    }
+
+    @Test fun prefix_submap(){
+        val map = BTreeMap.make(
+                keySerializer = Serializer.BYTE_ARRAY,
+                valueSerializer = Serializer.BYTE_ARRAY)
+        for(b1 in Byte.MIN_VALUE..Byte.MAX_VALUE)
+        for(b2 in Byte.MIN_VALUE..Byte.MAX_VALUE){
+            val b = byteArrayOf(b1.toByte(),b2.toByte())
+            map.put(b,b)
+        }
+
+        val prefixSubmap = map.prefixSubMap(byteArrayOf(4))
+        assertEquals(256, prefixSubmap.size)
+        val iter = prefixSubmap.keys.iterator()
+        for(i in 0..127){
+            assertTrue(iter.hasNext())
+            Assert.assertArrayEquals(byteArrayOf(4, (i  and 0xFF).toByte()), iter.next())
+        }
+
+        for(i in -128..-1){
+            assertTrue(iter.hasNext())
+            Assert.assertArrayEquals(byteArrayOf(4, (i  and 0xFF).toByte()), iter.next())
+        }
+        assertFalse(iter.hasNext())
     }
 
 }

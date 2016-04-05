@@ -142,4 +142,21 @@ public class SerializerByteArray implements GroupSerializer<byte[]> {
         System.arraycopy(vals, pos, vals2, pos-1, vals2.length-(pos-1));
         return vals2;
     }
+
+    @Override
+    public byte[] nextValue(byte[] value) {
+        value = value.clone();
+
+        for (int i = value.length-1; ;i--) {
+            int b1 = value[i] & 0xFF;
+            if(b1==255){
+                if(i==0)
+                    return null;
+                value[i]=0;
+                continue;
+            }
+            value[i] = (byte) ((b1+1)&0xFF);
+            return value;
+        }
+    }
 }
