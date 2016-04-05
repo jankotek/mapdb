@@ -7,7 +7,8 @@ import java.nio.channels.FileChannel
 import java.nio.file.StandardOpenOption
 import org.junit.Assert.*
 import org.mapdb.DataIO
-import org.mapdb.crash.CrashJVM
+import org.mapdb.TT
+
 
 /**
  * Created by jan on 3/16/16.
@@ -55,6 +56,8 @@ class WALChannelCrashTest: CrashJVM(){
     }
 
     @Test fun run(){
+        if(TT.shortTest())
+            return
         run(this, killDelay = 300)
     }
 }
