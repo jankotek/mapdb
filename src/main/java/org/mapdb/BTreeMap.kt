@@ -1697,14 +1697,17 @@ class BTreeMap<K,V>(
         return ret
     }
 
+    fun prefixSubMap(prefix:K): ConcurrentNavigableMap<K, V> {
+        return prefixSubMap(prefix, true)
+    }
 
-    fun prefixSubMap(prefix:K): ConcurrentNavigableMap<K, V>{
+    fun prefixSubMap(prefix:K, inclusive:Boolean): ConcurrentNavigableMap<K, V>{
         if(prefix==null)
             throw NullPointerException()
         if(comparator!=keySerializer)
             throw UnsupportedOperationException("prefixSubMap is not supported with custom comparators")
         val hiKey = keySerializer.nextValue(prefix)
-        return SubMap(this, prefix, true, hiKey, false)
+        return SubMap(this, prefix, inclusive, hiKey, false)
     }
 
     override fun subMap(fromKey: K?,
