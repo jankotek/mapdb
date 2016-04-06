@@ -109,8 +109,8 @@ abstract class StoreDirectAbstract(
             if(calculateChecksum()!=checksumFromHeader)
                 throw DBException.DataCorruption("Wrong checksum in header")
         }else{
-            if(0L!=checksumFromHeader)
-                throw DBException.DataCorruption("Checksum is disabled, expected 0, got something else")
+            if(1L!=checksumFromHeader)
+                throw DBException.DataCorruption("Checksum is disabled, expected 1, got something else")
         }
     }
 
@@ -345,8 +345,8 @@ abstract class StoreDirectAbstract(
 
     fun calculateChecksum():Long {
         var checksum = volume.getLong(0) + volume.hash(16, fileTail - 16, 0L)
-        if(checksum==0L)
-            checksum=1
+        if(checksum==0L||checksum==1L)
+            checksum=2
         return checksum
     }
 

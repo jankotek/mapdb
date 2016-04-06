@@ -94,6 +94,7 @@ class StoreWAL(
                 realVolume.ensureAvailable(CC.PAGE_SIZE)
                 //TODO crash resistance while file is being created
                 headVol.putLong(0L, fileHeaderCompose())
+                headVol.putLong(8L, 1L)
                 dataTail = 0L
                 maxRecid = 0L
                 fileTail = CC.PAGE_SIZE

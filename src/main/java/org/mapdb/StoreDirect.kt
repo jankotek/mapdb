@@ -70,6 +70,7 @@ class StoreDirect(
                 //initialize values
                 volume.ensureAvailable(CC.PAGE_SIZE)
                 volume.putLong(0L, fileHeaderCompose())
+                volume.putLong(8L, 1L)
                 dataTail = 0L
                 maxRecid = 0L
                 fileTail = CC.PAGE_SIZE

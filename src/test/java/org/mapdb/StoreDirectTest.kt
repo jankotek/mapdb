@@ -414,7 +414,7 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
         store.close()
 
         //checksum is not enabled
-        assertEquals(0L, vol.getLong(8))
+        assertEquals(1L, vol.getLong(8))
         val i = vol.getInt(4)
         assertEquals(0, i.ushr(CC.FEAT_CHECKSUM_SHIFT) and CC.FEAT_CHECKSUM_MASK)
 
