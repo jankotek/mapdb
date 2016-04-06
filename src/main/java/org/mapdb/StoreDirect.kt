@@ -84,12 +84,11 @@ class StoreDirect(
 
                 commit()
             } else {
-                fileHeaderCheck(volume.getLong(0L))
+                fileHeaderCheck()
                 loadIndexPages(indexPages)
             }
         }
     }
-
 
     override protected fun getIndexVal(recid:Long):Long{
         if(CC.PARANOID) //should be ASSERT, but this method is accessed way too often
@@ -787,7 +786,11 @@ class StoreDirect(
     override fun commit() {
         assertNotClosed()
         //update checksum
-        if(!isReadOnly && checksum) {
+        if(isReadOnly)
+            return
+
+        volume.putInt(20, calculateHeaderChecksum())
+        if(checksum) {
             volume.putLong(8, calculateChecksum())
         }
 
@@ -800,8 +803,11 @@ class StoreDirect(
             return
 
         //update checksum
-        if(!isReadOnly && checksum) {
-            volume.putLong(8, calculateChecksum())
+        if(!isReadOnly) {
+            volume.putInt(20, calculateHeaderChecksum())
+            if (checksum) {
+                volume.putLong(8, calculateChecksum())
+            }
         }
 
         closed = true;

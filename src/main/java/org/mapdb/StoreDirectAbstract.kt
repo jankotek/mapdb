@@ -86,12 +86,16 @@ abstract class StoreDirectAbstract(
             headVol.putLong(StoreDirectJava.FILE_TAIL_OFFSET, DataIO.parity16Set(v))
         }
 
-    protected fun fileHeaderCheck(header:Long){
+    protected fun fileHeaderCheck(){
+        val header = headVol.getLong(0)
         if(header.ushr(7*8)!=CC.FILE_HEADER){
             throw DBException.WrongFormat("Wrong file header, not MapDB file")
         }
         if(header.ushr(6*8) and 0xFF!=CC.FILE_TYPE_STOREDIRECT)
             throw DBException.WrongFormat("Wrong file header, not StoreDirect file")
+
+        if(headVol.getInt(20)!=calculateHeaderChecksum())
+            throw DBException.DataCorruption("Header checksum broken. Store was not closed correctly, or is corrupted")
 
         //fails if checksum is enabled, but not in header
         val checksumFeature = header.toInt().ushr(CC.FEAT_CHECKSUM_SHIFT) and CC.FEAT_CHECKSUM_MASK
@@ -104,7 +108,7 @@ abstract class StoreDirectAbstract(
         }
         if(checksumFeature!=0 && this is StoreWAL)
             throw DBException.WrongConfiguration("StoreWAL does not support checksum")
-        val checksumFromHeader = volume.getLong(8)
+        val checksumFromHeader = headVol.getLong(8)
         if(checksum){
             if(calculateChecksum()!=checksumFromHeader)
                 throw DBException.DataCorruption("Wrong checksum in header")
@@ -348,6 +352,13 @@ abstract class StoreDirectAbstract(
         if(checksum==0L||checksum==1L)
             checksum=2
         return checksum
+    }
+
+    fun calculateHeaderChecksum():Int{
+        var c = StoreDirectJava.HEAD_CHECKSUM_SEED
+        for(offset in 24 until StoreDirectJava.HEAD_END step 4)
+            c+=headVol.getInt(offset)
+        return c
     }
 
 }

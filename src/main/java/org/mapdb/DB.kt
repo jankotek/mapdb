@@ -1130,6 +1130,8 @@ open class DB(
                     return ret;
                 }
 
+                if(db.store.isReadOnly)
+                    throw UnsupportedOperationException("Read-only")
                 catalog.put(name+Keys.type,type)
                 val ret = create2(catalog)
                 db.nameCatalogSave(catalog)

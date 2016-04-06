@@ -15,6 +15,7 @@ final class StoreDirectJava {
     static final long MUNUSED   = 0x4L;
     static final long MARCHIVE  = 0x2L;
 
+    static final int HEAD_CHECKSUM_SEED = 1142099053;
 
     static final long HEADER_CHECKSUM   = 2*8; //TODO benchmarks
     static final long DATA_TAIL_OFFSET  = 3*8;

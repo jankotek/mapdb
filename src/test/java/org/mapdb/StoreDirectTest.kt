@@ -17,6 +17,7 @@ import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReadWriteLock
 import org.mapdb.StoreAccess.*
 import org.mapdb.volume.SingleByteArrayVol
+import java.io.RandomAccessFile
 
 class StoreDirectTest:StoreDirectAbstractTest(){
 
@@ -466,6 +467,43 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
         TT.assertFailsWith(DBException.DataCorruption::class.java){
             StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol,true), checksum=true)
         }
+    }
+
+    @Test fun header_checksum(){
+        val f = TT.tempFile()
+        val store = openStore(f)
+
+        fun check(){
+            val raf = RandomAccessFile(f,"r")
+
+            var c = StoreDirectJava.HEAD_CHECKSUM_SEED
+            for(offset in 24 until StoreDirectJava.HEAD_END step 4) {
+                raf.seek(offset)
+                c += raf.readInt()
+            }
+            raf.seek(20)
+            assertEquals(c, raf.readInt())
+        }
+
+        check()
+
+        store.put(1, Serializer.INTEGER)
+        store.commit()
+
+        check()
+
+        //corrupt it and reopen
+        store.close()
+
+        val raf = RandomAccessFile(f,"rw")
+        raf.seek(20)
+        raf.writeInt(111)
+        raf.close()
+        TT.assertFailsWith(DBException.DataCorruption::class.java){
+            openStore(f)
+        }
+
+        f.delete()
 
     }
 }

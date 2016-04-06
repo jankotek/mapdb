@@ -103,6 +103,8 @@ class StoreWAL(
                 for (offset in StoreDirectJava.RECID_LONG_STACK until StoreDirectJava.HEAD_END step 8) {
                     headVol.putLong(offset, parity4Set(0L))
                 }
+                DataIO.putInt(headBytes,20, calculateHeaderChecksum())
+
                 //initialize zero link from first page
                 //this is outside header
                 realVolume.putLong(StoreDirectJava.ZERO_PAGE_LINK, parity16Set(0L))
@@ -111,11 +113,11 @@ class StoreWAL(
                 realVolume.putData(0L, headBytes,0, headBytes.size)
                 realVolume.sync()
             } else {
-                fileHeaderCheck(volume.getLong(0L))
+                volume.getData(0, headBytes, 0, headBytes.size)
+                fileHeaderCheck()
 
                 loadIndexPages(indexPages)
                 indexPagesBackup = indexPages.toArray()
-                volume.getData(0, headBytes, 0, headBytes.size)
             }
         }
     }
@@ -527,6 +529,7 @@ class StoreWAL(
     }
 
     override fun commit() {
+        DataIO.putInt(headBytes,20, calculateHeaderChecksum())
         //write index page
         wal.walPutByteArray(0, headBytes, 0, headBytes.size)
         wal.commit()

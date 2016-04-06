@@ -197,6 +197,7 @@ object TT{
     fun <T : Throwable> assertFailsWith(exceptionClass: Class<T>, block: () -> Unit) {
         try {
             block()
+            fail("Expected exception ${exceptionClass.name}")
         } catch (e: Throwable) {
             if (exceptionClass.isInstance(e)) {
                 @Suppress("UNCHECKED_CAST")

@@ -84,7 +84,7 @@ class DBMakerTest{
         fun checkReadOnly(){
             assertTrue(((db.store) as StoreDirect).volume.isReadOnly)
             TT.assertFailsWith(UnsupportedOperationException::class.java){
-                db.hashMap("zz")
+                db.hashMap("zz").create()
             }
         }
 
