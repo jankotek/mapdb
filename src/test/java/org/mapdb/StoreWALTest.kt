@@ -29,4 +29,9 @@ class StoreWALTest: StoreDirectAbstractTest() {
         store.close()
         assertEquals(0, dir.listFiles().size)
     }
+
+    @Test(expected=DBException.WrongConfiguration::class)
+    fun checksum_disabled(){
+        StoreWAL.make(checksum=true)
+    }
 }

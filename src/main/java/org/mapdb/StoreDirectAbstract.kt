@@ -16,7 +16,8 @@ abstract class StoreDirectAbstract(
         val volumeFactory: VolumeFactory,
         override val isThreadSafe:Boolean,
         val concShift:Int,
-        val deleteFilesAfterClose:Boolean
+        val deleteFilesAfterClose:Boolean,
+        val checksum:Boolean
         ):Store{
 
     protected abstract val volume: Volume
@@ -91,10 +92,31 @@ abstract class StoreDirectAbstract(
         }
         if(header.ushr(6*8) and 0xFF!=CC.FILE_TYPE_STOREDIRECT)
             throw DBException.WrongFormat("Wrong file header, not StoreDirect file")
+
+        //fails if checksum is enabled, but not in header
+        val checksumFeature = header.toInt().ushr(CC.FEAT_CHECKSUM_SHIFT) and CC.FEAT_CHECKSUM_MASK
+        if(checksumFeature==0 && checksum)
+            throw DBException.WrongConfiguration("Store was created without checksum, but checksum is enabled in configuration")
+        if(checksumFeature==1 && !checksum)
+            throw DBException.WrongConfiguration("Store was created witht checksum, but checksum is not enabled in configuration")
+        if(checksumFeature>1){
+            throw DBException.NewMapDBFormat("This version of MapDB does not support new checksum type used in store")
+        }
+        if(checksumFeature!=0 && this is StoreWAL)
+            throw DBException.WrongConfiguration("StoreWAL does not support checksum")
+        val checksumFromHeader = volume.getLong(8)
+        if(checksum){
+            if(calculateChecksum()!=checksumFromHeader)
+                throw DBException.DataCorruption("Wrong checksum in header")
+        }else{
+            if(0L!=checksumFromHeader)
+                throw DBException.DataCorruption("Checksum is disabled, expected 0, got something else")
+        }
     }
 
     protected fun fileHeaderCompose():Long{
-        return CC.FILE_HEADER.shl(7*8) + CC.FILE_TYPE_STOREDIRECT.shl(6*8)
+        val checksumFlag: Long = if(checksum)1L.shl(CC.FEAT_CHECKSUM_SHIFT) else 0
+        return CC.FILE_HEADER.shl(7*8) + CC.FILE_TYPE_STOREDIRECT.shl(6*8) + checksumFlag
     }
 
     abstract protected fun getIndexVal(recid:Long):Long;
@@ -320,5 +342,12 @@ abstract class StoreDirectAbstract(
     }
 
     abstract protected fun allocateNewPage():Long
+
+    fun calculateChecksum():Long {
+        var checksum = volume.getLong(0) + volume.hash(16, fileTail - 16, 0L)
+        if(checksum==0L)
+            checksum=1
+        return checksum
+    }
 
 }

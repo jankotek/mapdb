@@ -71,4 +71,7 @@ public interface CC{
     boolean LOG_VOLUME_GCED = false;
 
     int STORE_DIRECT_CONC_SHIFT = 3;
+
+    int FEAT_CHECKSUM_SHIFT = 1;
+    int FEAT_CHECKSUM_MASK = 3;
 }

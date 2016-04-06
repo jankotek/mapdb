@@ -21,32 +21,34 @@ class StoreWAL(
         isThreadSafe:Boolean,
         concShift:Int,
         allocateStartSize:Long,
-        deleteFilesAfterClose:Boolean
+        deleteFilesAfterClose:Boolean,
+        checksum:Boolean
 ):StoreDirectAbstract(
         file=file,
         volumeFactory=volumeFactory,
         isThreadSafe = isThreadSafe,
         concShift =  concShift,
-        deleteFilesAfterClose = deleteFilesAfterClose
+        deleteFilesAfterClose = deleteFilesAfterClose,
+        checksum = checksum
 ), StoreTx{
 
     companion object{
         @JvmStatic fun make(
                 file:String?= null,
                 volumeFactory: VolumeFactory = if(file==null) CC.DEFAULT_MEMORY_VOLUME_FACTORY else CC.DEFAULT_FILE_VOLUME_FACTORY,
-                readOnly:Boolean = false,
-
                 isThreadSafe:Boolean = true,
                 concShift:Int = CC.STORE_DIRECT_CONC_SHIFT,
                 allocateStartSize: Long = 0L,
-                deleteFilesAfterClose:Boolean = false
+                deleteFilesAfterClose:Boolean = false,
+                checksum:Boolean = false
         )=StoreWAL(
                 file = file,
                 volumeFactory = volumeFactory,
                 isThreadSafe = isThreadSafe,
                 concShift = concShift,
                 allocateStartSize = allocateStartSize,
-                deleteFilesAfterClose = deleteFilesAfterClose
+                deleteFilesAfterClose = deleteFilesAfterClose,
+                checksum = checksum
         )
 
         @JvmStatic protected val TOMB1 = -1L;
@@ -85,6 +87,8 @@ class StoreWAL(
 
 
     init{
+        if(checksum)
+            throw DBException.WrongConfiguration("StoreWAL does not support checksum yet") //TODO StoreWAL checksums
         Utils.lock(structuralLock) {
             if (!volumeExistsAtStart) {
                 realVolume.ensureAvailable(CC.PAGE_SIZE)

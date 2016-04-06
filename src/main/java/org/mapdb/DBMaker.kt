@@ -141,6 +141,7 @@ object DBMaker{
         private var _fileMmapfIfSupported = false
         private var _closeOnJvmShutdown = false
         private var _readOnly = false
+        private var _checksumStoreEnable = false
 
         fun transactionEnable():Maker{
             _transactionEnable = true
@@ -307,6 +308,15 @@ object DBMaker{
         }
 
         /**
+         * Enables store wide checksum. Entire file is covered by 64bit checksum to catch possible data corruption.
+         * This could be slow, since entire file is traversed to calculate checksum on store open, commit and close.
+         */
+        fun checksumStoreEnable():Maker{
+            _checksumStoreEnable = true
+            return this
+        }
+
+        /**
          * Enable Memory Mapped Files only if current JVM supports it (is 64bit).
          */
         fun fileMmapEnableIfSupported():Maker{
@@ -384,13 +394,16 @@ object DBMaker{
                                isReadOnly = _readOnly,
                                deleteFilesAfterClose = _deleteFilesAfterClose,
                                concShift = concShift,
+                               checksum = _checksumStoreEnable,
                                isThreadSafe = _isThreadSafe )
                     } else {
+                        if(_checksumStoreEnable)
+                            throw DBException.WrongConfiguration("Checksum is not supported with transaction enabled.")
                        StoreWAL.make(file = file, volumeFactory = volfab!!,
                                allocateStartSize = _allocateStartSize,
                                deleteFilesAfterClose = _deleteFilesAfterClose,
-                               readOnly = _readOnly,
                                concShift = concShift,
+                               checksum = _checksumStoreEnable,
                                isThreadSafe = _isThreadSafe )
                     }
                 }

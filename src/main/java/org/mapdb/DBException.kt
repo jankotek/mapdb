@@ -29,6 +29,11 @@ open class DBException(message: String?, cause: Throwable?) : RuntimeException(m
     open class DataCorruption(msg: String) : DBException(msg);
 
 
+    class NewMapDBFormat(message:String =
+                         "Store uses feature from newer version of MapDB, this MapDB version is old does not support new feature")
+            :DBException(message){
+    }
+
     class PointerChecksumBroken():DataCorruption("Broken bit parity")
 
     class FileLocked(path: Path, exception: Exception):

@@ -102,4 +102,9 @@ class DBMakerTest{
 
         f.delete()
     }
+
+    @Test fun checksumStore(){
+        val db = DBMaker.memoryDB().checksumStoreEnable().make()
+        assertTrue(((db.store) as StoreDirect).checksum)
+    }
 }

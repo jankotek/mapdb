@@ -20,13 +20,15 @@ class StoreDirect(
         isThreadSafe:Boolean,
         concShift:Int,
         allocateStartSize:Long,
-        deleteFilesAfterClose:Boolean
+        deleteFilesAfterClose:Boolean,
+        checksum:Boolean
 ):StoreDirectAbstract(
         file=file,
         volumeFactory=volumeFactory,
         isThreadSafe = isThreadSafe,
         concShift =  concShift,
-        deleteFilesAfterClose=deleteFilesAfterClose
+        deleteFilesAfterClose=deleteFilesAfterClose,
+        checksum = checksum
 ),StoreBinary{
 
 
@@ -38,7 +40,8 @@ class StoreDirect(
                 isThreadSafe:Boolean = true,
                 concShift:Int = CC.STORE_DIRECT_CONC_SHIFT,
                 allocateStartSize: Long = 0L,
-                deleteFilesAfterClose:Boolean = false
+                deleteFilesAfterClose:Boolean = false,
+                checksum:Boolean = false
         ) = StoreDirect(
             file = file,
             volumeFactory = volumeFactory,
@@ -46,7 +49,8 @@ class StoreDirect(
             isThreadSafe = isThreadSafe,
             concShift = concShift,
             allocateStartSize = allocateStartSize,
-            deleteFilesAfterClose = deleteFilesAfterClose
+            deleteFilesAfterClose = deleteFilesAfterClose,
+            checksum = checksum
         )
     }
 
@@ -781,6 +785,11 @@ class StoreDirect(
 
     override fun commit() {
         assertNotClosed()
+        //update checksum
+        if(!isReadOnly && checksum) {
+            volume.putLong(8, calculateChecksum())
+        }
+
         volume.sync()
     }
 
@@ -788,6 +797,11 @@ class StoreDirect(
         //TODO lock this somehow?
         if(closed)
             return
+
+        //update checksum
+        if(!isReadOnly && checksum) {
+            volume.putLong(8, calculateChecksum())
+        }
 
         closed = true;
         volume.close()

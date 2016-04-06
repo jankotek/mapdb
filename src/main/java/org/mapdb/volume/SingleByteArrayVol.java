@@ -48,7 +48,7 @@ public final class SingleByteArrayVol extends Volume {
 
     @Override
     public void ensureAvailable(long offset) {
-        if(offset >= data.length){
+        if(offset > data.length){
             throw new DBException.VolumeMaxSizeExceeded(data.length, offset);
         }
     }
