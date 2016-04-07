@@ -611,9 +611,13 @@ class StoreDirect(
         val oldSize = indexValToSize(oldIndexVal);
         if (oldSize == DELETED_RECORD_SIZE)
             throw DBException.GetVoid(recid)
-        val newUpSize: Long = if (di == null) -16L else roundUp(di.pos.toLong(), 16)
+        fun roundSixDown(size:Long) = if(size<6) 0 else size
+        val newUpSize: Long =
+            if (di == null) -16L
+            else roundUp(roundSixDown(di.pos.toLong()), 16)
         //try to reuse record if possible, if not possible, delete old record and allocate new
-        if ((oldLinked || (newUpSize != roundUp(oldSize, 16)) &&
+        if (oldLinked || (
+                (newUpSize != roundUp(roundSixDown(oldSize), 16)) &&
                 oldSize != NULL_RECORD_SIZE && oldSize > 5L )) {
             Utils.lock(structuralLock) {
                 if (oldLinked) {
@@ -988,7 +992,6 @@ class StoreDirect(
             }
 
             //ensure all data are set
-
             for (index in 0 until max) {
                 if (bit.get(index.toInt()).not()) {
                     var len = 0;

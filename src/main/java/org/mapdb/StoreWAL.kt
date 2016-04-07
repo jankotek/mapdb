@@ -403,10 +403,14 @@ class StoreWAL(
         val oldSize = indexValToSize(oldIndexVal);
         if (oldSize == DELETED_RECORD_SIZE)
             throw DBException.GetVoid(recid)
-        val newUpSize: Long = if (di == null) -16L else roundUp(di.pos.toLong(), 16)
+        fun roundSixDown(size:Long) = if(size<6) 0 else size
+        val newUpSize: Long =
+                if (di == null) -16L
+                else roundUp(roundSixDown(di.pos.toLong()), 16)
         //try to reuse record if possible, if not possible, delete old record and allocate new
-        if ((oldLinked || newUpSize != roundUp(oldSize, 16)) &&
-                oldSize != NULL_RECORD_SIZE && oldSize > 5L ) {
+        if (oldLinked || (
+                (newUpSize != roundUp(roundSixDown(oldSize), 16)) &&
+                oldSize != NULL_RECORD_SIZE && oldSize > 5L )) {
             Utils.lock(structuralLock) {
                 if (oldLinked) {
                     linkedRecordDelete(oldIndexVal,recid)
@@ -436,7 +440,7 @@ class StoreWAL(
         val offset =
                 if(size!=0 && size<6 ){
                     DataIO.getLong(di.buf,0).ushr((7-size)*8)
-                } else if (!oldLinked && newUpSize == roundUp(oldSize, 16) ) {
+                } else if (!oldLinked && newUpSize == roundUp(oldSize, 16) && oldSize>=6 ) {
                     //reuse existing offset
                     indexValToOffset(oldIndexVal)
                 } else if (size == 0) {

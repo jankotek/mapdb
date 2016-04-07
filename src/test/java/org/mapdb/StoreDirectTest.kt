@@ -548,4 +548,61 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
             f.delete()
         }
     }
+
+    @Test fun test_sizes(){
+        if(TT.shortTest())
+            return
+
+        val sizes = TreeSet<Int>()
+        (0..20).forEach { sizes.add(it)}
+        intArrayOf(400,4000,65000, 100000, 1000000).forEach { sizes.add(it) }
+        (StoreDirectJava.MAX_RECORD_SIZE-20 .. StoreDirectJava.MAX_RECORD_SIZE+20).forEach { sizes.add(it.toInt()) }
+
+        val arrays = sizes.map{TT.randomByteArray(it)}
+
+
+        for(a1 in arrays) for(a2 in arrays){
+            val store = openStore()
+            var recid = store.put(a1, Serializer.BYTE_ARRAY_NOSIZE)
+
+            fun eq(b:ByteArray) {
+                assertTrue(Arrays.equals(b, store.get(recid, Serializer.BYTE_ARRAY_NOSIZE)))
+                store.verify()
+                store.commit()
+                assertTrue(Arrays.equals(b, store.get(recid, Serializer.BYTE_ARRAY_NOSIZE)))
+                store.verify()
+            }
+            eq(a1)
+
+            store.update(recid, a2, Serializer.BYTE_ARRAY_NOSIZE)
+            eq(a2)
+
+            assertTrue(store.compareAndSwap(recid, a2, a1, Serializer.BYTE_ARRAY_NOSIZE))
+            eq(a1)
+
+            store.delete(recid, Serializer.BYTE_ARRAY_NOSIZE)
+            TT.assertFailsWith(DBException.GetVoid::class.java){
+                    store.get(recid, Serializer.BYTE_ARRAY_NOSIZE)
+            }
+            store.verify()
+            store.commit()
+            TT.assertFailsWith(DBException.GetVoid::class.java){
+                store.get(recid, Serializer.BYTE_ARRAY_NOSIZE)
+            }
+            store.verify()
+
+            //update from preallocation
+            recid = store.preallocate()
+            assertNull(store.get(recid, Serializer.BYTE_ARRAY_NOSIZE))
+            store.update(recid, a1, Serializer.BYTE_ARRAY_NOSIZE)
+            eq(a1)
+
+            //cas from preallication
+            recid = store.preallocate()
+            assertNull(store.get(recid, Serializer.BYTE_ARRAY_NOSIZE))
+            assertTrue(store.compareAndSwap(recid, null, a1, Serializer.BYTE_ARRAY_NOSIZE))
+            eq(a1)
+            store.close()
+        }
+    }
 }
