@@ -342,6 +342,14 @@ public interface Serializer<A> extends Comparator<A>{
         return false;
     }
 
+    default A deserializeFromLong(long input, int size) throws IOException {
+        if(CC.ASSERT && size<0 || size>8)
+            throw new AssertionError();
+        byte[] b = new byte[size];
+        DataIO.putLong(b, 0, input, size);
+        return deserialize(new DataInput2.ByteArray(b), size);
+    }
+
 //
 // TODO code from 2.0, perhaps it will be useful, do performance benchmarks etc
 //    /**

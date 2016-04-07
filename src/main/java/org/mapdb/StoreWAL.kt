@@ -352,8 +352,12 @@ class StoreWAL(
         val segment = recidToSegment(recid)
         Utils.lockWrite(locks[segment]) {
             if (di != null) {
-                if(di.pos==0){
-                    val indexVal = indexValCompose(size=0, offset = 0L, archive = 1, linked = 0, unused = 0)
+                if(di.pos==0) {
+                    val indexVal = indexValCompose(size = 0, offset = 0L, archive = 1, linked = 0, unused = 0)
+                    setIndexVal(recid, indexVal)
+                }else if(di.pos<6){
+                    val offset = DataIO.getLong(di.buf,0).ushr((7-di.pos)*8)
+                    val indexVal = indexValCompose(size=di.pos.toLong(), offset = offset, archive = 1, linked = 0, unused = 0)
                     setIndexVal(recid,indexVal)
                 }else if(di.pos>MAX_RECORD_SIZE){
                     //linked record
@@ -402,7 +406,7 @@ class StoreWAL(
         val newUpSize: Long = if (di == null) -16L else roundUp(di.pos.toLong(), 16)
         //try to reuse record if possible, if not possible, delete old record and allocate new
         if ((oldLinked || newUpSize != roundUp(oldSize, 16)) &&
-                oldSize != NULL_RECORD_SIZE && oldSize != 0L ) {
+                oldSize != NULL_RECORD_SIZE && oldSize > 5L ) {
             Utils.lock(structuralLock) {
                 if (oldLinked) {
                     linkedRecordDelete(oldIndexVal,recid)
@@ -430,7 +434,9 @@ class StoreWAL(
         }
         val size = di.pos;
         val offset =
-                if (!oldLinked && newUpSize == roundUp(oldSize, 16) ) {
+                if(size!=0 && size<6 ){
+                    DataIO.getLong(di.buf,0).ushr((7-size)*8)
+                } else if (!oldLinked && newUpSize == roundUp(oldSize, 16) ) {
                     //reuse existing offset
                     indexValToOffset(oldIndexVal)
                 } else if (size == 0) {
@@ -441,8 +447,10 @@ class StoreWAL(
                     }
                 }
         //volume.putData(offset, di.buf, 0, size)
-        val walId = wal.walPutRecord(recid, di.buf, 0, size)
-        cacheRecords[recidToSegment(recid)].put(offset, walId)
+        if(size>5) {
+            val walId = wal.walPutRecord(recid, di.buf, 0, size)
+            cacheRecords[recidToSegment(recid)].put(offset, walId)
+        }
         setIndexVal(recid, indexValCompose(size = size.toLong(), offset = offset, linked = 0, unused = 0, archive = 1))
         return
     }
@@ -462,8 +470,13 @@ class StoreWAL(
                 return deserialize(serializer, DataInput2.ByteArray(ba), ba.size.toLong())
             }
 
-
             val volOffset = indexValToOffset(indexVal)
+
+            if(size<6){
+                if(CC.ASSERT && size>5)
+                    throw DBException.DataCorruption("wrong size record header");
+                return serializer.deserializeFromLong(volOffset.ushr(8), size.toInt())
+            }
 
             val walId = cacheRecords[segment].get(volOffset)
             val di = if(walId!=0L){

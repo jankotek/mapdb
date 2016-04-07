@@ -403,6 +403,9 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
         assertEquals(CC.PAGE_SIZE, store.volume.length())
         store.put("aa", Serializer.STRING)
         store.commit()
+        assertEquals(1*CC.PAGE_SIZE, store.volume.length())
+        store.put("aaaaaaaaaa", Serializer.STRING)
+        store.commit()
         assertEquals(2*CC.PAGE_SIZE, store.volume.length())
         store.close()
     }
@@ -439,7 +442,7 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
     @Test fun checksum_enable(){
         val vol = SingleByteArrayVol(1024*1024*2)
         val store = StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol,false), checksum=true)
-        store.put(11, Serializer.INTEGER)
+        store.put(11, Serializer.LONG)
         store.commit()
         store.close()
         //checksum is not enabled
@@ -504,6 +507,45 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
         }
 
         f.delete()
+    }
 
+    @Test fun small_ser_size(){
+        val f  = TT.tempFile()
+        for(size in 1 .. 20){
+            var store = openStore(f)
+
+            var b = TT.randomByteArray(size,1)
+            val recid = store.put(b, Serializer.BYTE_ARRAY_NOSIZE)
+            assertArrayEquals(b, store.get(recid, Serializer.BYTE_ARRAY_NOSIZE))
+
+            store.commit()
+            assertArrayEquals(b, store.get(recid, Serializer.BYTE_ARRAY_NOSIZE))
+            store.verify()
+
+            //update same size
+            b = TT.randomByteArray(size,2)
+            store.update(recid, b, Serializer.BYTE_ARRAY_NOSIZE)
+            assertArrayEquals(b, store.get(recid, Serializer.BYTE_ARRAY_NOSIZE))
+            store.commit()
+            assertArrayEquals(b, store.get(recid, Serializer.BYTE_ARRAY_NOSIZE))
+            store.verify()
+
+
+            //read after reopen
+            store.close()
+            store = openStore(f)
+            assertArrayEquals(b, store.get(recid, Serializer.BYTE_ARRAY_NOSIZE))
+            store.verify()
+
+            //CAS the same size
+            val b2 = TT.randomByteArray(size,3)
+            assertFalse(store.compareAndSwap(recid, b2, TT.randomByteArray(2,4), Serializer.BYTE_ARRAY_NOSIZE))
+            assertTrue(store.compareAndSwap(recid, b, b2, Serializer.BYTE_ARRAY_NOSIZE))
+            assertArrayEquals(b2, store.get(recid, Serializer.BYTE_ARRAY_NOSIZE))
+            store.verify()
+
+            store.close()
+            f.delete()
+        }
     }
 }

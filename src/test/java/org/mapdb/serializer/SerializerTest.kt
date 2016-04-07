@@ -90,7 +90,7 @@ abstract class GroupSerializerTest<E>:SerializerTest<E>(){
 
 
 
-    @Test open fun valueArrayBinarySearc(){
+    @Test open fun valueArrayBinarySearch(){
         var v = ArrayList<E>()
         for (i in 0..max) {
             v.add(randomValue())

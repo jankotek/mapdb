@@ -267,7 +267,7 @@ public final class DataIO {
     }
 
     public static void putInt(byte[] buf, int pos,int v) {
-        buf[pos++] = (byte) (0xff & (v >> 24));
+        buf[pos++] = (byte) (0xff & (v >> 24));  //TODO PERF is >>> faster here? Also invert 0xFF &?
         buf[pos++] = (byte) (0xff & (v >> 16));
         buf[pos++] = (byte) (0xff & (v >> 8));
         buf[pos] = (byte) (0xff & (v));
@@ -296,6 +296,13 @@ public final class DataIO {
         buf[pos++] = (byte) (0xff & (v >> 16));
         buf[pos++] = (byte) (0xff & (v >> 8));
         buf[pos] = (byte) (0xff & (v));
+    }
+
+    public static void putLong(byte[] buf, int pos,long v, int vSize) {
+        for(int i=vSize-1; i>=0; i--){
+            buf[i+pos] = (byte) (0xff & v);
+            v >>>=8;
+        }
     }
 
 

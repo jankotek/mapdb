@@ -496,8 +496,7 @@ class StoreDirect(
                 return deserialize(serializer, DataInput2.ByteArray(di), di.size.toLong())
             }
 
-
-            val size = indexValToSize(indexVal);
+            var size = indexValToSize(indexVal);
             if (size == DELETED_RECORD_SIZE)
                 throw DBException.GetVoid(recid)
 
@@ -506,9 +505,13 @@ class StoreDirect(
 
             val offset = indexValToOffset(indexVal);
 
-            val di =
-                    if(size==0L) DataInput2.ByteArray(ByteArray(0))
-                    else volume.getDataInput(offset, size.toInt())
+            if(size<6){
+                 if(CC.ASSERT && size>5)
+                    throw DBException.DataCorruption("wrong size record header");
+                return serializer.deserializeFromLong(offset.ushr(8), size.toInt())
+            }
+
+            val di = volume.getDataInput(offset, size.toInt())
             return deserialize(serializer, di, size)
         }
     }
@@ -535,9 +538,17 @@ class StoreDirect(
                 return Long.MIN_VALUE;
 
             val offset = indexValToOffset(indexVal);
+            val sizeInt = size.toInt()
+            val di =
+                if(size>=6)
+                    volume.getDataInput(offset, sizeInt)
+                else{
+                    val buf = ByteArray(sizeInt)
+                    DataIO.putLong(buf, 0, offset.ushr(8), sizeInt)
+                    DataInput2.ByteArray(buf)
+                }
 
-            val di = volume.getDataInput(offset, size.toInt())
-            return f.get(di,size.toInt())
+            return f.get(di,sizeInt)
         }
     }
 
@@ -562,19 +573,22 @@ class StoreDirect(
                 setIndexVal(recid, indexVal);
                 return recid
             }
-
+            val size = di.pos.toLong()
+            var offset:Long
             //allocate space for data
-            val offset = if(di.pos==0) 0L
-                else{
-                Utils.lock(structuralLock) {
+            if(di.pos==0){
+                offset = 0L
+            }else if(di.pos<6) {
+                //store inside offset at index table
+                offset = DataIO.getLong(di.buf,0).ushr((7-di.pos)*8)
+            }else{
+                offset = Utils.lock(structuralLock) {
                     allocateData(roundUp(di.pos, 16), false)
                 }
-            }
-            //and write data
-            if(offset!=0L)
                 volume.putData(offset, di.buf, 0, di.pos)
+            }
 
-            setIndexVal(recid, indexValCompose(size = di.pos.toLong(), offset = offset, linked = 0, unused = 0, archive = 1))
+            setIndexVal(recid, indexValCompose(size = size, offset = offset, linked = 0, unused = 0, archive = 1))
             return recid;
         }
     }
@@ -588,8 +602,8 @@ class StoreDirect(
         }
     }
 
-    private fun updateProtected(recid: Long, di: DataOutput2?){
-        if(CC.ASSERT)
+    private fun updateProtected(recid: Long, di: DataOutput2?) {
+        if (CC.ASSERT)
             Utils.assertWriteLock(locks[recidToSegment(recid)])
 
         val oldIndexVal = getIndexVal(recid);
@@ -599,8 +613,8 @@ class StoreDirect(
             throw DBException.GetVoid(recid)
         val newUpSize: Long = if (di == null) -16L else roundUp(di.pos.toLong(), 16)
         //try to reuse record if possible, if not possible, delete old record and allocate new
-        if ((oldLinked || newUpSize != roundUp(oldSize, 16)) &&
-                oldSize != NULL_RECORD_SIZE && oldSize != 0L ) {
+        if ((oldLinked || (newUpSize != roundUp(oldSize, 16)) &&
+                oldSize != NULL_RECORD_SIZE && oldSize > 5L )) {
             Utils.lock(structuralLock) {
                 if (oldLinked) {
                     linkedRecordDelete(oldIndexVal)
@@ -628,7 +642,9 @@ class StoreDirect(
         }
         val size = di.pos;
         val offset =
-                if (!oldLinked && newUpSize == roundUp(oldSize, 16) ) {
+                if(size!=0 && size<6 ){
+                    DataIO.getLong(di.buf,0).ushr((7-size)*8)
+                } else if (!oldLinked && newUpSize == roundUp(oldSize, 16) && oldSize>=6 ) {
                     //reuse existing offset
                     indexValToOffset(oldIndexVal)
                 } else if (size == 0) {
@@ -638,7 +654,8 @@ class StoreDirect(
                         allocateData(roundUp(size, 16), false)
                     }
                 }
-        volume.putData(offset, di.buf, 0, size)
+        if(size>5)
+            volume.putData(offset, di.buf, 0, size)
         setIndexVal(recid, indexValCompose(size = size.toLong(), offset = offset, linked = 0, unused = 0, archive = 1))
         return
     }
@@ -677,7 +694,7 @@ class StoreDirect(
                 Utils.lock(structuralLock) {
                     if (indexValFlagLinked(oldIndexVal)) {
                         linkedRecordDelete(oldIndexVal)
-                    } else if(oldSize!=0L){
+                    } else if(oldSize>5){
                         val oldOffset = indexValToOffset(oldIndexVal);
                         val sizeUp = roundUp(oldSize, 16)
 
@@ -881,6 +898,9 @@ class StoreDirect(
                     //TODO preallocated versus deleted recids
                     set(indexOffset, indexOffset + 8, false)
                     var indexVal = parity1Get(volume.getLong(indexOffset))
+
+                    if((indexVal and MLINKED)==0L && indexValToSize(indexVal)<6)
+                        continue;
 
                     while (indexVal and MLINKED != 0L) {
                         //iterate over linked

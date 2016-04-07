@@ -240,4 +240,15 @@ public class DataIOTest {
         }
     }
 
+    @Test public void putLong2(){
+        long i = 123901230910290433L;
+        byte[] b1 = new byte[10];
+        byte[] b2 = new byte[10];
+
+        DataIO.putLong(b1, 2, i);
+        DataIO.putLong(b2, 2, i,8);
+
+        assertArrayEquals(b1,b2);
+    }
+
 }

@@ -304,18 +304,22 @@ abstract class StoreTest {
     }
 
     @Test fun delete_reuse() {
-        val e = openStore()
-        val recid = e.put("aaa", Serializer.STRING)
-        e.delete(recid, Serializer.STRING)
-        assertFailsWith(DBException.GetVoid::class) {
-            e.get(recid, TT.Serializer_ILLEGAL_ACCESS)
-        }
+        for(size in 1 .. 20){
+            val e = openStore()
+            val recid = e.put(TT.randomString(size), Serializer.STRING)
+            e.delete(recid, Serializer.STRING)
+            assertFailsWith(DBException.GetVoid::class) {
+                e.get(recid, TT.Serializer_ILLEGAL_ACCESS)
+            }
 
-        val recid2 = e.put("bbb", Serializer.STRING)
-        assertEquals(recid, recid2)
-        e.verify()
-        e.close()
+            val recid2 = e.put(TT.randomString(size), Serializer.STRING)
+            assertEquals(recid, recid2)
+            e.verify()
+            e.close()
+        }
     }
+
+
 
     @Test fun empty_rollback(){
         val e = openStore()
