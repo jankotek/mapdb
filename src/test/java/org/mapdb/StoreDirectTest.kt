@@ -18,7 +18,7 @@ import java.util.concurrent.locks.ReadWriteLock
 import org.mapdb.StoreAccess.*
 import org.mapdb.volume.RandomAccessFileVol
 import org.mapdb.volume.SingleByteArrayVol
-import java.io.RandomAccessFiled
+import java.io.RandomAccessFile
 
 class StoreDirectTest:StoreDirectAbstractTest(){
 
