@@ -74,4 +74,6 @@ public interface CC{
 
     int FEAT_CHECKSUM_SHIFT = 1;
     int FEAT_CHECKSUM_MASK = 3;
+    int FEAT_ENCRYPT_SHIFT = 0;
+    int FEAT_ENCRYPT_MASK = 1;
 }

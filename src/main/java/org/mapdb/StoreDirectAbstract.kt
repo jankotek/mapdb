@@ -98,6 +98,9 @@ abstract class StoreDirectAbstract(
         if(headVol.getInt(20)!=calculateHeaderChecksum())
             throw DBException.DataCorruption("Header checksum broken. Store was not closed correctly, or is corrupted")
 
+        if(header.toInt().ushr(CC.FEAT_ENCRYPT_SHIFT) and CC.FEAT_ENCRYPT_MASK!=0)
+            throw DBException.WrongConfiguration("Store is encrypted, but no encryption method was provided")
+
         //fails if checksum is enabled, but not in header
         val checksumFeature = header.toInt().ushr(CC.FEAT_CHECKSUM_SHIFT) and CC.FEAT_CHECKSUM_MASK
         if(checksumFeature==0 && checksum)
