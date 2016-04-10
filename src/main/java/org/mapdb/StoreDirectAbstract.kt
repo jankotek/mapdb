@@ -106,7 +106,7 @@ abstract class StoreDirectAbstract(
         if(checksumFeature==0 && checksum)
             throw DBException.WrongConfiguration("Store was created without checksum, but checksum is enabled in configuration")
         if(checksumFeature==1 && !checksum)
-            throw DBException.WrongConfiguration("Store was created witht checksum, but checksum is not enabled in configuration")
+            throw DBException.WrongConfiguration("Store was created without checksum, but checksum is not enabled in configuration")
         if(checksumFeature>1){
             throw DBException.NewMapDBFormat("This version of MapDB does not support new checksum type used in store")
         }
