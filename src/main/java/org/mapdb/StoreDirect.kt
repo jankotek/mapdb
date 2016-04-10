@@ -21,14 +21,16 @@ class StoreDirect(
         concShift:Int,
         allocateStartSize:Long,
         deleteFilesAfterClose:Boolean,
-        checksum:Boolean
+        checksum:Boolean,
+        checksumHeader:Boolean
 ):StoreDirectAbstract(
         file=file,
         volumeFactory=volumeFactory,
         isThreadSafe = isThreadSafe,
         concShift =  concShift,
         deleteFilesAfterClose=deleteFilesAfterClose,
-        checksum = checksum
+        checksum = checksum,
+        checksumHeader = checksumHeader
 ),StoreBinary{
 
 
@@ -41,7 +43,8 @@ class StoreDirect(
                 concShift:Int = CC.STORE_DIRECT_CONC_SHIFT,
                 allocateStartSize: Long = 0L,
                 deleteFilesAfterClose:Boolean = false,
-                checksum:Boolean = false
+                checksum:Boolean = false,
+                checksumHeader:Boolean = true
         ) = StoreDirect(
             file = file,
             volumeFactory = volumeFactory,
@@ -50,7 +53,8 @@ class StoreDirect(
             concShift = concShift,
             allocateStartSize = allocateStartSize,
             deleteFilesAfterClose = deleteFilesAfterClose,
-            checksum = checksum
+            checksum = checksum,
+            checksumHeader = checksumHeader
         )
     }
 
@@ -74,6 +78,8 @@ class StoreDirect(
                 dataTail = 0L
                 maxRecid = 0L
                 fileTail = CC.PAGE_SIZE
+
+                volume.putInt(16, storeHeaderCompose())
 
                 //initialize long stack master links
                 for (offset in RECID_LONG_STACK until HEAD_END step 8) {

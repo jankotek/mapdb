@@ -17,7 +17,8 @@ abstract class StoreDirectAbstract(
         override val isThreadSafe:Boolean,
         val concShift:Int,
         val deleteFilesAfterClose:Boolean,
-        val checksum:Boolean
+        val checksum:Boolean,
+        val checksumHeader:Boolean
         ):Store{
 
     protected abstract val volume: Volume
@@ -116,11 +117,30 @@ abstract class StoreDirectAbstract(
             if(1L!=checksumFromHeader)
                 throw DBException.DataCorruption("Checksum is disabled, expected 1, got something else")
         }
+
+        val featBits = headVol.getInt(4)
+        if(featBits.ushr(3)!=0)
+            throw DBException.NewMapDBFormat("Header indicates feature not supported in older version of MapDB")
+        val storeFeatBits = headVol.getInt(16)
+        if(storeFeatBits.ushr(1)!=0)
+            throw DBException.NewMapDBFormat("Store header indicates feature not supported in older version of MapDB")
+
+        if(storeFeatBits and 1 ==0 && checksumHeader)
+            throw DBException.WrongConfiguration("Store header checksum, disabled in store, but enabled in configuration")
+
+        if(storeFeatBits and 1 ==1 && !checksumHeader)
+            throw DBException.WrongConfiguration("Store header checksum enabled in store, but disabled in configuration")
     }
 
     protected fun fileHeaderCompose():Long{
         val checksumFlag: Long = if(checksum)1L.shl(CC.FEAT_CHECKSUM_SHIFT) else 0
         return CC.FILE_HEADER.shl(7*8) + CC.FILE_TYPE_STOREDIRECT.shl(6*8) + checksumFlag
+    }
+
+
+    fun storeHeaderCompose(): Int {
+        return 0 +
+               if(checksumHeader) 1 else 0
     }
 
     abstract protected fun getIndexVal(recid:Long):Long;
@@ -355,6 +375,8 @@ abstract class StoreDirectAbstract(
     }
 
     fun calculateHeaderChecksum():Int{
+        if(checksumHeader.not())
+            return 0
         var c = StoreDirectJava.HEAD_CHECKSUM_SEED
         for(offset in 24 until StoreDirectJava.HEAD_END step 4)
             c+=headVol.getInt(offset)

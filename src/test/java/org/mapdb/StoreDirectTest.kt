@@ -16,8 +16,9 @@ import java.util.*
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReadWriteLock
 import org.mapdb.StoreAccess.*
+import org.mapdb.volume.RandomAccessFileVol
 import org.mapdb.volume.SingleByteArrayVol
-import java.io.RandomAccessFile
+import java.io.RandomAccessFiled
 
 class StoreDirectTest:StoreDirectAbstractTest(){
 
@@ -101,6 +102,17 @@ class StoreDirectTest:StoreDirectAbstractTest(){
         assertTrue(Math.abs(count * arraySize - s.getFreeSize()) < div)
         s.structuralLock!!.lock()
         assertEquals(s.getFreeSize(), s.calculateFreeSize())
+    }
+
+    @Test open fun no_head_checksum(){
+        var store = StoreDirect.make(checksumHeader = false)
+        assertEquals(0, store.volume.getInt(16)) //features
+        assertEquals(0, store.volume.getInt(20)) //checksum
+
+        store = StoreDirect.make(checksumHeader = true)
+        assertEquals(1, store.volume.getInt(16)) //features
+        assertNotEquals(0, store.volume.getInt(20)) //checksum
+
     }
 }
 
@@ -605,4 +617,67 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
             store.close()
         }
     }
+
+    @Test fun head_feat_bits(){
+        val firstUnknownBit = 3
+        for(bitPos in firstUnknownBit until 32) {
+            val file = TT.tempFile()
+            val store = openStore(file)
+            store.close()
+            //change one bit
+            val r = RandomAccessFileVol.FACTORY.makeVolume(file.path, false)
+            val features = r.getInt(4)
+            assertEquals(0, features.ushr(bitPos) and 1)
+            r.putInt(4, features + 1.shl(bitPos))
+            r.close()
+            TT.assertFailsWith(DBException.NewMapDBFormat::class.java){
+                openStore(file)
+            }
+
+            file.delete()
+        }
+    }
+
+
+    @Test fun direct_feat_bits(){
+        val firstUnknownBit = 1
+        for(bitPos in firstUnknownBit until 32) {
+            val file = TT.tempFile()
+            val store = openStore(file)
+            store.close()
+            //change one bit
+            val r = RandomAccessFileVol.FACTORY.makeVolume(file.path, false)
+            val features = r.getInt(16)
+            assertEquals(0, features.ushr(bitPos) and 1)
+            r.putInt(16, features + 1.shl(bitPos))
+
+            //update header checksum
+            var c = StoreDirectJava.HEAD_CHECKSUM_SEED
+            for(offset in 24 until StoreDirectJava.HEAD_END step 4) {
+                c += r.getInt(offset)
+            }
+            r.putInt(16, c)
+
+            r.close()
+            TT.assertFailsWith(DBException.NewMapDBFormat::class.java){
+                openStore(file)
+            }
+
+            file.delete()
+        }
+    }
+
+
+    @Test fun store_header_checksum(){
+        var store = openStore(file)
+        store.close()
+        val r = RandomAccessFileVol.FACTORY.makeVolume(file.path, false)
+        assertNotEquals(0, r.getInt(20))
+        r.putInt(20, 0)
+        r.close()
+        TT.assertFailsWith(DBException.DataCorruption::class.java) {
+            openStore(file)
+        }
+    }
+
 }

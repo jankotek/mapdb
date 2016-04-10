@@ -22,14 +22,16 @@ class StoreWAL(
         concShift:Int,
         allocateStartSize:Long,
         deleteFilesAfterClose:Boolean,
-        checksum:Boolean
+        checksum:Boolean,
+        checksumHeader:Boolean
 ):StoreDirectAbstract(
         file=file,
         volumeFactory=volumeFactory,
         isThreadSafe = isThreadSafe,
         concShift =  concShift,
         deleteFilesAfterClose = deleteFilesAfterClose,
-        checksum = checksum
+        checksum = checksum,
+        checksumHeader = checksumHeader
 ), StoreTx{
 
     companion object{
@@ -40,7 +42,8 @@ class StoreWAL(
                 concShift:Int = CC.STORE_DIRECT_CONC_SHIFT,
                 allocateStartSize: Long = 0L,
                 deleteFilesAfterClose:Boolean = false,
-                checksum:Boolean = false
+                checksum:Boolean = false,
+                checksumHeader:Boolean = true
         )=StoreWAL(
                 file = file,
                 volumeFactory = volumeFactory,
@@ -48,7 +51,8 @@ class StoreWAL(
                 concShift = concShift,
                 allocateStartSize = allocateStartSize,
                 deleteFilesAfterClose = deleteFilesAfterClose,
-                checksum = checksum
+                checksum = checksum,
+                checksumHeader = checksumHeader
         )
 
         @JvmStatic protected val TOMB1 = -1L;
@@ -103,6 +107,7 @@ class StoreWAL(
                 for (offset in StoreDirectJava.RECID_LONG_STACK until StoreDirectJava.HEAD_END step 8) {
                     headVol.putLong(offset, parity4Set(0L))
                 }
+                headVol.putInt(16, storeHeaderCompose())
                 DataIO.putInt(headBytes,20, calculateHeaderChecksum())
 
                 //initialize zero link from first page

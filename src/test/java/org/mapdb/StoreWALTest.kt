@@ -2,6 +2,7 @@ package org.mapdb
 
 import org.junit.Assert.*
 import org.junit.Test
+import org.mapdb.StoreAccess.volume
 import java.io.File
 
 /**
@@ -33,5 +34,16 @@ class StoreWALTest: StoreDirectAbstractTest() {
     @Test(expected=DBException.WrongConfiguration::class)
     fun checksum_disabled(){
         StoreWAL.make(checksum=true)
+    }
+
+    @Test fun no_head_checksum(){
+        var store = StoreWAL.make(checksumHeader = false)
+        assertEquals(0, store.volume.getInt(16)) //features
+        assertEquals(0, store.volume.getInt(20)) //checksum
+
+        store = StoreWAL.make(checksumHeader = true)
+        assertEquals(1, store.volume.getInt(16)) //features
+        assertNotEquals(0, store.volume.getInt(20)) //checksum
+
     }
 }
