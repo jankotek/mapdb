@@ -114,6 +114,70 @@ class StoreDirectTest:StoreDirectAbstractTest(){
         assertNotEquals(0, store.volume.getInt(20)) //checksum
 
     }
+
+
+
+    @Test fun checksum(){
+        val vol = SingleByteArrayVol(1024*1024*2)
+        val store = StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol,false), checksum=false)
+        store.put(11, Serializer.INTEGER)
+        store.commit()
+        store.close()
+
+        //checksum is not enabled
+        assertEquals(1L, vol.getLong(8))
+        val i = vol.getInt(4)
+        assertEquals(0, i.ushr(CC.FEAT_CHECKSUM_SHIFT) and CC.FEAT_CHECKSUM_MASK)
+
+        //store reopen should not fail
+        StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol,true), checksum=false).close()
+
+        //this fails because store has different configuration
+        TT.assertFailsWith(DBException.WrongConfiguration::class.java){
+            StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol,true), checksum=true).close()
+        }
+
+        //set non zero checksum, it should fail to reopen
+        vol.putLong(8,11)
+        TT.assertFailsWith(DBException.DataCorruption::class.java){
+            StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol,true), checksum=false)
+        }
+
+    }
+
+
+    @Test fun checksum_enable(){
+        val vol = SingleByteArrayVol(1024*1024*2)
+        val store = StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol,false), checksum=true)
+        store.put(11, Serializer.LONG)
+        store.commit()
+        store.close()
+        //checksum is not enabled
+        val checksum = vol.hash(16, 1024*1024*2-16, 0)+vol.getLong(0)
+        assertEquals(checksum, vol.getLong(8))
+        val i = vol.getInt(4)
+        assertEquals(1, i.ushr(CC.FEAT_CHECKSUM_SHIFT) and CC.FEAT_CHECKSUM_MASK)
+
+        //store reopen should not fail
+        StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol,true), checksum=true).close()
+
+        //this fails because store has different configuration
+        TT.assertFailsWith(DBException.WrongConfiguration::class.java){
+            StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol,true), checksum=false).close()
+        }
+
+        //set zero checksum, it should fail to reopen
+        vol.putLong(8,0)
+        TT.assertFailsWith(DBException.DataCorruption::class.java){
+            StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol,true), checksum=true)
+        }
+
+        //set wrong checksum, it should fail to reopen
+        vol.putLong(8,11)
+        TT.assertFailsWith(DBException.DataCorruption::class.java){
+            StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol,true), checksum=true)
+        }
+    }
 }
 
 abstract class StoreDirectAbstractTest:StoreReopenTest() {
@@ -420,68 +484,6 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
         store.commit()
         assertEquals(2*CC.PAGE_SIZE, store.volume.length())
         store.close()
-    }
-
-    @Test fun checksum(){
-        val vol = SingleByteArrayVol(1024*1024*2)
-        val store = StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol,false), checksum=false)
-        store.put(11, Serializer.INTEGER)
-        store.commit()
-        store.close()
-
-        //checksum is not enabled
-        assertEquals(1L, vol.getLong(8))
-        val i = vol.getInt(4)
-        assertEquals(0, i.ushr(CC.FEAT_CHECKSUM_SHIFT) and CC.FEAT_CHECKSUM_MASK)
-
-        //store reopen should not fail
-        StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol,true), checksum=false).close()
-
-        //this fails because store has different configuration
-        TT.assertFailsWith(DBException.WrongConfiguration::class.java){
-            StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol,true), checksum=true).close()
-        }
-
-        //set non zero checksum, it should fail to reopen
-        vol.putLong(8,11)
-        TT.assertFailsWith(DBException.DataCorruption::class.java){
-            StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol,true), checksum=false)
-        }
-
-    }
-
-
-    @Test fun checksum_enable(){
-        val vol = SingleByteArrayVol(1024*1024*2)
-        val store = StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol,false), checksum=true)
-        store.put(11, Serializer.LONG)
-        store.commit()
-        store.close()
-        //checksum is not enabled
-        val checksum = vol.hash(16, 1024*1024*2-16, 0)+vol.getLong(0)
-        assertEquals(checksum, vol.getLong(8))
-        val i = vol.getInt(4)
-        assertEquals(1, i.ushr(CC.FEAT_CHECKSUM_SHIFT) and CC.FEAT_CHECKSUM_MASK)
-
-        //store reopen should not fail
-        StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol,true), checksum=true).close()
-
-        //this fails because store has different configuration
-        TT.assertFailsWith(DBException.WrongConfiguration::class.java){
-            StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol,true), checksum=false).close()
-        }
-
-        //set zero checksum, it should fail to reopen
-        vol.putLong(8,0)
-        TT.assertFailsWith(DBException.DataCorruption::class.java){
-            StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol,true), checksum=true)
-        }
-
-        //set wrong checksum, it should fail to reopen
-        vol.putLong(8,11)
-        TT.assertFailsWith(DBException.DataCorruption::class.java){
-            StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol,true), checksum=true)
-        }
     }
 
     @Test fun header_checksum(){
