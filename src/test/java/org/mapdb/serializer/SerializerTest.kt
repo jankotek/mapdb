@@ -226,6 +226,23 @@ abstract class GroupSerializerTest<E>:SerializerTest<E>(){
 
     }
 
+    @Test fun btreemap(){
+        val ser = serializer as GroupSerializer<Any>
+        val map = BTreeMap.make(keySerializer = ser, valueSerializer = Serializer.INTEGER)
+        val set = TreeSet(ser);
+        for(i in 1..100)
+            set.add(randomValue() as Any)
+        set.forEach { map.put(it,1) }
+        val iter1 = set.iterator()
+        val iter2 = map.keys.iterator()
+
+        while(iter1.hasNext()){
+            assertTrue(iter2.hasNext())
+            assertTrue(ser.equals(iter1.next(),iter2.next()))
+        }
+        assertFalse(iter2.hasNext())
+    }
+
 }
 
 class Serializer_CHAR: GroupSerializerTest<Char>(){
@@ -652,6 +669,43 @@ class Serializer_DeltaArray(): Serializer_Array(){
 
 
 }
+
+
+
+class Serializer_ArrayTuple(): GroupSerializerTest<Array<Any>>(){
+
+    override fun randomValue() = arrayOf(intArrayOf(random.nextInt()), longArrayOf(random.nextLong()))
+
+    override val serializer = SerializerArrayTuple(Serializer.INT_ARRAY, Serializer.LONG_ARRAY)
+
+
+    @Test fun prefix_submap(){
+        val map = BTreeMap.make(keySerializer = SerializerArrayTuple(Serializer.INTEGER, Serializer.LONG), valueSerializer = Serializer.STRING)
+        for(i in 1..10) for(j in 1L..10)
+            map.put(arrayOf(i as Any,j as Any),"$i-$j")
+
+        val sub = map.prefixSubMap(arrayOf(5))
+        assertEquals(10, sub.size)
+        for(j in 1L..10)
+            assertEquals("5-$j", map[arrayOf(5 as Any,j as Any)])
+    }
+
+    @Test fun prefix_comparator(){
+        val s = SerializerArrayTuple(Serializer.INTEGER, Serializer.INTEGER)
+        assertEquals(-1, s.compare(arrayOf(-1), arrayOf(1)))
+        assertEquals(1, s.compare(arrayOf(2), arrayOf(1, null)))
+        assertEquals(-1, s.compare(arrayOf(1), arrayOf(1, null)))
+        assertEquals(-1, s.compare(arrayOf(1), arrayOf(2, null)))
+        assertEquals(-1, s.compare(arrayOf(1,2), arrayOf(1, null)))
+
+        assertEquals(1, s.compare(arrayOf(2), arrayOf(1, 1)))
+        assertEquals(-1, s.compare(arrayOf(1), arrayOf(1, 1)))
+        assertEquals(-1, s.compare(arrayOf(1), arrayOf(2, 1)))
+        assertEquals(1, s.compare(arrayOf(1,2), arrayOf(1, 1)))
+        assertEquals(-1, s.compare(arrayOf(1), arrayOf(1, 2)))
+    }
+}
+
 
 
 
