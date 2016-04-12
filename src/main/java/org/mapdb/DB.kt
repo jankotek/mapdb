@@ -1097,9 +1097,26 @@ open class DB(
 
 
     abstract class Maker<E>(){
+        /**
+         * Creates new collection if it does not exist, or throw {@link DBException.WrongConfiguration}
+         * if collection already exists.
+         */
         open fun create():E = make2( true)
+
+        /**
+         * Create new collection or open existing.
+         */
         open fun make():E = make2(null)
+
+        /**
+         * Create new collection or open existing.
+         */
         open fun createOrOpen():E = make2(null)
+
+        /**
+         * Open existing collection, or throw {@link DBException.WrongConfiguration}
+         * if collection already exists.
+         */
         open fun open():E = make2( false)
 
         protected fun make2(create:Boolean?):E{
