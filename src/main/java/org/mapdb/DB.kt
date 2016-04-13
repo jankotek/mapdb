@@ -1106,6 +1106,7 @@ open class DB(
         /**
          * Create new collection or open existing.
          */
+        @Deprecated
         open fun make():E = make2(null)
 
         /**
