@@ -1106,7 +1106,7 @@ open class DB(
         /**
          * Create new collection or open existing.
          */
-        @Deprecated
+        @Deprecated(message="use createOrOpen() method", replaceWith = createOrOpen())
         open fun make():E = make2(null)
 
         /**
