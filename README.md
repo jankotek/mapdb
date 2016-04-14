@@ -19,9 +19,23 @@ It is free under Apache 2 license. MapDB is flexible and can be used in many rol
 Hello world
 -------------------
 
-TODO Maven or JAR
+Maven snippet, VERSION is [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.mapdb/mapdb/badge.svg)](https://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.mapdb%22%20AND%20a%3Amapdb)
 
-TODO hello world
+    <dependency>
+        <groupId>org.mapdb</groupId>
+        <artifactId>mapdb</artifactId>
+        <version>VERSION</version>
+    </dependency>
+
+
+Hello world:
+
+        //import org.mapdb.*
+        DB db = DBMaker.memoryDB().make();
+        ConcurrentMap map = db.hashMap("map").make();
+        map.put("something", "here");
+
+Continue at [Quick Start](http://www.mapdb.org/doc/quick-start/) or at  [Documentation](http://www.mapdb.org/doc/).
 
 Support
 ------------
