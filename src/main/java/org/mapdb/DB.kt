@@ -326,9 +326,9 @@ open class DB(
 
 
     class HashMapMaker<K,V>(
-            override val db:DB,
-            override val name:String,
-            val hasValues:Boolean=true
+            protected override val db:DB,
+            protected override val name:String,
+            protected val hasValues:Boolean=true
     ):Maker<HTreeMap<K,V>>(){
 
         override val type = "HashMap"
@@ -758,9 +758,9 @@ open class DB(
     }
 
     class TreeMapMaker<K,V>(
-            override val db:DB,
-            override val name:String,
-            val hasValues:Boolean=true
+            protected override val db:DB,
+            protected override val name:String,
+            protected val hasValues:Boolean=true
     ):Maker<BTreeMap<K,V>>(){
 
         override val type = "TreeMap"
@@ -927,8 +927,8 @@ open class DB(
     }
 
     class TreeSetMaker<E>(
-            override val db:DB,
-            override val name:String
+            protected override val db:DB,
+            protected override val name:String
     ) :Maker<NavigableSet<E>>(){
 
         protected val maker = TreeMapMaker<E, Any?>(db, name, hasValues = false)
@@ -978,8 +978,8 @@ open class DB(
 
 
     class HashSetMaker<E>(
-            override val db:DB,
-            override val name:String
+            protected override val db:DB,
+            protected override val name:String
     ) :Maker<HTreeMap.KeySet<E>>(){
 
         protected val maker = HashMapMaker<E, Any?>(db, name, hasValues=false)
@@ -1167,7 +1167,7 @@ open class DB(
         abstract protected val type:String
     }
 
-    class AtomicIntegerMaker(override val db:DB, override val name:String, val value:Int=0):Maker<Atomic.Integer>(){
+    class AtomicIntegerMaker(protected override val db:DB, protected override val name:String, protected val value:Int=0):Maker<Atomic.Integer>(){
 
         override val type = "AtomicInteger"
 
@@ -1189,7 +1189,7 @@ open class DB(
 
 
 
-    class AtomicLongMaker(override val db:DB, override val name:String, val value:Long=0):Maker<Atomic.Long>(){
+    class AtomicLongMaker(protected override val db:DB, protected override val name:String, protected val value:Long=0):Maker<Atomic.Long>(){
 
         override val type = "AtomicLong"
 
@@ -1210,7 +1210,7 @@ open class DB(
     fun atomicLong(name:String, value:Long) = AtomicLongMaker(this, name, value)
 
 
-    class AtomicBooleanMaker(override val db:DB, override val name:String, val value:Boolean=false):Maker<Atomic.Boolean>(){
+    class AtomicBooleanMaker(protected override val db:DB, protected override val name:String, protected val value:Boolean=false):Maker<Atomic.Boolean>(){
 
         override val type = "AtomicBoolean"
 
@@ -1231,7 +1231,7 @@ open class DB(
     fun atomicBoolean(name:String, value:Boolean) = AtomicBooleanMaker(this, name, value)
 
 
-    class AtomicStringMaker(override val db:DB, override val name:String, val value:String?=null):Maker<Atomic.String>(){
+    class AtomicStringMaker(protected override val db:DB, protected override val name:String, protected val value:String?=null):Maker<Atomic.String>(){
 
         override val type = "AtomicString"
 
@@ -1252,8 +1252,8 @@ open class DB(
     fun atomicString(name:String, value:String?) = AtomicStringMaker(this, name, value)
 
 
-    class AtomicVarMaker<E>(override val db:DB,
-                            override val name:String,
+    class AtomicVarMaker<E>(protected override val db:DB,
+                            protected override val name:String,
                             protected val serializer:Serializer<E> = Serializer.ELSA as Serializer<E>,
                             protected val value:E? = null):Maker<Atomic.Var<E>>(){
 
@@ -1281,8 +1281,8 @@ open class DB(
     fun <E> atomicVar(name:String, serializer:Serializer<E>, value:E? ) = AtomicVarMaker(this, name, serializer, value)
 
     class IndexTreeLongLongMapMaker(
-            override val db:DB,
-            override val name:String
+            protected override val db:DB,
+            protected override val name:String
     ):Maker<IndexTreeLongLongMap>(){
 
         private var _dirShift = CC.HTREEMAP_DIR_SHIFT
@@ -1338,8 +1338,8 @@ open class DB(
 
 
     class IndexTreeListMaker<E>(
-            override val db:DB,
-            override val name:String,
+            protected override val db:DB,
+            protected override val name:String,
             protected val serializer:Serializer<E>
     ):Maker<IndexTreeList<E>>(){
 

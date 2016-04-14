@@ -132,7 +132,7 @@ public interface Serializer<A> extends Comparator<A>{
     ;
 
 
-    /** Packs recid + it adds 3bits checksum. */
+    /** Packs recid + it adds 1bit checksum. */
 
     GroupSerializer<Long> RECID = new SerializerRecid();
 
