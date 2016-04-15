@@ -36,7 +36,7 @@ class BTreeMap_ConcurrentMap_GuavaTest(
             for(otherComparator in bools)
             for(small in bools)
             for(storeType in 0..2)
-            for(threadSafe in bools)
+            for(isThreadSafe in bools)
             for(counter in bools)
             {
                 ret.add(arrayOf<Any>({generic:Boolean?->
@@ -69,7 +69,7 @@ class BTreeMap_ConcurrentMap_GuavaTest(
                         }
                     BTreeMap.make(keySerializer = keySer, valueSerializer = valSer,
                             comparator = if(otherComparator) Serializer.ELSA as Comparator<Int> else keySer,
-                            store = store, maxNodeSize =  nodeSize, threadSafe = threadSafe,
+                            store = store, maxNodeSize =  nodeSize, isThreadSafe = isThreadSafe,
                             counterRecid = counterRecid)
                 }))
 

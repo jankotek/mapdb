@@ -848,4 +848,22 @@ class BTreeMapTest {
         assertFalse(iter.hasNext())
     }
 
+
+    @Test fun lock(){
+        if(TT.shortTest())
+            return
+        val map = BTreeMap.make<Int, Int>()
+        var counter = 0
+
+        TT.fork(20, { a->
+            map.lock(10L)
+            val c = counter
+            Thread.sleep(100)
+            counter=c+1
+            map.unlock(10L)
+        })
+
+        assertEquals(20, counter)
+    }
+
 }

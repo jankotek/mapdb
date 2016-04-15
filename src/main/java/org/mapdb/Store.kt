@@ -1,6 +1,5 @@
 package org.mapdb
 
-import java.io.IOException
 
 /**
  * Stores records
@@ -15,7 +14,8 @@ interface StoreImmutable{
 /**
  * Stores records, mutable version
  */
-interface Store: StoreImmutable, Verifiable {
+interface Store: StoreImmutable, Verifiable,
+        ConcurrencyAware { //TODO put assertions for underlying collections and Volumes
 
     fun preallocate():Long;
 
@@ -34,8 +34,6 @@ interface Store: StoreImmutable, Verifiable {
 
     fun close();
     val isClosed:Boolean;
-
-    val isThreadSafe:Boolean;
 
     override fun verify()
 

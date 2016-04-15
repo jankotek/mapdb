@@ -85,10 +85,10 @@ class BTreeMap<K,V>(
         val store:Store,
         val maxNodeSize:Int,
         val comparator:Comparator<K>,
-        val threadSafe:Boolean,
+        override val isThreadSafe:Boolean,
         val counterRecid:Long,
         override val hasValues:Boolean = true
-):Verifiable, Closeable, Serializable,
+):Verifiable, Closeable, Serializable, ConcurrencyAware,
         ConcurrentNavigableMap<K, V>, ConcurrentNavigableMapExtra<K,V> {
 
 
@@ -101,7 +101,7 @@ class BTreeMap<K,V>(
                         putEmptyRoot(store, keySerializer, valueSerializer),
                 maxNodeSize: Int =  CC.BTREEMAP_MAX_NODE_SIZE ,
                 comparator: Comparator<K> = keySerializer,
-                threadSafe:Boolean = true,
+                isThreadSafe:Boolean = true,
                 counterRecid:Long=0L
             ) =
                 BTreeMap(
@@ -111,7 +111,7 @@ class BTreeMap<K,V>(
                         rootRecidRecid = rootRecidRecid,
                         maxNodeSize = maxNodeSize,
                         comparator = comparator,
-                        threadSafe = threadSafe,
+                        isThreadSafe = isThreadSafe,
                         counterRecid = counterRecid
                 )
 
@@ -300,42 +300,28 @@ class BTreeMap<K,V>(
             var p = 0L
             do {
 
-                leafLink@ while (true) {
-                    lock(current)
-
-                    A = getNode(current)
-
-                    //follow link, until key is higher than highest key in node
-                    if (!A.isRightEdge && comparator.compare(v, A.highKey(keySerializer) as K) > 0) {
-                        //TODO PERF optimize
-                        //key is greater, load next link
-                        unlock(current)
-                        current = A.link
-                        continue@leafLink
-                    }
-                    break@leafLink
-                }
-
+                lock(current)
+                A = getNode(current)
                 //current node is locked, and its highest value is higher/equal to key
                 var pos = keySerializer.valueArraySearch(A.keys, v, comparator)
                 if (pos >= 0) {
                     //entry exist in current node, so just update
                     pos = pos - 1 + A.intLeftEdge();
-                    val linkValue = (!A.isLastKeyDouble && pos>=valueSerializer.valueArraySize(A.values))
+                    val linkValue = (!A.isLastKeyDouble && pos >= valueSerializer.valueArraySize(A.values))
                     //key exist in node, just update
                     val oldValue =
-                            if(linkValue) null
+                            if (linkValue) null
                             else valueSerializer.valueArrayGet(A.values, pos)
 
                     //update only if not exist, return
                     if (!onlyIfAbsent || linkValue) {
                         val values =
-                                if(linkValue) valueSerializer.valueArrayPut(A.values, pos, value)
+                                if (linkValue) valueSerializer.valueArrayPut(A.values, pos, value)
                                 else valueSerializer.valueArrayUpdateVal(A.values, pos, value)
                         var flags = A.flags.toInt();
-                        if(linkValue){
+                        if (linkValue) {
                             counterIncrement(1)
-                            if(CC.ASSERT && A.isLastKeyDouble)
+                            if (CC.ASSERT && A.isLastKeyDouble)
                                 throw AssertionError()
                             //duplicate last key by adding flag
                             flags += LAST_KEY_DOUBLE
@@ -351,11 +337,12 @@ class BTreeMap<K,V>(
                 pos = -pos - 1
 
                 //key does not exist, node must be expanded
-                A = if (A.isDir) copyAddKeyDir(A, pos, v, p)
-                else{
-                    counterIncrement(1)
-                    copyAddKeyLeaf(A, pos, v, value)
-                }
+                A = if (A.isDir){
+                    copyAddKeyDir(A, pos, v, p)
+                    }else{
+                        counterIncrement(1)
+                        copyAddKeyLeaf(A, pos, v, value)
+                    }
                 val keysSize = keySerializer.valueArraySize(A.keys) + A.intLastKeyTwice()
                 if (keysSize < maxNodeSize) {
                     //it is safe to insert without spliting
@@ -445,20 +432,8 @@ class BTreeMap<K,V>(
                 A = getNode(current)
             }
 
-            leafLink@ while (true) {
-                lock(current)
-
-                A = getNode(current)
-
-                //follow link, until key is higher than highest key in node
-                if (!A.isRightEdge && comparator.compare(v, A.highKey(keySerializer) as K) > 0) {
-                    //key is greater, load next link
-                    unlock(current)
-                    current = A.link
-                    continue@leafLink
-                }
-                break@leafLink
-            }
+            lock(current)
+            A = getNode(current)
 
             //current node is locked, and its highest value is higher/equal to key
             val pos = keySerializer.valueArraySearch(A.keys, v, comparator)
@@ -570,7 +545,7 @@ class BTreeMap<K,V>(
 
 
     fun lock(nodeRecid: Long) {
-        if(!threadSafe)
+        if(!isThreadSafe)
             return
         val value = Thread.currentThread().id
         //try to lock, but only if current node is not empty
@@ -579,7 +554,7 @@ class BTreeMap<K,V>(
     }
 
     fun unlock(nodeRecid: Long) {
-        if(!threadSafe)
+        if(!isThreadSafe)
             return
         val v = locks.remove(nodeRecid)
         if (v == null || v != Thread.currentThread().id)
@@ -587,7 +562,7 @@ class BTreeMap<K,V>(
     }
 
     fun unlockAllCurrentThread() {
-        if(!threadSafe)
+        if(!isThreadSafe)
             return
         val id = Thread.currentThread().id
         val iter = locks.iterator()
@@ -601,7 +576,7 @@ class BTreeMap<K,V>(
 
 
     fun assertCurrentThreadUnlocked() {
-        if(!threadSafe)
+        if(!isThreadSafe)
             return
         val id = Thread.currentThread().id
         val iter = locks.iterator()
@@ -2062,6 +2037,12 @@ class BTreeMap<K,V>(
             iter.next()
             iter.remove()
         }
+    }
+
+    override fun checkThreadSafe(){
+        if(isThreadSafe.not())
+            throw AssertionError();
+        store.checkThreadSafe()
     }
 
 //TODO PERF optimize clear, traverse nodes and clear each node in one step

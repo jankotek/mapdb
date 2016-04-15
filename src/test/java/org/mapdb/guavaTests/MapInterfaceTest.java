@@ -196,7 +196,7 @@ public abstract class MapInterfaceTest<K, V> {
       assertTrue(entrySet.contains(mapEntry(key, value)));
       assertTrue(allowsNullKeys || (key != null));
     }
-    //TODO entry hashing
+
 //    assertEquals(expectedKeySetHash, keySet.hashCode());
 
     assertEquals(map.size(), valueCollection.size());

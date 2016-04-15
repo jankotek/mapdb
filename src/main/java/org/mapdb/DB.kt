@@ -29,8 +29,8 @@ open class DB(
         val store:Store,
         /** True if store existed before and was opened, false if store was created and is completely empty */
         protected val storeOpened:Boolean,
-        val isThreadSafe:Boolean
-): Closeable {
+        override val isThreadSafe:Boolean
+): Closeable, ConcurrencyAware {
 
     companion object{
         internal val RECID_NAME_CATALOG:Long = 1L
@@ -630,7 +630,7 @@ open class DB(
                     expireExecutor = _expireExecutor,
                     expireExecutorPeriod = _expireExecutorPeriod,
                     expireCompactThreshold = _expireCompactThreshold,
-                    threadSafe = db.isThreadSafe,
+                    isThreadSafe = db.isThreadSafe,
                     valueLoader = _valueLoader,
                     modificationListeners = if (_modListeners.isEmpty()) null else _modListeners.toTypedArray(),
                     closeable = db,
@@ -717,7 +717,7 @@ open class DB(
                     expireExecutor = _expireExecutor,
                     expireExecutorPeriod = _expireExecutorPeriod,
                     expireCompactThreshold = _expireCompactThreshold,
-                    threadSafe = db.isThreadSafe,
+                    isThreadSafe = db.isThreadSafe,
                     valueLoader = _valueLoader,
                     modificationListeners = if (_modListeners.isEmpty()) null else _modListeners.toTypedArray(),
                     closeable = db,
@@ -878,7 +878,7 @@ open class DB(
                     store = db.store,
                     maxNodeSize = _maxNodeSize,
                     comparator = _keySerializer, //TODO custom comparator
-                    threadSafe = db.isThreadSafe,
+                    isThreadSafe = db.isThreadSafe,
                     counterRecid = counterRecid2,
                     hasValues = hasValues
             )
@@ -907,7 +907,7 @@ open class DB(
                     store = db.store,
                     maxNodeSize = _maxNodeSize,
                     comparator = _keySerializer, //TODO custom comparator
-                    threadSafe = db.isThreadSafe,
+                    isThreadSafe = db.isThreadSafe,
                     counterRecid = counterRecid2,
                     hasValues = hasValues
             )
@@ -1108,6 +1108,9 @@ open class DB(
          */
         @Deprecated(message="use createOrOpen() method", replaceWith=ReplaceWith("createOrOpen()"))
         open fun make():E = make2(null)
+
+        @Deprecated(message="use createOrOpen() method", replaceWith=ReplaceWith("createOrOpen()"))
+        open fun makeOrGet() = make2(null)
 
         /**
          * Create new collection or open existing.
@@ -1410,4 +1413,10 @@ open class DB(
     fun <E> indexTreeList(name: String, serializer:Serializer<E>) = IndexTreeListMaker(this, name, serializer)
     fun indexTreeList(name: String) = indexTreeList(name, Serializer.ELSA)
 
+
+    override fun checkThreadSafe() {
+        super.checkThreadSafe()
+        if(store.isThreadSafe.not())
+            throw AssertionError()
+    }
 }

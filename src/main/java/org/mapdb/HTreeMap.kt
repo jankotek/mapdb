@@ -37,7 +37,7 @@ class HTreeMap<K,V>(
         val expireExecutor: ScheduledExecutorService?,
         val expireExecutorPeriod:Long,
         val expireCompactThreshold:Double?,
-        val threadSafe:Boolean,
+        override val isThreadSafe:Boolean,
         val valueLoader:((key:K)->V?)?,
         private val modificationListeners: Array<MapModificationListener<K,V>>?,
         private val closeable:Closeable?,
@@ -45,7 +45,7 @@ class HTreeMap<K,V>(
 
         //TODO queue is probably sequentially unsafe
 
-) : ConcurrentMap<K,V>, MapExtra<K,V>, Verifiable, Closeable{
+) : ConcurrentMap<K,V>, ConcurrencyAware, MapExtra<K,V>, Verifiable, Closeable{
 
 
     companion object{
@@ -72,7 +72,7 @@ class HTreeMap<K,V>(
                 expireExecutor:ScheduledExecutorService? = null,
                 expireExecutorPeriod:Long = 0,
                 expireCompactThreshold:Double? = null,
-                threadSafe:Boolean = true,
+                isThreadSafe:Boolean = true,
                 valueLoader:((key:K)->V)? = null,
                 modificationListeners: Array<MapModificationListener<K,V>>? = null,
                 closeable: Closeable? = null
@@ -98,7 +98,7 @@ class HTreeMap<K,V>(
                 expireExecutor = expireExecutor,
                 expireExecutorPeriod = expireExecutorPeriod,
                 expireCompactThreshold = expireCompactThreshold,
-                threadSafe = threadSafe,
+                isThreadSafe = isThreadSafe,
                 valueLoader = valueLoader,
                 modificationListeners = modificationListeners,
                 closeable = closeable
@@ -113,7 +113,7 @@ class HTreeMap<K,V>(
 
     private val storesUniqueCount = Utils.identityCount(stores)
 
-    internal val locks:Array<ReadWriteLock?> = Array(segmentCount, {Utils.newReadWriteLock(threadSafe)})
+    internal val locks:Array<ReadWriteLock?> = Array(segmentCount, {Utils.newReadWriteLock(isThreadSafe)})
 
     /** true if Eviction is executed inside user thread, as part of get/put etc operations */
     internal val expireEvict:Boolean = expireExecutor==null &&
@@ -1336,4 +1336,9 @@ class HTreeMap<K,V>(
         }
     }
 
+    override fun checkThreadSafe() {
+        super.checkThreadSafe()
+        for(s in stores)
+            s.checkThreadSafe()
+    }
 }

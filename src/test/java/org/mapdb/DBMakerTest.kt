@@ -29,14 +29,14 @@ class DBMakerTest{
         var db =DBMaker.memoryDB().make()
         assertTrue(db.isThreadSafe)
         assertTrue(db.store.isThreadSafe)
-        assertTrue(db.hashMap("aa1").create().threadSafe)
-        assertTrue(db.treeMap("aa2").create().threadSafe)
+        assertTrue(db.hashMap("aa1").create().isThreadSafe)
+        assertTrue(db.treeMap("aa2").create().isThreadSafe)
 
         db =DBMaker.memoryDB().concurrencyDisable().make()
         assertFalse(db.isThreadSafe)
         assertFalse(db.store.isThreadSafe)
-        assertFalse(db.hashMap("aa1").create().threadSafe)
-        assertFalse(db.treeMap("aa2").create().threadSafe)
+        assertFalse(db.hashMap("aa1").create().isThreadSafe)
+        assertFalse(db.treeMap("aa2").create().isThreadSafe)
     }
 
     @Test fun raf(){
