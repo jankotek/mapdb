@@ -205,7 +205,8 @@ abstract class CrashJVM {
                     File(s+".log").delete()
                 }
 
-                assertEquals(137, pr.exitValue().toLong())
+
+                assertTrue(pr.exitValue()==134 || 137==pr.exitValue())
 
                 // handle seeds
                 val startSeed = findHighestSeed(test.seedStartDir!!)
