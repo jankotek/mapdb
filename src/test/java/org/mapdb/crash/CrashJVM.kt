@@ -2,7 +2,6 @@ package org.mapdb.crash
 
 import org.junit.After
 import java.io.File
-import java.io.IOException
 
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -71,6 +70,15 @@ abstract class CrashJVM {
 
     companion object {
 
+        @SuppressWarnings("restriction")
+        protected fun getUnsafe(): sun.misc.Unsafe {
+            val singleoneInstanceField = sun.misc.Unsafe::class.java.getDeclaredField("theUnsafe")
+            singleoneInstanceField.isAccessible = true
+            val ret = singleoneInstanceField.get(null) as sun.misc.Unsafe
+            return ret
+        }
+
+
         internal fun findHighestSeed(seedDir: File): Long {
             var ret: Long = -1
             for (child in seedDir.listFiles()!!) {
@@ -117,12 +125,23 @@ abstract class CrashJVM {
 
             java.lang.Long.valueOf(pid)
             print("killed")
-            val b = ProcessBuilder("kill", "-9", pid)
-            b.start()
-            Thread.sleep(10000)
-            println("KILL - Still alive")
-            System.exit(-11123121);
-            //TODO Unsafe kill if not on linux
+
+            try {
+                try {
+                    //use unsafe to exit
+                    getUnsafe().putAddress(0, 0);
+                }finally{
+                    //Linux specific way
+                    val b = ProcessBuilder("kill", "-9", pid)
+                    b.start()
+                    Thread.sleep(10000)
+                    //fallback into common method
+                }
+            }finally {
+                //all previous ways to kill JVM failed, fallback
+                println("KILL - Still alive")
+                System.exit(-11123121);
+            }
         }
 
 
@@ -179,7 +198,13 @@ abstract class CrashJVM {
                             "\n======FORKED JVM END======\n")
                 }
                 assertTrue(out, out.startsWith("started_"))
-                assertTrue(out, out.endsWith("_killed"))
+                assertTrue(out, out.endsWith("_killed") || (out.contains("_killed#") && out.contains("# A fatal error has been detected")))
+                //try to delete crash log file
+                if(out.contains("_killed#")){
+                    val s = out.split(".log").first().split("#").last().trim()
+                    File(s+".log").delete()
+                }
+
                 assertEquals(137, pr.exitValue().toLong())
 
                 // handle seeds
