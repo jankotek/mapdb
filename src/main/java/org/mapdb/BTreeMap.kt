@@ -300,8 +300,22 @@ class BTreeMap<K,V>(
             var p = 0L
             do {
 
-                lock(current)
-                A = getNode(current)
+                //TODO loop bellow follows link, leaf is already locked, only need to follow link is to handle inconsistencies after crash
+                leafLink@ while (true) {
+                    lock(current)
+
+                    A = getNode(current)
+                    //follow link, until key is higher than highest key in node
+                    if (!A.isRightEdge && comparator.compare(v, A.highKey(keySerializer) as K) > 0) {
+                        //TODO PERF optimize
+                        //key is greater, load next link
+                        unlock(current)
+                        current = A.link
+                        continue@leafLink
+                    }
+                    break@leafLink
+                }
+
                 //current node is locked, and its highest value is higher/equal to key
                 var pos = keySerializer.valueArraySearch(A.keys, v, comparator)
                 if (pos >= 0) {
@@ -432,8 +446,20 @@ class BTreeMap<K,V>(
                 A = getNode(current)
             }
 
-            lock(current)
-            A = getNode(current)
+            //TODO loop bellow follows link, leaf is already locked, only need to follow link is to handle inconsistencies after crash
+            leafLink@ while (true) {
+                lock(current)
+                A = getNode(current)
+
+                //follow link, until key is higher than highest key in node
+                if (!A.isRightEdge && comparator.compare(v, A.highKey(keySerializer) as K) > 0) {
+                    //key is greater, load next link
+                    unlock(current)
+                    current = A.link
+                    continue@leafLink
+                }
+                break@leafLink
+            }
 
             //current node is locked, and its highest value is higher/equal to key
             val pos = keySerializer.valueArraySearch(A.keys, v, comparator)
