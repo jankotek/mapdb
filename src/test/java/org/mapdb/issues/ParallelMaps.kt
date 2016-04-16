@@ -6,9 +6,7 @@ import org.junit.Test
 
 import org.junit.Assert.assertEquals
 import org.mapdb.*
-import org.mapdb.volume.VolumeTest
 import java.io.Closeable
-import java.io.IOException
 import java.util.*
 import org.mapdb.DBMaker.StoreType.*
 
@@ -30,7 +28,7 @@ class ParallelMaps(val fab:()-> MutableMap<Any,Any>) {
 
                 val db = {when (store) {
                     fileMMap -> DBMaker.tempFileDB().fileMmapEnable()
-                    fileRaf -> DBMaker.tempFileDB().fileChannelEnable()  //TODO reneable
+                    fileRaf -> DBMaker.tempFileDB()
                     fileChannel -> DBMaker.tempFileDB().fileChannelEnable()
                     onheap -> DBMaker.heapDB()
                     bytearray -> DBMaker.memoryDB()
@@ -79,7 +77,7 @@ class ParallelMaps(val fab:()-> MutableMap<Any,Any>) {
         if(tmp is ConcurrencyAware)
             tmp.checkThreadSafe()
 
-        val size = 200
+        val size = 1000
         IntStream.rangeClosed(1, size).parallel().forEach { i -> tmp.put(i, 11) }
 
         assertEquals(size, tmp.size)
