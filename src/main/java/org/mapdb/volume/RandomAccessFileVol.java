@@ -343,7 +343,7 @@ public final class RandomAccessFileVol extends Volume {
     }
 
     @Override
-    public int putPackedLong(long pos, long value) {
+    public synchronized int putPackedLong(long pos, long value) {
         try {
             raf.seek(pos);
 
@@ -367,7 +367,7 @@ public final class RandomAccessFileVol extends Volume {
 
 
     @Override
-    public long getPackedLong(long pos) {
+    public synchronized long getPackedLong(long pos) {
         try {
             raf.seek(pos);
 
