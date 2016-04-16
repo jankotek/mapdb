@@ -66,6 +66,9 @@ public class BTreeMapJava {
 
             if(CC.ASSERT && !isRightEdge() && (link==0L))
                 throw new AssertionError();
+
+            if(CC.ASSERT && isDir() && getChildren().length==0)
+                throw new AssertionError();
         }
 
         int intDir(){
@@ -117,7 +120,7 @@ public class BTreeMapJava {
         }
     }
 
-    static class NodeSerializer implements Serializer<Node>{
+    public static class NodeSerializer implements Serializer<Node>{
 
         final GroupSerializer keySerializer;
         final GroupSerializer valueSerializer;

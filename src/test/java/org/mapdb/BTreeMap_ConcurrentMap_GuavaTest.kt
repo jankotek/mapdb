@@ -1,5 +1,7 @@
 package org.mapdb
 
+import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet
+import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 import org.mapdb.guavaTests.ConcurrentMapInterfaceTest
@@ -7,6 +9,8 @@ import org.mapdb.serializer.GroupSerializer
 import java.io.IOException
 import java.util.*
 import java.util.concurrent.ConcurrentMap
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 
 @RunWith(Parameterized::class)
@@ -100,6 +104,26 @@ class BTreeMap_ConcurrentMap_GuavaTest(
     override fun supportsValuesHashCode(map: MutableMap<Int, String>?): Boolean {
         // keySerializer returns wrong hash on purpose for this test, so pass it
         return false;
+    }
+
+    @Test fun randomInsert(){
+        //tests random inserts
+        val map = makeEmptyMap() as BTreeMap
+        val max = if(TT.shortTest()) 100 else 100000
+        val maxKey = 1e8.toInt()
+        val r = Random(1)
+        val ref = IntHashSet()
+        for(i in 0..max){
+            val key = r.nextInt(maxKey)
+            ref.add(key)
+            map.put(key, "")
+            map.verify()
+        }
+
+        assertEquals(ref.size(), map.size)
+        for(i in ref.toArray()){
+            assertTrue(map.containsKey(i))
+        }
     }
 
 }

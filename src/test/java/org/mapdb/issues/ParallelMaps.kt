@@ -46,7 +46,7 @@ class ParallelMaps(val fab:()-> MutableMap<Any,Any>) {
                         maker.counterEnable()
                     maker.create()
                 })
-                for(nodeSize in intArrayOf(3,6,12,32,128,1024)){
+                for(nodeSize in intArrayOf(4,6,12,32,128,1024)){
                     ret.add({
                         var maker =  db().treeMap("map").maxNodeSize(nodeSize)
                         if(intSer)
@@ -79,7 +79,7 @@ class ParallelMaps(val fab:()-> MutableMap<Any,Any>) {
         if(tmp is ConcurrencyAware)
             tmp.checkThreadSafe()
 
-        val size = 100
+        val size = 200
         IntStream.rangeClosed(1, size).parallel().forEach { i -> tmp.put(i, 11) }
 
         assertEquals(size, tmp.size)

@@ -1,6 +1,8 @@
 package org.mapdb
 
+import org.eclipse.collections.api.list.primitive.MutableLongList
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet
+import org.fest.reflect.core.Reflection
 import org.junit.Assert
 import org.junit.Test
 import org.mapdb.BTreeMapJava.*
@@ -13,6 +15,21 @@ class BTreeMapTest {
 
     val keyser = Serializer.ELSA
     val COMPARATOR = keyser
+
+    val BTreeMap<*,*>.nodeSerializer:Serializer<Node>
+        get() = Reflection.method("getNodeSerializer").`in`(this).invoke() as Serializer<Node>
+
+
+    val BTreeMap<*,*>.leftEdges:MutableLongList
+        get() = Reflection.method("getLeftEdges").`in`(this).invoke() as MutableLongList
+
+
+    fun BTreeMap<*,*>.loadLeftEdges(): MutableLongList =
+            Reflection.method("loadLeftEdges")
+                    .`in`(this)
+                    .invoke() as MutableLongList
+
+
 
     @Test fun node_search() {
         val node = Node(
@@ -162,8 +179,8 @@ class BTreeMapTest {
         val node2 = Node(
                 DIR,
                 111L,
-                arrayOf(1),
-                longArrayOf()
+                arrayOf(1,1),
+                longArrayOf(1)
         )
 
         assertTrue(node2.isRightEdge.not())
@@ -430,6 +447,8 @@ class BTreeMapTest {
             )
             val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
             map.store.update(rootRecid, dir, map.nodeSerializer)
+            map.leftEdges.clear()
+            map.leftEdges.addAll(map.loadLeftEdges())
             map.verify()
 
 
@@ -658,6 +677,8 @@ class BTreeMapTest {
         )
         val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
         map.store.update(rootRecid, dir, map.nodeSerializer)
+        map.leftEdges.clear()
+        map.leftEdges.addAll(map.loadLeftEdges())
         map.verify()
 
         var iter = map.descendingLeafIterator(null)
@@ -713,6 +734,8 @@ class BTreeMapTest {
         )
         val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
         map.store.update(rootRecid, dir, map.nodeSerializer)
+        map.leftEdges.clear()
+        map.leftEdges.addAll(map.loadLeftEdges())
         map.verify()
 
         var iter = map.descendingLeafIterator(null)
@@ -793,6 +816,8 @@ class BTreeMapTest {
         )
         val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
         map.store.update(rootRecid, dir, map.nodeSerializer)
+        map.leftEdges.clear()
+        map.leftEdges.addAll(map.loadLeftEdges())
         map.verify()
 
         fun checkNode(key:Int, expectedLowKey:Int?) {

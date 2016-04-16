@@ -193,18 +193,22 @@ class BTreeMap<K,V>(
             throw IllegalArgumentException("wrong value serializer")
         if(BTreeMap.NO_VAL_SERIALIZER!=valueSerializer && !hasValues)
             throw IllegalArgumentException("wrong value serializer")
+        if(maxNodeSize<4)
+            throw IllegalArgumentException("maxNodeSize too small")
     }
 
     private val hasBinaryStore = store is StoreBinary
 
-    internal val nodeSerializer = NodeSerializer(this.keySerializer, this.valueSerializer);
+    protected val nodeSerializer = NodeSerializer(this.keySerializer, this.valueSerializer);
 
-    internal val rootRecid: Long
+    protected val rootRecid: Long
         get() = store.get(rootRecidRecid, Serializer.RECID)
                 ?: throw DBException.DataCorruption("Root Recid not found");
 
     /** recids of left-most nodes in tree */
-    internal val leftEdges: MutableLongList = {
+    protected val leftEdges: MutableLongList = loadLeftEdges()
+
+    private fun loadLeftEdges(): MutableLongList {
         val ret = LongArrayList()
 
         var recid = rootRecid
@@ -218,8 +222,8 @@ class BTreeMap<K,V>(
             recid = node.children[0]
         }
 
-        ret.toReversed().asSynchronized()
-    }()
+        return ret.toReversed().asSynchronized()
+    }
 
     private val locks = ConcurrentHashMap<Long, Long>()
 
@@ -296,7 +300,7 @@ class BTreeMap<K,V>(
                 A = getNode(current)
             }
 
-            var level = 1
+            var level = 0
             var p = 0L
             do {
 
@@ -319,6 +323,9 @@ class BTreeMap<K,V>(
                 //current node is locked, and its highest value is higher/equal to key
                 var pos = keySerializer.valueArraySearch(A.keys, v, comparator)
                 if (pos >= 0) {
+                    if(A.isDir) {
+                        throw AssertionError(key);
+                    }
                     //entry exist in current node, so just update
                     pos = pos - 1 + A.intLeftEdge();
                     val linkValue = (!A.isLastKeyDouble && pos >= valueSerializer.valueArraySize(A.values))
@@ -351,12 +358,13 @@ class BTreeMap<K,V>(
                 pos = -pos - 1
 
                 //key does not exist, node must be expanded
-                A = if (A.isDir){
+                val isRoot = A.isLeftEdge && A.isRightEdge
+                A = if (A.isDir) {
                     copyAddKeyDir(A, pos, v, p)
-                    }else{
-                        counterIncrement(1)
-                        copyAddKeyLeaf(A, pos, v, value)
-                    }
+                } else {
+                    counterIncrement(1)
+                    copyAddKeyLeaf(A, pos, v, value)
+                }
                 val keysSize = keySerializer.valueArraySize(A.keys) + A.intLastKeyTwice()
                 if (keysSize < maxNodeSize) {
                     //it is safe to insert without spliting
@@ -372,7 +380,7 @@ class BTreeMap<K,V>(
                 A = copySplitLeft(A, splitPos, q)
                 store.update(current, A, nodeSerializer)
 
-                if (current != rootRecid) {
+                if (!isRoot) {
                     //is not root
                     unlock(current)
                     p = q
@@ -381,10 +389,9 @@ class BTreeMap<K,V>(
                     //                    throw AssertionError()
                     level++
                     current = if (stack.isEmpty.not()) {
-                        stack.pop()
+                         stack.pop()
                     } else {
-                        //pointer to left most node at level
-                        leftEdges.get(level - 1)
+                        leftEdgeGetLevel(level)
                     }
                 } else {
                     //is root
@@ -396,15 +403,14 @@ class BTreeMap<K,V>(
                             keySerializer,
                             valueSerializer
                     )
-
                     unlock(current)
                     lock(rootRecidRecid)
                     val newRootRecid = store.put(R, nodeSerializer)
-                    leftEdges.add(newRootRecid)
                     //TODO there could be a race condition between leftEdges  update and rootRecidRef update. Investigate!
                     store.update(rootRecidRecid, newRootRecid, Serializer.RECID)
-
+                    leftEdges.add(newRootRecid)
                     unlock(rootRecidRecid)
+
 
                     return null;
                 }
@@ -419,6 +425,20 @@ class BTreeMap<K,V>(
         } finally {
             if (CC.ASSERT)
                 assertCurrentThreadUnlocked()
+        }
+    }
+
+    private fun leftEdgeGetLevel(level: Int): Long {
+        //TODO this is potencially infinitive loop if other thread fails before updating left edges
+        //pointer to left most node at level
+        while(true) {
+            //there is a race condition, other node might have updated root, but leftEdges were not updated yet
+            try {
+                return leftEdges.get(level)
+            }catch(e:IndexOutOfBoundsException){
+                //wait until the other node updates the level
+                LockSupport.parkNanos(100)
+            }
         }
     }
 
@@ -670,6 +690,10 @@ class BTreeMap<K,V>(
 
 
         val rootRecid = rootRecid
+
+        if(leftEdges!=loadLeftEdges()){
+            throw AssertionError();
+        }
         val node = getNode(rootRecid)
 
         val knownNodes = LongHashSet.newSetWith(rootRecid)
