@@ -3,14 +3,24 @@ package org.mapdb.serializer;
 import org.mapdb.DBException;
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
-import org.mapdb.Serializer;
 
 import java.io.IOException;
 
 /**
- * Created by jan on 2/28/16.
+ * Serialier for class. It takes a class loader as constructor param, by default it uses
+ * {@code Thread.currentThread().getContextClassLoader()}
  */
 public class SerializerClass extends GroupSerializerObjectArray<Class<?>> {
+
+    protected final ClassLoader classLoader;
+
+    public SerializerClass(ClassLoader classLoader) {
+        this.classLoader = classLoader;
+    }
+
+    public SerializerClass(){
+        this(Thread.currentThread().getContextClassLoader());
+    }
 
     @Override
     public void serialize(DataOutput2 out, Class<?> value) throws IOException {
@@ -19,9 +29,8 @@ public class SerializerClass extends GroupSerializerObjectArray<Class<?>> {
 
     @Override
     public Class<?> deserialize(DataInput2 in, int available) throws IOException {
-        //TODO this should respect registered ClassLoaders from DBMaker.serializerRegisterClasses()
         try {
-            return Thread.currentThread().getContextClassLoader().loadClass(in.readUTF());
+            return classLoader.loadClass(in.readUTF());
         } catch (ClassNotFoundException e) {
             throw new DBException.SerializationError(e);
         }
