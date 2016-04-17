@@ -55,7 +55,7 @@ open class DB(
                 }
             }
         }
-        
+
     }
 
 
@@ -165,10 +165,13 @@ open class DB(
     }
 
 
+    private val nameRegex = "[A-Z0-9._-]".toRegex()
+
     internal fun checkName(name: String) {
-        //TODO limit characters in name?
         if(name.contains('#'))
             throw DBException.WrongConfiguration("Name contains illegal character, '#' is not allowed.")
+        if(!name.matches(nameRegex))
+            throw DBException.WrongConfiguration("Name contains illegal characted")
     }
 
     internal fun nameCatalogGet(name: String): String? {

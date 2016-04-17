@@ -32,13 +32,6 @@ import java.util.function.BiConsumer
  * other operations. Ascending key ordered views and their iterators
  * are faster than descending ones.
  *
- * All <tt>Map.Entry</tt> pairs returned by methods in this class
- * and its views represent snapshots of mappings at the time they were
- * produced. They do <em>not</em> support the <tt>Entry.setValue</tt>
- * method. (Note however that it is possible to change mappings in the
- * associated map using <tt>put</tt>, <tt>putIfAbsent</tt>, or
- * <tt>replace</tt>, depending on exactly which effect you need.)
- * TODO is this correct, setValue might work?
  *
  * By default BTreeMap does not track its size and {@code size()} traverses collection to count its entries.
  * There is option to enable counter, in that case {@code size()} returns instantly
@@ -77,7 +70,6 @@ import java.util.function.BiConsumer
  */
 //TODO values outside nodes
 //TODo counted btrees
-//TODO check structure
 class BTreeMap<K,V>(
         override val keySerializer:GroupSerializer<K>,
         override val valueSerializer:GroupSerializer<V>,
@@ -406,7 +398,6 @@ class BTreeMap<K,V>(
                     unlock(current)
                     lock(rootRecidRecid)
                     val newRootRecid = store.put(R, nodeSerializer)
-                    //TODO there could be a race condition between leftEdges  update and rootRecidRef update. Investigate!
                     store.update(rootRecidRecid, newRootRecid, Serializer.RECID)
                     leftEdges.add(newRootRecid)
                     unlock(rootRecidRecid)

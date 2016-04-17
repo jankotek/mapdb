@@ -31,8 +31,8 @@ abstract class StoreDirectAbstract(
 
     protected val volumeExistsAtStart = volumeFactory.exists(file)
 
-    //TODO writes are protected by structural lock, but should it be reads under locks?
-    protected val indexPages = LongArrayList()
+    //TODO PERF indexPages are synchronized writes are protected by structural lock, but should it be read under locks?
+    protected val indexPages = if(isThreadSafe) LongArrayList().asSynchronized() else LongArrayList()
 
     protected fun recidToOffset(recid2:Long):Long{
         var recid = recid2-1; //normalize recid so it starts from zero
