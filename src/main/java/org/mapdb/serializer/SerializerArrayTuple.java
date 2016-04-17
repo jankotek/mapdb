@@ -119,8 +119,8 @@ public class SerializerArrayTuple implements GroupSerializer<Object[]> {
         if(CC.ASSERT && newValue.length!=size)
             throw new AssertionError();
         Object[] ret = cast(vals).clone();
-        System.arraycopy(newValue,0, ret, pos*size, size);
-        return vals;
+        System.arraycopy(newValue, 0, ret, pos*size, size);
+        return ret;
     }
 
     @Override

@@ -243,6 +243,21 @@ abstract class GroupSerializerTest<E>:SerializerTest<E>(){
         assertFalse(iter2.hasNext())
     }
 
+    @Test fun valueArrayUpdate(){
+        for(i in 0..max) {
+            var vals = randomValueArray()
+            val vals2 = serializer2.valueArrayToArray(vals)
+            val valsSize = serializer2.valueArraySize(vals);
+            for (j in 0 until valsSize) {
+                val newVal = randomValue()
+                vals2[j] = newVal
+                vals = serializer2.valueArrayUpdateVal(vals, j, newVal)
+                vals2.forEachIndexed { i, any ->
+                    assertSerEquals(any, serializer2.valueArrayGet(vals,i))
+                }
+            }
+        }
+    }
 }
 
 class Serializer_CHAR: GroupSerializerTest<Char>(){

@@ -35,7 +35,6 @@ public abstract class BlockingQueueTest extends JSR166TestCase {
 
     /** Like suite(), but non-static */
     public Test testSuite() {
-        // TODO: filter the returned tests using the configuration
         // information provided by the subclass via protected methods.
         return new TestSuite(this.getClass());
     }
@@ -334,7 +333,7 @@ public abstract class BlockingQueueTest extends JSR166TestCase {
 
     /**
      * remove(x) removes x and returns true if present
-     * TODO: move to superclass CollectionTest.java
+     *
      */
     public void testRemoveElement() {
         final BlockingQueue q = emptyCollection();

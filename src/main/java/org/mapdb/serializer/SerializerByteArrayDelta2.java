@@ -101,10 +101,13 @@ public class SerializerByteArrayDelta2 implements GroupSerializer<byte[]> {
         return ((ByteArrayKeys)keys).putKey(pos, newValue);
     }
 
+
     @Override
     public ByteArrayKeys valueArrayUpdateVal(Object vals, int pos, byte[] newValue) {
-        //FIXME why is this not catched by tests?
-        throw new NotImplementedException();
+        //  TODO PERF use specialized method, make this faster
+        Object[] v = valueArrayToArray(vals);
+        v[pos] = newValue;
+        return valueArrayFromArray(v);
     }
 
     @Override
