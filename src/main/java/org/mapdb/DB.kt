@@ -4,9 +4,15 @@ import com.google.common.cache.Cache
 import com.google.common.cache.CacheBuilder
 import org.eclipse.collections.api.map.primitive.MutableLongLongMap
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
+import org.mapdb.elsa.*
+import org.mapdb.elsa.SerializerPojo.ClassInfo
+import org.mapdb.elsa.SerializerPojo.FieldInfo
 import org.mapdb.serializer.GroupSerializer
-import sun.util.resources.`is`.CalendarData_is
+import org.mapdb.serializer.GroupSerializerObjectArray
 import java.io.Closeable
+import java.io.DataInput
+import java.io.DataOutput
+import java.io.IOException
 import java.security.SecureRandom
 import java.util.*
 import java.util.concurrent.ExecutorService
@@ -29,12 +35,14 @@ open class DB(
         val store:Store,
         /** True if store existed before and was opened, false if store was created and is completely empty */
         protected val storeOpened:Boolean,
-        override val isThreadSafe:Boolean
+        override val isThreadSafe:Boolean,
+        val classLoader:ClassLoader = Thread.currentThread().contextClassLoader
 ): Closeable, ConcurrencyAware {
 
     companion object{
         internal val RECID_NAME_CATALOG:Long = 1L
-        internal val RECID_MAX_RESERVED:Long = 1L
+        internal val RECID_CLASS_INFOS:Long = 2L
+        internal val RECID_MAX_RESERVED:Long = 8L
 
         internal val NAME_CATALOG_SERIALIZER:Serializer<SortedMap<String, String>> = object:Serializer<SortedMap<String, String>>{
 
@@ -137,6 +145,44 @@ open class DB(
     private val classSingletonCat = IdentityHashMap<Any,String>()
     private val classSingletonRev = HashMap<String, Any>()
 
+
+
+    private val unknownClasses = Collections.synchronizedSet(HashSet<Class<*>>())
+
+    private val elsaSerializer:SerializerPojo = SerializerPojo(
+            pojoSingletons(),
+            ClassCallback { unknownClasses.add(it) },
+            object:ClassInfoResolver {
+                override fun classToId(className: String): Int {
+                    val classInfos = loadClassInfos()
+                    classInfos.forEachIndexed { i, classInfo ->
+                        if(classInfo.name==className)
+                            return i
+                    }
+                    return -1
+                }
+
+                override fun getClassInfo(classId: Int): SerializerPojo.ClassInfo? {
+                    return loadClassInfos()[classId]
+                }
+            } )
+
+    /**
+     * Default serializer used if collection does not specify specialized serializer.
+     * It uses Elsa Serializer.
+     */
+    val defaultSerializer = object: GroupSerializerObjectArray<Any?>() {
+
+        override fun deserialize(input: DataInput2, available: Int): Any? {
+            return elsaSerializer.deserialize(input, available)
+        }
+
+        override fun serialize(out: DataOutput2, value: Any) {
+            elsaSerializer.serialize(out, value)
+        }
+
+    }
+
     init{
         //read all singleton from Serializer fields
         Serializer::class.java.declaredFields.forEach { f ->
@@ -145,6 +191,36 @@ open class DB(
             classSingletonCat.put(obj, name)
             classSingletonRev.put(name, obj)
         }
+        val defSerName = "org.mapdb.DB#defaultSerializer"
+        classSingletonCat.put(defaultSerializer, defSerName)
+        classSingletonRev.put(defSerName, defaultSerializer)
+    }
+
+
+    private fun pojoSingletons():Array<Any>{
+        //FIXME this must have fixed indexes
+        return classSingletonCat.keys.toTypedArray()
+    }
+
+    private fun loadClassInfos():Array<SerializerPojo.ClassInfo>{
+        return store.get(RECID_CLASS_INFOS, classInfoSerializer)!!
+    }
+
+
+    protected val classInfoSerializer = object : Serializer<Array<ClassInfo>> {
+
+        override fun serialize(out: DataOutput2, ci: Array<ClassInfo>) {
+            out.packInt(ci.size)
+            for(c in ci)
+                elsaSerializer.classInfoSerialize(out, c)
+        }
+
+        override fun deserialize(input: DataInput2, available: Int): Array<ClassInfo> {
+            return Array(input.unpackInt(), {
+                elsaSerializer.classInfoDeserialize(input)
+            })
+        }
+
     }
 
 
@@ -184,7 +260,7 @@ open class DB(
             key: String,
             obj: Any
     ) {
-        val value:String? = classSingletonCat.get(obj)
+        val value:String? = classSingletonCat[obj]
 
         if(value== null){
             //not in singletons, try to resolve public no ARG constructor of given class
@@ -217,8 +293,20 @@ open class DB(
         return Collections.unmodifiableMap(ret)
     }
 
+
+    private fun unknownClassesSave(){
+        if(CC.ASSERT)
+            Utils.assertWriteLock(lock)
+        //TODO batch class dump
+        unknownClasses.forEach {
+            defaultSerializerRegisterClass_noLock(it)
+        }
+        unknownClasses.clear()
+    }
+
     fun commit(){
         Utils.lockWrite(lock) {
+            unknownClassesSave()
             store.commit()
         }
     }
@@ -228,6 +316,7 @@ open class DB(
             throw UnsupportedOperationException("Store does not support rollback")
 
         Utils.lockWrite(lock) {
+            unknownClasses.clear()
             store.rollback()
         }
     }
@@ -236,6 +325,8 @@ open class DB(
 
     override fun close(){
         Utils.lockWrite(lock) {
+            unknownClassesSave()
+
             //shutdown running executors if any
             executors.forEach { it.shutdown() }
             //await termination on all
@@ -254,19 +345,19 @@ open class DB(
         Utils.lockWrite(lock) {
             val type = nameCatalogGet(name + Keys.type)
             return when (type) {
-                "HashMap" -> hashMap(name).make()
-                "HashSet" -> hashSet(name).make()
-                "TreeMap" -> treeMap(name).make()
-                "TreeSet" -> treeSet(name).make()
+                "HashMap" -> hashMap(name).open()
+                "HashSet" -> hashSet(name).open()
+                "TreeMap" -> treeMap(name).open()
+                "TreeSet" -> treeSet(name).open()
 
-                "AtomicBoolean" -> atomicBoolean(name).make()
-                "AtomicInteger" -> atomicInteger(name).make()
-                "AtomicVar" -> atomicVar(name).make()
-                "AtomicString" -> atomicString(name).make()
-                "AtomicLong" -> atomicLong(name).make()
+                "AtomicBoolean" -> atomicBoolean(name).open()
+                "AtomicInteger" -> atomicInteger(name).open()
+                "AtomicVar" -> atomicVar(name).open()
+                "AtomicString" -> atomicString(name).open()
+                "AtomicLong" -> atomicLong(name).open()
 
-                "IndexTreeList" -> indexTreeList(name).make()
-                "IndexTreeLongLongMap" -> indexTreeLongLongMap(name).make()
+                "IndexTreeList" -> indexTreeList(name).open()
+                "IndexTreeLongLongMap" -> indexTreeLongLongMap(name).open()
 
                 null -> null
                 else -> DBException.WrongConfiguration("Collection has unknown type: "+type)
@@ -335,8 +426,8 @@ open class DB(
     ):Maker<HTreeMap<K,V>>(){
 
         override val type = "HashMap"
-        private var _keySerializer:Serializer<K> = Serializer.ELSA as Serializer<K>
-        private var _valueSerializer:Serializer<V> = Serializer.ELSA as Serializer<V>
+        private var _keySerializer:Serializer<K> = db.defaultSerializer as Serializer<K>
+        private var _valueSerializer:Serializer<V> = db.defaultSerializer as Serializer<V>
         private var _valueInline = false
 
         private var _concShift = CC.HTREEMAP_CONC_SHIFT
@@ -768,9 +859,9 @@ open class DB(
 
         override val type = "TreeMap"
 
-        private var _keySerializer:GroupSerializer<K> = Serializer.ELSA as GroupSerializer<K>
+        private var _keySerializer:GroupSerializer<K> = db.defaultSerializer as GroupSerializer<K>
         private var _valueSerializer:GroupSerializer<V> =
-                (if(hasValues) Serializer.ELSA else BTreeMap.NO_VAL_SERIALIZER) as GroupSerializer<V>
+                (if(hasValues) db.defaultSerializer else BTreeMap.NO_VAL_SERIALIZER) as GroupSerializer<V>
         private var _maxNodeSize = CC.BTREEMAP_MAX_NODE_SIZE
         private var _counterEnable: Boolean = false
         private var _valueLoader:((key:K)->V)? = null
@@ -1260,7 +1351,7 @@ open class DB(
 
     class AtomicVarMaker<E>(protected override val db:DB,
                             protected override val name:String,
-                            protected val serializer:Serializer<E> = Serializer.ELSA as Serializer<E>,
+                            protected val serializer:Serializer<E> = db.defaultSerializer as Serializer<E>,
                             protected val value:E? = null):Maker<Atomic.Var<E>>(){
 
         override val type = "AtomicVar"
@@ -1281,7 +1372,7 @@ open class DB(
         }
     }
 
-    fun atomicVar(name:String) = atomicVar(name, Serializer.ELSA)
+    fun atomicVar(name:String) = atomicVar(name, defaultSerializer)
     fun <E> atomicVar(name:String, serializer:Serializer<E> ) = AtomicVarMaker(this, name, serializer)
 
     fun <E> atomicVar(name:String, serializer:Serializer<E>, value:E? ) = AtomicVarMaker(this, name, serializer, value)
@@ -1414,12 +1505,35 @@ open class DB(
     }
 
     fun <E> indexTreeList(name: String, serializer:Serializer<E>) = IndexTreeListMaker(this, name, serializer)
-    fun indexTreeList(name: String) = indexTreeList(name, Serializer.ELSA)
+    fun indexTreeList(name: String) = indexTreeList(name, defaultSerializer)
 
 
     override fun checkThreadSafe() {
         super.checkThreadSafe()
         if(store.isThreadSafe.not())
             throw AssertionError()
+    }
+
+    /**
+     * Register Class with default POJO serializer. Class structure will be stored in store,
+     * and will save space for collections which do not use specialized serializer.
+     */
+    fun defaultSerializerRegisterClass(clazz:Class<*>){
+        Utils.lockWrite(lock) {
+            defaultSerializerRegisterClass_noLock(clazz)
+        }
+    }
+    private fun defaultSerializerRegisterClass_noLock(clazz:Class<*>) {
+        if(CC.ASSERT)
+            Utils.assertWriteLock(lock)
+        var infos = loadClassInfos()
+        val className = clazz.name
+        if (infos.find { it.name == className } != null)
+            return; //class is already present
+        //add as last item to an array
+        infos = Arrays.copyOf(infos, infos.size + 1)
+        infos[infos.size - 1] = elsaSerializer.makeClassInfo(className)
+        //and save
+        store.update(RECID_CLASS_INFOS, infos, classInfoSerializer)
     }
 }

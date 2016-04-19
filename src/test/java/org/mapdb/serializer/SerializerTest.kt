@@ -562,6 +562,13 @@ class Serializer_ELSA: GroupSerializerTest<Any>(){
 }
 
 
+
+class Serializer_DB_default: GroupSerializerTest<Any?>(){
+    override fun randomValue() = TT.randomString(11)
+    override val serializer = DBMaker.memoryDB().make().defaultSerializer
+}
+
+
 class Serializer_UUID: GroupSerializerTest<UUID>(){
     override fun randomValue() = UUID(random.nextLong(), random.nextLong())
     override val serializer = Serializer.UUID

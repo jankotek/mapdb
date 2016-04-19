@@ -2,13 +2,18 @@ package org.mapdb
 
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
+import org.fest.reflect.core.Reflection
 import org.junit.Assert.*
 import org.junit.Test
+import org.mapdb.StoreAccess.locks
+import org.mapdb.elsa.SerializerPojo
 import org.mapdb.serializer.GroupSerializerObjectArray
+import java.io.Serializable
 import java.math.BigDecimal
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.locks.ReadWriteLock
 
 class DBTest{
 
@@ -137,8 +142,8 @@ class DBTest{
         assertEquals(1, hmap.stores.toSet().size)
         assertEquals(rootRecids, ","+p["aa"+DB.Keys.rootRecids])
         assertEquals("HashMap", p["aa"+DB.Keys.type])
-        assertEquals("org.mapdb.Serializer#ELSA", p["aa"+DB.Keys.keySerializer])
-        assertEquals("org.mapdb.Serializer#ELSA", p["aa"+DB.Keys.valueSerializer])
+        assertEquals("org.mapdb.DB#defaultSerializer", p["aa"+DB.Keys.keySerializer])
+        assertEquals("org.mapdb.DB#defaultSerializer", p["aa"+DB.Keys.valueSerializer])
         assertEquals("false", p["aa"+DB.Keys.valueInline])
         assertTrue((hmap.indexTrees[0] as IndexTreeLongLongMap).collapseOnRemove)
         assertEquals("true", p["aa"+DB.Keys.removeCollapsesIndexTree])
@@ -184,8 +189,8 @@ class DBTest{
                 .fold("",{str, it-> str+",$it"})
         assertEquals(rootRecids, ","+p["aa"+DB.Keys.rootRecids])
         assertEquals("HashMap", p["aa"+DB.Keys.type])
-        assertEquals("org.mapdb.Serializer#ELSA", p["aa"+DB.Keys.keySerializer])
-        assertEquals("org.mapdb.Serializer#ELSA", p["aa"+DB.Keys.valueSerializer])
+        assertEquals("org.mapdb.DB#defaultSerializer", p["aa"+DB.Keys.keySerializer])
+        assertEquals("org.mapdb.DB#defaultSerializer", p["aa"+DB.Keys.valueSerializer])
         assertEquals("3", p["aa"+DB.Keys.concShift])
         assertEquals("4", p["aa"+DB.Keys.levels])
         assertEquals("4", p["aa"+DB.Keys.dirShift])
@@ -372,8 +377,8 @@ class DBTest{
         assertEquals(CC.BTREEMAP_MAX_NODE_SIZE.toString(), p["aa"+DB.Keys.maxNodeSize])
         assertEquals(map.rootRecidRecid.toString(), p["aa"+DB.Keys.rootRecidRecid])
         assertEquals("TreeMap", p["aa"+DB.Keys.type])
-        assertEquals("org.mapdb.Serializer#ELSA", p["aa"+DB.Keys.keySerializer])
-        assertEquals("org.mapdb.Serializer#ELSA", p["aa"+DB.Keys.valueSerializer])
+        assertEquals("org.mapdb.DB#defaultSerializer", p["aa"+DB.Keys.keySerializer])
+        assertEquals("org.mapdb.DB#defaultSerializer", p["aa"+DB.Keys.valueSerializer])
     }
 
     @Test fun treeMap_import(){
@@ -540,7 +545,7 @@ class DBTest{
         assertEquals(1, hmap.map.stores.toSet().size)
         assertEquals(rootRecids, ","+p["aa"+DB.Keys.rootRecids])
         assertEquals("HashSet", p["aa"+DB.Keys.type])
-        assertEquals("org.mapdb.Serializer#ELSA", p["aa"+DB.Keys.serializer])
+        assertEquals("org.mapdb.DB#defaultSerializer", p["aa"+DB.Keys.serializer])
         assertEquals(null, p["aa"+DB.Keys.valueInline])
         assertTrue((hmap.map.indexTrees[0] as IndexTreeLongLongMap).collapseOnRemove)
         assertEquals("true", p["aa"+DB.Keys.removeCollapsesIndexTree])
@@ -586,7 +591,7 @@ class DBTest{
                 .fold("",{str, it-> str+",$it"})
         assertEquals(rootRecids, ","+p["aa"+DB.Keys.rootRecids])
         assertEquals("HashSet", p["aa"+DB.Keys.type])
-        assertEquals("org.mapdb.Serializer#ELSA", p["aa"+DB.Keys.serializer])
+        assertEquals("org.mapdb.DB#defaultSerializer", p["aa"+DB.Keys.serializer])
         assertEquals(null, p["aa"+DB.Keys.keySerializer])
         assertEquals(null, p["aa"+DB.Keys.valueSerializer])
         assertEquals("3", p["aa"+DB.Keys.concShift])
@@ -775,7 +780,7 @@ class DBTest{
         assertEquals(CC.BTREEMAP_MAX_NODE_SIZE.toString(), p["aa"+DB.Keys.maxNodeSize])
         assertEquals(btreemap(map).rootRecidRecid.toString(), p["aa"+DB.Keys.rootRecidRecid])
         assertEquals("TreeSet", p["aa"+DB.Keys.type])
-        assertEquals("org.mapdb.Serializer#ELSA", p["aa"+DB.Keys.serializer])
+        assertEquals("org.mapdb.DB#defaultSerializer", p["aa"+DB.Keys.serializer])
         assertEquals(null, p["aa"+DB.Keys.keySerializer])
         assertEquals(null, p["aa"+DB.Keys.valueSerializer])
     }
@@ -1029,4 +1034,86 @@ class DBTest{
         }
     }
 
+    class TestPojo: Serializable {}
+
+    fun DB.loadClassInfos() =
+            Reflection.method("loadClassInfos")
+                    .`in`(this)
+                    .invoke() as Array<SerializerPojo.ClassInfo>
+
+
+    @Test fun class_registered(){
+        val f = TT.tempFile()
+        var db = DBMaker.fileDB(f).make()
+        assertEquals(0, db.loadClassInfos().size)
+        db.defaultSerializerRegisterClass(TestPojo::class.java)
+        assertEquals(1, db.loadClassInfos().size)
+        db.close()
+        db = DBMaker.fileDB(f).make()
+        assertEquals(1, db.loadClassInfos().size)
+        db.close()
+        f.delete()
+    }
+
+    @Test fun class_registered_twice(){
+        val f = TT.tempFile()
+        var db = DBMaker.fileDB(f).make()
+        assertEquals(0, db.loadClassInfos().size)
+        db.defaultSerializerRegisterClass(TestPojo::class.java)
+        db.defaultSerializerRegisterClass(TestPojo::class.java)
+        assertEquals(1, db.loadClassInfos().size)
+        db.close()
+        db = DBMaker.fileDB(f).make()
+        assertEquals(1, db.loadClassInfos().size)
+        db.defaultSerializerRegisterClass(TestPojo::class.java)
+        assertEquals(1, db.loadClassInfos().size)
+        db.close()
+        f.delete()
+    }
+
+    @Test fun registered_class_smaller_serialized_size(){
+        val db = DBMaker.memoryDB().make()
+        val size1 = TT.serializedSize(TestPojo(), db.defaultSerializer)
+        db.defaultSerializerRegisterClass(TestPojo::class.java)
+        val size2 = TT.serializedSize(TestPojo(), db.defaultSerializer)
+        assertTrue(size1>size2)
+    }
+
+    @Test fun unknown_class_updated_on_commit(){
+        val db = DBMaker.memoryDB().make()
+        assertEquals(0, db.loadClassInfos().size)
+        TT.serializedSize(TestPojo(), db.defaultSerializer)
+        assertEquals(0, db.loadClassInfos().size)
+        db.commit()
+        assertEquals(1, db.loadClassInfos().size)
+    }
+
+
+    @Test fun unknown_class_updated_on_close(){
+        val f = TT.tempFile()
+        var db = DBMaker.fileDB(f).make()
+        assertEquals(0, db.loadClassInfos().size)
+        TT.serializedSize(TestPojo(), db.defaultSerializer)
+        assertEquals(0, db.loadClassInfos().size)
+        db.close()
+        db = DBMaker.fileDB(f).make()
+        assertEquals(1, db.loadClassInfos().size)
+        db.close()
+        f.delete()
+    }
+
+    fun DB.classInfoSerializer() = Reflection.method("getClassInfoSerializer").`in`(this).invoke() as Serializer<Any>
+
+    @Test fun register_class_leaves_old_value(){
+        var db = DBMaker.memoryDB().make()
+        db.defaultSerializerRegisterClass(TestPojo::class.java)
+        val classInfos = db.loadClassInfos().clone()
+        val z = classInfos[0]
+        classInfos[0] = SerializerPojo.ClassInfo(z.name, z.fields, true, true) //modify old value to make it recognizable
+        db.store.update(DB.RECID_CLASS_INFOS, classInfos, db.classInfoSerializer())
+
+        //update again and check old class info is untouched
+        db.defaultSerializerRegisterClass(TestPojo::class.java)
+        assertTrue(db.loadClassInfos()[0].isEnum)
+    }
 }

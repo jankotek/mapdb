@@ -152,6 +152,13 @@ object TT{
         return ObjectInputStream(in2).readObject() as E
     }
 
+    @JvmStatic fun <E> serializedSize(value: E, serializer: Serializer<E>, out:DataOutput2 = DataOutput2()): Int {
+        out.pos = 0
+        serializer.serialize(out, value)
+        return out.pos;
+    }
+
+
 
     fun fork(count:Int, body:(i:Int)->Unit){
         val exec = Executors.newCachedThreadPool({ r->
