@@ -2,6 +2,9 @@ package org.mapdb
 
 import org.junit.Test
 import org.junit.Assert.*
+import org.mapdb.volume.ByteArrayVol
+import org.mapdb.volume.MappedFileVol
+import java.math.BigInteger
 import java.util.*
 import kotlin.test.assertFailsWith
 
@@ -188,7 +191,21 @@ class SortedTableMapTest{
             assertEquals(count, next.key)
             assertEquals(count*2, next.value)
         }
+    }
 
+    @Test
+    fun issue695(){
+        var volume = ByteArrayVol.FACTORY.makeVolume(null,false)
+        val sink = SortedTableMap.create(
+                volume,
+                Serializer.BYTE_ARRAY,
+                Serializer.STRING).createFromSink()
+        TT.assertFailsWith(DBException.NotSorted::class.java) {
+            for (key in 120L..131) {
+                sink.put(BigInteger.valueOf(key).toByteArray(), "value" + key)
+            }
+            sink.create()
+        }
     }
 
 }

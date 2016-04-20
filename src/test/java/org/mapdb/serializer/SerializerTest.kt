@@ -57,7 +57,7 @@ abstract class SerializerTest<E> {
         }
     }
 
-    @Test fun trusted(){
+    open @Test fun trusted(){
         assertTrue(serializer.isTrusted || serializer== Serializer.JAVA || serializer== Serializer.ELSA)
     }
 
@@ -566,6 +566,9 @@ class Serializer_ELSA: GroupSerializerTest<Any>(){
 class Serializer_DB_default: GroupSerializerTest<Any?>(){
     override fun randomValue() = TT.randomString(11)
     override val serializer = DBMaker.memoryDB().make().defaultSerializer
+
+    @Test override fun trusted(){
+    }
 }
 
 

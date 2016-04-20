@@ -117,8 +117,14 @@ class SortedTableMap<K,V>(
                 val pairs = ArrayList<Pair<K, V>>()
                 var nodesSize = start+4+4;
                 var fileTail = 0L
+                var oldKey:K?=null
 
                 override fun put(e: Pair<K, V>) {
+                    if(oldKey!=null){
+                        if(keySerializer.compare(oldKey,e.first)>=0)
+                            throw DBException.NotSorted()
+                    }
+                    oldKey = e.first
                     pairs.add(e)
                     counter++
                     if (pairs.size < nodeSize)

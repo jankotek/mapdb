@@ -7,6 +7,8 @@ import org.junit.Assert
 import org.junit.Test
 import org.mapdb.BTreeMapJava.*
 import org.mapdb.serializer.GroupSerializer
+import org.mapdb.volume.ByteArrayVol
+import java.math.BigInteger
 import java.util.*
 import java.util.concurrent.CopyOnWriteArraySet
 import kotlin.test.*
@@ -889,6 +891,20 @@ class BTreeMapTest {
         })
 
         assertEquals(20, counter)
+    }
+
+
+    @Test
+    fun issue695(){
+        val sink = DBMaker.memoryDB().make().treeMap("a",
+                Serializer.BYTE_ARRAY,
+                Serializer.STRING).createFromSink()
+        TT.assertFailsWith(DBException.NotSorted::class.java) {
+            for (key in 120L..131) {
+                sink.put(BigInteger.valueOf(key).toByteArray(), "value" + key)
+            }
+            sink.create()
+        }
     }
 
 }
