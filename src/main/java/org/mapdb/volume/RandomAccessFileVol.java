@@ -49,7 +49,7 @@ public final class RandomAccessFileVol extends Volume {
         this.readOnly = readOnly;
         try {
             this.raf = new RandomAccessFile(file, readOnly ? "r" : "rw"); //TODO rwd, rws? etc
-            this.fileLock = Volume.lockFile(file, raf, readOnly, fileLockDisable);
+            this.fileLock = Volume.lockFile(file, raf.getChannel(), readOnly, fileLockDisable);
 
             //grow file if needed
             if (initSize != 0 && !readOnly) {

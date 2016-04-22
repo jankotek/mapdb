@@ -10,12 +10,15 @@ import org.mapdb.DataInput2;
 import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
+import java.nio.file.OpenOption;
+import java.nio.file.StandardOpenOption;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -47,7 +50,6 @@ public final class FileChannelVol extends Volume {
 
     protected final File file;
     protected final int sliceSize;
-    protected RandomAccessFile raf;
     protected FileChannel channel;
     protected final boolean readOnly;
     protected final FileLock fileLock;
@@ -59,24 +61,28 @@ public final class FileChannelVol extends Volume {
         this.file = file;
         this.readOnly = readOnly;
         this.sliceSize = 1<<sliceShift;
+        Set<OpenOption> options = new HashSet();
+        options.add(StandardOpenOption.READ);
+        if(!readOnly){
+            options.add(StandardOpenOption.WRITE);
+            options.add(StandardOpenOption.CREATE);
+        }
         try {
             checkFolder(file, readOnly);
             if (readOnly && !file.exists()) {
-                raf = null;
                 channel = null;
                 size = 0;
             } else {
-                raf = new RandomAccessFile(file, readOnly ? "r" : "rw");
-                channel = raf.getChannel();
+                channel = FileChannel.open(file.toPath(), options);
+
                 size = channel.size();
             }
 
-            fileLock = Volume.lockFile(file,raf,readOnly,fileLockDisabled);
+            fileLock = Volume.lockFile(file,channel,readOnly,fileLockDisabled);
 
             if(initSize!=0 && !readOnly){
                 long oldSize = channel.size();
                 if(initSize>oldSize){
-                    raf.setLength(initSize);
                     clear(oldSize,initSize);
                 }
             }
@@ -118,7 +124,8 @@ public final class FileChannelVol extends Volume {
         if(offset>size){
             growLock.lock();
             try {
-                raf.setLength(offset);
+                channel.position(offset-1);
+                channel.write(ByteBuffer.allocate(1));
                 size = offset;
             } catch (IOException e) {
                 throw new DBException.VolumeIOError(e);
@@ -279,9 +286,6 @@ public final class FileChannelVol extends Volume {
             if(channel!=null)
                 channel.close();
             channel = null;
-            if (raf != null)
-                raf.close();
-            raf = null;
         }catch(ClosedByInterruptException e){
             throw new DBException.VolumeClosedByInterrupt(e);
         }catch(ClosedChannelException e){
@@ -341,9 +345,15 @@ public final class FileChannelVol extends Volume {
 
     @Override
     public void clear(long startOffset, long endOffset) {
+        FileChannelVol.clear(channel, startOffset, endOffset);
+    }
+
+
+    static public void clear(FileChannel channel, long startOffset, long endOffset) {
         try {
+            ByteBuffer b = ByteBuffer.wrap(CLEAR);
             while(startOffset<endOffset){
-                ByteBuffer b = ByteBuffer.wrap(CLEAR);
+                b.rewind();
                 b.limit((int) Math.min(CLEAR.length, endOffset - startOffset));
                 channel.write(b, startOffset);
                 startOffset+=CLEAR.length;

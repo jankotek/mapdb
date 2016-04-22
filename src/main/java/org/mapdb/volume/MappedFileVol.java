@@ -85,7 +85,7 @@ public final class MappedFileVol extends ByteBufferVol {
             this.raf = new RandomAccessFile(file, readOnly ? "r" : "rw");
             this.fileChannel = raf.getChannel();
 
-            fileLock = Volume.lockFile(file, raf, readOnly, fileLockDisable);
+            fileLock = Volume.lockFile(file, fileChannel, readOnly, fileLockDisable);
 
             final long fileSize = fileChannel.size();
             long endSize = fileSize;
@@ -97,7 +97,6 @@ public final class MappedFileVol extends ByteBufferVol {
                 int chunksSize = (int) ((DataIO.roundUp(endSize, sliceSize) >>> sliceShift));
                 if (endSize > fileSize && !readOnly) {
                     RandomAccessFileVol.clearRAF(raf, fileSize, endSize);
-                    raf.getFD().sync();
                 }
 
                 slices = new ByteBuffer[chunksSize];
@@ -137,7 +136,6 @@ public final class MappedFileVol extends ByteBufferVol {
                 // fill with zeroes from  old size to new size
                 // this will prevent file from growing via mmap operation
                 RandomAccessFileVol.clearRAF(raf, 1L * oldSize * sliceSize, offset);
-                raf.getFD().sync();
             }
 
             //grow slices

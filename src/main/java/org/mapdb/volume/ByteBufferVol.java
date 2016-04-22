@@ -3,13 +3,14 @@ package org.mapdb.volume;
 import org.mapdb.CC;
 import org.mapdb.DBException;
 import org.mapdb.DataInput2;
+import sun.misc.Cleaner;
+import sun.nio.ch.DirectBuffer;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.logging.Level;
 
 /**
  * Abstract Volume over bunch of ByteBuffers
@@ -327,36 +328,24 @@ abstract public class ByteBufferVol extends Volume {
      * Any error is silently ignored (for example SUN API does not exist on Android).
      */
     protected static boolean unmap(MappedByteBuffer b){
-        try{
-            if(unmapHackSupported){
-
-                // need to dispose old direct buffer, see bug
-                // http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4724038
-                Method cleanerMethod = b.getClass().getMethod("cleaner", new Class[0]);
-                cleanerMethod.setAccessible(true);
-                if(cleanerMethod!=null){
-                    Object cleaner = cleanerMethod.invoke(b);
-                    if(cleaner!=null){
-                        Method clearMethod = cleaner.getClass().getMethod("clean", new Class[0]);
-                        if(clearMethod!=null) {
-                            clearMethod.invoke(cleaner);
-                            return true;
-                        }
-                    }else{
-                        //cleaner is null, try fallback method for readonly buffers
-                        Method attMethod = b.getClass().getMethod("attachment", new Class[0]);
-                        attMethod.setAccessible(true);
-                        Object att = attMethod.invoke(b);
-                        return att instanceof MappedByteBuffer &&
-                                unmap((MappedByteBuffer) att);
-                    }
-                }
-            }
-        }catch(Exception e){
-            unmapHackSupported = false;
-            LOG.log(Level.WARNING, "Unmap failed", e);
+        if(!unmapHackSupported) {
+            return false;
         }
-        return false;
+
+        if(!(b instanceof DirectBuffer))
+            return false;
+
+        // need to dispose old direct buffer, see bug
+        // http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4724038
+        DirectBuffer bb = (DirectBuffer) b;
+        Cleaner c = bb.cleaner();
+        if(c!=null){
+            c.clean();
+            return true;
+        }
+        Object attachment = bb.attachment();
+        return attachment!=null && attachment instanceof DirectBuffer && unmap(b);
+
     }
 
     private static boolean unmapHackSupported = true;

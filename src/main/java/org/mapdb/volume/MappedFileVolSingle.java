@@ -84,7 +84,7 @@ public final class MappedFileVolSingle extends ByteBufferVolSingle {
             FileChannelVol.checkFolder(file, readOnly);
             raf = new RandomAccessFile(file, readOnly ? "r" : "rw");
 
-            fileLock = Volume.lockFile(file, raf, readOnly, fileLockDisabled);
+            fileLock = Volume.lockFile(file, raf.getChannel(), readOnly, fileLockDisabled);
 
 
             final long fileSize = raf.length();
