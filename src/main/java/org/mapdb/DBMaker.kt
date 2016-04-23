@@ -269,7 +269,6 @@ object DBMaker{
          * @return this builder
          */
         fun cleanerHackEnable():Maker{
-            assertFile()
             _cleanerHack = true
             return this;
         }
