@@ -85,7 +85,7 @@ object DBMaker{
     }
 
 
-    @JvmStatic fun onVolume(volume: Volume, volumeExists: Boolean): Maker {
+    @JvmStatic fun volumeDB(volume: Volume, volumeExists: Boolean): Maker {
         return Maker(_storeType = StoreType.directbuffer, volume=volume, volumeExist=volumeExists)
     }
 

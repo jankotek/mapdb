@@ -232,7 +232,7 @@ class HTreeMapExpirationTest {
         val volume = SingleByteArrayVol(1024 * 1024 * 500)
 
         val db = DBMaker
-                .onVolume(volume,false)
+                .volumeDB(volume,false)
                 .make()
 
         val map = db

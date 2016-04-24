@@ -339,7 +339,7 @@ class HTreeMapTest{
     @Test fun continous_expiration(){
         val size = 128 * 1024*1024
         val volume = SingleByteArrayVol(size)
-        val db = DBMaker.onVolume(volume, false).make()
+        val db = DBMaker.volumeDB(volume, false).make()
         val map = db
             .hashMap("map", Serializer.LONG, Serializer.BYTE_ARRAY)
             .expireAfterCreate()
