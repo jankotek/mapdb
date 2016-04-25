@@ -78,13 +78,13 @@ fun StoreDirectAbstract.allocateData(size: Int, recursive: Boolean): Long =
                 .`in`(this)
                 .invoke(size, recursive) as Long
 
-fun StoreDirectAbstract.longStackTake(masterLinkOffset: Long, recursive: Boolean): Long =
+fun StoreDirectAbstract._longStackTake(masterLinkOffset: Long, recursive: Boolean): Long =
         Reflection.method("longStackTake")
                 .withParameterTypes(masterLinkOffset.javaClass, recursive.javaClass)
                 .`in`(this)
                 .invoke(masterLinkOffset, recursive) as Long
 
-fun StoreDirectAbstract.longStackPut(masterLinkOffset: Long, value: Long, recursive: Boolean) {
+fun StoreDirectAbstract._longStackPut(masterLinkOffset: Long, value: Long, recursive: Boolean) {
     Reflection.method("longStackPut")
             .withParameterTypes(masterLinkOffset.javaClass, value.javaClass, recursive.javaClass)
             .`in`(this)

@@ -366,21 +366,21 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
     @Test fun longStack_putTake(){
         val s = openStore()
         s.structuralLock?.lock()
-        assertEquals(0, s.longStackTake(UNUSED1_LONG_STACK,false))
-        s.longStackPut(UNUSED1_LONG_STACK, 160,false)
-        assertEquals(160, s.longStackTake(UNUSED1_LONG_STACK,false))
-        assertEquals(0, s.longStackTake(UNUSED1_LONG_STACK,false))
+        assertEquals(0, s._longStackTake(UNUSED1_LONG_STACK,false))
+        s._longStackPut(UNUSED1_LONG_STACK, 160,false)
+        assertEquals(160, s._longStackTake(UNUSED1_LONG_STACK,false))
+        assertEquals(0, s._longStackTake(UNUSED1_LONG_STACK,false))
     }
 
     @Test fun longStack_putTake2(){
         val s = openStore()
         s.structuralLock?.lock()
-        assertEquals(0, s.longStackTake(UNUSED1_LONG_STACK,false))
-        s.longStackPut(UNUSED1_LONG_STACK, 160L,false)
-        s.longStackPut(UNUSED1_LONG_STACK, 320L,false)
-        assertEquals(320L, s.longStackTake(UNUSED1_LONG_STACK,false))
-        assertEquals(160L, s.longStackTake(UNUSED1_LONG_STACK,false))
-        assertEquals(0, s.longStackTake(UNUSED1_LONG_STACK,false))
+        assertEquals(0, s._longStackTake(UNUSED1_LONG_STACK,false))
+        s._longStackPut(UNUSED1_LONG_STACK, 160L,false)
+        s._longStackPut(UNUSED1_LONG_STACK, 320L,false)
+        assertEquals(320L, s._longStackTake(UNUSED1_LONG_STACK,false))
+        assertEquals(160L, s._longStackTake(UNUSED1_LONG_STACK,false))
+        assertEquals(0, s._longStackTake(UNUSED1_LONG_STACK,false))
     }
 
     @Test fun longStack_putTake_many() {
@@ -391,13 +391,13 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
         for(a in 1 .. 10) {
             for(max in min2..max2) {
                 for (i in 1L..max) {
-                    s.longStackPut(UNUSED1_LONG_STACK, i * 16, false)
+                    s._longStackPut(UNUSED1_LONG_STACK, i * 16, false)
                 }
                 for (i in max downTo  1L) {
-                    val t = s.longStackTake(UNUSED1_LONG_STACK, false)
+                    val t = s._longStackTake(UNUSED1_LONG_STACK, false)
                     assertEquals(i * 16, t)
                 }
-                assertEquals(0L, s.longStackTake(UNUSED1_LONG_STACK, false))
+                assertEquals(0L, s._longStackTake(UNUSED1_LONG_STACK, false))
             }
         }
     }
@@ -408,13 +408,13 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
         s.structuralLock?.lock()
 
         for(v1 in vals) for (v2 in vals) for(v3 in vals){
-            s.longStackPut(UNUSED1_LONG_STACK, v1, false)
-            s.longStackPut(UNUSED1_LONG_STACK, v2, false)
-            s.longStackPut(UNUSED1_LONG_STACK, v3, false)
-            assertEquals(v3, s.longStackTake(UNUSED1_LONG_STACK, false))
-            assertEquals(v2, s.longStackTake(UNUSED1_LONG_STACK, false))
-            assertEquals(v1, s.longStackTake(UNUSED1_LONG_STACK, false))
-            assertEquals(0L, s.longStackTake(UNUSED1_LONG_STACK, false))
+            s._longStackPut(UNUSED1_LONG_STACK, v1, false)
+            s._longStackPut(UNUSED1_LONG_STACK, v2, false)
+            s._longStackPut(UNUSED1_LONG_STACK, v3, false)
+            assertEquals(v3, s._longStackTake(UNUSED1_LONG_STACK, false))
+            assertEquals(v2, s._longStackTake(UNUSED1_LONG_STACK, false))
+            assertEquals(v1, s._longStackTake(UNUSED1_LONG_STACK, false))
+            assertEquals(0L, s._longStackTake(UNUSED1_LONG_STACK, false))
         }
     }
 
