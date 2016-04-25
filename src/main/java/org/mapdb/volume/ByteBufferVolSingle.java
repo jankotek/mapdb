@@ -87,7 +87,7 @@ abstract public class ByteBufferVolSingle extends Volume {
     }
 
     @Override
-    public void transferInto(long inputOffset, Volume target, long targetOffset, long size) {
+    public void copyTo(long inputOffset, Volume target, long targetOffset, long size) {
         final ByteBuffer b1 = buffer.duplicate();
         final int bufPos = (int) inputOffset;
 

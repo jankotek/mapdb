@@ -166,8 +166,8 @@ public final class ReadOnlyVolume extends Volume {
     }
 
     @Override
-    public void transferInto(long inputOffset, Volume target, long targetOffset, long size) {
-        vol.transferInto(inputOffset, target, targetOffset, size);
+    public void copyTo(long inputOffset, Volume target, long targetOffset, long size) {
+        vol.copyTo(inputOffset, target, targetOffset, size);
     }
 
     @Override

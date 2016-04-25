@@ -766,7 +766,7 @@ class StoreDirect(
                 volume.truncate(fileTail)
 
                 for(page in 0 until fileTail step CC.PAGE_SIZE){
-                    store2.volume.transferInto(page, volume, page, CC.PAGE_SIZE)
+                    store2.volume.copyTo(page, volume, page, CC.PAGE_SIZE)
                 }
 
                 //take index pages from second store

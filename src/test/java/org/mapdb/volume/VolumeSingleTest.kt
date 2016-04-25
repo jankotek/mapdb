@@ -1,10 +1,13 @@
 package org.mapdb.volume
 
-import org.junit.Assert
+import org.junit.Assert.*
+import org.junit.Test
 import org.mapdb.CC
 import org.mapdb.DataIO
 import org.mapdb.Serializer
 import org.mapdb.TT
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.util.*
 
@@ -38,9 +41,9 @@ class VolumeSingleTest(val fab: Function1<String, Volume>) {
         while (i < DataIO.PACK_LONG_RESULT_MASK) {
             v.clear(0, 20)
             val size = v.putPackedLong(10, i).toLong()
-            Assert.assertTrue(i > 100000 || size < 6)
+            assertTrue(i > 100000 || size < 6)
 
-            Assert.assertEquals(i or (size shl 60), v.getPackedLong(10))
+            assertEquals(i or (size shl 60), v.getPackedLong(10))
             i = i + 1 + i / 1000
         }
         v.close()
@@ -68,7 +71,7 @@ class VolumeSingleTest(val fab: Function1<String, Volume>) {
         v.ensureAvailable(b.size.toLong())
         v.putData(0, b, 0, b.size)
 
-        Assert.assertEquals(CC.HASH_FACTORY.hash64().hash(b, 0, b.size, 11), v.hash(0, b.size.toLong(), 11))
+        assertEquals(CC.HASH_FACTORY.hash64().hash(b, 0, b.size, 11), v.hash(0, b.size.toLong(), 11))
 
         v.close()
     }
@@ -81,7 +84,7 @@ class VolumeSingleTest(val fab: Function1<String, Volume>) {
         v.putDataOverlap(100,b,0,b.size)
 
         fun t(offset:Int, size:Int) {
-            Assert.assertEquals(
+            assertEquals(
                     CC.HASH_FACTORY.hash64().hash(b, offset, size, 11),
                     v.hash(100+offset.toLong(), size.toLong(), 11))
         }
@@ -95,6 +98,18 @@ class VolumeSingleTest(val fab: Function1<String, Volume>) {
             }
         }
         v.close()
+    }
+
+    @Test fun IOStreams(){
+        val b = TT.randomByteArray(1024*12*1024)
+        val v = fab(TT.tempFile().toString())
+        v.copyFrom(ByteArrayInputStream(b))
+        assertTrue(v.length()>1024*1024)
+        val out = ByteArrayOutputStream()
+        v.copyTo(out)
+
+        assertEquals(b.size, out.toByteArray().size)
+        assertTrue(Arrays.equals(b, out.toByteArray()))
     }
 
 
@@ -113,7 +128,7 @@ class VolumeSingleTest(val fab: Function1<String, Volume>) {
             var expected = 11
             if (o >= offset && o < offset + size)
                 expected = 0
-            Assert.assertEquals(expected.toLong(), b.toLong())
+            assertEquals(expected.toLong(), b.toLong())
         }
     }
 
@@ -127,7 +142,7 @@ class VolumeSingleTest(val fab: Function1<String, Volume>) {
         val b2 = ByteArray(size)
         vol.getDataInputOverlap(offset, size).readFully(b2, 0, size)
 
-        Assert.assertTrue(Serializer.BYTE_ARRAY.equals(b, b2))
+        assertTrue(Serializer.BYTE_ARRAY.equals(b, b2))
     }
 
 
@@ -150,7 +165,7 @@ class VolumeSingleTest(val fab: Function1<String, Volume>) {
 
 
         for (i in 0..size - 1) {
-            Assert.assertEquals(b2[i + 1000].toLong(), b3[i + 100].toLong())
+            assertEquals(b2[i + 1000].toLong(), b3[i + 100].toLong())
         }
     }
 

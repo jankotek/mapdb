@@ -324,7 +324,7 @@ public abstract class Volume implements Closeable{
      * @param targetOffset position in target volume where data will be copied into
      * @param size size of data to copy
      */
-    public void transferInto(long inputOffset, Volume target, long targetOffset, long size) {
+    public void copyTo(long inputOffset, Volume target, long targetOffset, long size) {
         //TODO size>Integer.MAX_VALUE
 
         byte[] data = new byte[(int) size];
@@ -373,7 +373,7 @@ public abstract class Volume implements Closeable{
      * Target volume might grow, but is never shrank.
      * Target is also not synced
      */
-    public void copyEntireVolumeTo(Volume to) {
+    public void copyTo(Volume to) {
         final long volSize = length();
         final long bufSize = 1L<< CC.PAGE_SHIFT;
 
@@ -383,9 +383,51 @@ public abstract class Volume implements Closeable{
             long size = Math.min(volSize,offset+bufSize)-offset;
             if(CC.ASSERT && (size<0))
                 throw new AssertionError();
-            transferInto(offset,to,offset, size);
+            copyTo(offset,to,offset, size);
         }
+    }
 
+
+    /**
+     * Copy content from InputStream into this Volume.
+     */
+    public void copyFrom(InputStream input) {
+        byte[] buf = new byte[1024];
+        long offset = 0;
+        try {
+            while(true){
+                int read = input.read(buf);
+                if(read==-1)
+                    return;
+                ensureAvailable(offset+read);
+                putData(offset, buf, 0, read);
+                offset+=read;
+            }
+        } catch (IOException e) {
+            throw new IOError(e);
+        }
+    }
+
+
+    /**
+     * Copy content of this volume to OutputStream.
+     */
+    public void copyTo(OutputStream output) {
+        final long volSize = length();
+
+        byte[] buf = new byte[1024];
+        for(long offset=0;offset<volSize;offset+=buf.length){
+            int size = (int)(Math.min(volSize,offset+buf.length)-offset);
+            if(CC.ASSERT && (size<0))
+                throw new AssertionError();
+
+            getData(offset, buf, 0, size);
+            try {
+                output.write(buf, 0, size);
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+        }
     }
 
     /**
@@ -420,21 +462,21 @@ public abstract class Volume implements Closeable{
         return s.getValue();
     }
 
-
-    /** transfer data from one volume to second. Second volume will be expanded if needed*/
-    public static void volumeTransfer(long size, Volume from, Volume to){
-        int bufSize = Math.min(from.sliceSize(),to.sliceSize());
-
-        if(bufSize<0 || bufSize>1024*1024*128){
-            bufSize = 64 * 1024; //something strange, set safe limit
-        }
-        to.ensureAvailable(size);
-
-        for(long offset=0;offset<size;offset+=bufSize){
-            int bb = (int) Math.min(bufSize, size-offset);
-            from.transferInto(offset,to,offset,bb);
-        }
-    }
+//
+//    /** transfer data from one volume to second. Second volume will be expanded if needed*/
+//    public static void copyTo(long size, Volume from, Volume to){
+//        int bufSize = Math.min(from.sliceSize(),to.sliceSize());
+//
+//        if(bufSize<0 || bufSize>1024*1024*128){
+//            bufSize = 64 * 1024; //something strange, set safe limit
+//        }
+//        to.ensureAvailable(size);
+//
+//        for(long offset=0;offset<size;offset+=bufSize){
+//            int bb = (int) Math.min(bufSize, size-offset);
+//            from.copyTo(offset,to,offset,bb);
+//        }
+//    }
 
 
     static FileLock lockFile(File file, FileChannel channel, boolean readOnly, boolean fileLockDisable) {

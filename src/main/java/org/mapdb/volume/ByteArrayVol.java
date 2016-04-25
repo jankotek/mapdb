@@ -161,7 +161,7 @@ public final class ByteArrayVol extends Volume {
 
 
     @Override
-    public void transferInto(long inputOffset, Volume target, long targetOffset, long size) {
+    public void copyTo(long inputOffset, Volume target, long targetOffset, long size) {
         int pos = (int) (inputOffset & sliceSizeModMask);
         byte[] buf = getSlice(inputOffset);
 

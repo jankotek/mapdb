@@ -91,7 +91,7 @@ public final class SingleByteArrayVol extends Volume {
 
 
     @Override
-    public void transferInto(long inputOffset, Volume target, long targetOffset, long size) {
+    public void copyTo(long inputOffset, Volume target, long targetOffset, long size) {
         //TODO size>Integer.MAX_VALUE
         target.putData(targetOffset,data, (int) inputOffset, (int) size);
     }
