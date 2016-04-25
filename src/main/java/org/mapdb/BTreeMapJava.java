@@ -51,6 +51,22 @@ public class BTreeMapJava {
                     }
                 }
             }
+
+            if(CC.PARANOID){
+                //ensure keys are sorted
+                int keysLen = keySerializer.valueArraySize(keys);
+                if(keysLen>1) {
+                    for (int i = 1; i < keysLen; i++){
+                        int c = keySerializer.compare(
+                                keySerializer.valueArrayGet(keys, i-1),
+                                keySerializer.valueArrayGet(keys, i));
+                        if(c>0)
+                            throw new AssertionError();
+                        if(c==0 && i!=keysLen-1)
+                            throw new AssertionError();
+                    }
+                }
+            }
         }
         Node(int flags, long link, Object keys, Object values){
             this.flags = (byte)flags;

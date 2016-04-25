@@ -82,9 +82,9 @@ internal interface ConcurrentNavigableMapExtra<K, V> : ConcurrentNavigableMap<K,
 
     fun keyIterator(): MutableIterator<K>
 
-    fun keyIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<K>
+    fun keyIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<K?>
 
-    fun valueIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<V>
+    fun valueIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<V?>
 
     fun entryIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<MutableMap.MutableEntry<K, V?>>
 
@@ -92,9 +92,9 @@ internal interface ConcurrentNavigableMapExtra<K, V> : ConcurrentNavigableMap<K,
 
     fun descendingKeyIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<K>
 
-    fun descendingValueIterator(): MutableIterator<V>
+    fun descendingValueIterator(): MutableIterator<V?>
 
-    fun descendingValueIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<V>
+    fun descendingValueIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<V?>
 
     fun descendingEntryIterator(): MutableIterator<MutableMap.MutableEntry<K, V?>>
 

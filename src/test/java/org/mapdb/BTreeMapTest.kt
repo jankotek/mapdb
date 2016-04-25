@@ -3,7 +3,7 @@ package org.mapdb
 import org.eclipse.collections.api.list.primitive.MutableLongList
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet
 import org.fest.reflect.core.Reflection
-import org.junit.Assert
+import org.junit.Assert.*
 import org.junit.Test
 import org.mapdb.BTreeMapJava.*
 import org.mapdb.serializer.GroupSerializer
@@ -865,12 +865,12 @@ class BTreeMapTest {
         val iter = prefixSubmap.keys.iterator()
         for(i in 0..127){
             assertTrue(iter.hasNext())
-            Assert.assertArrayEquals(byteArrayOf(4, (i  and 0xFF).toByte()), iter.next())
+            assertArrayEquals(byteArrayOf(4, (i  and 0xFF).toByte()), iter.next())
         }
 
         for(i in -128..-1){
             assertTrue(iter.hasNext())
-            Assert.assertArrayEquals(byteArrayOf(4, (i  and 0xFF).toByte()), iter.next())
+            assertArrayEquals(byteArrayOf(4, (i  and 0xFF).toByte()), iter.next())
         }
         assertFalse(iter.hasNext())
     }
@@ -907,4 +907,20 @@ class BTreeMapTest {
         }
     }
 
+    @Test fun external_value(){
+        val b = BTreeMap.make(
+                keySerializer = Serializer.INTEGER,
+                valueSerializer = Serializer.STRING,
+                valueInline = false)
+        b.put(1, "1")
+
+        val rootRecid = b.store.get(b.rootRecidRecid, Serializer.RECID)!!
+        val node = b.store.get(rootRecid, b.nodeSerializer)!!
+        assertArrayEquals(arrayOf(1), b.keySerializer.valueArrayToArray(node.keys))
+        //value is long array
+        assertEquals(1, Serializer.RECID.valueArraySize(node.values))
+        val valueRecid = Serializer.RECID.valueArrayGet(node.values, 0)
+        val value = b.store.get(valueRecid, Serializer.STRING)
+        assertEquals("1", value)
+    }
 }

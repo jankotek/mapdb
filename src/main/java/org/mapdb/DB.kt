@@ -869,7 +869,7 @@ open class DB(
 
         private var _rootRecidRecid:Long? = null
         private var _counterRecid:Long? = null
-
+        private var _valueInline:Boolean = true
 
         fun <A> keySerializer(keySerializer:GroupSerializer<A>):TreeMapMaker<A,V>{
             _keySerializer = keySerializer as GroupSerializer<K>
@@ -897,6 +897,12 @@ open class DB(
 
         fun counterEnable():TreeMapMaker<K,V>{
             _counterEnable = true
+            return this;
+        }
+
+        //TODO better name?
+        fun valuesOutsideNodesEnable():TreeMapMaker<K,V>{
+            _valueInline = false
             return this;
         }
 
@@ -952,6 +958,7 @@ open class DB(
                     (if(hasValues)Keys.keySerializer else Keys.serializer), _keySerializer)
             if(hasValues) {
                 db.nameCatalogPutClass(catalog, name + Keys.valueSerializer, _valueSerializer)
+                catalog[name + Keys.valueInline] = _valueInline.toString()
             }
 
             val rootRecidRecid2 = _rootRecidRecid
@@ -974,7 +981,8 @@ open class DB(
                     comparator = _keySerializer, //TODO custom comparator
                     isThreadSafe = db.isThreadSafe,
                     counterRecid = counterRecid2,
-                    hasValues = hasValues
+                    hasValues = hasValues,
+                    valueInline = _valueInline
             )
         }
 
@@ -994,6 +1002,17 @@ open class DB(
 
             val counterRecid2 = catalog[name + Keys.counterRecid]!!.toLong()
             _maxNodeSize = catalog[name + Keys.maxNodeSize]!!.toInt()
+
+            //TODO compatibility with older versions, remove before stable version
+            if(_valueSerializer!= BTreeMap.Companion.NO_VAL_SERIALIZER &&
+                    catalog[name + Keys.valueInline]==null
+                    && db.store.isReadOnly.not()){
+                //patch store with default value
+                catalog[name + Keys.valueInline] = "true"
+                db.nameCatalogSave(catalog)
+            }
+
+            _valueInline = (catalog[name + Keys.valueInline]?:"true").toBoolean()
             return BTreeMap(
                     keySerializer = _keySerializer,
                     valueSerializer = _valueSerializer,
@@ -1003,7 +1022,8 @@ open class DB(
                     comparator = _keySerializer, //TODO custom comparator
                     isThreadSafe = db.isThreadSafe,
                     counterRecid = counterRecid2,
-                    hasValues = hasValues
+                    hasValues = hasValues,
+                    valueInline = _valueInline
             )
         }
 

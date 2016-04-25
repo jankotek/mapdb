@@ -347,16 +347,18 @@ class DBTest{
         val map = db.treeMap("aa", Serializer.BIG_DECIMAL, Serializer.BOOLEAN)
                 .counterEnable()
                 .maxNodeSize(16)
+                .valuesOutsideNodesEnable()
                 .create()
         
         val p = db.nameCatalogParamsFor("aa")
 
-        assertEquals(6, p.size)
+        assertEquals(7, p.size)
         assertEquals("TreeMap", p["aa"+DB.Keys.type])
         assertEquals("org.mapdb.Serializer#BIG_DECIMAL", p["aa"+DB.Keys.keySerializer])
         assertEquals("org.mapdb.Serializer#BOOLEAN", p["aa"+DB.Keys.valueSerializer])
         assertEquals("16", p["aa"+DB.Keys.maxNodeSize])
         assertEquals(map.rootRecidRecid.toString(), p["aa"+DB.Keys.rootRecidRecid])
+        assertEquals("false", p["aa"+DB.Keys.valueInline])
 //TODO reenable once counter is done
 //        assertTrue(p["aa"+DB.Keys.counterRecids]!!.toLong()>0)
 
@@ -371,7 +373,7 @@ class DBTest{
 
         val p = db.nameCatalogParamsFor("aa")
 
-        assertEquals(6, p.size)
+        assertEquals(7, p.size)
         assertEquals(map.store, db.store)
         assertEquals("0", p["aa"+DB.Keys.counterRecid])
         assertEquals(CC.BTREEMAP_MAX_NODE_SIZE.toString(), p["aa"+DB.Keys.maxNodeSize])
@@ -379,6 +381,7 @@ class DBTest{
         assertEquals("TreeMap", p["aa"+DB.Keys.type])
         assertEquals("org.mapdb.DB#defaultSerializer", p["aa"+DB.Keys.keySerializer])
         assertEquals("org.mapdb.DB#defaultSerializer", p["aa"+DB.Keys.valueSerializer])
+        assertEquals("true", p["aa"+DB.Keys.valueInline])
     }
 
     @Test fun treeMap_import(){
