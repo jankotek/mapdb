@@ -35,14 +35,13 @@
 
     <properties>
         <kotlin.version>1.0.1</kotlin.version>
-        <dokka.version>0.9.7</dokka.version>
 
         <java.target.version>1.8</java.target.version>
         <java.source.version>1.8</java.source.version>
 
         <!--eclipse collections-->
-        <ec.version>7.0.1</ec.version>
-        <guava.version>19.0</guava.version>
+        <ec.version>[7.0.0,7.20.0)</ec.version>
+        <guava.version>[15.0,19.20)</guava.version>
 
         <threadCount>3</threadCount>
         <argline />
@@ -54,12 +53,6 @@
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-stdlib</artifactId>
-            <version>${kotlin.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-test</artifactId>
             <version>${kotlin.version}</version>
         </dependency>
 
@@ -255,38 +248,9 @@
                 </configuration>
             </plugin>
 
-
-            <plugin>
-                <groupId>org.jetbrains.dokka</groupId>
-                <artifactId>dokka-maven-plugin</artifactId>
-                <version>${dokka.version}</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>dokka</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <sourceLinks>
-                        <link>
-                            <dir>src/main/java</dir>
-                            <url>http://github.com/jankotek/mapdb</url>
-                        </link>
-                    </sourceLinks>
-                </configuration>
-            </plugin>
         </plugins>
 
     </build>
-
-    <pluginRepositories>
-        <pluginRepository>
-            <id>jcenter</id>
-            <name>JCenter</name>
-            <url>https://jcenter.bintray.com/</url>
-        </pluginRepository>
-    </pluginRepositories>
 
     <parent>
         <groupId>org.sonatype.oss</groupId>

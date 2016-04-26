@@ -5,7 +5,7 @@ import org.junit.Test
 import java.util.*
 import org.junit.Assert.*
 import java.util.concurrent.atomic.AtomicLong
-import kotlin.test.assertFailsWith
+import org.mapdb.TT.assertFailsWith
 
 /**
  * Tests contract on `Store` interface
@@ -159,11 +159,11 @@ abstract class StoreTest {
         e.update(recid, 1L, Serializer.LONG)
         assertEquals(1L.toLong(), e.get(recid, Serializer.LONG))
         e.delete(recid, Serializer.LONG)
-        assertFailsWith(DBException.GetVoid::class) {
+        assertFailsWith(DBException.GetVoid::class.java) {
             assertNull(e.get(recid, TT.Serializer_ILLEGAL_ACCESS))
         }
         e.verify()
-        assertFailsWith(DBException.GetVoid::class) {
+        assertFailsWith(DBException.GetVoid::class.java) {
             e.update(recid, 1L, Serializer.LONG)
         }
         e.verify()
@@ -200,7 +200,7 @@ abstract class StoreTest {
         val e = openStore()
         val recid = e.preallocate()
         e.delete(recid, Serializer.LONG)
-        assertFailsWith(DBException.GetVoid::class) {
+        assertFailsWith(DBException.GetVoid::class.java) {
             assertTrue(e.compareAndSwap(recid, null, 1L, Serializer.LONG))
         }
         e.verify()
@@ -219,7 +219,7 @@ abstract class StoreTest {
         assertEquals(s, e.get(recid, Serializer.STRING))
         e.verify()
         e.delete(recid, Serializer.STRING)
-        assertFailsWith(DBException.GetVoid::class) {
+        assertFailsWith(DBException.GetVoid::class.java) {
             e.get(recid, Serializer.STRING)
         }
         e.verify()
@@ -242,7 +242,7 @@ abstract class StoreTest {
         assertTrue(Arrays.equals(b, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE)))
         e.verify()
         e.delete(recid, Serializer.BYTE_ARRAY_NOSIZE)
-        assertFailsWith(DBException.GetVoid::class) {
+        assertFailsWith(DBException.GetVoid::class.java) {
             e.get(recid, Serializer.BYTE_ARRAY_NOSIZE)
         }
         e.verify()
@@ -254,7 +254,7 @@ abstract class StoreTest {
         val recid = e.put(1L, Serializer.LONG)
         e.verify()
         e.delete(recid, Serializer.LONG)
-        assertFailsWith(DBException.GetVoid::class) {
+        assertFailsWith(DBException.GetVoid::class.java) {
             e.get(recid, Serializer.LONG)
         }
         e.verify()
@@ -265,7 +265,7 @@ abstract class StoreTest {
         val e = openStore()
         val recid = e.put(1L, Serializer.LONG)
         e.delete(recid, Serializer.LONG)
-        assertFailsWith(DBException.GetVoid::class) {
+        assertFailsWith(DBException.GetVoid::class.java) {
             e.update(recid, 2L, Serializer.LONG)
         }
         e.verify()
@@ -276,7 +276,7 @@ abstract class StoreTest {
         val e = openStore()
         val recid = e.put(1L, Serializer.LONG)
         e.delete(recid, Serializer.LONG)
-        assertFailsWith(DBException.GetVoid::class) {
+        assertFailsWith(DBException.GetVoid::class.java) {
             e.delete(recid, Serializer.LONG)
         }
         e.verify()
@@ -308,7 +308,7 @@ abstract class StoreTest {
             val e = openStore()
             val recid = e.put(TT.randomString(size), Serializer.STRING)
             e.delete(recid, Serializer.STRING)
-            assertFailsWith(DBException.GetVoid::class) {
+            assertFailsWith(DBException.GetVoid::class.java) {
                 e.get(recid, TT.Serializer_ILLEGAL_ACCESS)
             }
 

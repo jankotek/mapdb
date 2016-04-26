@@ -3,7 +3,7 @@ package org.mapdb.volume
 import net.jpountz.xxhash.XXHashFactory
 import org.junit.Test
 import java.util.*
-import kotlin.test.assertEquals
+import org.junit.Assert.assertEquals
 
 /**
  * Tests XXHashing

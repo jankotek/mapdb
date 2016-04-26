@@ -1,13 +1,12 @@
 package org.mapdb.crash
 
 import org.junit.Test
+import org.junit.Assert.*
 import org.mapdb.DataIO
 import org.mapdb.TT
-import org.mapdb.crash.CrashJVM
 import java.io.*
 import java.util.*
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+
 
 /**
  * Created by jan on 3/16/16.

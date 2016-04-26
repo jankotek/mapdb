@@ -1,6 +1,7 @@
 package org.mapdb
 
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet
+import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
@@ -9,8 +10,6 @@ import org.mapdb.serializer.GroupSerializer
 import java.io.IOException
 import java.util.*
 import java.util.concurrent.ConcurrentMap
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 
 @RunWith(Parameterized::class)

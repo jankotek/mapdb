@@ -9,7 +9,6 @@ import org.mapdb.indexTreeLongLongMapTests_GS_GENERATED.*
 import org.junit.Assert.*
 import org.junit.Test
 import java.util.*
-import kotlin.test.assertFailsWith
 
 class IndexTreeLongLongMapTest{
 
@@ -46,7 +45,7 @@ class IndexTreeLongLongMapTest{
         assertTrue(iter.hasNext())
         assertEquals(3423L, iter.nextLong())
         assertFalse(iter.hasNext())
-        assertFailsWith(NoSuchElementException::class, {
+        TT.assertFailsWith(NoSuchElementException::class.java, {
             iter.nextLong()
         })
 

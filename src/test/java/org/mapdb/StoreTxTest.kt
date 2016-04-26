@@ -1,7 +1,7 @@
 package org.mapdb
 
 import org.junit.Test
-import kotlin.test.assertEquals
+import org.junit.Assert.*
 
 abstract class StoreTxTest{
 

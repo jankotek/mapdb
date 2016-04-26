@@ -4,7 +4,6 @@ import org.junit.Test
 import org.junit.Assert.*
 import java.util.*
 import java.util.concurrent.LinkedBlockingQueue
-import kotlin.test.assertFailsWith
 
 class QueueLongTest {
     val q = QueueLong.make()
@@ -37,7 +36,7 @@ class QueueLongTest {
         assertEquals(node.nextRecid, q.tail)
         assertEquals(node.nextRecid, q.head)
         assertEquals(0L, q.headPrev)
-        assertFailsWith(DBException.GetVoid::class) {
+        TT.assertFailsWith(DBException.GetVoid::class.java) {
             q.store.get(recid, QueueLong.Node.SERIALIZER)!!
         }
         assertEquals(4, q.store.getAllRecids().asSequence().count())
@@ -104,7 +103,7 @@ class QueueLongTest {
         assertEquals(recid2, q.tail)
         assertEquals(recid3, q.headPrev)
 
-        assertFailsWith(DBException.GetVoid::class) {
+        TT.assertFailsWith(DBException.GetVoid::class.java) {
             node(recid1)
         }
 
@@ -154,7 +153,7 @@ class QueueLongTest {
         q.verify()
         assertEquals(4 + 2, q.store.getAllRecids().asSequence().count())
 
-        assertFailsWith(DBException.GetVoid::class) {
+        TT.assertFailsWith(DBException.GetVoid::class.java) {
             node(recid2)
         }
 
@@ -206,7 +205,7 @@ class QueueLongTest {
         q.verify()
         assertEquals(4 + 2, q.store.getAllRecids().asSequence().count())
 
-        assertFailsWith(DBException.GetVoid::class) {
+        TT.assertFailsWith(DBException.GetVoid::class.java) {
             node(recid3)
         }
 

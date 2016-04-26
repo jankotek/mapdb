@@ -6,7 +6,7 @@ import org.mapdb.volume.ByteArrayVol
 import org.mapdb.volume.MappedFileVol
 import java.math.BigInteger
 import java.util.*
-import kotlin.test.assertFailsWith
+import org.mapdb.TT.assertFailsWith
 
 class SortedTableMapTest{
 
@@ -83,15 +83,15 @@ class SortedTableMapTest{
             assertEquals(i*2, node.value)
         }
         assertFalse(keyIter.hasNext())
-        assertFailsWith(NoSuchElementException::class){
+        assertFailsWith(NoSuchElementException::class.java){
             keyIter.next()
         }
         assertFalse(valueIter.hasNext())
-        assertFailsWith(NoSuchElementException::class){
+        assertFailsWith(NoSuchElementException::class.java){
             valueIter.next()
         }
         assertFalse(entryIter.hasNext())
-        assertFailsWith(NoSuchElementException::class){
+        assertFailsWith(NoSuchElementException::class.java){
             entryIter.next()
         }
 
@@ -129,15 +129,15 @@ class SortedTableMapTest{
             assertEquals(i*2, node.value)
         }
         assertFalse(keyIter.hasNext())
-        assertFailsWith(NoSuchElementException::class){
+        assertFailsWith(NoSuchElementException::class.java){
             keyIter.next()
         }
         assertFalse(valueIter.hasNext())
-        assertFailsWith(NoSuchElementException::class){
+        assertFailsWith(NoSuchElementException::class.java){
             valueIter.next()
         }
         assertFalse(entryIter.hasNext())
-        assertFailsWith(NoSuchElementException::class){
+        assertFailsWith(NoSuchElementException::class.java){
             entryIter.next()
         }
 

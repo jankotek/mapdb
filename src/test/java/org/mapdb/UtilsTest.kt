@@ -2,7 +2,7 @@ package org.mapdb
 
 import org.junit.Assert.*
 import org.junit.Test
-import kotlin.test.assertFailsWith
+import org.mapdb.TT.assertFailsWith
 
 
 class UtilsTest{
@@ -14,11 +14,11 @@ class UtilsTest{
         lock.unlock()
 
         lock.lock()
-        assertFailsWith(IllegalMonitorStateException::class){
+        assertFailsWith(IllegalMonitorStateException::class.java){
             lock.lock()
         }
         lock.unlock()
-        assertFailsWith(IllegalMonitorStateException::class){
+        assertFailsWith(IllegalMonitorStateException::class.java){
             lock.unlock()
         }
     }
@@ -29,11 +29,11 @@ class UtilsTest{
         lock.unlock()
 
         lock.lock()
-        assertFailsWith(IllegalMonitorStateException::class){
+        assertFailsWith(IllegalMonitorStateException::class.java){
             lock.lock()
         }
         lock.unlock()
-        assertFailsWith(IllegalMonitorStateException::class){
+        assertFailsWith(IllegalMonitorStateException::class.java){
             lock.unlock()
         }
     }

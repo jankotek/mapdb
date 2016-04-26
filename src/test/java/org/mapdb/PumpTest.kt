@@ -1,8 +1,7 @@
 package org.mapdb
 
 import org.junit.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
+import org.junit.Assert.*
 
 class PumpTest{
 

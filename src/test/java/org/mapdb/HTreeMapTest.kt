@@ -1,17 +1,13 @@
 package org.mapdb
 
 import org.junit.Test
+import org.junit.Assert.*
 import org.mapdb.volume.SingleByteArrayVol
-import org.mapdb.volume.Volume
 import java.io.Closeable
 import java.io.Serializable
 import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
-import kotlin.test.fail
 
 class HTreeMapTest{
 

@@ -11,7 +11,7 @@ import org.junit.Assert.*
 import org.junit.Before
 import org.mapdb.DataIO
 import org.mapdb.TT
-import kotlin.test.assertFailsWith
+import org.mapdb.TT.assertFailsWith
 
 /**
  * Runs custom code in forked JVM, and verify if data survive JVM crash.
@@ -249,7 +249,7 @@ class CrashJVMTestFail: CrashJVM(){
 
 
     @Test fun test(){
-        assertFailsWith(Throwable::class, {
+        assertFailsWith(Throwable::class.java, {
             run(this, time = 2000, killDelay = 200)
         })
     }

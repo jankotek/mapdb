@@ -1,6 +1,6 @@
 package org.mapdb.volume
 
-import org.junit.Assert
+import org.junit.Assert.*
 import org.junit.Test
 import org.mapdb.crash.CrashJVM
 import org.mapdb.TT
@@ -9,7 +9,6 @@ import java.io.RandomAccessFile
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.nio.file.StandardOpenOption.*
-import kotlin.test.assertEquals
 
 
 class FileChannelCrashTest: CrashJVM(){
@@ -17,7 +16,7 @@ class FileChannelCrashTest: CrashJVM(){
     override fun verifySeed(startSeed: Long, endSeed: Long, params:String): Long {
         println("verify")
         val seed = endSeed
-        Assert.assertTrue(File(getTestDir(), "" + seed+"aa").exists())
+        assertTrue(File(getTestDir(), "" + seed+"aa").exists())
         val r = RandomAccessFile(getTestDir().path + "/" + seed+"aa","r")
         r.seek(0)
         val v = r.readLong()
@@ -55,6 +54,6 @@ class FileChannelCrashTest: CrashJVM(){
         val runtime = 4000L + TT.testScale()*60*1000;
         val start = System.currentTimeMillis()
         Companion.run(this, time=runtime, killDelay = 200)
-        Assert.assertTrue(System.currentTimeMillis() - start >= runtime)
+        assertTrue(System.currentTimeMillis() - start >= runtime)
     }
 }
