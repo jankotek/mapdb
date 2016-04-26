@@ -64,6 +64,8 @@ open class DB(
             }
         }
 
+        internal val NAMED_SERIALIZATION_HEADER = 1
+
     }
 
 
@@ -145,12 +147,40 @@ open class DB(
     private val classSingletonCat = IdentityHashMap<Any,String>()
     private val classSingletonRev = HashMap<String, Any>()
 
-
-
     private val unknownClasses = Collections.synchronizedSet(HashSet<Class<*>>())
+
+    private fun namedClasses() = arrayOf(BTreeMap::class.java, HTreeMap::class.java,
+            HTreeMap.KeySet::class.java,
+            BTreeMapJava.KeySet::class.java,
+            Atomic.Integer::class.java,
+            Atomic.Long::class.java,
+            Atomic.String::class.java,
+            Atomic.Boolean::class.java,
+            Atomic.Var::class.java,
+            IndexTreeList::class.java
+            )
+
+    private val nameSer = object:SerializerBase.Ser<Any>(){
+        override fun serialize(out: DataOutput, value: Any?, objectStack: SerializerBase.FastArrayList<*>?) {
+            val name = namesInstanciated.asMap().filterValues { it===value }.keys.firstOrNull()
+                    ?: throw DBException.SerializationError("Could not serialize named object, it was not instantiated by this db")
+
+            out.writeUTF(name)
+        }
+    }
+
+    private val nameDeser = object:SerializerBase.Deser<Any>(){
+        override fun deserialize(input: DataInput, objectStack: SerializerBase.FastArrayList<*>?): Any? {
+            val name = input.readUTF()
+            return this@DB.get(name)
+        }
+    }
 
     private val elsaSerializer:SerializerPojo = SerializerPojo(
             pojoSingletons(),
+            namedClasses().map { Pair(it, nameSer) }.toMap(),
+            namedClasses().map { Pair(it, NAMED_SERIALIZATION_HEADER)}.toMap(),
+            mapOf(Pair(NAMED_SERIALIZATION_HEADER, nameDeser)),
             ClassCallback { unknownClasses.add(it) },
             object:ClassInfoResolver {
                 override fun classToId(className: String): Int {

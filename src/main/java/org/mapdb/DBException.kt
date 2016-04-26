@@ -4,7 +4,7 @@ import java.io.IOException
 import java.nio.file.Path
 
 /**
- * Exception hieroarchy for MapDB
+ * Exception hierarchy for MapDB
  */
 open class DBException(message: String?, cause: Throwable?) : RuntimeException(message, cause) {
 
@@ -62,6 +62,9 @@ open class DBException(message: String?, cause: Throwable?) : RuntimeException(m
     class VolumeMaxSizeExceeded(length: Long, requestedLength: Long) :
             DBException("Could not expand store. Maximal store size: $length, new requested size: $requestedLength")
 
-    class SerializationError(e: Exception) : DBException(null, e);
+    open class SerializationError(msg:String?, e: Throwable?) : DBException(msg, e){
+        constructor(e: Throwable):this(null, e)
+        constructor(msg: String):this(msg, null)
+    }
 
 }
