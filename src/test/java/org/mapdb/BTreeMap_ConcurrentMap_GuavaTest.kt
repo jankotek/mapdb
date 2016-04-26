@@ -108,7 +108,7 @@ class BTreeMap_ConcurrentMap_GuavaTest(
     @Test fun randomInsert(){
         //tests random inserts
         val map = makeEmptyMap() as BTreeMap
-        val max = if(TT.shortTest()) 100 else 100000
+        val max = if(TT.shortTest()) 100 else 10000
         val maxKey = 1e8.toInt()
         val r = Random(1)
         val ref = IntHashSet()
