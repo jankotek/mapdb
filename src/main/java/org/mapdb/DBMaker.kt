@@ -142,6 +142,7 @@ object DBMaker{
         private var _closeOnJvmShutdown = false
         private var _readOnly = false
         private var _checksumStoreEnable = false
+        private var _checksumHeaderBypass = false
 
         fun transactionEnable():Maker{
             _transactionEnable = true
@@ -315,6 +316,21 @@ object DBMaker{
             return this
         }
 
+
+        /**
+         * MapDB detects unclean shutdown (and possible data corruption) by Header Checksum.
+         * This checksum becomes invalid if store was modified, but not closed correctly.
+         * In that case MapDB will throw an exception and will refuse to open the store.
+         * <p/>
+         * This setting will bypass Header Checksum check when store is opened.
+         * So if store is corrupted, it will still allow you to open it and recover your data.
+         * Invalid Header Checksum will not throw an exception, but will log an error in console.
+         */
+        fun checksumHeaderBypass():Maker{
+            _checksumHeaderBypass = true
+            return this
+        }
+
         /**
          * Enable Memory Mapped Files only if current JVM supports it (is 64bit).
          */
@@ -394,7 +410,8 @@ object DBMaker{
                                deleteFilesAfterClose = _deleteFilesAfterClose,
                                concShift = concShift,
                                checksum = _checksumStoreEnable,
-                               isThreadSafe = _isThreadSafe )
+                               isThreadSafe = _isThreadSafe ,
+                               checksumHeaderBypass = _checksumHeaderBypass)
                     } else {
                         if(_checksumStoreEnable)
                             throw DBException.WrongConfiguration("Checksum is not supported with transaction enabled.")
@@ -403,7 +420,8 @@ object DBMaker{
                                deleteFilesAfterClose = _deleteFilesAfterClose,
                                concShift = concShift,
                                checksum = _checksumStoreEnable,
-                               isThreadSafe = _isThreadSafe )
+                               isThreadSafe = _isThreadSafe ,
+                               checksumHeaderBypass = _checksumHeaderBypass)
                     }
                 }
 

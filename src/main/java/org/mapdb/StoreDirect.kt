@@ -22,7 +22,8 @@ class StoreDirect(
         allocateStartSize:Long,
         deleteFilesAfterClose:Boolean,
         checksum:Boolean,
-        checksumHeader:Boolean
+        checksumHeader:Boolean,
+        checksumHeaderBypass:Boolean
 ):StoreDirectAbstract(
         file=file,
         volumeFactory=volumeFactory,
@@ -30,7 +31,8 @@ class StoreDirect(
         concShift =  concShift,
         deleteFilesAfterClose=deleteFilesAfterClose,
         checksum = checksum,
-        checksumHeader = checksumHeader
+        checksumHeader = checksumHeader,
+        checksumHeaderBypass = checksumHeaderBypass
 ),StoreBinary{
 
 
@@ -44,7 +46,8 @@ class StoreDirect(
                 allocateStartSize: Long = 0L,
                 deleteFilesAfterClose:Boolean = false,
                 checksum:Boolean = false,
-                checksumHeader:Boolean = true
+                checksumHeader:Boolean = true,
+                checksumHeaderBypass:Boolean = false
         ) = StoreDirect(
             file = file,
             volumeFactory = volumeFactory,
@@ -54,7 +57,8 @@ class StoreDirect(
             allocateStartSize = allocateStartSize,
             deleteFilesAfterClose = deleteFilesAfterClose,
             checksum = checksum,
-            checksumHeader = checksumHeader
+            checksumHeader = checksumHeader,
+            checksumHeaderBypass = checksumHeaderBypass
         )
     }
 

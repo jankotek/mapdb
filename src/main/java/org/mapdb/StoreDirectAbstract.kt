@@ -18,7 +18,8 @@ abstract class StoreDirectAbstract(
         val concShift:Int,
         val deleteFilesAfterClose:Boolean,
         val checksum:Boolean,
-        val checksumHeader:Boolean
+        val checksumHeader:Boolean,
+        val checksumHeaderBypass:Boolean
         ):Store{
 
     protected abstract val volume: Volume
@@ -95,8 +96,13 @@ abstract class StoreDirectAbstract(
         if(header.ushr(6*8) and 0xFF!=CC.FILE_TYPE_STOREDIRECT)
             throw DBException.WrongFormat("Wrong file header, not StoreDirect file")
 
-        if(headVol.getInt(20)!=calculateHeaderChecksum())
-            throw DBException.DataCorruption("Header checksum broken. Store was not closed correctly, or is corrupted")
+        if(headVol.getInt(20)!=calculateHeaderChecksum()) {
+            val msg = "Header checksum broken. Store was not closed correctly and might be corrupted. Use `DBMaker.checksumHeaderBypass()` to recover your data. Use clean shutdown or enable transactions to protect the store in the future.";
+            if(checksumHeaderBypass)
+                Utils.LOG.warning{msg}
+            else
+                throw DBException.DataCorruption(msg)
+        }
 
         if(header.toInt().ushr(CC.FEAT_ENCRYPT_SHIFT) and CC.FEAT_ENCRYPT_MASK!=0)
             throw DBException.WrongConfiguration("Store is encrypted, but no encryption method was provided")

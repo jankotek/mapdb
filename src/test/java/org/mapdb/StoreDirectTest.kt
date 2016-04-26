@@ -10,14 +10,11 @@ import org.junit.Assert.*
 import java.io.File
 import org.mapdb.StoreDirectJava.*
 import org.mapdb.DataIO.*
-import org.mapdb.volume.Volume
-import org.mapdb.volume.VolumeFactory
 import java.util.*
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReadWriteLock
 import org.mapdb.StoreAccess.*
-import org.mapdb.volume.RandomAccessFileVol
-import org.mapdb.volume.SingleByteArrayVol
+import org.mapdb.volume.*
 import java.io.RandomAccessFile
 
 class StoreDirectTest:StoreDirectAbstractTest(){
@@ -682,4 +679,20 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
         }
     }
 
+
+    @Test fun header_checksum_bypass(){
+        val vol = ByteArrayVol()
+        val store = StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol, false), checksumHeaderBypass = false)
+        store.put(111, Serializer.INTEGER)
+        store.commit()
+
+        //corrupt header
+        vol.putInt(20, 0)
+        //and reopen
+        StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol, true), checksumHeaderBypass = true)
+        TT.assertFailsWith(DBException.DataCorruption::class.java){
+            StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol, true), checksumHeaderBypass = false)
+        }
+
+    }
 }
