@@ -51,7 +51,7 @@ public interface CC{
     long FILE_HEADER = 0x4A;
 
     /** second byte in {@link org.mapdb.StoreDirect} file format */
-    long FILE_TYPE_STOREDIRECT  = 1;
+    long FILE_TYPE_STOREDIRECT  = 3;
 
     /** second byte in {@link org.mapdb.StoreWAL} write ahead log */
     long FILE_TYPE_STOREWAL_WAL = 2;
