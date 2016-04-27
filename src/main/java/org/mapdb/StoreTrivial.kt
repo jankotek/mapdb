@@ -86,7 +86,13 @@ open class StoreTrivial(
             throw DBException.WrongFormat("Wrong file header, not MapDB file")
         }
         if(header.ushr(6*8) and 0xFF!=CC.FILE_TYPE_STORETRIVIAL)
-            throw DBException.WrongFormat("Wrong file header, not StoreTrivail file")
+            throw DBException.WrongFormat("Wrong file header, not StoreTrivial file")
+
+        if(header.ushr(4*8) and 0xFFFF != 0L)
+            throw DBException.NewMapDBFormat("Store was created with newer format, some new features are not supported")
+
+        if(header and 0xFFFFFFFF != 0L)
+            throw DBException.NewMapDBFormat("Store was created with newer format, some new features are not supported")
     }
 
     protected fun fileHeaderCompose():Long{

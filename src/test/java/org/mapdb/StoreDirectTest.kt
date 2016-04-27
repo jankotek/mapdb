@@ -693,6 +693,36 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
         TT.assertFailsWith(DBException.DataCorruption::class.java){
             StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol, true), checksumHeaderBypass = false)
         }
-
     }
+
+    @Test fun headers(){
+        val f = TT.tempFile()
+        val store = openStore(f)
+        store.put(TT.randomByteArray(1000000),Serializer.BYTE_ARRAY)
+
+        val raf = RandomAccessFile(f.path, "r");
+        raf.seek(0)
+        assertEquals(CC.FILE_HEADER.toInt(), raf.readUnsignedByte())
+        assertEquals(CC.FILE_TYPE_STOREDIRECT.toInt(), raf.readUnsignedByte())
+        assertEquals(0, raf.readChar().toInt())
+        raf.close()
+        f.delete()
+    }
+
+
+    @Test fun version_fail2(){
+        val f = TT.tempFile()
+        val store = openStore(f)
+        store.close()
+        val wal = RandomAccessFile(f.path , "rw");
+        wal.seek(3)
+        wal.writeByte(1)
+        wal.close()
+        TT.assertFailsWith(DBException.NewMapDBFormat::class.java) {
+            openStore(f)
+        }
+
+        f.delete()
+    }
+
 }

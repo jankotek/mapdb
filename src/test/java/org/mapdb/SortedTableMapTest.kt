@@ -7,6 +7,8 @@ import org.mapdb.volume.MappedFileVol
 import java.math.BigInteger
 import java.util.*
 import org.mapdb.TT.assertFailsWith
+import org.mapdb.volume.RandomAccessFileVol
+import java.io.RandomAccessFile
 
 class SortedTableMapTest{
 
@@ -206,6 +208,26 @@ class SortedTableMapTest{
             }
             sink.create()
         }
+    }
+
+    @Test fun headers2(){
+        val f = TT.tempFile()
+        val vol = RandomAccessFileVol.FACTORY.makeVolume(f.path, false)
+        val s =  SortedTableMap.create(vol, Serializer.LONG, Serializer.LONG).createFrom(HashMap())
+        s.close()
+        val raf = RandomAccessFile(f.path, "rw");
+        raf.seek(0)
+        assertEquals(CC.FILE_HEADER.toInt(), raf.readUnsignedByte())
+        assertEquals(CC.FILE_TYPE_SORTED_SINGLE.toInt(), raf.readUnsignedByte())
+        assertEquals(0, raf.readChar().toInt())
+        raf.seek(3)
+        raf.writeByte(1)
+        raf.close()
+        TT.assertFailsWith(DBException.NewMapDBFormat::class.java) {
+            val vol = RandomAccessFileVol.FACTORY.makeVolume(f.path, false)
+            val s =  SortedTableMap.open(vol, Serializer.LONG, Serializer.LONG)
+        }
+        f.delete()
     }
 
 }

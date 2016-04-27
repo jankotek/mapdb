@@ -241,6 +241,19 @@ class SortedTableMap<K,V>(
     val sizeLong = volume.getLong(SIZE_OFFSET)
     val pageCount = volume.getLong(PAGE_COUNT_OFFSET)
 
+    init{
+        if(volume.getUnsignedByte(0).toLong() != CC.FILE_HEADER){
+            throw DBException.WrongFormat("Wrong file header, not MapDB file")
+        }
+        if(volume.getUnsignedByte(1).toLong() != CC.FILE_TYPE_SORTED_SINGLE)
+            throw DBException.WrongFormat("Wrong file header, not StoreDirect file")
+        if(volume.getUnsignedShort(2) != 0)
+            throw DBException.NewMapDBFormat("SortedTableMap file was created with newer MapDB version")
+
+        if(volume.getInt(4)!=0)
+            throw DBException.NewMapDBFormat("SortedTableMap has some extra features, not supported in this version")
+    }
+
     /** first key at beginning of each page */
     internal val pageKeys = {
         val keys = ArrayList<K>()
@@ -2161,7 +2174,11 @@ class SortedTableMap<K,V>(
     }
 
     override fun isClosed(): Boolean {
-        return false
+        return volume.isClosed
+    }
+
+    fun close(){
+        volume.close()
     }
 
     override fun putIfAbsentBoolean(key: K?, value: V?): Boolean {

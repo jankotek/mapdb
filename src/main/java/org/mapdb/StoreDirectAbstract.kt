@@ -96,6 +96,10 @@ abstract class StoreDirectAbstract(
         if(header.ushr(6*8) and 0xFF!=CC.FILE_TYPE_STOREDIRECT)
             throw DBException.WrongFormat("Wrong file header, not StoreDirect file")
 
+        if(header.ushr(4*8) and 0xFFFF != 0L){
+            throw DBException.NewMapDBFormat("Store was created with newer version of MapDB, some new features are not supported")
+        }
+
         if(headVol.getInt(20)!=calculateHeaderChecksum()) {
             val msg = "Header checksum broken. Store was not closed correctly and might be corrupted. Use `DBMaker.checksumHeaderBypass()` to recover your data. Use clean shutdown or enable transactions to protect the store in the future.";
             if(checksumHeaderBypass)

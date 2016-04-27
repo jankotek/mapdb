@@ -4,6 +4,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import org.mapdb.StoreAccess.volume
 import java.io.File
+import java.io.RandomAccessFile
 
 /**
  * Created by jan on 3/22/16.
@@ -46,4 +47,26 @@ class StoreWALTest: StoreDirectAbstractTest() {
         assertNotEquals(0, store.volume.getInt(20)) //checksum
 
     }
+
+    @Test fun headers2(){
+        val f = TT.tempFile()
+        val store = openStore(f)
+        store.put(TT.randomByteArray(1000000),Serializer.BYTE_ARRAY)
+
+        val raf = RandomAccessFile(f.path, "r");
+        raf.seek(0)
+        assertEquals(CC.FILE_HEADER.toInt(), raf.readUnsignedByte())
+        assertEquals(CC.FILE_TYPE_STOREDIRECT.toInt(), raf.readUnsignedByte())
+        assertEquals(0, raf.readChar().toInt())
+        raf.close()
+
+        val wal = RandomAccessFile(f.path + ".wal.0", "r");
+        wal.seek(0)
+        assertEquals(CC.FILE_HEADER.toInt(), wal.readUnsignedByte())
+        assertEquals(CC.FILE_TYPE_STOREWAL_WAL.toInt(), wal.readUnsignedByte())
+        assertEquals(0, wal.readChar().toInt())
+        wal.close()
+        f.delete()
+    }
+
 }

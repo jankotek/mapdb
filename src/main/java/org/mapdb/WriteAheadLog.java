@@ -21,11 +21,8 @@ public class WriteAheadLog {
 
     private static final Logger LOG = Logger.getLogger(WriteAheadLog.class.getName());
 
-    /** 2 byte store version*/
-    protected static final int WAL_STORE_VERSION = 100;
-
     /** 4 byte file header */
-    protected static final int WAL_HEADER = (0x8A77<<16) | WAL_STORE_VERSION;
+    protected static final int WAL_HEADER = (int)((CC.FILE_HEADER<<24) | (CC.FILE_TYPE_STOREWAL_WAL<<16));
 
 
     protected static final long WAL_SEAL = 8234892392398238983L;
