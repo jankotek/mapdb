@@ -7,6 +7,7 @@ import org.mapdb.volume.VolumeFactory
 import java.io.IOException
 import java.util.concurrent.locks.ReadWriteLock
 import org.mapdb.StoreDirectJava.*
+import org.mapdb.DataIO.*
 
 /**
  * Common utils for StoreDirect, StoreWAL and StoreCached
@@ -250,7 +251,7 @@ abstract class StoreDirectAbstract(
         val reusedRecid = longStackTake(RECID_LONG_STACK,false)
         if(reusedRecid!=0L){
             //TODO ensure old value is zero
-            return reusedRecid
+            return parity1Get(reusedRecid).ushr(1)
         }
 
         val maxRecid2 = maxRecid;
@@ -287,6 +288,7 @@ abstract class StoreDirectAbstract(
         val reusedDataOffset = if(recursive) 0L else
             longStackTake(longStackMasterLinkOffset(size.toLong()), recursive)
         if(reusedDataOffset!=0L){
+            val reusedDataOffset = parity1Get(reusedDataOffset).shl(3)
             if(CC.ZEROS)
                 volume.assertZeroes(reusedDataOffset, reusedDataOffset+size)
             if(CC.ASSERT && reusedDataOffset%16!=0L)
@@ -356,11 +358,16 @@ abstract class StoreDirectAbstract(
 
         freeSizeIncrement(size)
 
+        //offset is multiple of 16, 4 bits are unnecessary, save 3 bits, use 1 bit for parity
+        val offset = parity1Set(offset.ushr(3))
         longStackPut(longStackMasterLinkOffset(size), offset, recursive);
     }
 
     protected fun releaseRecid(recid:Long){
-        longStackPut(StoreDirectJava.RECID_LONG_STACK, recid, false)
+        longStackPut(
+                StoreDirectJava.RECID_LONG_STACK,
+                parity1Set(recid.shl(1)),
+                false)
     }
 
     abstract protected fun freeSizeIncrement(increment: Long)

@@ -257,8 +257,8 @@ class StoreDirect(
             throw DBException.DataCorruption("wrong master link")
         if(CC.ASSERT && value.shr(48)!=0L)
             throw AssertionError()
-        if(CC.ASSERT && masterLinkOffset!=RECID_LONG_STACK && value % 16L !=0L)
-            throw AssertionError()
+        if(CC.ASSERT)
+            parity1Get(value)
 
         /** size of value after it was packed */
         val valueSize:Long = DataIO.packLongSize(value).toLong()
@@ -395,8 +395,8 @@ class StoreDirect(
             volume.putLong(masterLinkOffset, parity4Set(pos.shl(48) + offset))
             if(CC.ASSERT && ret.shr(48)!=0L)
                 throw AssertionError()
-            if(CC.ASSERT && masterLinkOffset!= RECID_LONG_STACK && ret % 16 !=0L)
-                throw AssertionError()
+            if(CC.ASSERT)
+                parity1Get(ret)
 
             return ret;
         }
@@ -427,8 +427,8 @@ class StoreDirect(
 
         if(CC.ASSERT && ret.shr(48)!=0L)
             throw AssertionError()
-        if(CC.ASSERT && masterLinkOffset!=RECID_LONG_STACK && ret and 7 !=0L)
-            throw AssertionError()
+        if(CC.ASSERT && ret!=0L)
+            parity1Get(ret)
         return ret;
     }
 
@@ -462,8 +462,7 @@ class StoreDirect(
 
                 if (stackVal.ushr(48) != 0L)
                     throw AssertionError()
-                if (masterLinkOffset!=RECID_LONG_STACK && stackVal % 16L != 0L)
-                    throw AssertionError()
+                parity1Get(stackVal)
                 body(stackVal)
             }
 
@@ -974,8 +973,7 @@ class StoreDirect(
                         stackVal = stackVal and DataIO.PACK_LONG_RESULT_MASK
                         if (stackVal.ushr(48) != 0L)
                             throw AssertionError()
-                        if (masterLinkOffset!=RECID_LONG_STACK && stackVal % 16L != 0L)
-                            throw AssertionError()
+                        parity1Get(stackVal) //check parity
                         body(stackVal)
                     }
 
@@ -997,6 +995,7 @@ class StoreDirect(
             for (size in 16..MAX_RECORD_SIZE step 16) {
                 val masterLinkOffset = longStackMasterLinkOffset(size)
                 longStackForEach(masterLinkOffset) { freeOffset ->
+                    val freeOffset = parity1Get(freeOffset).shl(3)
                     set(freeOffset, freeOffset + size, true)
                 }
             }
@@ -1055,6 +1054,7 @@ class StoreDirect(
         for (size in 16..MAX_RECORD_SIZE step 16) {
             val masterLinkOffset = longStackMasterLinkOffset(size)
             longStackForEach(masterLinkOffset) { v ->
+                val v = parity1Get(v).shl(3)
                 if(CC.ASSERT && v==0L)
                     throw AssertionError()
 

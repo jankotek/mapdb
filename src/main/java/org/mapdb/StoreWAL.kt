@@ -656,8 +656,8 @@ class StoreWAL(
             throw DBException.DataCorruption("wrong master link")
         if(CC.ASSERT && value.shr(48)!=0L)
             throw AssertionError()
-        if(CC.ASSERT && masterLinkOffset!=RECID_LONG_STACK && value % 16L !=0L)
-            throw AssertionError()
+        if(CC.ASSERT)
+            parity1Get(value)
 
         /** size of value after it was packed */
         val valueSize:Long = DataIO.packLongSize(value).toLong()
@@ -817,8 +817,8 @@ class StoreWAL(
             headVol.putLong(masterLinkOffset, parity4Set(pos.toLong().shl(48) + offset))
             if(CC.ASSERT && ret.shr(48)!=0L)
                 throw AssertionError()
-            if(CC.ASSERT && masterLinkOffset!= RECID_LONG_STACK && ret % 16 !=0L)
-                throw AssertionError()
+            if(CC.ASSERT && ret!=0L)
+                parity1Get(ret)
 
             return ret;
         }
@@ -852,8 +852,8 @@ class StoreWAL(
 
         if(CC.ASSERT && ret.shr(48)!=0L)
             throw AssertionError()
-        if(CC.ASSERT && masterLinkOffset!=RECID_LONG_STACK && ret and 7 !=0L)
-            throw AssertionError()
+        if(CC.ASSERT && ret != 0L)
+            parity1Get(ret)
         return ret;
     }
 

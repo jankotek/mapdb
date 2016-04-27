@@ -364,8 +364,8 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
         val s = openStore()
         s.structuralLock?.lock()
         assertEquals(0, s._longStackTake(UNUSED1_LONG_STACK,false))
-        s._longStackPut(UNUSED1_LONG_STACK, 160,false)
-        assertEquals(160, s._longStackTake(UNUSED1_LONG_STACK,false))
+        s._longStackPut(UNUSED1_LONG_STACK, parity1Set(160L),false)
+        assertEquals(parity1Set(160L), s._longStackTake(UNUSED1_LONG_STACK,false))
         assertEquals(0, s._longStackTake(UNUSED1_LONG_STACK,false))
     }
 
@@ -373,10 +373,10 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
         val s = openStore()
         s.structuralLock?.lock()
         assertEquals(0, s._longStackTake(UNUSED1_LONG_STACK,false))
-        s._longStackPut(UNUSED1_LONG_STACK, 160L,false)
-        s._longStackPut(UNUSED1_LONG_STACK, 320L,false)
-        assertEquals(320L, s._longStackTake(UNUSED1_LONG_STACK,false))
-        assertEquals(160L, s._longStackTake(UNUSED1_LONG_STACK,false))
+        s._longStackPut(UNUSED1_LONG_STACK, parity1Set(160L),false)
+        s._longStackPut(UNUSED1_LONG_STACK, parity1Set(320L),false)
+        assertEquals(parity1Set(320L), s._longStackTake(UNUSED1_LONG_STACK,false))
+        assertEquals(parity1Set(160L), s._longStackTake(UNUSED1_LONG_STACK,false))
         assertEquals(0, s._longStackTake(UNUSED1_LONG_STACK,false))
     }
 
@@ -388,11 +388,11 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
         for(a in 1 .. 10) {
             for(max in min2..max2) {
                 for (i in 1L..max) {
-                    s._longStackPut(UNUSED1_LONG_STACK, i * 16, false)
+                    s._longStackPut(UNUSED1_LONG_STACK, parity1Set(i * 16), false)
                 }
                 for (i in max downTo  1L) {
                     val t = s._longStackTake(UNUSED1_LONG_STACK, false)
-                    assertEquals(i * 16, t)
+                    assertEquals(i * 16, parity1Get(t))
                 }
                 assertEquals(0L, s._longStackTake(UNUSED1_LONG_STACK, false))
             }
@@ -400,7 +400,7 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
     }
 
     @Test fun longStack_triple(){
-        val vals = longArrayOf(16L, 160L, 32000L) //various packed sizes
+        val vals = longArrayOf(16L, 160L, 32000L).map{parity1Set(it)} //various packed sizes
         val s = openStore()
         s.structuralLock?.lock()
 
