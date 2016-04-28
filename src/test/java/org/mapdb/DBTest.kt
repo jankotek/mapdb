@@ -122,9 +122,9 @@ class DBTest{
         assertEquals("33", p["aa"+DB.Keys.expireGetTTL])
 
         fun qToString(q:QueueLong)=""+q.tailRecid+","+q.headRecid+","+q.headPrevRecid
-        assertEquals(qToString(hmap.expireCreateQueues!![0]), p["aa"+DB.Keys.expireCreateQueues])
-        assertEquals(qToString(hmap.expireUpdateQueues!![0]), p["aa"+DB.Keys.expireUpdateQueues])
-        assertEquals(qToString(hmap.expireGetQueues!![0]), p["aa"+DB.Keys.expireGetQueues])
+        assertEquals(qToString(hmap.expireCreateQueues!![0]), p["aa"+DB.Keys.expireCreateQueue])
+        assertEquals(qToString(hmap.expireUpdateQueues!![0]), p["aa"+DB.Keys.expireUpdateQueue])
+        assertEquals(qToString(hmap.expireGetQueues!![0]), p["aa"+DB.Keys.expireGetQueue])
 
         assertEquals(1, hmap.counterRecids!!.size)
         assertTrue(p["aa"+DB.Keys.counterRecids]!!.toLong()>0)
@@ -164,9 +164,9 @@ class DBTest{
         assertEquals("0", p["aa"+DB.Keys.expireUpdateTTL])
         assertEquals("0", p["aa"+DB.Keys.expireGetTTL])
 
-        assertEquals("", p["aa"+DB.Keys.expireCreateQueues])
-        assertEquals("", p["aa"+DB.Keys.expireUpdateQueues])
-        assertEquals("", p["aa"+DB.Keys.expireGetQueues])
+        assertEquals("", p["aa"+DB.Keys.expireCreateQueue])
+        assertEquals("", p["aa"+DB.Keys.expireUpdateQueue])
+        assertEquals("", p["aa"+DB.Keys.expireGetQueue])
 
         assertEquals(null, hmap.counterRecids)
         assertEquals("", p["aa"+DB.Keys.counterRecids])
@@ -225,9 +225,9 @@ class DBTest{
             }
             return r.makeString("",",","")
         }
-        assertEquals(qToString(hmap.expireCreateQueues!!), p["aa"+DB.Keys.expireCreateQueues])
-        assertEquals(qToString(hmap.expireUpdateQueues!!), p["aa"+DB.Keys.expireUpdateQueues])
-        assertEquals(qToString(hmap.expireGetQueues!!), p["aa"+DB.Keys.expireGetQueues])
+        assertEquals(qToString(hmap.expireCreateQueues!!), p["aa"+DB.Keys.expireCreateQueue])
+        assertEquals(qToString(hmap.expireUpdateQueues!!), p["aa"+DB.Keys.expireUpdateQueue])
+        assertEquals(qToString(hmap.expireGetQueues!!), p["aa"+DB.Keys.expireGetQueue])
 
 
         //ensure there are no duplicates in recids
@@ -528,9 +528,9 @@ class DBTest{
         assertEquals("33", p["aa"+DB.Keys.expireGetTTL])
 
         fun qToString(q:QueueLong)=""+q.tailRecid+","+q.headRecid+","+q.headPrevRecid
-        assertEquals(qToString(hmap.map.expireCreateQueues!![0]), p["aa"+DB.Keys.expireCreateQueues])
-        assertEquals(null, p["aa"+DB.Keys.expireUpdateQueues])
-        assertEquals(qToString(hmap.map.expireGetQueues!![0]), p["aa"+DB.Keys.expireGetQueues])
+        assertEquals(qToString(hmap.map.expireCreateQueues!![0]), p["aa"+DB.Keys.expireCreateQueue])
+        assertEquals(null, p["aa"+DB.Keys.expireUpdateQueue])
+        assertEquals(qToString(hmap.map.expireGetQueues!![0]), p["aa"+DB.Keys.expireGetQueue])
 
         assertEquals(1, hmap.map.counterRecids!!.size)
         assertTrue(p["aa"+DB.Keys.counterRecids]!!.toLong()>0)
@@ -569,9 +569,9 @@ class DBTest{
         assertEquals(null, p["aa"+DB.Keys.expireUpdateTTL])
         assertEquals("0", p["aa"+DB.Keys.expireGetTTL])
 
-        assertEquals("", p["aa"+DB.Keys.expireCreateQueues])
-        assertEquals(null, p["aa"+DB.Keys.expireUpdateQueues])
-        assertEquals("", p["aa"+DB.Keys.expireGetQueues])
+        assertEquals("", p["aa"+DB.Keys.expireCreateQueue])
+        assertEquals(null, p["aa"+DB.Keys.expireUpdateQueue])
+        assertEquals("", p["aa"+DB.Keys.expireGetQueue])
 
         assertEquals(null, hmap.map.counterRecids)
         assertEquals("", p["aa"+DB.Keys.counterRecids])
@@ -631,9 +631,9 @@ class DBTest{
             }
             return r.makeString("",",","")
         }
-        assertEquals(qToString(hmap.map.expireCreateQueues!!), p["aa"+DB.Keys.expireCreateQueues])
-        assertEquals(null, p["aa"+DB.Keys.expireUpdateQueues])
-        assertEquals(qToString(hmap.map.expireGetQueues!!), p["aa"+DB.Keys.expireGetQueues])
+        assertEquals(qToString(hmap.map.expireCreateQueues!!), p["aa"+DB.Keys.expireCreateQueue])
+        assertEquals(null, p["aa"+DB.Keys.expireUpdateQueue])
+        assertEquals(qToString(hmap.map.expireGetQueues!!), p["aa"+DB.Keys.expireGetQueue])
 
 
         //ensure there are no duplicates in recids
@@ -916,7 +916,7 @@ class DBTest{
         assertEquals("false", catalog["aa"+DB.Keys.removeCollapsesIndexTree])
         assertEquals("2",catalog["aa"+DB.Keys.dirShift])
         assertEquals("5",catalog["aa"+DB.Keys.levels])
-        assertEquals("IndexTreeLongLongMap", catalog["aa"+DB.Keys.type])
+        assertEquals("IndexTreeList", catalog["aa"+DB.Keys.type])
         assertEquals("org.mapdb.Serializer#INTEGER",catalog["aa"+DB.Keys.serializer])
         assertEquals((list.map as IndexTreeLongLongMap).rootRecid.toString(), catalog["aa"+DB.Keys.rootRecid])
         f.delete()
@@ -1125,5 +1125,37 @@ class DBTest{
         //update again and check old class info is untouched
         db.defaultSerializerRegisterClass(TestPojo::class.java)
         assertTrue(db.loadClassInfos()[0].isEnum)
+    }
+
+    fun nameCatVer(f:(db:DB)->Unit){
+        val db = DBMaker.heapDB().make()
+        f(db)
+        val ver = db.nameCatalogVerifyGetMessages().toList();
+        assertTrue(ver.toString(), ver.isEmpty())
+    }
+
+
+
+    @Test fun nameCatalogVerify_treeMap() = nameCatVer{it.treeMap("name").create()}
+    @Test fun nameCatalogVerify_treeSet() = nameCatVer{it.treeSet("name").create()}
+    @Test fun nameCatalogVerify_hashMap() = nameCatVer{it.hashMap("name").create()}
+    @Test fun nameCatalogVerify_hashSet() = nameCatVer{it.hashSet("name").create()}
+
+    @Test fun nameCatalogVerify_atomicLong() = nameCatVer{it.atomicLong("name").create()}
+    @Test fun nameCatalogVerify_atomicInteger() = nameCatVer{it.atomicInteger("name").create()}
+    @Test fun nameCatalogVerify_atomicBoolean() = nameCatVer{it.atomicBoolean("name").create()}
+    @Test fun nameCatalogVerify_atomicString() = nameCatVer{it.atomicString("name").create()}
+    @Test fun nameCatalogVerify_atomicVar() = nameCatVer{it.atomicVar("name").create()}
+
+    @Test fun nameCatalogVerify_indexTreeList() = nameCatVer{it.indexTreeList("name").create()}
+    @Test fun nameCatalogVerify_indexTreeLongLongMap() = nameCatVer{it.indexTreeLongLongMap("name").create()}
+
+    @Test fun nameCatalogVals(){
+        for(f in DB.Keys::class.java.declaredFields){
+            if(f.name=="INSTANCE")
+                continue
+            f.isAccessible = true
+            assertEquals("#" + f.name, f.get(DB.Keys))
+        }
     }
 }

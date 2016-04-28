@@ -82,9 +82,9 @@ open class DB(
         val expireUpdateTTL = "#expireUpdateTTL"
         val expireGetTTL = "#expireGetTTL"
 
-        val expireCreateQueues = "#expireCreateQueue"
-        val expireUpdateQueues = "#expireUpdateQueue"
-        val expireGetQueues = "#expireGetQueue"
+        val expireCreateQueue = "#expireCreateQueue"
+        val expireUpdateQueue = "#expireUpdateQueue"
+        val expireGetQueue = "#expireGetQueue"
 
 
         val rootRecids = "#rootRecids"
@@ -129,6 +129,10 @@ open class DB(
                 }
             }
         }
+
+        val msgs = nameCatalogVerifyGetMessages().toList()
+        if(!msgs.isEmpty())
+            throw DBException.NewMapDBFormat("Name Catalog has some new unsupported features: "+msgs.toString());
     }
 
     protected val lock = if(isThreadSafe) ReentrantReadWriteLock() else null
@@ -267,6 +271,12 @@ open class DB(
     protected val executors:MutableSet<ExecutorService> = Collections.synchronizedSet(LinkedHashSet());
 
     fun nameCatalogLoad():SortedMap<String, String> {
+        return Utils.lockRead(lock){
+            nameCatalogLoadLocked()
+        }
+
+    }
+    protected fun nameCatalogLoadLocked():SortedMap<String, String> {
         if(CC.ASSERT)
             Utils.assertReadLock(lock)
         return store.get(CC.RECID_NAME_CATALOG, NAME_CATALOG_SERIALIZER)
@@ -274,6 +284,12 @@ open class DB(
     }
 
     fun nameCatalogSave(nameCatalog: SortedMap<String, String>) {
+        Utils.lockWrite(lock){
+            nameCatalogSaveLocked(nameCatalog)
+        }
+    }
+
+    protected fun nameCatalogSaveLocked(nameCatalog: SortedMap<String, String>) {
         if(CC.ASSERT)
             Utils.assertWriteLock(lock)
         store.update(CC.RECID_NAME_CATALOG, nameCatalog, NAME_CATALOG_SERIALIZER)
@@ -286,11 +302,11 @@ open class DB(
         if(name.contains('#'))
             throw DBException.WrongConfiguration("Name contains illegal character, '#' is not allowed.")
         if(!name.matches(nameRegex))
-            throw DBException.WrongConfiguration("Name contains illegal characted")
+            throw DBException.WrongConfiguration("Name contains illegal character")
     }
 
     protected fun nameCatalogGet(name: String): String? {
-        return nameCatalogLoad()[name]
+        return nameCatalogLoadLocked()[name]
     }
 
 
@@ -722,10 +738,10 @@ open class DB(
                     if (_expireGetTTL == 0L) null
                     else Array(segmentCount, { emptyLongQueue(it, getQ) })
 
-            catalog[name + Keys.expireCreateQueues] = createQ.makeString("", ",", "")
+            catalog[name + Keys.expireCreateQueue] = createQ.makeString("", ",", "")
             if(hasValues)
-                catalog[name + Keys.expireUpdateQueues] = updateQ.makeString("", ",", "")
-            catalog[name + Keys.expireGetQueues] = getQ.makeString("", ",", "")
+                catalog[name + Keys.expireUpdateQueue] = updateQ.makeString("", ",", "")
+            catalog[name + Keys.expireGetQueue] = getQ.makeString("", ",", "")
 
             val indexTrees = Array<MutableLongLongMap>(1.shl(_concShift), { segment ->
                 IndexTreeLongLongMap(
@@ -811,9 +827,9 @@ open class DB(
                 })
             }
 
-            val expireCreateQueues = queues(_expireCreateTTL, name + Keys.expireCreateQueues)
-            val expireUpdateQueues = queues(_expireUpdateTTL, name + Keys.expireUpdateQueues)
-            val expireGetQueues = queues(_expireGetTTL, name + Keys.expireGetQueues)
+            val expireCreateQueues = queues(_expireCreateTTL, name + Keys.expireCreateQueue)
+            val expireUpdateQueues = queues(_expireUpdateTTL, name + Keys.expireUpdateQueue)
+            val expireGetQueues = queues(_expireGetTTL, name + Keys.expireGetQueue)
 
             val indexTrees = Array<MutableLongLongMap>(1.shl(_concShift), { segment ->
                 IndexTreeLongLongMap(
@@ -1044,7 +1060,7 @@ open class DB(
                     && db.store.isReadOnly.not()){
                 //patch store with default value
                 catalog[name + Keys.valueInline] = "true"
-                db.nameCatalogSave(catalog)
+                db.nameCatalogSaveLocked(catalog)
             }
 
             _valueInline = (catalog[name + Keys.valueInline]?:"true").toBoolean()
@@ -1300,7 +1316,7 @@ open class DB(
                     throw UnsupportedOperationException("Read-only")
                 catalog.put(name+Keys.type,type)
                 val ret = create2(catalog)
-                db.nameCatalogSave(catalog)
+                db.nameCatalogSaveLocked(catalog)
                 db.namesInstanciated.put(name,ret)
                 return ret
             }
@@ -1500,7 +1516,7 @@ open class DB(
         private var _levels = CC.HTREEMAP_LEVELS
         private var _removeCollapsesIndexTree:Boolean = true
 
-        override val type = "IndexTreeLongLongMap"
+        override val type = "IndexTreeList"
 
         fun layout(dirSize:Int, levels:Int):IndexTreeListMaker<E>{
             fun toShift(value:Int):Int{
@@ -1591,5 +1607,183 @@ open class DB(
         infos[infos.size - 1] = elsaSerializer.makeClassInfo(className)
         //and save
         store.update(CC.RECID_CLASS_INFOS, infos, classInfoSerializer)
+    }
+
+    private fun nameCatalogVerifyTree():Map<String, Map<String, (String)->String?>> {
+
+        val all = {s:String->null}
+        val recid = {s:String->
+            try{
+                val l = s.toLong()
+                if(l<=0)
+                    "Recid must be greater than 0"
+                else
+                    null
+            }catch(e:Exception){
+                "Recid must be a number"
+            }
+        }
+
+        val recidOptional = {s:String->
+            try{
+                val l = s.toLong()
+                if(l<0)
+                    "Recid can not be negative"
+                else
+                    null
+            }catch(e:Exception){
+                "Recid must be a number"
+            }
+        }
+
+        val long = { s: String ->
+            try {
+                s.toLong()
+                null
+            } catch(e: Exception) {
+                "Must be a number"
+            }
+        }
+
+
+        val int = { s: String ->
+            try {
+                s.toInt()
+                null
+            } catch(e: Exception) {
+                "Must be a number"
+            }
+        }
+
+        val recidArray = all
+
+        val serializer = all
+        val boolean = {s:String ->
+            if(s!="true" && s!="false")
+                "Not boolean"
+            else
+                null
+        }
+
+        return mapOf(
+            Pair("HashMap", mapOf(
+                Pair(Keys.keySerializer,serializer),
+                Pair(Keys.valueSerializer,serializer),
+                Pair(Keys.rootRecids,recidArray),
+                Pair(Keys.valueInline, boolean),
+                Pair(Keys.hashSeed, int),
+                Pair(Keys.concShift, int),
+                Pair(Keys.levels, int),
+                Pair(Keys.dirShift, int),
+                Pair(Keys.removeCollapsesIndexTree, boolean),
+                Pair(Keys.counterRecids, recidArray),
+                Pair(Keys.expireCreateQueue, all),
+                Pair(Keys.expireUpdateQueue, all),
+                Pair(Keys.expireGetQueue, all),
+                Pair(Keys.expireCreateTTL, long),
+                Pair(Keys.expireUpdateTTL, long),
+                Pair(Keys.expireGetTTL, long)
+            )),
+            Pair("HashSet", mapOf(
+                Pair(Keys.serializer,serializer),
+                Pair(Keys.rootRecids,recidArray),
+                Pair(Keys.hashSeed, int),
+                Pair(Keys.concShift, int),
+                Pair(Keys.dirShift, int),
+                Pair(Keys.levels, int),
+                Pair(Keys.removeCollapsesIndexTree, boolean),
+                Pair(Keys.counterRecids, recidArray),
+                Pair(Keys.expireCreateQueue, all),
+                Pair(Keys.expireGetQueue, all),
+                Pair(Keys.expireCreateTTL, long),
+                Pair(Keys.expireGetTTL, long)
+            )),
+            Pair("TreeMap", mapOf(
+                Pair(Keys.keySerializer,serializer),
+                Pair(Keys.valueSerializer,serializer),
+                Pair(Keys.rootRecidRecid, recid),
+                Pair(Keys.counterRecid, recidOptional),
+                Pair(Keys.maxNodeSize, int),
+                Pair(Keys.valueInline, boolean)
+            )),
+            Pair("TreeSet", mapOf(
+                Pair(Keys.serializer,serializer),
+                Pair(Keys.rootRecidRecid, recid),
+                Pair(Keys.counterRecid, recidOptional),
+                Pair(Keys.maxNodeSize, int)
+            )),
+            Pair("AtomicBoolean", mapOf(
+                Pair(Keys.recid, recid)
+            )),
+            Pair("AtomicInteger", mapOf(
+                Pair(Keys.recid, recid)
+            )),
+            Pair("AtomicVar", mapOf(
+                Pair(Keys.recid, recid),
+                Pair(Keys.serializer, serializer)
+            )),
+            Pair("AtomicString", mapOf(
+                Pair(Keys.recid, recid)
+            )),
+            Pair("AtomicLong", mapOf(
+                Pair(Keys.recid, recid)
+            )),
+            Pair("IndexTreeList", mapOf(
+                Pair(Keys.serializer, serializer),
+                Pair(Keys.dirShift, int),
+                Pair(Keys.levels, int),
+                Pair(Keys.removeCollapsesIndexTree, boolean),
+                Pair(Keys.counterRecid, recid),
+                Pair(Keys.rootRecid, recid)
+            )),
+            Pair("IndexTreeLongLongMap", mapOf(
+                Pair(Keys.dirShift, int),
+                Pair(Keys.levels, int),
+                Pair(Keys.removeCollapsesIndexTree, boolean),
+                Pair(Keys.rootRecid, recid)
+            ))
+        )
+    }
+
+    /** verifies name catalog is valid (all parameters are known and have required values). If there are problems, it return list of messages */
+    fun nameCatalogVerifyGetMessages():Iterable<String>{
+        val ret = ArrayList<String>()
+
+        val ver = nameCatalogVerifyTree()
+        val catalog = nameCatalogLoad()
+        val names = catalog.keys.filter{it.endsWith(Keys.type)}.map{it.substring(0, it.lastIndexOf('#'))}.toSet()
+
+        val known = HashSet<String>()
+
+        //iterate over names, check all required parameters are present
+        nameLoop@ for(name in names){
+
+            //get type
+            known+=name+Keys.type
+            val type = catalog[name+Keys.type]
+            val reqParams = ver[type]
+            if(reqParams==null){
+                ret+=name+Keys.type+": unknown type '$type'"
+                continue@nameLoop
+            }
+            paramLoop@ for((param, validateFun) in reqParams){
+                known+=name+param
+                val value = catalog[name+param]
+                if(value==null) {
+                    ret += name + param+": required parameter not found"
+                    continue@paramLoop
+                }
+                val msg = validateFun(value)
+                if(msg!=null)
+                    ret+=name+param+": "+msg
+            }
+        }
+
+        //check for extra params which are not known
+        for(param in catalog.keys)
+            if(known.contains(param).not())
+                ret+=param+": unknown parameter"
+
+        return ret;
     }
 }
