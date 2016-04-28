@@ -29,7 +29,19 @@ class IndexTreeListJava {
             out.writeLong(value[0]);
             out.writeLong(value[1]);
 
-            //TODO every second value is Index, those are incrementing and can be delta packed
+            if(value.length==2)
+                return;
+            value = value.clone();
+
+            long prev = value[3];
+
+            //every second value is Index, those are incrementing and can be delta packed
+            for(int i=5;i<value.length;i+=2){
+                long old = value[i];
+                value[i] = old-prev;
+                prev = old;
+            }
+
             out.packLongArray(value, 2, value.length);
         }
 
@@ -50,6 +62,11 @@ class IndexTreeListJava {
             ret[0] = bitmap1;
             ret[1] = bitmap2;
             in.unpackLongArray(ret, 2, len);
+
+            //unpack delta
+            for(int i=5;i<ret.length;i+=2){
+                ret[i] += ret[i-2];
+            }
             return ret;
         }
 
@@ -190,14 +207,21 @@ class IndexTreeListJava {
                     return 0L;
                 }
 
-                //skip until offset
-                input.unpackLongSkip(dirPos-2);
+                //second value is index, it is delta packed and can not be skipped, reenable binaryGet once its supported
 
+                //skip until offset
+                //input.unpackLongSkip(dirPos-2);
+                long oldIndex=0;
+                for(int i=0; i<(dirPos-2)/2;i++){
+                    input.unpackLong();
+                    oldIndex += input.unpackLong();
+                }
+                
                 long recid1 = input.unpackLong();
                 if(recid1 ==0)
                     return 0L; //TODO this should not be here, if tree collapse exist
 
-                long oldIndex = input.unpackLong()-1;
+                oldIndex += input.unpackLong()-1;
 
                 if (oldIndex == index) {
                     //found it, return value (recid)
