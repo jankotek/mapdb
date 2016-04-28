@@ -11,11 +11,18 @@ import org.mapdb.serializer.GroupSerializerObjectArray
 import java.io.Serializable
 import java.math.BigDecimal
 import java.util.*
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReadWriteLock
 
 class DBTest{
+
+
+    val DB.executors: MutableSet<ExecutorService>
+        get() = Reflection.method("getExecutors").`in`(this).invoke() as MutableSet<ExecutorService>
+
+
 
     @Test fun store_consistent(){
         val store = StoreTrivial()
@@ -1113,7 +1120,7 @@ class DBTest{
         val classInfos = db.loadClassInfos().clone()
         val z = classInfos[0]
         classInfos[0] = SerializerPojo.ClassInfo(z.name, z.fields, true, true) //modify old value to make it recognizable
-        db.store.update(DB.RECID_CLASS_INFOS, classInfos, db.classInfoSerializer())
+        db.store.update(CC.RECID_CLASS_INFOS, classInfos, db.classInfoSerializer())
 
         //update again and check old class info is untouched
         db.defaultSerializerRegisterClass(TestPojo::class.java)

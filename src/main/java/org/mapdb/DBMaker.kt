@@ -90,39 +90,37 @@ object DBMaker{
     }
 
 
-    @JvmStatic fun memoryShardedHashSet(concurrency:Int): DB.HashSetMaker<*> =
-            DB(store = StoreDirect.make(),storeOpened = false, isThreadSafe = true)
-                    .hashSet("map")
-                    .storeFactory{i->
-                        StoreDirect.make(isThreadSafe = false)
-                    }
-                    .layout(concurrency=concurrency, dirSize = 1.shl(CC.HTREEMAP_DIR_SHIFT), levels = CC.HTREEMAP_LEVELS)
+    @JvmStatic fun memoryShardedHashSet(concurrency:Int): DB.HashSetMaker<*> {
+        val db = DB(store = StoreOnHeap(), storeOpened = false, isThreadSafe = true)
+        return DB.HashSetMaker<Any>(db,"map",_storeFactory = { i ->
+                StoreDirect.make(isThreadSafe = false)
+            })
+            .layout(concurrency = concurrency, dirSize = 1.shl(CC.HTREEMAP_DIR_SHIFT), levels = CC.HTREEMAP_LEVELS)
+    }
 
-    @JvmStatic fun heapShardedHashSet(concurrency:Int): DB.HashSetMaker<*> =
-            DB(store = StoreOnHeap(),storeOpened = false, isThreadSafe = true)
-                    .hashSet("map")
-                    .storeFactory{i->
-                        StoreOnHeap(isThreadSafe = false)
-                    }
-                    .layout(concurrency=concurrency, dirSize = 1.shl(CC.HTREEMAP_DIR_SHIFT), levels = CC.HTREEMAP_LEVELS)
+    @JvmStatic fun heapShardedHashSet(concurrency:Int): DB.HashSetMaker<*> {
+        val db = DB(store = StoreOnHeap(), storeOpened = false, isThreadSafe = true)
+        return DB.HashSetMaker<Any>(db,"map",_storeFactory = { i ->
+                StoreOnHeap(isThreadSafe = false)
+            })
+            .layout(concurrency = concurrency, dirSize = 1.shl(CC.HTREEMAP_DIR_SHIFT), levels = CC.HTREEMAP_LEVELS)
+    }
 
+    @JvmStatic fun memoryShardedHashMap(concurrency:Int): DB.HashMapMaker<*,*> {
+        val db = DB(store = StoreOnHeap(), storeOpened = false, isThreadSafe = true)
+        return DB.HashMapMaker<Any,Any>(db,"map",_storeFactory = { i ->
+                StoreDirect.make(isThreadSafe = false)
+            })
+            .layout(concurrency = concurrency, dirSize = 1.shl(CC.HTREEMAP_DIR_SHIFT), levels = CC.HTREEMAP_LEVELS)
+    }
 
-    @JvmStatic fun memoryShardedHashMap(concurrency:Int): DB.HashMapMaker<*,*> =
-            DB(store = StoreDirect.make(),storeOpened = false, isThreadSafe = true)
-                    .hashMap("map")
-                    .storeFactory{i->
-                        StoreDirect.make(isThreadSafe = false)
-                    }
-                    .layout(concurrency=concurrency, dirSize = 1.shl(CC.HTREEMAP_DIR_SHIFT), levels = CC.HTREEMAP_LEVELS)
-
-    @JvmStatic fun heapShardedHashMap(concurrency:Int): DB.HashMapMaker<*,*> =
-            DB(store = StoreOnHeap(),storeOpened = false, isThreadSafe = true)
-                    .hashMap("map")
-                    .storeFactory{i->
-                        StoreOnHeap(isThreadSafe = false)
-                    }
-                    .layout(concurrency=concurrency, dirSize = 1.shl(CC.HTREEMAP_DIR_SHIFT), levels = CC.HTREEMAP_LEVELS)
-
+    @JvmStatic fun heapShardedHashMap(concurrency:Int): DB.HashMapMaker<*,*> {
+        val db = DB(store = StoreOnHeap(), storeOpened = false, isThreadSafe = true)
+        return DB.HashMapMaker<Any,Any>(db,"map",_storeFactory = { i ->
+                StoreOnHeap(isThreadSafe = false)
+            })
+            .layout(concurrency = concurrency, dirSize = 1.shl(CC.HTREEMAP_DIR_SHIFT), levels = CC.HTREEMAP_LEVELS)
+    }
 
     class Maker(
             private var _storeType:StoreType,

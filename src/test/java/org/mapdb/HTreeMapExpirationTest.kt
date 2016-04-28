@@ -178,7 +178,7 @@ class HTreeMapExpirationTest {
         assertFalse(map.isEmpty())
 
         //no expiration in user thread
-        assertFalse(map.expireEvict)
+        assertFalse(map.isForegroundEviction)
 
         //wait a bit, they should be removed
         while(map.isEmpty().not())

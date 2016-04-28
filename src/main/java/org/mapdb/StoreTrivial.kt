@@ -22,7 +22,7 @@ open class StoreTrivial(
         override val isThreadSafe:Boolean=true
     ):Store {
 
-    internal val lock: ReadWriteLock? = Utils.newReadWriteLock(isThreadSafe)
+    protected val lock: ReadWriteLock? = Utils.newReadWriteLock(isThreadSafe)
 
     private @Volatile var closed = false;
 

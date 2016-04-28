@@ -68,7 +68,7 @@ interface MapExtra<K, V> : ConcurrentMap<K, V> {
 }
 
 
-internal interface ConcurrentNavigableMapExtra<K, V> : ConcurrentNavigableMap<K, V>, MapExtra<K, V>, BTreeMapJava.ConcurrentNavigableMap2<K,V> {
+interface ConcurrentNavigableMapExtra<K, V> : ConcurrentNavigableMap<K, V>, MapExtra<K, V>, BTreeMapJava.ConcurrentNavigableMap2<K,V> {
 
     val hasValues:Boolean
 

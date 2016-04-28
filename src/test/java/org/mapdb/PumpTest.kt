@@ -1,9 +1,14 @@
 package org.mapdb
 
+import org.fest.reflect.core.Reflection
 import org.junit.Test
 import org.junit.Assert.*
 
 class PumpTest{
+
+    val Pump.Sink<*,*>.rootRecidRecid:  Long
+        get() = Reflection.method("getRootRecidRecid").`in`(this).invoke() as  Long
+
 
     @Test fun single(){
         check((1..6).map{Pair(it, it*2)})

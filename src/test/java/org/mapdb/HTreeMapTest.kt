@@ -1,15 +1,39 @@
 package org.mapdb
 
+import org.fest.reflect.core.Reflection
 import org.junit.Test
 import org.junit.Assert.*
 import org.mapdb.volume.SingleByteArrayVol
 import java.io.Closeable
 import java.io.Serializable
 import java.util.*
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.locks.ReadWriteLock
 
 class HTreeMapTest{
+
+    val HTreeMap<*,*>.leafSerializer: Serializer<Array<Any>>
+        get() = Reflection.method("getLeafSerializer").`in`(this).invoke() as Serializer<Array<Any>>
+
+    val HTreeMap<*,*>.locks:  Array<ReadWriteLock?>
+        get() = Reflection.method("getLocks").`in`(this).invoke() as  Array<ReadWriteLock?>
+
+
+    fun HTreeMap<*,*>.hashToSegment(h: Int): Int =
+            Reflection.method("hashToSegment")
+                    .withParameterTypes(h.javaClass)
+                    .`in`(this)
+                    .invoke(h) as Int
+
+
+    fun HTreeMap<*,*>.hash(o: Any): Int =
+            Reflection.method("hash")
+                    .withParameterTypes(Any::class.java)
+                    .`in`(this)
+                    .invoke(o) as Int
+
 
     @Test fun hashAssertion(){
         val map = HTreeMap.make<ByteArray,Int>(keySerializer = Serializer.ELSA as Serializer<ByteArray>)

@@ -1,5 +1,6 @@
 package org.mapdb
 
+import org.fest.reflect.core.Reflection
 import org.junit.Test
 import org.junit.Assert.*
 import org.mapdb.volume.ByteArrayVol
@@ -11,6 +12,10 @@ import org.mapdb.volume.RandomAccessFileVol
 import java.io.RandomAccessFile
 
 class SortedTableMapTest{
+
+    val SortedTableMap<*,*>.pageKeys:  Any
+        get() = Reflection.method("getPageKeys").`in`(this).invoke() as Any
+
 
     @Test fun import0(){
         test(0)

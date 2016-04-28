@@ -6,13 +6,11 @@ import org.eclipse.collections.api.map.primitive.MutableLongLongMap
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.mapdb.elsa.*
 import org.mapdb.elsa.SerializerPojo.ClassInfo
-import org.mapdb.elsa.SerializerPojo.FieldInfo
 import org.mapdb.serializer.GroupSerializer
 import org.mapdb.serializer.GroupSerializerObjectArray
 import java.io.Closeable
 import java.io.DataInput
 import java.io.DataOutput
-import java.io.IOException
 import java.security.SecureRandom
 import java.util.*
 import java.util.concurrent.ExecutorService
@@ -40,11 +38,8 @@ open class DB(
 ): Closeable, ConcurrencyAware {
 
     companion object{
-        internal val RECID_NAME_CATALOG:Long = 1L
-        internal val RECID_CLASS_INFOS:Long = 2L
-        internal val RECID_MAX_RESERVED:Long = 8L
 
-        internal val NAME_CATALOG_SERIALIZER:Serializer<SortedMap<String, String>> = object:Serializer<SortedMap<String, String>>{
+        protected val NAME_CATALOG_SERIALIZER:Serializer<SortedMap<String, String>> = object:Serializer<SortedMap<String, String>>{
 
             override fun deserialize(input: DataInput2, available: Int): SortedMap<String, String>? {
                 val size = input.unpackInt()
@@ -64,7 +59,7 @@ open class DB(
             }
         }
 
-        internal val NAMED_SERIALIZATION_HEADER = 1
+        protected val NAMED_SERIALIZATION_HEADER = 1
 
     }
 
@@ -124,10 +119,10 @@ open class DB(
             }
             //preallocate 16 recids
             val nameCatalogRecid = store.put(TreeMap<String, String>(), NAME_CATALOG_SERIALIZER)
-            if(RECID_NAME_CATALOG != nameCatalogRecid)
+            if(CC.RECID_NAME_CATALOG != nameCatalogRecid)
                 throw DBException.WrongConfiguration("Store does not support Reserved Recids: "+store.javaClass)
 
-            for(recid in 2L..RECID_MAX_RESERVED){
+            for(recid in 2L..CC.RECID_MAX_RESERVED){
                 val recid2 = store.put(0L, Serializer.LONG_PACKED)
                 if(recid!==recid2){
                     throw DBException.WrongConfiguration("Store does not support Reserved Recids: "+store.javaClass)
@@ -136,7 +131,7 @@ open class DB(
         }
     }
 
-    internal val lock = if(isThreadSafe) ReentrantReadWriteLock() else null
+    protected val lock = if(isThreadSafe) ReentrantReadWriteLock() else null
 
     @Volatile private  var closed = false;
 
@@ -233,7 +228,7 @@ open class DB(
     }
 
     private fun loadClassInfos():Array<SerializerPojo.ClassInfo>{
-        return store.get(RECID_CLASS_INFOS, classInfoSerializer)!!
+        return store.get(CC.RECID_CLASS_INFOS, classInfoSerializer)!!
     }
 
 
@@ -255,37 +250,37 @@ open class DB(
 
 
     /** List of executors associated with this database. Those will be terminated on close() */
-    internal val executors:MutableSet<ExecutorService> = Collections.synchronizedSet(LinkedHashSet());
+    protected val executors:MutableSet<ExecutorService> = Collections.synchronizedSet(LinkedHashSet());
 
     fun nameCatalogLoad():SortedMap<String, String> {
         if(CC.ASSERT)
             Utils.assertReadLock(lock)
-        return store.get(RECID_NAME_CATALOG, NAME_CATALOG_SERIALIZER)
+        return store.get(CC.RECID_NAME_CATALOG, NAME_CATALOG_SERIALIZER)
                 ?: throw DBException.WrongConfiguration("Could not open store, it has no Named Catalog");
     }
 
     fun nameCatalogSave(nameCatalog: SortedMap<String, String>) {
         if(CC.ASSERT)
             Utils.assertWriteLock(lock)
-        store.update(RECID_NAME_CATALOG, nameCatalog, NAME_CATALOG_SERIALIZER)
+        store.update(CC.RECID_NAME_CATALOG, nameCatalog, NAME_CATALOG_SERIALIZER)
     }
 
 
     private val nameRegex = "[A-Z0-9._-]".toRegex()
 
-    internal fun checkName(name: String) {
+    protected fun checkName(name: String) {
         if(name.contains('#'))
             throw DBException.WrongConfiguration("Name contains illegal character, '#' is not allowed.")
         if(!name.matches(nameRegex))
             throw DBException.WrongConfiguration("Name contains illegal characted")
     }
 
-    internal fun nameCatalogGet(name: String): String? {
+    protected fun nameCatalogGet(name: String): String? {
         return nameCatalogLoad()[name]
     }
 
 
-    internal fun  nameCatalogPutClass(
+    fun  nameCatalogPutClass(
             nameCatalog: SortedMap<String, String>,
             key: String,
             obj: Any
@@ -301,7 +296,7 @@ open class DB(
             nameCatalog.put(key, value)
     }
 
-    internal fun <E> nameCatalogGetClass(
+    fun <E> nameCatalogGetClass(
             nameCatalog: SortedMap<String, String>,
             key: String
     ):E?{
@@ -452,7 +447,8 @@ open class DB(
     class HashMapMaker<K,V>(
             protected override val db:DB,
             protected override val name:String,
-            protected val hasValues:Boolean=true
+            protected val hasValues:Boolean=true,
+            protected val _storeFactory:(segment:Int)->Store = {i-> db.store}
     ):Maker<HTreeMap<K,V>>(){
 
         override val type = "HashMap"
@@ -475,8 +471,6 @@ open class DB(
         private var _expireCompactThreshold:Double? = null
 
         private var _counterEnable: Boolean = false
-
-        private var _storeFactory:(segment:Int)->Store = {i-> db.store}
 
         private var _valueLoader:((key:K)->V?)? = null
         private var _modListeners:MutableList<MapModificationListener<K,V>> = ArrayList()
@@ -595,10 +589,7 @@ open class DB(
             return this
         }
 
-        internal fun storeFactory(storeFactory:(segment:Int)->Store):HashMapMaker<K,V>{
-            _storeFactory = storeFactory
-            return this
-        }
+
 
         fun valueLoader(valueLoader:(key:K)->V):HashMapMaker<K,V>{
             _valueLoader = valueLoader
@@ -1094,15 +1085,15 @@ open class DB(
         }
 
         override fun verify() {
-            maker.verify()
+            maker.`%%%verify`()
         }
 
         override fun open2(catalog: SortedMap<String, String>): NavigableSet<E> {
-            return maker.open2(catalog).keys as NavigableSet<E>
+            return maker.`%%%open2`(catalog).keys as NavigableSet<E>
         }
 
         override fun create2(catalog: SortedMap<String, String>): NavigableSet<E> {
-            return maker.create2(catalog).keys as NavigableSet<E>
+            return maker.`%%%create2`(catalog).keys as NavigableSet<E>
         }
 
         override val type = "TreeSet"
@@ -1123,10 +1114,12 @@ open class DB(
 
     class HashSetMaker<E>(
             protected override val db:DB,
-            protected override val name:String
+            protected override val name:String,
+            protected val _storeFactory:(segment:Int)->Store = {i-> db.store}
+
     ) :Maker<HTreeMap.KeySet<E>>(){
 
-        protected val maker = HashMapMaker<E, Any?>(db, name, hasValues=false)
+        protected val maker = HashMapMaker<E, Any?>(db, name, hasValues=false, _storeFactory = _storeFactory)
 
         init{
             maker.valueSerializer(BTreeMap.NO_VAL_SERIALIZER).valueInline()
@@ -1212,22 +1205,16 @@ open class DB(
             return this
         }
 
-
-        internal fun storeFactory(storeFactory:(segment:Int)->Store):HashSetMaker<E>{
-            maker.storeFactory(storeFactory)
-            return this
-        }
-
         override fun verify() {
-            maker.verify()
+            maker.`%%%verify`()
         }
 
         override fun open2(catalog: SortedMap<String, String>): HTreeMap.KeySet<E> {
-            return maker.open2(catalog).keys
+            return maker.`%%%open2`(catalog).keys
         }
 
         override fun create2(catalog: SortedMap<String, String>): HTreeMap.KeySet<E> {
-            return maker.create2(catalog).keys
+            return maker.`%%%create2`(catalog).keys
         }
 
         override val type = "HashSet"
@@ -1280,7 +1267,7 @@ open class DB(
                     if (!create && typeFromDb==null)
                         throw DBException.WrongConfiguration("Named record does not exist: $name")
                 }
-                //check type
+                //check typeg
                 if(typeFromDb!=null && type!=typeFromDb){
                     throw DBException.WrongConfiguration("Wrong type for named record '$name'. Expected '$type', but catalog has '$typeFromDb'")
                 }
@@ -1305,9 +1292,14 @@ open class DB(
             }
         }
 
-        open internal fun verify(){}
-        abstract internal fun create2(catalog:SortedMap<String,String>):E
-        abstract internal fun open2(catalog:SortedMap<String,String>):E
+        open protected fun verify(){}
+        abstract protected fun create2(catalog:SortedMap<String,String>):E
+        abstract protected fun open2(catalog:SortedMap<String,String>):E
+
+        //TODO this is hack to make internal methods not accessible from Java. Remove once internal method names are obfuscated in bytecode
+        internal fun `%%%verify`(){verify()}
+        internal fun `%%%create2`(catalog:SortedMap<String,String>) = create2(catalog)
+        internal fun `%%%open2`(catalog:SortedMap<String,String>) = open2(catalog)
 
         abstract protected val db:DB
         abstract protected val name:String
@@ -1584,6 +1576,6 @@ open class DB(
         infos = Arrays.copyOf(infos, infos.size + 1)
         infos[infos.size - 1] = elsaSerializer.makeClassInfo(className)
         //and save
-        store.update(RECID_CLASS_INFOS, infos, classInfoSerializer)
+        store.update(CC.RECID_CLASS_INFOS, infos, classInfoSerializer)
     }
 }

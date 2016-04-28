@@ -1078,7 +1078,7 @@ public class BTreeMapJava {
 
     }
 
-    interface ConcurrentNavigableMap2<K,V> extends ConcurrentNavigableMap<K,V>{
+    public interface ConcurrentNavigableMap2<K,V> extends ConcurrentNavigableMap<K,V>{
         K firstKey2();
         K lastKey2();
     }

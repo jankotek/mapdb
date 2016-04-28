@@ -15,7 +15,7 @@ class SortedTableMap<K,V>(
         override val keySerializer: GroupSerializer<K>,
         override val valueSerializer : GroupSerializer<V>,
         val pageSize:Long,
-        internal val volume: Volume,
+        protected val volume: Volume,
         override val hasValues: Boolean = false
 ): ConcurrentMap<K, V>, ConcurrentNavigableMap<K, V>, ConcurrentNavigableMapExtra<K,V> {
 
@@ -27,12 +27,13 @@ class SortedTableMap<K,V>(
 
     companion object {
 
-        class Maker<K, V>() {
-            internal var _volume: Volume? = null
-            internal var _keySerializer: GroupSerializer<K>? = null
-            internal var _valueSerializer: GroupSerializer<V>? = null
-            internal var _pageSize: Long = CC.PAGE_SIZE
-            internal var _nodeSize: Int = CC.BTREEMAP_MAX_NODE_SIZE
+        class Maker<K, V>(
+            protected val _volume: Volume? = null,
+            protected val _keySerializer: GroupSerializer<K>? = null,
+            protected val _valueSerializer: GroupSerializer<V>? = null
+        ) {
+            protected var _pageSize: Long = CC.PAGE_SIZE
+            protected var _nodeSize: Int = CC.BTREEMAP_MAX_NODE_SIZE
 
             fun pageSize(pageSize: Long): Maker<K, V> {
                 _pageSize = DataIO.nextPowTwo(pageSize)
@@ -75,11 +76,11 @@ class SortedTableMap<K,V>(
                 keySerializer: GroupSerializer<K>,
                 valueSerializer: GroupSerializer<V>
         ): Maker<K, V> {
-            val ret = Maker<K, V>()
-            ret._volume = volume
-            ret._keySerializer = keySerializer
-            ret._valueSerializer = valueSerializer
-            return ret
+            return Maker(
+                    _volume = volume,
+                    _keySerializer = keySerializer,
+                    _valueSerializer = valueSerializer
+            )
         }
 
 
@@ -99,7 +100,7 @@ class SortedTableMap<K,V>(
             )
         }
 
-        internal fun <K, V> createFromSink(
+        fun <K, V> createFromSink(
                 keySerializer: GroupSerializer<K>,
                 valueSerializer: GroupSerializer<V>,
                 volume: Volume,
@@ -255,7 +256,7 @@ class SortedTableMap<K,V>(
     }
 
     /** first key at beginning of each page */
-    internal val pageKeys = {
+    protected val pageKeys = {
         val keys = ArrayList<K>()
         for (i in 0..pageCount * pageSize step pageSize.toLong()) {
             val ii: Long = if (i == 0L) start.toLong() else i
@@ -322,7 +323,7 @@ class SortedTableMap<K,V>(
         return valueSerializer.valueArrayBinaryGet(di2, keysSize, valuePos)
     }
 
-    internal fun nodeSearch(key: K, offset: Long, offsetWithHead: Long, nodeCount: Int): Int {
+    protected fun nodeSearch(key: K, offset: Long, offsetWithHead: Long, nodeCount: Int): Int {
         var lo = 0
         var hi = nodeCount - 1
 

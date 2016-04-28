@@ -76,4 +76,9 @@ public interface CC{
     int FEAT_CHECKSUM_MASK = 3;
     int FEAT_ENCRYPT_SHIFT = 0;
     int FEAT_ENCRYPT_MASK = 1;
+
+    long RECID_NAME_CATALOG = 1L;
+    long RECID_CLASS_INFOS = 2L;
+    long RECID_MAX_RESERVED = 8L;
+
 }

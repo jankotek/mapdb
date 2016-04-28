@@ -45,7 +45,7 @@ abstract class StoreTest {
 
     @Test fun reserved_recids(){
         val e = openStore()
-        for(expectedRecid in 1 .. DB.RECID_MAX_RESERVED){
+        for(expectedRecid in 1 .. CC.RECID_MAX_RESERVED){
             val allocRecid = e.put(1, Serializer.INTEGER)
             assertEquals(expectedRecid, allocRecid)
         }

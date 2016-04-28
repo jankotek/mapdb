@@ -104,19 +104,19 @@ class HTreeMap<K,V>(
                 closeable = closeable
             )
 
-        @JvmField internal val QUEUE_CREATE=1L
-        @JvmField internal val QUEUE_UPDATE=2L
-        @JvmField internal val QUEUE_GET=3L
+        @JvmField protected val QUEUE_CREATE=1L
+        @JvmField protected val QUEUE_UPDATE=2L
+        @JvmField protected val QUEUE_GET=3L
     }
 
     private val segmentCount = 1.shl(concShift)
 
     private val storesUniqueCount = Utils.identityCount(stores)
 
-    internal val locks:Array<ReadWriteLock?> = Array(segmentCount, {Utils.newReadWriteLock(isThreadSafe)})
+    protected val locks:Array<ReadWriteLock?> = Array(segmentCount, {Utils.newReadWriteLock(isThreadSafe)})
 
     /** true if Eviction is executed inside user thread, as part of get/put etc operations */
-    internal val expireEvict:Boolean = expireExecutor==null &&
+    val isForegroundEviction:Boolean = expireExecutor==null &&
             (expireCreateQueues!=null || expireUpdateQueues!=null || expireGetQueues!=null)
 
     init{
@@ -240,7 +240,7 @@ class HTreeMap<K,V>(
 
 
     //TODO Expiration QueueID is part of leaf, remove it if expiration is disabled!
-    internal val leafSerializer:Serializer<Array<Any>> =
+    protected val leafSerializer:Serializer<Array<Any>> =
             if(!hasValues)
                 leafKeySetSerializer()
             else if(valueInline)
@@ -261,11 +261,11 @@ class HTreeMap<K,V>(
     private var checkHashAfterSerialization = stores.find { it is StoreOnHeap } == null
 
 
-    internal fun hash(key:K):Int{
+    protected fun hash(key:K):Int{
         return keySerializer.hashCode(key, 0)
     }
-    internal fun hashToIndex(hash:Int) = DataIO.intToLong(hash) and indexMask
-    internal fun hashToSegment(hash:Int) = hash.ushr(levels*dirShift) and concMask
+    protected fun hashToIndex(hash:Int) = DataIO.intToLong(hash) and indexMask
+    protected fun hashToSegment(hash:Int) = hash.ushr(levels*dirShift) and concMask
 
 
     private inline fun <E> segmentWrite(segment:Int, body:()->E):E{
@@ -318,14 +318,14 @@ class HTreeMap<K,V>(
 
         val segment = hashToSegment(hash)
         segmentWrite(segment) {->
-            if(expireEvict)
+            if(isForegroundEviction)
                 expireEvictSegment(segment)
 
-            return putInternal(hash, key, value,false)
+            return putprotected(hash, key, value,false)
         }
     }
 
-    internal fun putInternal(hash:Int, key:K, value:V, triggered:Boolean):V?{
+    protected fun putprotected(hash:Int, key:K, value:V, triggered:Boolean):V?{
         val segment = hashToSegment(hash)
         if(CC.ASSERT)
             Utils.assertWriteLock(locks[segment])
@@ -460,14 +460,14 @@ class HTreeMap<K,V>(
         val hash = hash(key)
         val segment = hashToSegment(hash)
         segmentWrite(segment) {->
-            if(expireEvict)
+            if(isForegroundEviction)
                 expireEvictSegment(segment)
 
-            return removeInternal(hash, key, false)
+            return removeprotected(hash, key, false)
         }
     }
 
-    internal fun removeInternal(hash:Int, key: K, evicted:Boolean): V? {
+    protected fun removeprotected(hash:Int, key: K, evicted:Boolean): V? {
         val segment = hashToSegment(hash)
         if(CC.ASSERT)
             Utils.assertWriteLock(locks[segment])
@@ -565,7 +565,7 @@ class HTreeMap<K,V>(
         val hash = hash(key)
 
         segmentRead(hashToSegment(hash)) { ->
-            return null!=getInternal(hash, key, updateQueue = false)
+            return null!=getprotected(hash, key, updateQueue = false)
         }
     }
 
@@ -582,19 +582,19 @@ class HTreeMap<K,V>(
         val hash = hash(key)
         val segment = hashToSegment(hash)
         segmentRead(segment) { ->
-            if(expireEvict && expireGetQueues!=null)
+            if(isForegroundEviction && expireGetQueues!=null)
                 expireEvictSegment(segment)
-            var ret =  getInternal(hash, key, updateQueue = true)
+            var ret =  getprotected(hash, key, updateQueue = true)
             if(ret==null && valueLoader !=null){
                 ret = valueLoader!!(key)
                 if(ret!=null)
-                    putInternal(hash, key, ret, true)
+                    putprotected(hash, key, ret, true)
             }
             return ret
         }
     }
 
-    internal fun getInternal(hash:Int, key:K, updateQueue:Boolean):V?{
+    protected fun getprotected(hash:Int, key:K, updateQueue:Boolean):V?{
         val segment = hashToSegment(hash)
         if(CC.ASSERT) {
             if(updateQueue && expireGetQueues!=null)
@@ -623,7 +623,7 @@ class HTreeMap<K,V>(
             if (keySerializer.equals(oldKey, key)) {
 
                 if (expireGetQueues != null) {
-                    leaf = getInternalQueues(expireGetQueues, i, leaf, leafRecid, segment, store)
+                    leaf = getprotectedQueues(expireGetQueues, i, leaf, leafRecid, segment, store)
                 }
 
                 return valueUnwrap(segment, leaf[i + 1])
@@ -633,7 +633,7 @@ class HTreeMap<K,V>(
         return null
     }
 
-    private fun getInternalQueues(expireGetQueues: Array<QueueLong>, i: Int, leaf: Array<Any>, leafRecid: Long, segment: Int, store: Store): Array<Any> {
+    private fun getprotectedQueues(expireGetQueues: Array<QueueLong>, i: Int, leaf: Array<Any>, leafRecid: Long, segment: Int, store: Store): Array<Any> {
         if(CC.ASSERT)
             Utils.assertWriteLock(locks[segment])
 
@@ -713,11 +713,11 @@ class HTreeMap<K,V>(
         val hash = hash(key)
         val segment = hashToSegment(hash)
         segmentWrite(segment) {
-            if(expireEvict)
+            if(isForegroundEviction)
                 expireEvictSegment(segment)
 
-            return getInternal(hash,key, updateQueue = false) ?:
-                    putInternal(hash, key, value,false)
+            return getprotected(hash,key, updateQueue = false) ?:
+                    putprotected(hash, key, value,false)
         }
     }
 
@@ -729,12 +729,12 @@ class HTreeMap<K,V>(
         val hash = hash(key)
         val segment = hashToSegment(hash)
         segmentWrite(segment) {
-            if(expireEvict)
+            if(isForegroundEviction)
                 expireEvictSegment(segment)
 
-            if (getInternal(hash, key, updateQueue = false) != null)
+            if (getprotected(hash, key, updateQueue = false) != null)
                 return false
-            putInternal(hash, key, value, false)
+            putprotected(hash, key, value, false)
             return true;
         }
     }
@@ -746,12 +746,12 @@ class HTreeMap<K,V>(
         val hash = hash(key as K)
         val segment = hashToSegment(hash)
         segmentWrite(segment) {
-            if(expireEvict)
+            if(isForegroundEviction)
                 expireEvictSegment(segment)
 
-            val oldValue = getInternal(hash, key, updateQueue = false)
+            val oldValue = getprotected(hash, key, updateQueue = false)
             if (oldValue != null && valueSerializer.equals(oldValue, value as V)) {
-                removeInternal(hash, key, evicted = false)
+                removeprotected(hash, key, evicted = false)
                 return true;
             } else {
                 return false;
@@ -765,12 +765,12 @@ class HTreeMap<K,V>(
         val hash = hash(key)
         val segment = hashToSegment(hash)
         segmentWrite(segment) {
-            if(expireEvict)
+            if(isForegroundEviction)
                 expireEvictSegment(segment)
 
-            val valueIn = getInternal(hash, key, updateQueue = false);
+            val valueIn = getprotected(hash, key, updateQueue = false);
             if (valueIn != null && valueSerializer.equals(valueIn, oldValue)) {
-                putInternal(hash, key, newValue,false);
+                putprotected(hash, key, newValue,false);
                 return true;
             } else {
                 return false;
@@ -785,11 +785,11 @@ class HTreeMap<K,V>(
         val hash = hash(key)
         val segment = hashToSegment(hash)
         segmentWrite(segment) {
-            if(expireEvict)
+            if(isForegroundEviction)
                 expireEvictSegment(segment)
 
-            if (getInternal(hash, key,updateQueue = false)!=null) {
-                return putInternal(hash, key, value, false);
+            if (getprotected(hash, key,updateQueue = false)!=null) {
+                return putprotected(hash, key, value, false);
             } else {
                 return null;
             }
@@ -798,11 +798,11 @@ class HTreeMap<K,V>(
 
 
 
-    internal fun expireNodeRecidFor(expireId: Long): Long {
+    protected fun expireNodeRecidFor(expireId: Long): Long {
         return expireId.ushr(2)
     }
 
-    internal fun expireQueueFor(segment:Int, expireId: Long): QueueLong {
+    protected fun expireQueueFor(segment:Int, expireId: Long): QueueLong {
         return when(expireId and 3){
             1L -> expireCreateQueues?.get(segment)
             2L -> expireUpdateQueues?.get(segment)
@@ -812,7 +812,7 @@ class HTreeMap<K,V>(
 
     }
 
-    internal fun expireId(nodeRecid: Long, queue:Long):Long{
+    protected fun expireId(nodeRecid: Long, queue:Long):Long{
         if(CC.ASSERT && queue !in 1L..3L)
             throw AssertionError("Wrong queue id: "+queue)
         if(CC.ASSERT && nodeRecid==0L)
@@ -829,7 +829,7 @@ class HTreeMap<K,V>(
         }
     }
 
-    internal fun expireEvictSegment(segment:Int){
+    protected fun expireEvictSegment(segment:Int){
         if(CC.ASSERT)
             Utils.assertWriteLock(locks[segment])
 
@@ -882,7 +882,7 @@ class HTreeMap<K,V>(
         }
     }
 
-    internal fun expireEvictEntry(segment:Int, leafRecid:Long, nodeRecid:Long){
+    protected fun expireEvictEntry(segment:Int, leafRecid:Long, nodeRecid:Long){
         if(CC.ASSERT)
             Utils.assertWriteLock(locks[segment])
 
@@ -897,7 +897,7 @@ class HTreeMap<K,V>(
             val hash = hash(key);
             if(CC.ASSERT && segment!=hashToSegment(hash))
                 throw AssertionError()
-            val old = removeInternal(hash = hash, key = key, evicted = true)
+            val old = removeprotected(hash = hash, key = key, evicted = true)
             //TODO PERF if leaf has two or more items, delete directly from leaf
             if(CC.ASSERT && old==null)
                 throw AssertionError()

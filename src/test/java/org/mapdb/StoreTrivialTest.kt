@@ -1,13 +1,19 @@
 package org.mapdb
 
+import org.fest.reflect.core.Reflection
 import org.junit.Test
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
 import org.junit.Assert.*
 import org.mapdb.volume.RandomAccessFileVol
+import java.util.concurrent.locks.ReadWriteLock
 
 class StoreTrivialTest : StoreReopenTest() {
+
+    val StoreTrivial.lock:  ReadWriteLock?
+        get() = Reflection.method("getLock").`in`(this).invoke() as  ReadWriteLock?
+
 
     override fun openStore() = StoreTrivial();
 
