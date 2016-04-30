@@ -130,11 +130,59 @@ abstract class MapModificationListenerTest:MapModificationListener<Int,String> {
         assertListener(1, key, key.toString(), null, false)
     }
 
-    class HTreeMapTest:MapModificationListenerTest(){
+    class HTreeMapModListenerTest:MapModificationListenerTest(){
         override fun makeMap(): MapExtra<Int, String>  = HTreeMap.make(
                 keySerializer = Serializer.INTEGER, valueSerializer = Serializer.STRING,
                 modificationListeners = arrayOf(this as MapModificationListener<Int, String>))
 
+    }
+
+    class BTreeMapModListenerTest:MapModificationListenerTest(){
+        override fun makeMap(): MapExtra<Int, String>  = BTreeMap.make(
+                keySerializer = Serializer.INTEGER, valueSerializer = Serializer.STRING,
+                modificationListeners = arrayOf(this as MapModificationListener<Int, String>))
+
+    }
+
+    @Test fun mapListenersBig() {
+        val test = makeMap();
+
+        val max = Math.min(100.0, Math.max(1e8, Math.pow(4.0, TT.testScale().toDouble()))).toInt()
+        val r = Random()
+        for (i in 0..max - 1) {
+            val k = r.nextInt(max / 100)
+            val v = ""+(k * 1000)
+            var vold: String? = null
+
+            if (test.containsKey(k)) {
+                vold = v+"XXX"
+                test.put(k, vold)
+            }
+
+            test.put(k, v)
+            assertListener(lcounter, k, vold, v, false)
+
+            val m = i % 20
+            if (m == 1) {
+                test.remove(k)
+                assertListener(lcounter, k, v,null, false)
+            } else if (m == 2) {
+                test.put(k, ""+(i * 20))
+                assertListener(lcounter, k, v, ""+(i * 20), false)
+            } else if (m == 3 && !test.containsKey(i + 1)) {
+                test.putIfAbsent(i + 1, ""+(i + 2))
+                assertListener(lcounter, i+1, null, ""+(i + 2), false)
+            } else if (m == 4) {
+                test.remove(k, v)
+                assertListener(lcounter, k, v, null, false)
+            } else if (m == 5) {
+                test.replace(k, v, ""+(i * i))
+                assertListener(lcounter, k, v, ""+(i*i), false)
+            } else if (m == 5) {
+                test.replace(k, ""+(i * i))
+                assertListener(lcounter, k, v, ""+(i*i), false)
+            }
+        }
     }
 
 }

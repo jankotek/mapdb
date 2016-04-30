@@ -4,11 +4,18 @@ import org.eclipse.collections.api.list.primitive.MutableLongList
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet
 import org.fest.reflect.core.Reflection
 import org.junit.Assert.*
+import org.junit.Ignore
 import org.junit.Test
 import org.mapdb.BTreeMapJava.*
+import org.mapdb.StoreAccess.calculateFreeSize
+import java.io.IOException
 import java.math.BigInteger
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentSkipListMap
+import java.util.concurrent.ConcurrentSkipListSet
 import java.util.concurrent.CopyOnWriteArraySet
+import java.util.concurrent.atomic.AtomicInteger
 
 
 class BTreeMapTest {
@@ -22,6 +29,9 @@ class BTreeMapTest {
 
     val BTreeMap<*,*>.leftEdges:MutableLongList
         get() = Reflection.method("getLeftEdges").`in`(this).invoke() as MutableLongList
+
+    val BTreeMap<*,*>.locks: ConcurrentHashMap<Long, Long>
+        get() = Reflection.method("getLocks").`in`(this).invoke() as ConcurrentHashMap<Long, Long>
 
 
     fun BTreeMap<*,*>.loadLeftEdges(): MutableLongList =
@@ -921,4 +931,448 @@ class BTreeMapTest {
         val value = b.store.get(valueRecid, Serializer.STRING)
         assertEquals("1", value)
     }
+
+
+    @Test fun issue_38() {
+        val max = 100+50000 * TT.testScale()
+        val map = DBMaker.memoryDB().make().treeMap("test").create() as MutableMap<Int, Array<String?>>
+
+        for (i in 0..max - 1) {
+            map.put(i, arrayOfNulls<String>(5))
+
+        }
+
+        var i = 0
+        while (i < max) {
+            assertTrue(Arrays.equals(arrayOfNulls<String>(5), map.get(i)))
+            assertTrue(map.get(i).toString().contains("[Ljava.lang.String"))
+            i = i + 1000
+        }
+    }
+
+
+
+    @Test fun findSmaller() {
+
+        val m = DBMaker.memoryDB().make().treeMap("test").create() as NavigableMap<Int, String>
+
+        run {
+            var i = 0
+            while (i < 10000) {
+                m.put(i, "aa" + i)
+                i += 3
+            }
+        }
+
+        run {
+            var i = 0
+            while (i < 10000) {
+                val s = i - i % 3
+                val e = m.floorEntry(i)
+                assertEquals(s, if (e != null) e!!.key else null)
+                i += 1
+            }
+        }
+
+        assertEquals(9999, m.floorEntry(100000).key)
+
+        assertNull(m.lowerEntry(0))
+        var i = 1
+        while (i < 10000) {
+            var s: Int? = i - i % 3
+            if (s == i) s -= 3
+            val e = m.lowerEntry(i)
+            assertEquals(s, if (e != null) e!!.key else null)
+            i += 1
+        }
+        assertEquals(9999, m.lowerEntry(100000).key)
+    }
+
+    @Test fun NoSuchElem_After_Clear() {
+        //      bug reported by :	Lazaros Tsochatzidis
+        //        But after clearing the tree using:
+        //
+        //        public void Delete() {
+        //            db.getTreeMap("Names").clear();
+        //            db.compact();
+        //        }
+        //
+        //        every next call of getLastKey() leads to the exception "NoSuchElement". Not
+        //        only the first one...
+
+        val db = DBMaker.memoryDB().make()
+        val m = db.treeMap("name").create() as NavigableMap<String,String>
+        try {
+            m.lastKey()
+            fail()
+        } catch (e: NoSuchElementException) {
+        }
+
+        m.put("aa", "aa")
+        assertEquals("aa", m.lastKey())
+        m.put("bb", "bb")
+        assertEquals("bb", m.lastKey())
+        db.treeMap("name").open().clear()
+        db.store.compact()
+        try {
+            val key = m.lastKey()
+            fail(key.toString())
+        } catch (e: NoSuchElementException) {
+        }
+
+        m.put("aa", "aa")
+        assertEquals("aa", m.lastKey())
+        m.put("bb", "bb")
+        assertEquals("bb", m.lastKey())
+    }
+
+    @Test fun mod_listener_lock() {
+        val db = DBMaker.memoryDB().make()
+        val counter = AtomicInteger()
+        var m:BTreeMap<String,String>? = null;
+        var rootRecid = 0L
+        m = db.treeMap("name", Serializer.STRING, Serializer.STRING)
+                .modificationListener(object : MapModificationListener<String,String> {
+                    override fun modify(key: String, oldValue: String?, newValue: String?, triggered: Boolean) {
+                        assertTrue(m!!.locks.get(rootRecid) == Thread.currentThread().id)
+                        assertEquals(1, m!!.locks.size)
+                        counter.incrementAndGet()
+                    }
+                })
+                .create()
+        rootRecid = db.store.get(m.rootRecidRecid, Serializer.RECID)!!
+
+        m.put("aa", "aa")
+        m.put("aa", "bb")
+        m.remove("aa")
+
+        m.put("aa", "aa")
+        m.remove("aa", "aa")
+        m.putIfAbsent("aa", "bb")
+        m.replace("aa", "bb", "cc")
+        m.replace("aa", "cc")
+
+        assertEquals(8, counter.get())
+    }
+
+
+    @Test fun concurrent_last_key() {
+        val db = DBMaker.memoryDB().make()
+        val m = db.treeMap("name", Serializer.INTEGER, Serializer.INTEGER).create()
+
+        //fill
+        val c = 1000000 * TT.testScale()
+        for (i in 0..c) {
+            m.put(i, i)
+        }
+
+        val t = object : Thread() {
+            override fun run() {
+                for (i in c downTo 0) {
+                    m.remove(i)
+                }
+            }
+        }
+        t.run()
+        while (t.isAlive) {
+            assertNotNull(m.lastKey())
+        }
+    }
+
+    @Test fun concurrent_first_key() {
+        val db = DBMaker.memoryDB().make()
+        val m = db.treeMap("name", Serializer.INTEGER, Serializer.INTEGER).create()
+
+        //fill
+        val c = 1000000 * TT.testScale()
+        for (i in 0..c) {
+            m.put(i, i)
+        }
+
+        val t = object : Thread() {
+            override fun run() {
+                for (i in 0..c) {
+                    m.remove(c)
+                }
+            }
+        }
+        t.run()
+        while (t.isAlive) {
+            assertNotNull(m.firstKey())
+        }
+    }
+
+
+    @Test fun WriteDBInt_lastKey() {
+        val numberOfRecords = 1000
+
+        /* Creates connections to MapDB */
+        val db1 = DBMaker.memoryDB().make()
+
+
+        /* Creates maps */
+        val map1 = db1.treeMap("column1", Serializer.INTEGER, Serializer.INTEGER).create()
+
+        /* Inserts initial values in maps */
+        for (i in 0..numberOfRecords - 1) {
+            map1.put(i, i)
+        }
+
+
+        assertEquals((numberOfRecords - 1) as Any, map1.lastKey())
+
+        map1.clear()
+
+        /* Inserts some values in maps */
+        for (i in 0..9) {
+            map1.put(i, i)
+        }
+
+        assertEquals(10, map1.size.toLong())
+        assertFalse(map1.isEmpty())
+        assertEquals(9 as Any, map1.lastKey())
+        assertEquals(9 as Any, map1.lastEntry()!!.value)
+        assertEquals(0 as Any, map1.firstKey())
+        assertEquals(0 as Any, map1.firstEntry()!!.value)
+    }
+
+    @Test fun WriteDBInt_lastKey_set() {
+        val numberOfRecords = 1000
+
+        /* Creates connections to MapDB */
+        val db1 = DBMaker.memoryDB().make()
+
+
+        /* Creates maps */
+        val map1 = db1.treeSet("column1",Serializer.INTEGER).create()
+
+        /* Inserts initial values in maps */
+        for (i in 0..numberOfRecords - 1) {
+            map1.add(i)
+        }
+
+
+        assertEquals((numberOfRecords - 1) as Any, map1.last())
+
+        map1.clear()
+
+        /* Inserts some values in maps */
+        for (i in 0..9) {
+            map1.add(i)
+        }
+
+        assertEquals(10, map1.size.toLong())
+        assertFalse(map1.isEmpty())
+        assertEquals(9 as Any, map1.last())
+        assertEquals(0 as Any, map1.first())
+    }
+
+    @Test fun WriteDBInt_lastKey_middle() {
+        val numberOfRecords = 1000
+
+        /* Creates connections to MapDB */
+        val db1 = DBMaker.memoryDB().make()
+
+
+        /* Creates maps */
+        val map1 = db1.treeMap("column1", Serializer.INTEGER, Serializer.INTEGER).create()
+
+        /* Inserts initial values in maps */
+        for (i in 0..numberOfRecords - 1) {
+            map1.put(i, i)
+        }
+
+
+        assertEquals((numberOfRecords - 1) as Any, map1.lastKey())
+
+        map1.clear()
+
+        /* Inserts some values in maps */
+        for (i in 100..109) {
+            map1.put(i, i)
+        }
+
+        assertEquals(10, map1.size.toLong())
+        assertFalse(map1.isEmpty())
+        assertEquals(109 as Any, map1.lastKey())
+        assertEquals(109 as Any, map1.lastEntry()!!.value)
+        assertEquals(100 as Any, map1.firstKey())
+        assertEquals(100 as Any, map1.firstEntry()!!.value)
+    }
+
+    @Test fun WriteDBInt_lastKey_set_middle() {
+        val numberOfRecords = 1000
+
+        /* Creates connections to MapDB */
+        val db1 = DBMaker.memoryDB().make()
+
+
+        /* Creates maps */
+        val map1 = db1.treeSet("column1", Serializer.INTEGER).create()
+
+        /* Inserts initial values in maps */
+        for (i in 0..numberOfRecords - 1) {
+            map1.add(i)
+        }
+
+
+        assertEquals((numberOfRecords - 1) as Any, map1.last())
+
+        map1.clear()
+
+        /* Inserts some values in maps */
+        for (i in 100..109) {
+            map1.add(i)
+        }
+
+        assertEquals(10, map1.size.toLong())
+        assertFalse(map1.isEmpty())
+        assertEquals(109 as Any, map1.last())
+        assertEquals(100 as Any, map1.first())
+    }
+
+
+    @Test fun randomStructuralCheck() {
+        val r = Random()
+        val map = DBMaker.memoryDB().make().treeMap("aa")
+                .keySerializer(Serializer.INTEGER).valueSerializer(Serializer.INTEGER).create()
+
+        val max = 100000 * TT.testScale()
+
+        for (i in 0..max * 10 - 1) {
+            map.put(r.nextInt(max), r.nextInt())
+        }
+
+        map.verify()
+    }
+
+
+    @Test
+    fun large_node_size() {
+        if (TT.shortTest())
+            return
+        for (i in intArrayOf(10, 200, 6000)) {
+
+            val max = i * 100
+            val f = TT.tempFile()
+            var db = DBMaker.fileDB(f).fileMmapEnableIfSupported().make()
+            var m = db.treeMap("map").maxNodeSize(i)
+                    .keySerializer(Serializer.INTEGER)
+                    .valueSerializer(Serializer.INTEGER).create()
+
+            for (j in 0..max - 1) {
+                m.put(j, j)
+            }
+
+            db.close()
+            db = DBMaker.fileDB(f).deleteFilesAfterClose().fileMmapEnableIfSupported().make()
+            m = db.treeMap("map", Serializer.INTEGER, Serializer.INTEGER).open()
+
+            for (j in 0..max - 1) {
+                assertEquals(j, m.get(j))
+            }
+            db.close()
+            f.delete()
+        }
+    }
+
+
+    @Test fun issue403_store_grows_with_values_outside_nodes() {
+        val f = TT.tempFile()
+        val db = DBMaker.fileDB(f).closeOnJvmShutdown().make()
+
+        val id2entry = db.treeMap("id2entry")
+                .valueSerializer(Serializer.BYTE_ARRAY)
+                .keySerializer(Serializer.LONG).valuesOutsideNodesEnable()
+                .create()
+
+        val store = db.store as StoreDirect
+        var b = TT.randomByteArray(10000)
+        id2entry.put(11L, b)
+        val size = store.getTotalSize() - store.calculateFreeSize()
+        for (i in 0..99) {
+            val b2 = TT.randomByteArray(10000)
+            assertArrayEquals(b, id2entry.put(11L, b2))
+            b = b2
+        }
+        assertEquals(size, store.getTotalSize() - store.calculateFreeSize())
+
+        for (i in 0..99) {
+            val b2 = TT.randomByteArray(10000)
+            assertArrayEquals(b, id2entry.replace(11L, b2))
+            b = b2
+        }
+        assertEquals(size, store.getTotalSize() - store.calculateFreeSize())
+
+        for (i in 0..99) {
+            val b2 = TT.randomByteArray(10000)
+            assertTrue((id2entry as java.util.Map<Long, ByteArray>).replace(11L, b, b2))
+            b = b2
+        }
+        assertEquals(size, store.getTotalSize() - store.calculateFreeSize())
+
+
+        db.close()
+        f.delete()
+    }
+
+
+    @Test fun setLong() {
+        val k = DBMaker.heapDB().make().treeSet("test").create() as BTreeMapJava.KeySet<Int>
+        k.add(11)
+        assertEquals(1, k.sizeLong())
+    }
+
+
+    @Test(expected = NullPointerException::class)
+    fun testNullKeyInsertion() {
+        val map = DBMaker.memoryDB().make().treeMap("map").create() as MutableMap<Any?,Any?>
+        map.put(null, "NULL VALUE")
+        fail("A NullPointerException should have been thrown since the inserted key was null")
+    }
+
+    @Test(expected = NullPointerException::class)
+    fun testNullValueInsertion() {
+        val map = DBMaker.memoryDB().make().treeMap("map").create() as MutableMap<Any,Any?>
+        map.put(1, null)
+        fail("A NullPointerException should have been thrown since the inserted key value null")
+    }
+
+    @Test fun testUnicodeCharacterKeyInsertion() {
+        val map = DBMaker.memoryDB().make().treeMap("map").create() as MutableMap<Any,Any>
+        map.put('\u00C0', '\u00C0')
+
+        assertEquals("unicode character value entered against the unicode character key could not be retrieved",
+                '\u00C0', map.get('\u00C0'))
+    }
+
+
+    @Ignore //TODO BTreeMap serialization
+    @Test @Throws(IOException::class, ClassNotFoundException::class)
+    fun serialize_clone() {
+        val m = DBMaker.memoryDB().make().treeMap("map", Serializer.INTEGER, Serializer.INTEGER).create()
+        for (i in 0..999) {
+            m.put(i, i * 10)
+        }
+
+        val m2 = TT.cloneJavaSerialization(m)
+        assertEquals(ConcurrentSkipListMap::class.java, m2.javaClass)
+        assertTrue(m2.entries.containsAll(m.entries))
+        assertTrue(m.entries.containsAll(m2.entries))
+    }
+
+    @Ignore //TODO BTreeMap Set serialization
+    @Test @Throws(IOException::class, ClassNotFoundException::class)
+    fun serialize_set_clone() {
+        val m = DBMaker.memoryDB().make().treeSet("map", Serializer.INTEGER).open()
+        for (i in 0..999) {
+            m.add(i)
+        }
+
+        val m2 = TT.cloneJavaSerialization(m)
+        assertEquals(ConcurrentSkipListSet::class.java, m2.javaClass)
+        assertTrue(m2.containsAll(m))
+        assertTrue(m.containsAll(m2))
+    }
+
 }

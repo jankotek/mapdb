@@ -802,13 +802,19 @@ class StoreDirect(
         }
 
         //allocate space for data
-        val offset = if(data.size==0) 0L
-        else{
-            allocateData(roundUp(data.size, 16), false)
-        }
-        //and write data
-        if(offset!=0L)
-            volume.putData(offset, data, 0, data.size)
+        val offset =
+                if(data.size==0) {
+                    0L
+                }else if (data.size<6){
+                    //expand to full size
+                    val data2 = Arrays.copyOf(data, 8)
+                    //store inside offset at index table
+                    DataIO.getLong(data2, 0).ushr((7 - data.size) * 8)
+                }else {
+                    val offset = allocateData(roundUp(data.size, 16), false)
+                    volume.putData(offset, data, 0, data.size)
+                    offset
+                }
 
         setIndexVal(recid, indexValCompose(size = data.size.toLong(), offset = offset, linked = 0, unused = 0, archive = 1))
     }

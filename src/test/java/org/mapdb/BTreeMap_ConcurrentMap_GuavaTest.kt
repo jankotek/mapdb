@@ -125,4 +125,12 @@ class BTreeMap_ConcurrentMap_GuavaTest(
         }
     }
 
+    @Test fun test_empty_iterator() {
+        val m = makeEmptyMap()
+        assertFalse(m.keys.iterator().hasNext())
+        assertFalse(m.values.iterator().hasNext())
+    }
+
+
+
 }

@@ -75,12 +75,13 @@ class BTreeMap<K,V>(
         override val valueSerializer:GroupSerializer<V>,
         val rootRecidRecid:Long,
         val store:Store,
+        val valueInline:Boolean,
         val maxNodeSize:Int,
         val comparator:Comparator<K>,
         override val isThreadSafe:Boolean,
         val counterRecid:Long,
         override val hasValues:Boolean,
-        val valueInline:Boolean
+        private val modificationListeners: Array<MapModificationListener<K,V>>?
 ):Verifiable, Closeable, Serializable, ConcurrencyAware,
         ConcurrentNavigableMap<K, V>, ConcurrentNavigableMapExtra<K,V> {
 
@@ -97,19 +98,21 @@ class BTreeMap<K,V>(
                 comparator: Comparator<K> = keySerializer,
                 isThreadSafe:Boolean = true,
                 counterRecid:Long=0L,
-                hasValues:Boolean = true
+                hasValues:Boolean = true,
+                modificationListeners: Array<MapModificationListener<K,V>>? = null
         ) =
                 BTreeMap(
                         keySerializer = keySerializer,
                         valueSerializer = valueSerializer,
                         store = store,
+                        valueInline = valueInline,
                         rootRecidRecid = rootRecidRecid,
                         maxNodeSize = maxNodeSize,
                         comparator = comparator,
                         isThreadSafe = isThreadSafe,
                         counterRecid = counterRecid,
                         hasValues = hasValues,
-                        valueInline = valueInline
+                        modificationListeners = modificationListeners
                 )
 
         internal fun <K, V> putEmptyRoot(store: Store, keySerializer: GroupSerializer<K>, valueSerializer: GroupSerializer<V>): Long {
@@ -223,7 +226,7 @@ class BTreeMap<K,V>(
         return ret.toReversed().asSynchronized()
     }
 
-    private val locks = ConcurrentHashMap<Long, Long>()
+    protected val locks = ConcurrentHashMap<Long, Long>()
 
     override operator fun get(key: K?): V? {
         if (key == null)
@@ -247,6 +250,13 @@ class BTreeMap<K,V>(
 
         return valueExpand(binaryGet.value)
     }
+
+    protected fun listenerNotify(key:K, oldValue:V?, newValue: V?, triggered:Boolean){
+        if(modificationListeners!=null)
+            for(l in modificationListeners)
+                l.modify(key, oldValue, newValue, triggered)
+    }
+
 
     protected fun valueExpand(v:Any?):V? {
         return (
@@ -354,6 +364,7 @@ class BTreeMap<K,V>(
                             //update external value
                             store.update(oldValueRecid as Long, value, valueSerializer)
                         }
+                        listenerNotify(key, oldValueExpand, value, false)
                     }
                     unlock(current)
                     return oldValueExpand
@@ -370,6 +381,7 @@ class BTreeMap<K,V>(
                     copyAddKeyDir(A, pos, v, p)
                 } else {
                     counterIncrement(1)
+                    listenerNotify(key, null, value, false)
                     copyAddKeyLeaf(A, pos, v, value)
                 }
                 val keysSize = keySerializer.valueArraySize(A.keys) + A.intLastKeyTwice()
@@ -528,6 +540,7 @@ class BTreeMap<K,V>(
                         A = Node(flags, A.link, keys, values, keySerializer, valueNodeSerializer)
                         store.update(current, A, nodeSerializer)
                     }
+                    listenerNotify(key, oldValueExpanded, replaceWithValue, false)
                 }else{
                     //was not updated, so do not return anything
                     oldValueExpanded = null

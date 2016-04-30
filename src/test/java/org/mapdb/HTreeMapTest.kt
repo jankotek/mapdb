@@ -11,6 +11,7 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.locks.ReadWriteLock
+import java.util.concurrent.locks.ReentrantReadWriteLock
 
 class HTreeMapTest{
 
@@ -216,7 +217,7 @@ class HTreeMapTest{
     }
 
 
-    @Test fun mod_listener_lock() {
+    @Test fun mod_listener_lock2() {
         val db = DBMaker.memoryDB().make()
         val counter = AtomicInteger()
         var m:HTreeMap<String,String>? = null
@@ -380,4 +381,29 @@ class HTreeMapTest{
     }
 
 
+    @Test fun mod_listener_lock() {
+        val db = DBMaker.memoryDB().make()
+        val counter = AtomicInteger()
+        var m:HTreeMap<String,String>? = null;
+        m = db.hashMap("name", Serializer.STRING, Serializer.STRING)
+                .modificationListener(object : MapModificationListener<String,String> {
+                    override fun modify(key: String, oldValue: String?, newValue: String?, triggered: Boolean) {
+                        val segment = m!!.hashToSegment(m!!.hash(key))
+                        Utils.assertWriteLock(m!!.locks[segment])
+                        counter.incrementAndGet()
+                    }
+                })
+                .create()
+        m.put("aa", "aa")
+        m.put("aa", "bb")
+        m.remove("aa")
+
+        m.put("aa", "aa")
+        m.remove("aa", "aa")
+        m.putIfAbsent("aa", "bb")
+        m.replace("aa", "bb", "cc")
+        m.replace("aa", "cc")
+
+        assertEquals(8, counter.get())
+    }
 }

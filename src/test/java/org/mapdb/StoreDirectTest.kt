@@ -74,7 +74,6 @@ class StoreDirectTest:StoreDirectAbstractTest(){
         }
 
         assertTrue( Math.abs(count*arraySize - s.getFreeSize())<div)
-        s.structuralLock!!.lock()
         assertEquals(s.getFreeSize(), s.calculateFreeSize())
     }
 
@@ -97,7 +96,6 @@ class StoreDirectTest:StoreDirectAbstractTest(){
         }
 
         assertTrue(Math.abs(count * arraySize - s.getFreeSize()) < div)
-        s.structuralLock!!.lock()
         assertEquals(s.getFreeSize(), s.calculateFreeSize())
     }
 
@@ -425,7 +423,7 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
 
         for(i in 0..10) for(key in 1L .. 10000){
             map.put(key, ByteArray(800))
-            assertEquals( Utils.lock(store.structuralLock) {store.calculateFreeSize()}, store.getFreeSize() )
+            assertEquals( store.calculateFreeSize(), store.getFreeSize() )
         }
     }
 

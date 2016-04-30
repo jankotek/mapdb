@@ -3,6 +3,7 @@ package org.mapdb.StoreAccess
 import org.eclipse.collections.api.list.primitive.MutableLongList
 import org.fest.reflect.core.Reflection
 import org.mapdb.StoreDirectAbstract
+import org.mapdb.Utils
 import org.mapdb.volume.Volume
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReadWriteLock
@@ -49,10 +50,13 @@ fun StoreDirectAbstract.allocateRecid(): Long =
                 .invoke() as Long
 
 
-fun StoreDirectAbstract.calculateFreeSize(): Long =
+fun StoreDirectAbstract.calculateFreeSize(): Long {
+    return Utils.lock(this.structuralLock) {
         Reflection.method("calculateFreeSize")
                 .`in`(this)
                 .invoke() as Long
+    }
+}
 
 fun StoreDirectAbstract.allocateNewIndexPage(): Long =
         Reflection.method("allocateNewIndexPage")

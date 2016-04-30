@@ -1033,7 +1033,8 @@ open class DB(
                     isThreadSafe = db.isThreadSafe,
                     counterRecid = counterRecid2,
                     hasValues = hasValues,
-                    valueInline = _valueInline
+                    valueInline = _valueInline,
+                    modificationListeners = if(_modListeners==null) null else _modListeners!!.toTypedArray()
             )
         }
 
@@ -1074,7 +1075,8 @@ open class DB(
                     isThreadSafe = db.isThreadSafe,
                     counterRecid = counterRecid2,
                     hasValues = hasValues,
-                    valueInline = _valueInline
+                    valueInline = _valueInline,
+                    modificationListeners = if(_modListeners==null)null else _modListeners!!.toTypedArray()
             )
         }
 

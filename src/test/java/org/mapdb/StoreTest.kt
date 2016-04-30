@@ -1,5 +1,6 @@
 package org.mapdb
 
+import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
 import org.junit.Test
 import java.util.*
@@ -393,6 +394,37 @@ abstract class StoreTest {
     }
 
 
+    @Test fun varRecordSizeCompact(){
+        if(TT.shortTest())
+            return
+        val maxStoreSize = 10*1024*1024
+        var size = 1
+
+        while(size<maxStoreSize) {
+            val store = openStore()
+            val maxCount = 1 + maxStoreSize / size;
+            //insert recids
+            val recids = LongArrayList()
+            for (i in 0..maxCount) {
+                val r = TT.randomByteArray(size, seed = i)
+                val recid = store.put(r, Serializer.BYTE_ARRAY_NOSIZE)
+                recids.add(recid)
+            }
+
+            fun verify() {
+               //verify recids
+                recids.forEachWithIndex { recid, i ->
+                    val r = store.get(recid, Serializer.BYTE_ARRAY_NOSIZE)
+                    assertTrue(Arrays.equals(r, TT.randomByteArray(size, seed=i)))
+                }
+            }
+            verify()
+            store.compact()
+            verify()
+
+            size += 1 + size/113
+        }
+    }
 
 }
 
