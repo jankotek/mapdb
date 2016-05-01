@@ -5,7 +5,7 @@ import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.fest.reflect.core.Reflection
 import org.junit.Assert.*
 import org.junit.Test
-import org.mapdb.StoreAccess.locks
+import org.mapdb.StoreAccess.*
 import org.mapdb.elsa.SerializerPojo
 import org.mapdb.serializer.GroupSerializerObjectArray
 import java.io.Serializable
@@ -14,7 +14,6 @@ import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.locks.ReadWriteLock
 
 class DBTest{
 
@@ -28,7 +27,7 @@ class DBTest{
         val store = StoreTrivial()
         val db = DB(store, storeOpened = false, isThreadSafe = false);
         val htreemap = db.hashMap("map", keySerializer = Serializer.LONG, valueSerializer = Serializer.LONG).create()
-        assertTrue(store===db.store)
+        assertTrue(store===db.getStore())
         htreemap.stores.forEach{
             assertTrue(store===it)
         }
@@ -39,7 +38,7 @@ class DBTest{
 
 
     @Test fun name_catalog_with(){
-        val db = DB(store=StoreTrivial(), storeOpened = false, isThreadSafe = false)
+        val db = DB(store =StoreTrivial(), storeOpened = false, isThreadSafe = false)
 
         var nameCatalog = db.nameCatalogLoad()
         nameCatalog.put("aaa", "bbbb")
@@ -51,7 +50,7 @@ class DBTest{
     }
 
     @Test fun name_catalog_singleton(){
-        val db = DB(store=StoreTrivial(), storeOpened = false, isThreadSafe = false)
+        val db = DB(store =StoreTrivial(), storeOpened = false, isThreadSafe = false)
 
         var nameCatalog = db.nameCatalogLoad()
         db.nameCatalogPutClass(nameCatalog, "aaa", Serializer.BIG_DECIMAL)
@@ -66,7 +65,7 @@ class DBTest{
     }
 
     @Test fun hashMap_create_unresolvable_serializer(){
-        val db = DB(store=StoreTrivial(), storeOpened = false, isThreadSafe = false)
+        val db = DB(store =StoreTrivial(), storeOpened = false, isThreadSafe = false)
         val unresolvable = object:Serializer<String>{
             override fun deserialize(input: DataInput2, available: Int): String? {
                 throw UnsupportedOperationException()
@@ -88,7 +87,7 @@ class DBTest{
     }
 
     @Test fun hashMap_Create(){
-        val db = DB(store=StoreTrivial(), storeOpened = false, isThreadSafe = false)
+        val db = DB(store =StoreTrivial(), storeOpened = false, isThreadSafe = false)
 
         val hmap = db.hashMap("aa", Serializer.BIG_DECIMAL, Serializer.BOOLEAN)
                 .valueInline()
@@ -133,7 +132,7 @@ class DBTest{
 
 
     @Test fun hashMap_Create_Default(){
-        val db = DB(store=StoreTrivial(), storeOpened = false, isThreadSafe = false)
+        val db = DB(store =StoreTrivial(), storeOpened = false, isThreadSafe = false)
 
         val hmap = db.hashMap("aa")
                 .create()
@@ -172,12 +171,12 @@ class DBTest{
         assertEquals("", p["aa"+DB.Keys.counterRecids])
 
 
-        hmap.stores.forEach{assertTrue(db.store===it)}
-        hmap.indexTrees.forEach{assertTrue(db.store===(it as IndexTreeLongLongMap).store)}
+        hmap.stores.forEach{assertTrue(db.getStore()===it)}
+        hmap.indexTrees.forEach{assertTrue(db.getStore()===(it as IndexTreeLongLongMap).store)}
     }
 
     @Test fun hashMap_Create_conc_expire(){
-        val db = DB(store=StoreTrivial(), storeOpened = false, isThreadSafe = false)
+        val db = DB(store =StoreTrivial(), storeOpened = false, isThreadSafe = false)
 
         val hmap = db.hashMap("aa")
                 .expireAfterCreate(10)
@@ -209,11 +208,11 @@ class DBTest{
         assertEquals(null, hmap.counterRecids)
         assertEquals("", p["aa"+DB.Keys.counterRecids])
 
-        hmap.stores.forEach{assertTrue(db.store===it)}
-        hmap.indexTrees.forEach{assertTrue(db.store===(it as IndexTreeLongLongMap).store)}
-        hmap.expireCreateQueues!!.forEach{assertTrue(db.store===it.store)}
-        hmap.expireUpdateQueues!!.forEach{assertTrue(db.store===it.store)}
-        hmap.expireGetQueues!!.forEach{assertTrue(db.store===it.store)}
+        hmap.stores.forEach{assertTrue(db.getStore()===it)}
+        hmap.indexTrees.forEach{assertTrue(db.getStore()===(it as IndexTreeLongLongMap).store)}
+        hmap.expireCreateQueues!!.forEach{assertTrue(db.getStore()===it.store)}
+        hmap.expireUpdateQueues!!.forEach{assertTrue(db.getStore()===it.store)}
+        hmap.expireGetQueues!!.forEach{assertTrue(db.getStore()===it.store)}
 
 
         fun qToString(qq:Array<QueueLong>):String{
@@ -327,7 +326,7 @@ class DBTest{
 
 
     @Test fun treeMap_create_unresolvable_serializer(){
-        val db = DB(store=StoreTrivial(), storeOpened = false, isThreadSafe = false)
+        val db = DB(store =StoreTrivial(), storeOpened = false, isThreadSafe = false)
         val unresolvable = object:GroupSerializerObjectArray<String>(){
             override fun deserialize(input: DataInput2, available: Int): String? {
                 throw UnsupportedOperationException()
@@ -349,7 +348,7 @@ class DBTest{
     }
 
     @Test fun treeMap_Create(){
-        val db = DB(store=StoreTrivial(), storeOpened = false, isThreadSafe = false)
+        val db = DB(store =StoreTrivial(), storeOpened = false, isThreadSafe = false)
 
         val map = db.treeMap("aa", Serializer.BIG_DECIMAL, Serializer.BOOLEAN)
                 .counterEnable()
@@ -373,7 +372,7 @@ class DBTest{
 
 
     @Test fun treeMap_Create_Default(){
-        val db = DB(store=StoreTrivial(), storeOpened = false, isThreadSafe = false)
+        val db = DB(store =StoreTrivial(), storeOpened = false, isThreadSafe = false)
 
         val map = db.treeMap("aa")
                 .create()
@@ -381,7 +380,7 @@ class DBTest{
         val p = db.nameCatalogParamsFor("aa")
 
         assertEquals(7, p.size)
-        assertEquals(map.store, db.store)
+        assertEquals(map.store, db.getStore())
         assertEquals("0", p["aa"+DB.Keys.counterRecid])
         assertEquals(CC.BTREEMAP_MAX_NODE_SIZE.toString(), p["aa"+DB.Keys.maxNodeSize])
         assertEquals(map.rootRecidRecid.toString(), p["aa"+DB.Keys.rootRecidRecid])
@@ -392,7 +391,7 @@ class DBTest{
     }
 
     @Test fun treeMap_import(){
-        val db = DB(store=StoreTrivial(), storeOpened = false, isThreadSafe = false)
+        val db = DB(store =StoreTrivial(), storeOpened = false, isThreadSafe = false)
         val maker = db.treeMap("aa", Serializer.INTEGER, Serializer.INTEGER)
                 .createFromSink()
         maker.putAll((0..6).map{Pair(it, it*2)})
@@ -405,7 +404,7 @@ class DBTest{
 
 
     @Test fun treeMap_import_size(){
-        val db = DB(store=StoreTrivial(), storeOpened = false, isThreadSafe = false)
+        val db = DB(store =StoreTrivial(), storeOpened = false, isThreadSafe = false)
         val maker = db.treeMap("aa", Serializer.INTEGER, Serializer.INTEGER)
                 .counterEnable()
                 .createFromSink()
@@ -417,13 +416,13 @@ class DBTest{
     @Test fun treeMap_reopen(){
         val f = TT.tempFile()
 
-        var db = DB(store=StoreDirect.make(file=f.path), storeOpened = false, isThreadSafe = false)
+        var db = DB(store =StoreDirect.make(file=f.path), storeOpened = false, isThreadSafe = false)
         var map = db.treeMap("map", Serializer.INTEGER, Serializer.INTEGER).create()
         map.put(11,22)
         db.commit()
         db.close()
 
-        db = DB(store=StoreDirect.make(file=f.path), storeOpened = true, isThreadSafe = false)
+        db = DB(store =StoreDirect.make(file=f.path), storeOpened = true, isThreadSafe = false)
         map = db.treeMap("map", Serializer.INTEGER, Serializer.INTEGER).open()
         assertEquals(22, map[11])
 
@@ -433,13 +432,13 @@ class DBTest{
     @Test fun hashMap_reopen(){
         val f = TT.tempFile()
 
-        var db = DB(store=StoreDirect.make(file=f.path), storeOpened = false, isThreadSafe = false)
+        var db = DB(store =StoreDirect.make(file=f.path), storeOpened = false, isThreadSafe = false)
         var map = db.hashMap("map", Serializer.INTEGER, Serializer.INTEGER).create()
         map.put(11,22)
         db.commit()
         db.close()
 
-        db = DB(store=StoreDirect.make(file=f.path), storeOpened = true, isThreadSafe = false)
+        db = DB(store =StoreDirect.make(file=f.path), storeOpened = true, isThreadSafe = false)
         map = db.hashMap("map", Serializer.INTEGER, Serializer.INTEGER).open()
         assertEquals(22, map[11])
 
@@ -448,7 +447,7 @@ class DBTest{
 
 
     @Test fun treeSet_base(){
-        val db = DB(store=StoreTrivial(), storeOpened = false, isThreadSafe = false)
+        val db = DB(store =StoreTrivial(), storeOpened = false, isThreadSafe = false)
 
         val set = db.treeSet("set").serializer(Serializer.INTEGER).make();
         set.add(1)
@@ -462,7 +461,7 @@ class DBTest{
     }
 
     @Test fun hashSet_base(){
-        val db = DB(store=StoreTrivial(), storeOpened = false, isThreadSafe = false)
+        val db = DB(store =StoreTrivial(), storeOpened = false, isThreadSafe = false)
 
         val set = db.hashSet("set").serializer(Serializer.INTEGER).make();
         set.add(1)
@@ -477,7 +476,7 @@ class DBTest{
 
 
     @Test fun hashSet_create_unresolvable_serializer(){
-        val db = DB(store=StoreTrivial(), storeOpened = false, isThreadSafe = false)
+        val db = DB(store =StoreTrivial(), storeOpened = false, isThreadSafe = false)
         val unresolvable = object:Serializer<String>{
             override fun deserialize(input: DataInput2, available: Int): String? {
                 throw UnsupportedOperationException()
@@ -498,7 +497,7 @@ class DBTest{
     }
 
     @Test fun hashSet_Create(){
-        val db = DB(store=StoreTrivial(), storeOpened = false, isThreadSafe = false)
+        val db = DB(store =StoreTrivial(), storeOpened = false, isThreadSafe = false)
 
         val hmap = db.hashSet("aa", Serializer.BIG_DECIMAL)
                 .layout(0, 8, 2)
@@ -539,7 +538,7 @@ class DBTest{
 
 
     @Test fun hashSet_Create_Default(){
-        val db = DB(store=StoreTrivial(), storeOpened = false, isThreadSafe = false)
+        val db = DB(store =StoreTrivial(), storeOpened = false, isThreadSafe = false)
 
         val hmap = db.hashSet("aa")
                 .create()
@@ -577,12 +576,12 @@ class DBTest{
         assertEquals("", p["aa"+DB.Keys.counterRecids])
 
 
-        hmap.map.stores.forEach{assertTrue(db.store===it)}
-        hmap.map.indexTrees.forEach{assertTrue(db.store===(it as IndexTreeLongLongMap).store)}
+        hmap.map.stores.forEach{assertTrue(db.getStore()===it)}
+        hmap.map.indexTrees.forEach{assertTrue(db.getStore()===(it as IndexTreeLongLongMap).store)}
     }
 
     @Test fun hashSet_Create_conc_expire(){
-        val db = DB(store=StoreTrivial(), storeOpened = false, isThreadSafe = false)
+        val db = DB(store =StoreTrivial(), storeOpened = false, isThreadSafe = false)
 
         val hmap = db.hashSet("aa")
                 .expireAfterCreate(10)
@@ -615,11 +614,11 @@ class DBTest{
         assertEquals(null, hmap.map.counterRecids)
         assertEquals("", p["aa"+DB.Keys.counterRecids])
 
-        hmap.map.stores.forEach{assertTrue(db.store===it)}
-        hmap.map.indexTrees.forEach{assertTrue(db.store===(it as IndexTreeLongLongMap).store)}
-        hmap.map.expireCreateQueues!!.forEach{assertTrue(db.store===it.store)}
+        hmap.map.stores.forEach{assertTrue(db.getStore()===it)}
+        hmap.map.indexTrees.forEach{assertTrue(db.getStore()===(it as IndexTreeLongLongMap).store)}
+        hmap.map.expireCreateQueues!!.forEach{assertTrue(db.getStore()===it.store)}
         assertNull(hmap.map.expireUpdateQueues)
-        hmap.map.expireGetQueues!!.forEach{assertTrue(db.store===it.store)}
+        hmap.map.expireGetQueues!!.forEach{assertTrue(db.getStore()===it.store)}
 
 
         fun qToString(qq:Array<QueueLong>):String{
@@ -734,7 +733,7 @@ class DBTest{
 
 
     @Test fun treeSet_create_unresolvable_serializer(){
-        val db = DB(store=StoreTrivial(), storeOpened = false, isThreadSafe = false)
+        val db = DB(store =StoreTrivial(), storeOpened = false, isThreadSafe = false)
         val unresolvable = object:GroupSerializerObjectArray<String>(){
             override fun deserialize(input: DataInput2, available: Int): String? {
                 throw UnsupportedOperationException()
@@ -756,7 +755,7 @@ class DBTest{
     }
 
     @Test fun treeSet_Create(){
-        val db = DB(store=StoreTrivial(), storeOpened = false, isThreadSafe = false)
+        val db = DB(store =StoreTrivial(), storeOpened = false, isThreadSafe = false)
 
         val map = db.treeSet("aa", Serializer.BIG_DECIMAL)
                 .counterEnable()
@@ -777,7 +776,7 @@ class DBTest{
 
 
     @Test fun treeSet_Create_Default(){
-        val db = DB(store=StoreTrivial(), storeOpened = false, isThreadSafe = false)
+        val db = DB(store =StoreTrivial(), storeOpened = false, isThreadSafe = false)
 
         val map = db.treeSet("aa")
                 .create()
@@ -785,7 +784,7 @@ class DBTest{
         val p = db.nameCatalogParamsFor("aa")
 
         assertEquals(5, p.size)
-        assertEquals(btreemap(map).store, db.store)
+        assertEquals(btreemap(map).store, db.getStore())
         assertEquals("0", p["aa"+DB.Keys.counterRecid])
         assertEquals(CC.BTREEMAP_MAX_NODE_SIZE.toString(), p["aa"+DB.Keys.maxNodeSize])
         assertEquals(btreemap(map).rootRecidRecid.toString(), p["aa"+DB.Keys.rootRecidRecid])
@@ -821,13 +820,13 @@ class DBTest{
     @Test fun treeSet_reopen(){
         val f = TT.tempFile()
 
-        var db = DB(store=StoreDirect.make(file=f.path), storeOpened = false, isThreadSafe = false)
+        var db = DB(store =StoreDirect.make(file=f.path), storeOpened = false, isThreadSafe = false)
         var map = db.treeSet("map", Serializer.INTEGER).create()
         map.add(11)
         db.commit()
         db.close()
 
-        db = DB(store=StoreDirect.make(file=f.path), storeOpened = true, isThreadSafe = false)
+        db = DB(store =StoreDirect.make(file=f.path), storeOpened = true, isThreadSafe = false)
         map = db.treeSet("map", Serializer.INTEGER).open()
         assertTrue(map.contains(11))
 
@@ -837,13 +836,13 @@ class DBTest{
     @Test fun hashSet_reopen(){
         val f = TT.tempFile()
 
-        var db = DB(store=StoreDirect.make(file=f.path), storeOpened = false, isThreadSafe = false)
+        var db = DB(store =StoreDirect.make(file=f.path), storeOpened = false, isThreadSafe = false)
         var map = db.hashSet("map", Serializer.INTEGER).create()
         map.add(11)
         db.commit()
         db.close()
 
-        db = DB(store=StoreDirect.make(file=f.path), storeOpened = true, isThreadSafe = false)
+        db = DB(store =StoreDirect.make(file=f.path), storeOpened = true, isThreadSafe = false)
         map = db.hashSet("map", Serializer.INTEGER).open()
         assertTrue(map.contains(11))
 
@@ -861,14 +860,14 @@ class DBTest{
     @Test fun indexTreeLongLongMap_reopen(){
         val f = TT.tempFile()
 
-        var db = DB(store=StoreDirect.make(file=f.path), storeOpened = false, isThreadSafe = false)
+        var db = DB(store =StoreDirect.make(file=f.path), storeOpened = false, isThreadSafe = false)
         var map = db.indexTreeLongLongMap("aa").layout(3,5).removeCollapsesIndexTreeDisable().make()
         for(i in 1L .. 1000L)
             map.put(i,i*2)
         db.commit()
         db.close()
 
-        db = DB(store=StoreDirect.make(file=f.path), storeOpened = true, isThreadSafe = false)
+        db = DB(store =StoreDirect.make(file=f.path), storeOpened = true, isThreadSafe = false)
         map = db.indexTreeLongLongMap("aa").open()
 
         for(i in 1L .. 1000L)
@@ -897,14 +896,14 @@ class DBTest{
     @Test fun indexTreeList_reopen(){
         val f = TT.tempFile()
 
-        var db = DB(store=StoreDirect.make(file=f.path), storeOpened = false, isThreadSafe = false)
+        var db = DB(store =StoreDirect.make(file=f.path), storeOpened = false, isThreadSafe = false)
         var list = db.indexTreeList("aa",Serializer.INTEGER).layout(3,5).removeCollapsesIndexTreeDisable().make()
         for(i in 1 .. 1000)
             list.add(i)
         db.commit()
         db.close()
 
-        db = DB(store=StoreDirect.make(file=f.path), storeOpened = true, isThreadSafe = false)
+        db = DB(store =StoreDirect.make(file=f.path), storeOpened = true, isThreadSafe = false)
         list = db.indexTreeList("aa").open() as IndexTreeList<Int>
 
         for(i in 1 .. 1000)
@@ -1021,8 +1020,8 @@ class DBTest{
     }
 
     @Test fun store_wal_def(){
-        assertEquals(StoreWAL::class.java, DBMaker.memoryDB().transactionEnable().make().store.javaClass)
-        assertEquals(StoreDirect::class.java, DBMaker.memoryDB().make().store.javaClass)
+        assertEquals(StoreWAL::class.java, DBMaker.memoryDB().transactionEnable().make().getStore().javaClass)
+        assertEquals(StoreDirect::class.java, DBMaker.memoryDB().make().getStore().javaClass)
     }
 
 
@@ -1120,7 +1119,7 @@ class DBTest{
         val classInfos = db.loadClassInfos().clone()
         val z = classInfos[0]
         classInfos[0] = SerializerPojo.ClassInfo(z.name, z.fields, true, true) //modify old value to make it recognizable
-        db.store.update(CC.RECID_CLASS_INFOS, classInfos, db.classInfoSerializer())
+        db.getStore().update(CC.RECID_CLASS_INFOS, classInfos, db.classInfoSerializer())
 
         //update again and check old class info is untouched
         db.defaultSerializerRegisterClass(TestPojo::class.java)
@@ -1157,5 +1156,21 @@ class DBTest{
             f.isAccessible = true
             assertEquals("#" + f.name, f.get(DB.Keys))
         }
+    }
+
+    @Test fun getNamedObject(){
+        val f = TT.tempFile()
+        var db = DBMaker.fileDB(f).make()
+        var map = db.atomicLong("aa").create()
+        assertEquals("aa", db.getNameForObject(map))
+        db.close()
+
+        db = DBMaker.fileDB(f).make()
+        map = db.atomicLong("aa").open()
+        assertEquals("aa", db.getNameForObject(map))
+        db.close()
+
+
+        f.delete()
     }
 }

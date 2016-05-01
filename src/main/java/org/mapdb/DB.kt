@@ -30,7 +30,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 //TOOD metrics logger
 open class DB(
         /** Stores all underlying data */
-        val store:Store,
+        private val store:Store,
         /** True if store existed before and was opened, false if store was created and is completely empty */
         protected val storeOpened:Boolean,
         override val isThreadSafe:Boolean,
@@ -63,6 +63,10 @@ open class DB(
 
     }
 
+    fun getStore():Store{
+        checkNotClosed()
+        return store
+    }
 
     object Keys {
         val type = "#type"
@@ -139,6 +143,11 @@ open class DB(
 
     @Volatile private  var closed = false;
 
+    protected fun checkNotClosed(){
+        if(closed)
+            throw IllegalAccessError("DB was closed")
+    }
+
     /** Already loaded named collections. Values are weakly referenced. We need singletons for locking */
     protected var namesInstanciated: Cache<String, Any?> = CacheBuilder.newBuilder().concurrencyLevel(1).weakValues().build()
 
@@ -160,8 +169,8 @@ open class DB(
             )
 
     private val nameSer = object:SerializerBase.Ser<Any>(){
-        override fun serialize(out: DataOutput, value: Any?, objectStack: SerializerBase.FastArrayList<*>?) {
-            val name = namesInstanciated.asMap().filterValues { it===value }.keys.firstOrNull()
+        override fun serialize(out: DataOutput, value: Any, objectStack: SerializerBase.FastArrayList<*>?) {
+            val name = getNameForObject(value)
                     ?: throw DBException.SerializationError("Could not serialize named object, it was not instantiated by this db")
 
             out.writeUTF(name)
@@ -272,6 +281,7 @@ open class DB(
 
     fun nameCatalogLoad():SortedMap<String, String> {
         return Utils.lockRead(lock){
+            checkNotClosed()
             nameCatalogLoadLocked()
         }
 
@@ -285,6 +295,7 @@ open class DB(
 
     fun nameCatalogSave(nameCatalog: SortedMap<String, String>) {
         Utils.lockWrite(lock){
+            checkNotClosed()
             nameCatalogSaveLocked(nameCatalog)
         }
     }
@@ -361,6 +372,7 @@ open class DB(
 
     fun commit(){
         Utils.lockWrite(lock) {
+            checkNotClosed()
             unknownClassesSave()
             store.commit()
         }
@@ -371,6 +383,7 @@ open class DB(
             throw UnsupportedOperationException("Store does not support rollback")
 
         Utils.lockWrite(lock) {
+            checkNotClosed()
             unknownClasses.clear()
             store.rollback()
         }
@@ -380,6 +393,7 @@ open class DB(
 
     override fun close(){
         Utils.lockWrite(lock) {
+            checkNotClosed()
             unknownClassesSave()
 
             //shutdown running executors if any
@@ -398,6 +412,7 @@ open class DB(
 
     fun <E> get(name:String):E{
         Utils.lockWrite(lock) {
+            checkNotClosed()
             val type = nameCatalogGet(name + Keys.type)
             return when (type) {
                 "HashMap" -> hashMap(name).open()
@@ -420,8 +435,12 @@ open class DB(
         }
     }
 
+    fun getNameForObject(e:Any):String? =
+            namesInstanciated.asMap().filterValues { it===e }.keys.firstOrNull()
+
     fun exists(name: String): Boolean {
         Utils.lockRead(lock) {
+            checkNotClosed()
             return nameCatalogGet(name + Keys.type) != null
         }
     }
@@ -1288,6 +1307,7 @@ open class DB(
 
         protected fun make2(create:Boolean?):E{
             Utils.lockWrite(db.lock){
+                db.checkNotClosed()
                 verify()
 
                 val catalog = db.nameCatalogLoad()
@@ -1594,6 +1614,7 @@ open class DB(
      */
     fun defaultSerializerRegisterClass(clazz:Class<*>){
         Utils.lockWrite(lock) {
+            checkNotClosed()
             defaultSerializerRegisterClass_noLock(clazz)
         }
     }

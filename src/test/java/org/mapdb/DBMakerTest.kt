@@ -21,20 +21,20 @@ class DBMakerTest{
 
     @Test fun conc_scale(){
         val db =DBMaker.memoryDB().concurrencyScale(32).make()
-        assertEquals(DataIO.shift(32), (db.store as StoreDirect).concShift)
+        assertEquals(DataIO.shift(32), (db.getStore() as StoreDirect).concShift)
     }
 
 
     @Test fun conc_disable(){
         var db =DBMaker.memoryDB().make()
         assertTrue(db.isThreadSafe)
-        assertTrue(db.store.isThreadSafe)
+        assertTrue(db.getStore().isThreadSafe)
         assertTrue(db.hashMap("aa1").create().isThreadSafe)
         assertTrue(db.treeMap("aa2").create().isThreadSafe)
 
         db =DBMaker.memoryDB().concurrencyDisable().make()
         assertFalse(db.isThreadSafe)
-        assertFalse(db.store.isThreadSafe)
+        assertFalse(db.getStore().isThreadSafe)
         assertFalse(db.hashMap("aa1").create().isThreadSafe)
         assertFalse(db.treeMap("aa2").create().isThreadSafe)
     }
@@ -42,14 +42,14 @@ class DBMakerTest{
     @Test fun raf(){
         val file = TT.tempFile()
         val db = DBMaker.fileDB(file).make()
-        assertTrue((db.store as StoreDirect).volumeFactory == RandomAccessFileVol.FACTORY)
+        assertTrue((db.getStore() as StoreDirect).volumeFactory == RandomAccessFileVol.FACTORY)
         file.delete()
     }
 
     @Test fun channel(){
         val file = TT.tempFile()
         val db = DBMaker.fileDB(file).fileChannelEnable().make()
-        assertTrue((db.store as StoreDirect).volumeFactory == FileChannelVol.FACTORY)
+        assertTrue((db.getStore() as StoreDirect).volumeFactory == FileChannelVol.FACTORY)
         file.delete()
     }
 
@@ -57,7 +57,7 @@ class DBMakerTest{
     @Test fun mmap(){
         val file = TT.tempFile()
         val db = DBMaker.fileDB(file).fileMmapEnable().make()
-        assertTrue((db.store as StoreDirect).volumeFactory is MappedFileVol.MappedFileFactory)
+        assertTrue((db.getStore() as StoreDirect).volumeFactory is MappedFileVol.MappedFileFactory)
         file.delete()
     }
 
@@ -66,9 +66,9 @@ class DBMakerTest{
         val file = TT.tempFile()
         val db = DBMaker.fileDB(file).fileChannelEnable().fileMmapEnableIfSupported().make()
         if(DataIO.JVMSupportsLargeMappedFiles())
-            assertTrue((db.store as StoreDirect).volumeFactory is MappedFileVol.MappedFileFactory)
+            assertTrue((db.getStore() as StoreDirect).volumeFactory is MappedFileVol.MappedFileFactory)
         else
-            assertTrue((db.store as StoreDirect).volumeFactory == FileChannelVol.FACTORY)
+            assertTrue((db.getStore() as StoreDirect).volumeFactory == FileChannelVol.FACTORY)
 
         file.delete()
     }
@@ -82,7 +82,7 @@ class DBMakerTest{
         db.close()
 
         fun checkReadOnly(){
-            assertTrue(((db.store) as StoreDirect).volume.isReadOnly)
+            assertTrue(((db.getStore()) as StoreDirect).volume.isReadOnly)
             TT.assertFailsWith(UnsupportedOperationException::class.java){
                 db.hashMap("zz").create()
             }
@@ -105,6 +105,6 @@ class DBMakerTest{
 
     @Test fun checksumStore(){
         val db = DBMaker.memoryDB().checksumStoreEnable().make()
-        assertTrue(((db.store) as StoreDirect).checksum)
+        assertTrue(((db.getStore()) as StoreDirect).checksum)
     }
 }

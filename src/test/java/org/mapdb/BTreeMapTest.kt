@@ -1013,7 +1013,7 @@ class BTreeMapTest {
         m.put("bb", "bb")
         assertEquals("bb", m.lastKey())
         db.treeMap("name").open().clear()
-        db.store.compact()
+        db.getStore().compact()
         try {
             val key = m.lastKey()
             fail(key.toString())
@@ -1040,7 +1040,7 @@ class BTreeMapTest {
                     }
                 })
                 .create()
-        rootRecid = db.store.get(m.rootRecidRecid, Serializer.RECID)!!
+        rootRecid = db.getStore().get(m.rootRecidRecid, Serializer.RECID)!!
 
         m.put("aa", "aa")
         m.put("aa", "bb")
@@ -1286,7 +1286,7 @@ class BTreeMapTest {
                 .keySerializer(Serializer.LONG).valuesOutsideNodesEnable()
                 .create()
 
-        val store = db.store as StoreDirect
+        val store = db.getStore() as StoreDirect
         var b = TT.randomByteArray(10000)
         id2entry.put(11L, b)
         val size = store.getTotalSize() - store.calculateFreeSize()

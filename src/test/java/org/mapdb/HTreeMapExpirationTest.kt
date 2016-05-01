@@ -243,7 +243,7 @@ class HTreeMapExpirationTest {
                 .expireStoreSize(1024*1024*400)
                 .create()
 
-        val store = db.store as StoreDirect
+        val store = db.getStore() as StoreDirect
         for(i in 0L .. 1000000){
 //            if(i%1000==0L)
 //                println("aa $i - ${map.size} - ${(i * 1024) / 1e7} - ${store.fileTail / 1e7} - ${store.getFreeSize() / 1e7} - ${
@@ -352,13 +352,13 @@ class HTreeMapExpirationTest {
         assertEquals(1024*10, map.size)
 
         //insert 15MB into store, that should displace some entries
-        db.store.put(ByteArray(1024*1024*15), Serializer.BYTE_ARRAY)
+        db.getStore().put(ByteArray(1024*1024*15), Serializer.BYTE_ARRAY)
         map.expireEvict()
         assertTrue(map.size>0)
         assertTrue(map.size<1024*10)
 
         //insert another 15MB, map will become empty
-        db.store.put(ByteArray(1024*1024*15), Serializer.BYTE_ARRAY)
+        db.getStore().put(ByteArray(1024*1024*15), Serializer.BYTE_ARRAY)
         map.expireEvict()
         assertEquals(0, map.size)
     }

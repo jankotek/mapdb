@@ -418,7 +418,7 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
 
     @Test fun freeSpace3(){
         val db = DBMaker.memoryDB().make()
-        val store = db.store as StoreDirect
+        val store = db.getStore() as StoreDirect
         val map = db.hashMap("map",Serializer.LONG, Serializer.BYTE_ARRAY).create()
 
         for(i in 0..10) for(key in 1L .. 10000){
