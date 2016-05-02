@@ -8,6 +8,7 @@ import org.junit.Test
 import org.mapdb.StoreAccess.*
 import org.mapdb.elsa.SerializerPojo
 import org.mapdb.serializer.GroupSerializerObjectArray
+import java.io.NotSerializableException
 import java.io.Serializable
 import java.math.BigDecimal
 import java.util.*
@@ -1169,8 +1170,36 @@ class DBTest{
         map = db.atomicLong("aa").open()
         assertEquals("aa", db.getNameForObject(map))
         db.close()
+        f.delete()
+    }
 
+    class NonSerializableSerializer(i:Int) : Serializer<String>{
+        override fun deserialize(input: DataInput2, available: Int): String? {
+            return input.readUTF()
+        }
 
+        override fun serialize(out: DataOutput2, value: String) {
+            out.writeUTF(value)
+        }
+
+    }
+
+    @Test fun non_serializable_optional_serializer(){
+        val ser = NonSerializableSerializer(0)
+        TT.assertFailsWith(NotSerializableException::class.java) {
+            TT.clone(ser, Serializer.ELSA)
+        }
+
+        val f = TT.tempFile()
+        var db = DBMaker.fileDB(f).make()
+        var v = db.hashMap("aa", ser, ser).create()
+        v["11"]="22"
+
+        db.close()
+        db = DBMaker.fileDB(f).make()
+        v = db.hashMap("aa", ser, ser).open()
+        assertEquals("22", v["11"])
+        db.close()
         f.delete()
     }
 }

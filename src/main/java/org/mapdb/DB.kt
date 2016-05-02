@@ -1632,7 +1632,9 @@ open class DB(
         store.update(CC.RECID_CLASS_INFOS, infos, classInfoSerializer)
     }
 
-    private fun nameCatalogVerifyTree():Map<String, Map<String, (String)->String?>> {
+    protected data class CatVal(val msg:(String)->String?, val required:Boolean=true)
+
+    private fun nameCatalogVerifyTree():Map<String, Map<String, CatVal>> {
 
         val all = {s:String->null}
         val recid = {s:String->
@@ -1690,80 +1692,80 @@ open class DB(
 
         return mapOf(
             Pair("HashMap", mapOf(
-                Pair(Keys.keySerializer,serializer),
-                Pair(Keys.valueSerializer,serializer),
-                Pair(Keys.rootRecids,recidArray),
-                Pair(Keys.valueInline, boolean),
-                Pair(Keys.hashSeed, int),
-                Pair(Keys.concShift, int),
-                Pair(Keys.levels, int),
-                Pair(Keys.dirShift, int),
-                Pair(Keys.removeCollapsesIndexTree, boolean),
-                Pair(Keys.counterRecids, recidArray),
-                Pair(Keys.expireCreateQueue, all),
-                Pair(Keys.expireUpdateQueue, all),
-                Pair(Keys.expireGetQueue, all),
-                Pair(Keys.expireCreateTTL, long),
-                Pair(Keys.expireUpdateTTL, long),
-                Pair(Keys.expireGetTTL, long)
+                Pair(Keys.keySerializer, CatVal(serializer, required=false)),
+                Pair(Keys.valueSerializer,CatVal(serializer, required=false)),
+                Pair(Keys.rootRecids,CatVal(recidArray)),
+                Pair(Keys.valueInline, CatVal(boolean)),
+                Pair(Keys.hashSeed, CatVal(int)),
+                Pair(Keys.concShift, CatVal(int)),
+                Pair(Keys.levels, CatVal(int)),
+                Pair(Keys.dirShift, CatVal(int)),
+                Pair(Keys.removeCollapsesIndexTree, CatVal(boolean)),
+                Pair(Keys.counterRecids, CatVal(recidArray)),
+                Pair(Keys.expireCreateQueue, CatVal(all)),
+                Pair(Keys.expireUpdateQueue, CatVal(all)),
+                Pair(Keys.expireGetQueue, CatVal(all)),
+                Pair(Keys.expireCreateTTL, CatVal(long)),
+                Pair(Keys.expireUpdateTTL, CatVal(long)),
+                Pair(Keys.expireGetTTL, CatVal(long))
             )),
             Pair("HashSet", mapOf(
-                Pair(Keys.serializer,serializer),
-                Pair(Keys.rootRecids,recidArray),
-                Pair(Keys.hashSeed, int),
-                Pair(Keys.concShift, int),
-                Pair(Keys.dirShift, int),
-                Pair(Keys.levels, int),
-                Pair(Keys.removeCollapsesIndexTree, boolean),
-                Pair(Keys.counterRecids, recidArray),
-                Pair(Keys.expireCreateQueue, all),
-                Pair(Keys.expireGetQueue, all),
-                Pair(Keys.expireCreateTTL, long),
-                Pair(Keys.expireGetTTL, long)
+                Pair(Keys.serializer, CatVal(serializer, required=false)),
+                Pair(Keys.rootRecids, CatVal(recidArray)),
+                Pair(Keys.hashSeed, CatVal(int)),
+                Pair(Keys.concShift, CatVal(int)),
+                Pair(Keys.dirShift, CatVal(int)),
+                Pair(Keys.levels, CatVal(int)),
+                Pair(Keys.removeCollapsesIndexTree, CatVal(boolean)),
+                Pair(Keys.counterRecids, CatVal(recidArray)),
+                Pair(Keys.expireCreateQueue, CatVal(all)),
+                Pair(Keys.expireGetQueue, CatVal(all)),
+                Pair(Keys.expireCreateTTL, CatVal(long)),
+                Pair(Keys.expireGetTTL, CatVal(long))
             )),
             Pair("TreeMap", mapOf(
-                Pair(Keys.keySerializer,serializer),
-                Pair(Keys.valueSerializer,serializer),
-                Pair(Keys.rootRecidRecid, recid),
-                Pair(Keys.counterRecid, recidOptional),
-                Pair(Keys.maxNodeSize, int),
-                Pair(Keys.valueInline, boolean)
+                Pair(Keys.keySerializer, CatVal(serializer, required=false)),
+                Pair(Keys.valueSerializer, CatVal(serializer, required=false)),
+                Pair(Keys.rootRecidRecid, CatVal(recid)),
+                Pair(Keys.counterRecid, CatVal(recidOptional)),
+                Pair(Keys.maxNodeSize, CatVal(int)),
+                Pair(Keys.valueInline, CatVal(boolean))
             )),
             Pair("TreeSet", mapOf(
-                Pair(Keys.serializer,serializer),
-                Pair(Keys.rootRecidRecid, recid),
-                Pair(Keys.counterRecid, recidOptional),
-                Pair(Keys.maxNodeSize, int)
+                Pair(Keys.serializer, CatVal(serializer, required=false)),
+                Pair(Keys.rootRecidRecid, CatVal(recid)),
+                Pair(Keys.counterRecid, CatVal(recidOptional)),
+                Pair(Keys.maxNodeSize, CatVal(int))
             )),
             Pair("AtomicBoolean", mapOf(
-                Pair(Keys.recid, recid)
+                Pair(Keys.recid, CatVal(recid))
             )),
             Pair("AtomicInteger", mapOf(
-                Pair(Keys.recid, recid)
+                Pair(Keys.recid, CatVal(recid))
             )),
             Pair("AtomicVar", mapOf(
-                Pair(Keys.recid, recid),
-                Pair(Keys.serializer, serializer)
+                Pair(Keys.recid, CatVal(recid)),
+                Pair(Keys.serializer, CatVal(serializer, false))
             )),
             Pair("AtomicString", mapOf(
-                Pair(Keys.recid, recid)
+                Pair(Keys.recid, CatVal(recid))
             )),
             Pair("AtomicLong", mapOf(
-                Pair(Keys.recid, recid)
+                Pair(Keys.recid, CatVal(recid))
             )),
             Pair("IndexTreeList", mapOf(
-                Pair(Keys.serializer, serializer),
-                Pair(Keys.dirShift, int),
-                Pair(Keys.levels, int),
-                Pair(Keys.removeCollapsesIndexTree, boolean),
-                Pair(Keys.counterRecid, recid),
-                Pair(Keys.rootRecid, recid)
+                Pair(Keys.serializer, CatVal(serializer, required=false)),
+                Pair(Keys.dirShift, CatVal(int)),
+                Pair(Keys.levels, CatVal(int)),
+                Pair(Keys.removeCollapsesIndexTree, CatVal(boolean)),
+                Pair(Keys.counterRecid, CatVal(recid)),
+                Pair(Keys.rootRecid, CatVal(recid))
             )),
             Pair("IndexTreeLongLongMap", mapOf(
-                Pair(Keys.dirShift, int),
-                Pair(Keys.levels, int),
-                Pair(Keys.removeCollapsesIndexTree, boolean),
-                Pair(Keys.rootRecid, recid)
+                Pair(Keys.dirShift, CatVal(int)),
+                Pair(Keys.levels, CatVal(int)),
+                Pair(Keys.removeCollapsesIndexTree, CatVal(boolean)),
+                Pair(Keys.rootRecid, CatVal(recid))
             ))
         )
     }
@@ -1789,14 +1791,15 @@ open class DB(
                 ret+=name+Keys.type+": unknown type '$type'"
                 continue@nameLoop
             }
-            paramLoop@ for((param, validateFun) in reqParams){
+            paramLoop@ for((param, catVal) in reqParams){
                 known+=name+param
                 val value = catalog[name+param]
                 if(value==null) {
-                    ret += name + param+": required parameter not found"
+                    if(catVal.required)
+                        ret += name + param+": required parameter not found"
                     continue@paramLoop
                 }
-                val msg = validateFun(value)
+                val msg = catVal.msg(value) //validate value, get msg if not valid
                 if(msg!=null)
                     ret+=name+param+": "+msg
             }
