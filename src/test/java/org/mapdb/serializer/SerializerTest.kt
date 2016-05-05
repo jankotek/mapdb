@@ -466,7 +466,7 @@ class Serializer_INT_ARRAY: GroupSerializerTest<IntArray>(){
             assertEquals("$i-$j", sub[intArrayOf(i,j)])
 
         //out of subMap range
-        assertEquals(null, sub[intArrayOf(3,5)])
+        assertNull(sub[intArrayOf(3,5)])
 
         //max int case
         i = Int.MAX_VALUE;
@@ -479,10 +479,10 @@ class Serializer_INT_ARRAY: GroupSerializerTest<IntArray>(){
             assertEquals("$i-$j", subMax[intArrayOf(i,j)])
 
         //out of subMap range
-        assertEquals(null, sub[intArrayOf(3,5)])
+        assertNull(sub[intArrayOf(3,5)])
 
         //min int case
-        i = Int.MAX_VALUE;
+        i = Int.MIN_VALUE;
         for(j in 1..10)
             map.put(intArrayOf(i, j), "$i-$j")
 
@@ -492,7 +492,7 @@ class Serializer_INT_ARRAY: GroupSerializerTest<IntArray>(){
             assertEquals("$i-$j", subMin[intArrayOf(i,j)])
 
         //out of subMap range
-        assertEquals(null, sub[intArrayOf(3,5)])
+        assertNull(sub[intArrayOf(3,5)])
     }
 }
 
@@ -757,7 +757,9 @@ class Serializer_ArrayTuple(): GroupSerializerTest<Array<Any>>(){
         val sub = map.prefixSubMap(arrayOf(5))
         assertEquals(10, sub.size)
         for(j in 1L..10)
-            assertEquals("5-$j", map[arrayOf(5 as Any,j as Any)])
+            assertEquals("5-$j", sub[arrayOf(5 as Any,j as Any)])
+
+        assertNull(sub[arrayOf(3 as Any,5 as Any)])
     }
 
     @Test fun prefix_comparator(){
