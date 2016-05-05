@@ -62,4 +62,21 @@ public class SerializerIntArray extends GroupSerializerObjectArray<int[]> {
         return SerializerUtils.compareInt(o1.length, o2.length);
     }
 
+    @Override
+    public int[] nextValue(int[] value) {
+        value = value.clone();
+
+        for (int i = value.length-1; ;i--) {
+            int b1 = value[i];
+            if(b1==Integer.MAX_VALUE){
+                if(i==0)
+                    return null;
+                value[i]=Integer.MIN_VALUE;
+                continue;
+            }
+            value[i] = b1+1;
+            return value;
+        }
+    }
+
 }

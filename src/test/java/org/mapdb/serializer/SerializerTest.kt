@@ -449,6 +449,51 @@ class Serializer_INT_ARRAY: GroupSerializerTest<IntArray>(){
         return ret
     }
     override val serializer = Serializer.INT_ARRAY
+
+    @Test fun prefix_submap(){
+        val map = BTreeMap.make(keySerializer = serializer, valueSerializer = Serializer.STRING)
+        for(i in 1..10) for(j in 1..10) {
+            map.put(intArrayOf(i, j), "$i-$j")
+        }
+
+        //zero subMap
+        assertEquals(0, map.prefixSubMap(intArrayOf(15)).size)
+
+        var i = 5;
+        val sub = map.prefixSubMap(intArrayOf(i))
+        assertEquals(10, sub.size)
+        for(j in 1..10)
+            assertEquals("$i-$j", sub[intArrayOf(i,j)])
+
+        //out of subMap range
+        assertEquals(null, sub[intArrayOf(3,5)])
+
+        //max int case
+        i = Int.MAX_VALUE;
+        for(j in 1..10)
+            map.put(intArrayOf(i, j), "$i-$j")
+
+        val subMax = map.prefixSubMap(intArrayOf(i))
+        assertEquals(10, subMax.size)
+        for(j in 1..10)
+            assertEquals("$i-$j", subMax[intArrayOf(i,j)])
+
+        //out of subMap range
+        assertEquals(null, sub[intArrayOf(3,5)])
+
+        //min int case
+        i = Int.MAX_VALUE;
+        for(j in 1..10)
+            map.put(intArrayOf(i, j), "$i-$j")
+
+        val subMin = map.prefixSubMap(intArrayOf(i))
+        assertEquals(10, subMin.size)
+        for(j in 1..10)
+            assertEquals("$i-$j", subMin[intArrayOf(i,j)])
+
+        //out of subMap range
+        assertEquals(null, sub[intArrayOf(3,5)])
+    }
 }
 
 
