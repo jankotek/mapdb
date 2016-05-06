@@ -158,7 +158,7 @@ class DBTest{
 
         assertEquals("3", p["aa"+DB.Keys.concShift])
         assertEquals("4", p["aa"+DB.Keys.levels])
-        assertEquals("4", p["aa"+DB.Keys.dirShift])
+        assertEquals("6", p["aa"+DB.Keys.dirShift])
         assertTrue(p["aa"+DB.Keys.hashSeed]!!.toInt() != 0)
         assertEquals("0", p["aa"+DB.Keys.expireCreateTTL])
         assertEquals("0", p["aa"+DB.Keys.expireUpdateTTL])
@@ -200,7 +200,7 @@ class DBTest{
         assertEquals("org.mapdb.DB#defaultSerializer", p["aa"+DB.Keys.valueSerializer])
         assertEquals("3", p["aa"+DB.Keys.concShift])
         assertEquals("4", p["aa"+DB.Keys.levels])
-        assertEquals("4", p["aa"+DB.Keys.dirShift])
+        assertEquals("6", p["aa"+DB.Keys.dirShift])
         assertTrue(p["aa"+DB.Keys.hashSeed]!!.toInt() != 0)
         assertEquals("10", p["aa"+DB.Keys.expireCreateTTL])
         assertEquals("20", p["aa"+DB.Keys.expireUpdateTTL])
@@ -563,7 +563,7 @@ class DBTest{
 
         assertEquals("3", p["aa"+DB.Keys.concShift])
         assertEquals("4", p["aa"+DB.Keys.levels])
-        assertEquals("4", p["aa"+DB.Keys.dirShift])
+        assertEquals("6", p["aa"+DB.Keys.dirShift])
         assertTrue(p["aa"+DB.Keys.hashSeed]!!.toInt() != 0)
         assertEquals("0", p["aa"+DB.Keys.expireCreateTTL])
         assertEquals(null, p["aa"+DB.Keys.expireUpdateTTL])
@@ -606,7 +606,7 @@ class DBTest{
         assertEquals(null, p["aa"+DB.Keys.valueSerializer])
         assertEquals("3", p["aa"+DB.Keys.concShift])
         assertEquals("4", p["aa"+DB.Keys.levels])
-        assertEquals("4", p["aa"+DB.Keys.dirShift])
+        assertEquals("6", p["aa"+DB.Keys.dirShift])
         assertTrue(p["aa"+DB.Keys.hashSeed]!!.toInt() != 0)
         assertEquals("10", p["aa"+DB.Keys.expireCreateTTL])
         assertEquals(null, p["aa"+DB.Keys.expireUpdateTTL])
@@ -1202,4 +1202,42 @@ class DBTest{
         db.close()
         f.delete()
     }
+
+    @Test fun indexTreeMaxSize(){
+        if(TT.shortTest())
+            return
+
+        val db = DBMaker.heapDB().make()
+        val tree = db.indexTreeList("aa", Serializer.INTEGER)
+                .create()
+        for(i in 0 until 1e7.toInt())
+            tree.add(i)
+
+    }
+
+    @Test fun indexTreeLongLongMaxSize(){
+        if(TT.shortTest())
+            return
+        val db = DBMaker.heapDB().make()
+        val tree = db.indexTreeLongLongMap("aa")
+                .create()
+        for(i in 0L until 1e7.toInt())
+            tree.put(i,i)
+
+    }
+
+    @Test fun hashMapMaxSize(){
+        if(TT.shortTest())
+            return
+
+        val db = DBMaker.heapDB().make()
+        val tree = db.hashMap("aa", Serializer.INTEGER, Serializer.INTEGER)
+                .create()
+        for(i in 0 until 1e6.toInt())
+            tree.put(i,i)
+        val (collisions, size) = tree.calculateCollisionSize()
+        assertTrue(collisions < 1e6/1000)
+        assertEquals(1e6.toLong(), size)
+    }
+
 }

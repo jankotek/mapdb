@@ -152,7 +152,7 @@ class HTreeMap<K,V>(
         }
 
         //check if 32bit hash covers all indexes. In future we will upgrade to 64bit hash and this can be removed
-        if(segmentCount*Math.pow(1.shl(dirShift).toDouble(),levels.toDouble()) > 2L*Integer.MAX_VALUE){
+        if(segmentCount*Math.pow(1.shl(dirShift).toDouble(),levels.toDouble()) > 2L*Integer.MAX_VALUE+1000){
             Utils.LOG.warning { "Wrong layout, segment+index is more than 32bits, performance degradation" }
         }
     }

@@ -67,7 +67,7 @@ public class IndexTreeLongLongMap(
         )
     }
 
-                override fun put(key: Long, value: Long) {
+    override fun put(key: Long, value: Long) {
         assertKey(key)
         treePut(dirShift, rootRecid, store, levels, key, value);
     }
