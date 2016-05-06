@@ -406,4 +406,30 @@ class HTreeMapTest{
 
         assertEquals(8, counter.get())
     }
+
+    @Test fun calculateCollisions(){
+        val map = DBMaker.heapDB().make().hashMap("name", Serializer.LONG, Serializer.LONG).createOrOpen()
+        for(i in 0L until 1000)
+            map[i] = i
+        val (collision, size) = map.calculateCollisionSize()
+        assertEquals(0, collision)
+        assertEquals(1000, size)
+    }
+
+    @Test fun calculateCollisions2(){
+        val ser2 = object: Serializer<Long> by Serializer.LONG{
+            override fun hashCode(a: Long, seed: Int): Int {
+                return 0
+            }
+        }
+
+        val map = DBMaker.heapDB().make().hashMap("name", ser2, Serializer.LONG).createOrOpen()
+        for(i in 0L until 1000)
+            map[i] = i
+        val (collision, size) = map.calculateCollisionSize()
+        assertEquals(999, collision)
+        assertEquals(1000, size)
+    }
+
+
 }

@@ -366,9 +366,7 @@ class HTreeMap<K,V>(
             return null
         }
 
-
-        var leaf = store.get(leafRecid, leafSerializer)
-                ?: throw DBException.DataCorruption("linked leaf not found")
+        var leaf = leafGet(store, leafRecid)
 
         //check existing keys in leaf
         for (i in 0 until leaf.size step 3) {
@@ -482,8 +480,7 @@ class HTreeMap<K,V>(
         if (leafRecid == 0L)
             return null
 
-        val leaf = store.get(leafRecid, leafSerializer)
-                ?: throw DBException.DataCorruption("linked leaf not found")
+        val leaf = leafGet(store, leafRecid)
 
         //check existing keys in leaf
         for (i in 0 until leaf.size step 3) {
@@ -534,8 +531,8 @@ class HTreeMap<K,V>(
                 val indexTree = indexTrees[segment]
                 val store = stores[segment]
                 indexTree.forEachKeyValue { index, leafRecid ->
-                    val leaf = store.get(leafRecid, leafSerializer)
-                            ?: throw DBException.DataCorruption("linked leaf not found")
+                    val leaf = leafGet(store, leafRecid)
+
                     store.delete(leafRecid, leafSerializer);
                     for (i in 0 until leaf.size step 3) {
                         val key = leaf[i]
@@ -614,8 +611,7 @@ class HTreeMap<K,V>(
         if (leafRecid == 0L)
             return null
 
-        var leaf = store.get(leafRecid, leafSerializer)
-                ?: throw DBException.DataCorruption("leaf not found");
+        var leaf = leafGet(store, leafRecid)
 
         for (i in 0 until leaf.size step 3) {
             val oldKey = leaf[i] as K
@@ -695,8 +691,7 @@ class HTreeMap<K,V>(
                             ?: throw DBException.DataCorruption("counter not found")
                 }else {
                     indexTrees[segment].forEachKeyValue { index, leafRecid ->
-                        val leaf = stores[segment].get(leafRecid, leafSerializer)
-                                ?: throw DBException.DataCorruption("Leaf not found")
+                        val leaf = leafGet(stores[segment], leafRecid)
                         ret += leaf.size / 3
                     }
                 }
@@ -1038,8 +1033,7 @@ class HTreeMap<K,V>(
                         return null
                     }
                     val leafRecid = leafRecidIter.next()
-                    val leaf = store.get(leafRecid, leafSerializer)
-                            ?: throw DBException.DataCorruption("linked leaf not found")
+                    val leaf = leafGet(store, leafRecid)
                     val ret = Array<Any?>(leaf.size, { null });
                     for (i in 0 until ret.size step 3) {
                         ret[i] = loadNext(leaf[i], leaf[i + 1])
@@ -1201,8 +1195,7 @@ class HTreeMap<K,V>(
             segmentRead(segment){
                 val store = stores[segment]
                 indexTrees[segment].forEachValue { leafRecid ->
-                    val leaf = store.get(leafRecid, leafSerializer)
-                        ?: throw DBException.DataCorruption("leaf not found")
+                    val leaf = leafGet(store, leafRecid)
                     for(i in 0 until leaf.size step 3){
                         val key = leaf[i] as K
                         val value = valueUnwrap(segment, leaf[i+1])
@@ -1218,8 +1211,7 @@ class HTreeMap<K,V>(
             segmentRead(segment){
                 val store = stores[segment]
                 indexTrees[segment].forEachValue { leafRecid ->
-                    val leaf = store.get(leafRecid, leafSerializer)
-                            ?: throw DBException.DataCorruption("leaf not found")
+                    val leaf = leafGet(store, leafRecid)
                     for(i in 0 until leaf.size step 3){
                         val key = leaf[i] as K
                         action(key)
@@ -1235,8 +1227,7 @@ class HTreeMap<K,V>(
             segmentRead(segment){
                 val store = stores[segment]
                 indexTrees[segment].forEachValue { leafRecid ->
-                    val leaf = store.get(leafRecid, leafSerializer)
-                            ?: throw DBException.DataCorruption("leaf not found")
+                    val leaf = leafGet(store, leafRecid)
                     for(i in 0 until leaf.size step 3){
                         val value = valueUnwrap(segment, leaf[i+1])
                         action(value)
@@ -1267,8 +1258,7 @@ class HTreeMap<K,V>(
                     if(tree.get(index)!=leafRecid)
                         throw DBException.DataCorruption("IndexTree corrupted")
 
-                    val leaf = stores[segment].get(leafRecid, leafSerializer)
-                        ?:throw DBException.DataCorruption("Leaf not found")
+                    val leaf = leafGet(stores[segment], leafRecid)
 
                     for(i in 0 until leaf.size step 3){
                         val key = leaf[i] as K
@@ -1298,8 +1288,7 @@ class HTreeMap<K,V>(
                     q.forEach { expireRecid, leafRecid, timestamp ->
                         if(leafRecids.contains(leafRecid).not())
                             throw DBException.DataCorruption("leafRecid referenced from Queue not part of Map")
-                        val leaf = stores[segment].get(leafRecid, leafSerializer)
-                            ?:throw DBException.DataCorruption("Leaf not found")
+                        val leaf = leafGet(stores[segment], leafRecid)
 
                         //find entry by timestamp
                         var found = false;
@@ -1340,5 +1329,33 @@ class HTreeMap<K,V>(
         super.checkThreadSafe()
         for(s in stores)
             s.checkThreadSafe()
+    }
+
+    /** calculates number of collisions and total size of this set.
+     * @return pair, first is number of collisions, second is number of elements in map
+     */
+    fun calculateCollisionSize():Pair<Long,Long>{
+        var collision = 0L
+        var size = 0L
+
+        for(segment in 0 until segmentCount) Utils.lockRead(locks[segment]){
+            indexTrees[segment].forEachValue { leafRecid ->
+                val leaf = leafGet(stores[segment], leafRecid)
+                size += leaf.size/3
+                collision += leaf.size/3-1
+            }
+        }
+
+        return Pair(collision, size)
+    }
+
+    protected fun leafGet(store:Store, leafRecid:Long):Array<Any>{
+        val leaf = store.get(leafRecid, leafSerializer)
+                ?: throw DBException.DataCorruption("linked leaf not found")
+        if(CC.ASSERT && leaf.size%3!=0)
+            throw AssertionError()
+        if(CC.ASSERT && leaf.size<3)
+            throw AssertionError()
+        return leaf
     }
 }
