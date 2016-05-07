@@ -1140,8 +1140,7 @@ public class BTreeMapJava {
             if(hi==null && lo==null)
                 return m.size();
 
-            //TODO PERF use ascending iterator for faster counting
-            Iterator<K> i = keyIterator();
+            Iterator<K> i = m.keyIterator(lo, loInclusive, hi, hiInclusive);
             long counter = 0;
             while(i.hasNext()){
                 counter++;
