@@ -2,7 +2,6 @@ package org.mapdb.serializer;
 
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
-import org.mapdb.Serializer;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -64,4 +63,20 @@ public class SerializerLongArray extends GroupSerializerObjectArray<long[]> {
         return SerializerUtils.compareInt(o1.length, o2.length);
     }
 
+    @Override
+    public long[] nextValue(long[] value) {
+        value = value.clone();
+
+        for (int i = value.length-1; ;i--) {
+            long b1 = value[i];
+            if(b1==Long.MAX_VALUE){
+                if(i==0)
+                    return null;
+                value[i]=Long.MIN_VALUE;
+                continue;
+            }
+            value[i] = b1+1L;
+            return value;
+        }
+    }
 }
