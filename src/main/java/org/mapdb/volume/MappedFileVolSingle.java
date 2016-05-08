@@ -19,13 +19,13 @@ public final class MappedFileVolSingle extends ByteBufferVolSingle {
 
     protected final static VolumeFactory FACTORY = new VolumeFactory() {
         @Override
-        public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize, boolean fixedSize) {
+        public Volume makeVolume(String file, boolean readOnly,  long fileLockWait, int sliceShift, long initSize, boolean fixedSize) {
             if (initSize > Integer.MAX_VALUE)
                 throw new IllegalArgumentException("startSize larger 2GB");
             return new org.mapdb.volume.MappedFileVolSingle(
                     new File(file),
                     readOnly,
-                    fileLockDisabled,
+                    fileLockWait,
                     initSize,
                     false);
         }
@@ -45,13 +45,13 @@ public final class MappedFileVolSingle extends ByteBufferVolSingle {
 
     protected final static VolumeFactory FACTORY_WITH_CLEANER_HACK = new VolumeFactory() {
         @Override
-        public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize, boolean fixedSize) {
+        public Volume makeVolume(String file, boolean readOnly, long fileLockWait, int sliceShift, long initSize, boolean fixedSize) {
             if (initSize > Integer.MAX_VALUE)
                 throw new IllegalArgumentException("startSize larger 2GB");
             return new org.mapdb.volume.MappedFileVolSingle(
                     new File(file),
                     readOnly,
-                    fileLockDisabled,
+                    fileLockWait,
                     initSize,
                     true);
         }
@@ -75,7 +75,7 @@ public final class MappedFileVolSingle extends ByteBufferVolSingle {
     protected final RandomAccessFile raf;
     protected final FileLock fileLock;
 
-    public MappedFileVolSingle(File file, boolean readOnly, boolean fileLockDisabled, long maxSize,
+    public MappedFileVolSingle(File file, boolean readOnly, long fileLockWait, long maxSize,
                                boolean cleanerHackEnabled) {
         super(readOnly, maxSize, cleanerHackEnabled);
         this.file = file;
@@ -84,7 +84,7 @@ public final class MappedFileVolSingle extends ByteBufferVolSingle {
             FileChannelVol.checkFolder(file, readOnly);
             raf = new RandomAccessFile(file, readOnly ? "r" : "rw");
 
-            fileLock = Volume.lockFile(file, raf.getChannel(), readOnly, fileLockDisabled);
+            fileLock = Volume.lockFile(file, raf.getChannel(), readOnly, fileLockWait);
 
 
             final long fileSize = raf.length();

@@ -31,8 +31,8 @@ public final class FileChannelVol extends Volume {
     public static final VolumeFactory FACTORY = new VolumeFactory() {
 
         @Override
-        public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize, boolean fixedSize) {
-            return new org.mapdb.volume.FileChannelVol(new File(file),readOnly, fileLockDisabled, sliceShift,initSize);
+        public Volume makeVolume(String file, boolean readOnly, long fileLockWait, int sliceShift, long initSize, boolean fixedSize) {
+            return new org.mapdb.volume.FileChannelVol(new File(file),readOnly, fileLockWait, sliceShift,initSize);
         }
 
         @NotNull
@@ -57,7 +57,7 @@ public final class FileChannelVol extends Volume {
     protected volatile long size;
     protected final Lock growLock = new ReentrantLock();
 
-    public FileChannelVol(File file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize){
+    public FileChannelVol(File file, boolean readOnly, long fileLockWait, int sliceShift, long initSize){
         this.file = file;
         this.readOnly = readOnly;
         this.sliceSize = 1<<sliceShift;
@@ -78,7 +78,7 @@ public final class FileChannelVol extends Volume {
                 size = channel.size();
             }
 
-            fileLock = Volume.lockFile(file,channel,readOnly,fileLockDisabled);
+            fileLock = Volume.lockFile(file,channel,readOnly,fileLockWait);
 
             if(initSize!=0 && !readOnly){
                 long oldSize = channel.size();
@@ -98,7 +98,7 @@ public final class FileChannelVol extends Volume {
     }
 
     public FileChannelVol(File file) {
-        this(file, false, false, CC.PAGE_SHIFT,0L);
+        this(file, false, 0L, CC.PAGE_SHIFT,0L);
     }
 
     protected static void checkFolder(File file, boolean readOnly) throws IOException {

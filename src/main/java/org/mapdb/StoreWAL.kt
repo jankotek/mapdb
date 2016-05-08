@@ -18,6 +18,7 @@ import java.util.*
 class StoreWAL(
         file:String?,
         volumeFactory: VolumeFactory,
+        fileLockWait:Long,
         isThreadSafe:Boolean,
         concShift:Int,
         allocateStartSize:Long,
@@ -40,6 +41,7 @@ class StoreWAL(
         @JvmStatic fun make(
                 file:String?= null,
                 volumeFactory: VolumeFactory = if(file==null) CC.DEFAULT_MEMORY_VOLUME_FACTORY else CC.DEFAULT_FILE_VOLUME_FACTORY,
+                fileLockWait:Long = 0L,
                 isThreadSafe:Boolean = true,
                 concShift:Int = CC.STORE_DIRECT_CONC_SHIFT,
                 allocateStartSize: Long = 0L,
@@ -50,6 +52,7 @@ class StoreWAL(
         )=StoreWAL(
                 file = file,
                 volumeFactory = volumeFactory,
+                fileLockWait = fileLockWait,
                 isThreadSafe = isThreadSafe,
                 concShift = concShift,
                 allocateStartSize = allocateStartSize,
@@ -63,7 +66,7 @@ class StoreWAL(
     }
 
     protected val realVolume: Volume = {
-        volumeFactory.makeVolume(file, false, false, CC.PAGE_SHIFT,
+        volumeFactory.makeVolume(file, false, fileLockWait, CC.PAGE_SHIFT,
                 DataIO.roundUp(allocateStartSize, CC.PAGE_SIZE), false)
     }()
 

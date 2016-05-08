@@ -64,7 +64,7 @@ class BrokenDBTest {
         DBMaker.fileDB(index!!).make().close()
 
         // corrupt file
-        val physVol = RandomAccessFileVol(index, false, false, 0L)
+        val physVol = RandomAccessFileVol(index, false, 0L, 0L)
         physVol.ensureAvailable(32)
         physVol.putLong(16, 123456789L)
         physVol.sync()

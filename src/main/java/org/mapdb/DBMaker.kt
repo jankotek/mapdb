@@ -135,7 +135,7 @@ object DBMaker{
         private var _concurrencyScale: Int = 1.shl(CC.STORE_DIRECT_CONC_SHIFT)
         private var _cleanerHack = false
         private var _fileMmapPreclearDisable = false
-        private var _fileLockDisable = false
+        private var _fileLockWait = 0L
         private var _fileMmapfIfSupported = false
         private var _closeOnJvmShutdown = false
         private var _readOnly = false
@@ -301,9 +301,19 @@ object DBMaker{
          */
         fun fileLockDisable():Maker{
             assertFile()
-            _fileLockDisable = true
+            _fileLockWait = -1
             return this;
         }
+
+        fun fileLockWait(timeout:Long):Maker{
+            assertFile()
+            _fileLockWait = timeout
+            return this
+        }
+
+        fun fileLockWait():Maker = fileLockWait(Long.MAX_VALUE)
+
+
 
         /**
          * Enables store wide checksum. Entire file is covered by 64bit checksum to catch possible data corruption.
@@ -403,6 +413,7 @@ object DBMaker{
                     storeOpened = volfab!!.exists(file)
                     if (_transactionEnable.not() || _readOnly) {
                        StoreDirect.make(file = file, volumeFactory = volfab!!,
+                               fileLockWait = _fileLockWait,
                                allocateStartSize = _allocateStartSize,
                                isReadOnly = _readOnly,
                                deleteFilesAfterClose = _deleteFilesAfterClose,
@@ -414,6 +425,7 @@ object DBMaker{
                         if(_checksumStoreEnable)
                             throw DBException.WrongConfiguration("Checksum is not supported with transaction enabled.")
                        StoreWAL.make(file = file, volumeFactory = volfab!!,
+                               fileLockWait = _fileLockWait,
                                allocateStartSize = _allocateStartSize,
                                deleteFilesAfterClose = _deleteFilesAfterClose,
                                concShift = concShift,

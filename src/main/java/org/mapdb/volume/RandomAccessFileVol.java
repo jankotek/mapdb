@@ -21,9 +21,9 @@ public final class RandomAccessFileVol extends Volume {
 
     public static final VolumeFactory FACTORY = new VolumeFactory() {
         @Override
-        public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisable, int sliceShift, long initSize, boolean fixedSize) {
+        public Volume makeVolume(String file, boolean readOnly,  long fileLockWait, int sliceShift, long initSize, boolean fixedSize) {
             //TODO allocate initSize
-            return new org.mapdb.volume.RandomAccessFileVol(new File(file), readOnly, fileLockDisable, initSize);
+            return new org.mapdb.volume.RandomAccessFileVol(new File(file), readOnly, fileLockWait, initSize);
         }
 
         @NotNull
@@ -44,12 +44,12 @@ public final class RandomAccessFileVol extends Volume {
     protected final boolean readOnly;
 
 
-    public RandomAccessFileVol(File file, boolean readOnly, boolean fileLockDisable, long initSize) {
+    public RandomAccessFileVol(File file, boolean readOnly, long fileLockWait, long initSize) {
         this.file = file;
         this.readOnly = readOnly;
         try {
             this.raf = new RandomAccessFile(file, readOnly ? "r" : "rw"); //TODO rwd, rws? etc
-            this.fileLock = Volume.lockFile(file, raf.getChannel(), readOnly, fileLockDisable);
+            this.fileLock = Volume.lockFile(file, raf.getChannel(), readOnly, fileLockWait);
 
             //grow file if needed
             if (initSize != 0 && !readOnly) {

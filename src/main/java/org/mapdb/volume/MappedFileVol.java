@@ -34,8 +34,8 @@ public final class MappedFileVol extends ByteBufferVol {
         }
 
         @Override
-        public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize, boolean fixedSize) {
-            return factory(file, readOnly, fileLockDisabled, sliceShift, cleanerHackEnabled, initSize, preclearDisabled);
+        public Volume makeVolume(String file, boolean readOnly, long fileLockWait, int sliceShift, long initSize, boolean fixedSize) {
+            return factory(file, readOnly, fileLockWait, sliceShift, cleanerHackEnabled, initSize, preclearDisabled);
         }
 
         @NotNull
@@ -49,19 +49,19 @@ public final class MappedFileVol extends ByteBufferVol {
             return true;
         }
 
-        private static Volume factory(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift,
+        private static Volume factory(String file, boolean readOnly, long fileLockWait, int sliceShift,
                                       boolean cleanerHackEnabled, long initSize, boolean preclearDisabled) {
             File f = new File(file);
             if (readOnly) {
                 long flen = f.length();
                 if (flen <= Integer.MAX_VALUE) {
-                    return new MappedFileVolSingle(f, readOnly, fileLockDisabled,
+                    return new MappedFileVolSingle(f, readOnly, fileLockWait,
                             Math.max(flen, initSize),
                             cleanerHackEnabled);
                 }
             }
             //TODO prealocate initsize
-            return new org.mapdb.volume.MappedFileVol(f, readOnly, fileLockDisabled, sliceShift, cleanerHackEnabled, initSize, preclearDisabled);
+            return new org.mapdb.volume.MappedFileVol(f, readOnly, fileLockWait, sliceShift, cleanerHackEnabled, initSize, preclearDisabled);
         }
 
     }
@@ -73,7 +73,7 @@ public final class MappedFileVol extends ByteBufferVol {
     protected final FileLock fileLock;
     protected final boolean preclearDisabled;
 
-    public MappedFileVol(File file, boolean readOnly, boolean fileLockDisable,
+    public MappedFileVol(File file, boolean readOnly, long fileLockWait,
                          int sliceShift, boolean cleanerHackEnabled, long initSize,
                          boolean preclearDisabled) {
         super(readOnly, sliceShift, cleanerHackEnabled);
@@ -85,7 +85,7 @@ public final class MappedFileVol extends ByteBufferVol {
             this.raf = new RandomAccessFile(file, readOnly ? "r" : "rw");
             this.fileChannel = raf.getChannel();
 
-            fileLock = Volume.lockFile(file, fileChannel, readOnly, fileLockDisable);
+            fileLock = Volume.lockFile(file, fileChannel, readOnly, fileLockWait);
 
             final long fileSize = fileChannel.size();
             long endSize = fileSize;

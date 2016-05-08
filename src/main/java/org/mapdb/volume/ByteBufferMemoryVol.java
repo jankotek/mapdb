@@ -22,7 +22,7 @@ public final class ByteBufferMemoryVol extends ByteBufferVol {
      */
     public static final VolumeFactory FACTORY = new VolumeFactory() {
         @Override
-        public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize, boolean fixedSize) {
+        public Volume makeVolume(String file, boolean readOnly, long fileLockWait, int sliceShift, long initSize, boolean fixedSize) {
             //TODO optimize for fixedSize smaller than 2GB
             return new ByteBufferMemoryVol(true, sliceShift, false, initSize);
         }
@@ -45,7 +45,7 @@ public final class ByteBufferMemoryVol extends ByteBufferVol {
      */
     public static final VolumeFactory FACTORY_WITH_CLEANER_HACK = new VolumeFactory() {
         @Override
-        public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize, boolean fixedSize) {//TODO prealocate initSize
+        public Volume makeVolume(String file, boolean readOnly, long fileLockWait, int sliceShift, long initSize, boolean fixedSize) {//TODO prealocate initSize
             //TODO optimize for fixedSize smaller than 2GB
             return new ByteBufferMemoryVol(true, sliceShift, true, initSize);
         }

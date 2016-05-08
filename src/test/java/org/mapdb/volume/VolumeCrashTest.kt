@@ -14,10 +14,10 @@ import org.mapdb.TT
 
 class VolumeCrashTest(): CrashJVM(){
     val fabs = mapOf<String,Function1<String, Volume>>(
-            Pair("fileChannel",{file -> FileChannelVol(File(file), false, false, CC.PAGE_SHIFT, 0L)}),
-            Pair("raf",{file -> RandomAccessFileVol(File(file), false, false, 0L) }),
-            Pair("mapped",{file -> MappedFileVol(File(file), false, false, CC.PAGE_SHIFT, false, 0L, false) }),
-            Pair("mappedSingle",{file -> MappedFileVolSingle(File(file), false, false, 4e7.toLong(), false) })
+            Pair("fileChannel",{file -> FileChannelVol(File(file), false, 0L, CC.PAGE_SHIFT, 0L)}),
+            Pair("raf",{file -> RandomAccessFileVol(File(file), false, 0L, 0L) }),
+            Pair("mapped",{file -> MappedFileVol(File(file), false, 0L, CC.PAGE_SHIFT, false, 0L, false) }),
+            Pair("mappedSingle",{file -> MappedFileVolSingle(File(file), false, 0L, 4e7.toLong(), false) })
     )
 
     val max = 4*1024*1024

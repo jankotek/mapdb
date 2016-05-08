@@ -17,7 +17,7 @@ public final class SingleByteArrayVol extends Volume {
 
     protected final static VolumeFactory FACTORY = new VolumeFactory() {
         @Override
-        public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize, boolean fixedSize) {
+        public Volume makeVolume(String file, boolean readOnly, long fileLockWait, int sliceShift, long initSize, boolean fixedSize) {
             if(initSize>Integer.MAX_VALUE)
                 throw new IllegalArgumentException("startSize larger 2GB");
             return new org.mapdb.volume.SingleByteArrayVol((int) initSize);

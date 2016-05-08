@@ -107,4 +107,70 @@ class DBMakerTest{
         val db = DBMaker.memoryDB().checksumStoreEnable().make()
         assertTrue(((db.getStore()) as StoreDirect).checksum)
     }
+
+    @Test(timeout=10000)
+    fun file_lock_wait(){
+        val f = TT.tempFile()
+        val db1 = DBMaker.fileDB(f).make()
+        TT.fork{
+            Thread.sleep(2000)
+            db1.close()
+        }
+        val db2 = DBMaker.fileDB(f).fileLockWait(6000).make()
+        db2.close()
+        f.delete()
+    }
+
+
+    @Test(timeout=10000)
+    fun file_lock_wait2(){
+        val f = TT.tempFile()
+        val db1 = DBMaker.fileDB(f).make()
+        TT.fork{
+            Thread.sleep(2000)
+            db1.close()
+        }
+        val db2 = DBMaker.fileDB(f).fileLockWait().make()
+        db2.close()
+        f.delete()
+    }
+
+    @Test fun file_lock_disable_RAF(){
+        val f = TT.tempFile()
+        val db1 = DBMaker.fileDB(f).make()
+        DBMaker.fileDB(f).fileLockDisable().make()
+    }
+
+    @Test fun file_lock_disable_RAF2(){
+        val f = TT.tempFile()
+        val db1 = DBMaker.fileDB(f).transactionEnable().make()
+        DBMaker.fileDB(f).fileLockDisable().transactionEnable().make()
+    }
+
+    @Test fun file_lock_disable_Channel(){
+        val f = TT.tempFile()
+        val db1 = DBMaker.fileDB(f).make()
+        DBMaker.fileDB(f).fileLockDisable().make()
+    }
+
+    @Test fun file_lock_disable_Channel2(){
+        val f = TT.tempFile()
+        val db1 = DBMaker.fileDB(f).fileChannelEnable().transactionEnable().make()
+        DBMaker.fileDB(f).fileChannelEnable().fileLockDisable().transactionEnable().make()
+    }
+
+    @Test fun file_lock_disable_mmap(){
+        val f = TT.tempFile()
+        val db1 = DBMaker.fileDB(f).fileMmapEnable().make()
+        DBMaker.fileDB(f).fileLockDisable().make()
+    }
+
+    @Test fun file_lock_disable_mmap2(){
+        val f = TT.tempFile()
+        val db1 = DBMaker.fileDB(f).transactionEnable().make()
+        DBMaker.fileDB(f).fileLockDisable().fileMmapEnable().transactionEnable().make()
+    }
+
+
+
 }

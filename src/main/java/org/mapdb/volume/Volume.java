@@ -29,6 +29,7 @@ import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
+import java.nio.channels.OverlappingFileLockException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -107,7 +108,7 @@ public abstract class Volume implements Closeable{
     public static final VolumeFactory UNSAFE_VOL_FACTORY = new VolumeFactory() {
 
         @Override
-        public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisabled, int sliceShift, long initSize, boolean fixedSize) {
+        public Volume makeVolume(String file, boolean readOnly, long fileLockWait, int sliceShift, long initSize, boolean fixedSize) {
             String packageName = Volume.class.getPackage().getName();
             Class clazz;
             try {
@@ -127,7 +128,7 @@ public abstract class Volume implements Closeable{
                 }
             }
 
-            return ByteBufferMemoryVol.FACTORY.makeVolume(file, readOnly, fileLockDisabled, sliceShift, initSize, fixedSize);
+            return ByteBufferMemoryVol.FACTORY.makeVolume(file, readOnly, fileLockWait, sliceShift, initSize, fixedSize);
         }
 
         @NotNull
@@ -479,17 +480,30 @@ public abstract class Volume implements Closeable{
 //    }
 
 
-    static FileLock lockFile(File file, FileChannel channel, boolean readOnly, boolean fileLockDisable) {
-        if(fileLockDisable || readOnly){
+    static FileLock lockFile(File file, FileChannel channel, boolean readOnly, long fileLockWait) {
+        if(fileLockWait<0 || readOnly){
             return null;
-        }else {
+        }
+        while(true) {
             try {
                 return channel.lock();
-            } catch (Exception e) {
+            } catch (OverlappingFileLockException e) {
+                if (fileLockWait > 0) {
+                    // wait until file becomes unlocked
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e1) {
+                        throw new DBException.Interrupted(e1);
+                    }
+                    fileLockWait -= 100;
+                    continue; //timeout has not expired yet, try again
+                }
+
                 throw new DBException.FileLocked(file.toPath(), e);
+            } catch (IOException e) {
+                throw new DBException.VolumeIOError(e);
             }
         }
-
     }
 }
 

@@ -64,7 +64,7 @@ public class DBBrokenTest {
         DBMaker.fileDB(index.getPath()).make().close();
 
         // corrupt file
-        Volume physVol = new RandomAccessFileVol(index, false, false, 0L);
+        Volume physVol = new RandomAccessFileVol(index, false, 0L, 0L);
         physVol.ensureAvailable(32);
         physVol.putLong(16, 123456789L);
         physVol.sync();

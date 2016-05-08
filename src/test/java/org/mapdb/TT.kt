@@ -160,7 +160,7 @@ object TT{
 
 
 
-    fun fork(count:Int, body:(i:Int)->Unit){
+    fun fork(count:Int=1, body:(i:Int)->Unit){
         val exec = Executors.newCachedThreadPool({ r->
             val thread = Thread(r)
             thread.isDaemon = true

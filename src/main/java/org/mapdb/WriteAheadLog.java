@@ -116,7 +116,7 @@ public class WriteAheadLog {
     public void startNextFile() {
         fileNum++;
         String filewal = getWalFileName(""+fileNum);
-        Volume nextVol = volumeFactory.makeVolume(filewal, false, true);
+        Volume nextVol = volumeFactory.makeVolume(filewal, false, -1L);
 
         nextVol.ensureAvailable(16);
 
@@ -340,7 +340,7 @@ public class WriteAheadLog {
                 String wname = getWalFileName(""+i);
                 if(!new File(wname).exists())
                     break;
-                volumes.add(volumeFactory.makeVolume(wname, false, true));
+                volumes.add(volumeFactory.makeVolume(wname, false, -1L));
             }
 
             long walId = replayWALSkipRollbacks(replay);

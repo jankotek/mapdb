@@ -132,6 +132,7 @@ open class DB(
                     throw DBException.WrongConfiguration("Store does not support Reserved Recids: "+store.javaClass)
                 }
             }
+            store.commit()
         }
 
         val msgs = nameCatalogVerifyGetMessages().toList()

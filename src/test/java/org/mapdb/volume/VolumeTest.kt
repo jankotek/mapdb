@@ -40,11 +40,11 @@ class VolumeTest {
                             MEMORY_VOL_FAB,
                         {file -> SingleByteArrayVol(4e7.toInt()) },
                         {file -> ByteBufferMemoryVol(true, CC.PAGE_SHIFT, false, 0L) },
-                        {file ->  Volume.UNSAFE_VOL_FACTORY.makeVolume(null, false, false, CC.PAGE_SHIFT, 0, false)},
-                        {file -> FileChannelVol(File(file), false, false, CC.PAGE_SHIFT, 0L) },
-                        {file -> RandomAccessFileVol(File(file), false, false, 0L) },
-                        {file -> MappedFileVol(File(file), false, false, CC.PAGE_SHIFT, false, 0L, false) },
-                        {file -> MappedFileVolSingle(File(file), false, false, 4e7.toLong(), false) },
+                        {file ->  Volume.UNSAFE_VOL_FACTORY.makeVolume(null, false, -1L, CC.PAGE_SHIFT, 0, false)},
+                        {file -> FileChannelVol(File(file), false, 0L, CC.PAGE_SHIFT, 0L) },
+                        {file -> RandomAccessFileVol(File(file), false, 0L, 0L) },
+                        {file -> MappedFileVol(File(file), false, 0L, CC.PAGE_SHIFT, false, 0L, false) },
+                        {file -> MappedFileVolSingle(File(file), false, 0L, 4e7.toLong(), false) },
                         {file -> ByteBufferMemoryVolSingle(false, 4e7.toLong(), false) }
                     )
     }
@@ -95,14 +95,14 @@ class VolumeTest {
         raf.close()
 
         //open mmap file, size should grow to multiple of chunk size
-        var m = MappedFileVol(f, false, false, CC.PAGE_SHIFT, true, 0L, false)
+        var m = MappedFileVol(f, false, 0L, CC.PAGE_SHIFT, true, 0L, false)
         assertEquals(1, m.slices.size.toLong())
         m.sync()
         m.close()
         assertEquals(chunkSize, f.length())
 
         //open mmap file, size should grow to multiple of chunk size
-        m = MappedFileVol(f, false, false, CC.PAGE_SHIFT, true, 0L, false)
+        m = MappedFileVol(f, false, 0L, CC.PAGE_SHIFT, true, 0L, false)
         assertEquals(1, m.slices.size.toLong())
         m.ensureAvailable(add + 4)
         assertEquals(11, m.getInt(add).toLong())
@@ -115,7 +115,7 @@ class VolumeTest {
         raf.writeInt(11)
         raf.close()
 
-        m = MappedFileVol(f, false, false, CC.PAGE_SHIFT, true, 0L, false)
+        m = MappedFileVol(f, false, 0L, CC.PAGE_SHIFT, true, 0L, false)
         assertEquals(2, m.slices.size.toLong())
         m.sync()
         m.ensureAvailable(chunkSize + add + 4)
@@ -125,7 +125,7 @@ class VolumeTest {
         m.close()
         assertEquals(chunkSize * 2, f.length())
 
-        m = MappedFileVol(f, false, false, CC.PAGE_SHIFT, true, 0L, false)
+        m = MappedFileVol(f, false, 0L, CC.PAGE_SHIFT, true, 0L, false)
         m.sync()
         assertEquals(chunkSize * 2, f.length())
         m.ensureAvailable(chunkSize + add + 4)
@@ -169,7 +169,7 @@ class VolumeTest {
         raf.close()
         assertEquals(8, f.length())
 
-        val v = MappedFileVolSingle(f, false, false, 1000, false)
+        val v = MappedFileVolSingle(f, false, 0L, 1000, false)
         assertEquals(1000, f.length())
         assertEquals(112314123, v.getLong(0))
         v.close()
@@ -179,7 +179,7 @@ class VolumeTest {
     @Throws(IOException::class)
     fun lock_double_open() {
         val f = File.createTempFile("mapdbTest", "mapdb")
-        val v = RandomAccessFileVol(f, false, false, 0L)
+        val v = RandomAccessFileVol(f, false, 0L, 0L)
         v.ensureAvailable(8)
         v.putLong(0, 111L)
 
@@ -187,14 +187,14 @@ class VolumeTest {
         assertTrue(v.fileLocked)
 
         try {
-            val v2 = RandomAccessFileVol(f, false, false, 0L)
+            val v2 = RandomAccessFileVol(f, false, 0L, 0L)
             fail()
         } catch (l: DBException.FileLocked) {
             //ignored
         }
 
         v.close()
-        val v2 = RandomAccessFileVol(f, false, false, 0L)
+        val v2 = RandomAccessFileVol(f, false, 0L, 0L)
 
         assertEquals(111L, v2.getLong(0))
     }
@@ -221,7 +221,7 @@ class VolumeTest {
         for (fac in factories) {
             val f = org.mapdb.TT.tempFile()
             val initSize = 20 * 1024 * 1024.toLong()
-            val vol = fac.makeVolume(f.toString(), false, true, CC.PAGE_SHIFT, initSize, false)
+            val vol = fac.makeVolume(f.toString(), false, -1L, CC.PAGE_SHIFT, initSize, false)
             assertEquals(vol.javaClass.name, initSize, vol.length())
             vol.close()
             f.delete()

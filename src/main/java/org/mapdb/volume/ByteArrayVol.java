@@ -20,7 +20,7 @@ public final class ByteArrayVol extends Volume {
     public static final VolumeFactory FACTORY = new VolumeFactory() {
 
         @Override
-        public Volume makeVolume(String file, boolean readOnly, boolean fileLockDisable, int sliceShift, long initSize, boolean fixedSize) {
+        public Volume makeVolume(String file, boolean readOnly, long fileLockWait, int sliceShift, long initSize, boolean fixedSize) {
             //TODO optimize for fixedSize if bellow 2GB
             return new org.mapdb.volume.ByteArrayVol(sliceShift, initSize);
         }
