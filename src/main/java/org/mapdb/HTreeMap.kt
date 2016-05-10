@@ -520,12 +520,31 @@ class HTreeMap<K,V>(
     }
 
     override fun clear() {
-        clear2(notifyListeners=true)
+        clear(notifyListeners=1)
     }
 
+    @Deprecated("use clearWithoutNotifaction() method")
     fun clear2(notifyListeners:Boolean=true) {
+        clear(if(notifyListeners)1 else 0)
+    }
+
+    /** Removes all entries from this Map, but does not notify modification listeners */
+    //TODO move this to MapExtra interface, add to BTreeMap
+    fun clearWithoutNotification(){
+        clear(notifyListeners = 0)
+    }
+
+    /** Removes all entries from this Map, and notifies listeners as if content has expired.
+     * This will cause expired content to overflow to secondary collections etc
+     */
+    fun clearWithExpire(){
+        clear(notifyListeners = 2)
+    }
+
+    protected fun clear(notifyListeners:Int=1) {
         //TODO not sequentially safe
-        val notify = notifyListeners &&  modificationListeners!=null && modificationListeners.isEmpty().not()
+        val notify = notifyListeners>0 &&  modificationListeners!=null && modificationListeners.isEmpty().not()
+        val triggerExpiration = notifyListeners==2
         for(segment in 0 until segmentCount) {
             Utils.lockWrite(locks[segment]) {
                 val indexTree = indexTrees[segment]
@@ -538,7 +557,7 @@ class HTreeMap<K,V>(
                         val key = leaf[i]
                         val wrappedValue = leaf[i + 1]
                         if (notify)
-                            listenerNotify(key as K, valueUnwrap(segment, wrappedValue), null, false)
+                            listenerNotify(key as K, valueUnwrap(segment, wrappedValue), null, triggerExpiration)
                         if (!valueInline)
                             store.delete(wrappedValue as Long, valueSerializer)
                     }

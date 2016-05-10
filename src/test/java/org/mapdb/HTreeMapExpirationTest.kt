@@ -429,4 +429,23 @@ class HTreeMapExpirationTest {
     }
 
 
+    @Test fun clear_moves_to_overflow(){
+        val db = DBMaker.heapDB().make()
+
+        val map2 = HashMap<Int,Int>()
+        val map1 = db
+                .hashMap("map", Serializer.INTEGER, Serializer.INTEGER)
+                .expireAfterCreate(1000000)
+                .expireOverflow(map2)
+                .createOrOpen()
+
+        for(i in 0 until 1000)
+            map1.put(i,i)
+
+        //clear first map should move all stuff into secondary
+        map1.clearWithExpire()
+        assertEquals(0, map1.size)
+        assertEquals(1000, map2.size)
+    }
+
 }
