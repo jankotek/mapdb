@@ -12,8 +12,9 @@ object Pump{
 
     abstract class Sink<E,R>{
 
-        protected var rootRecidRecid:Long? = null
-        protected var counter = 0L
+        //TODO make protected
+        internal var rootRecidRecid:Long? = null
+        internal var counter = 0L
 
         abstract fun put(e:E)
         abstract fun create():R

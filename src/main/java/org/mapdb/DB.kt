@@ -525,7 +525,7 @@ open class DB(
 
         private var _valueLoader:((key:K)->V?)? = null
         private var _modListeners:MutableList<MapModificationListener<K,V>> = ArrayList()
-        private var _expireOverflow:MutableMap<K,V>? = null;
+        private var _expireOverflow:MutableMap<K,V?>? = null;
         private var _removeCollapsesIndexTree:Boolean = true
 
 
@@ -635,7 +635,7 @@ open class DB(
             return this
         }
 
-        fun expireOverflow(overflowMap:MutableMap<K,V>):HashMapMaker<K,V>{
+        fun expireOverflow(overflowMap:MutableMap<K,V?>):HashMapMaker<K,V>{
             _expireOverflow = overflowMap
             return this
         }

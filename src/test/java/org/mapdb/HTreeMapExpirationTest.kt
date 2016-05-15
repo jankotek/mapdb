@@ -432,7 +432,7 @@ class HTreeMapExpirationTest {
     @Test fun clear_moves_to_overflow(){
         val db = DBMaker.heapDB().make()
 
-        val map2 = HashMap<Int,Int>()
+        val map2 = HashMap<Int,Int?>()
         val map1 = db
                 .hashMap("map", Serializer.INTEGER, Serializer.INTEGER)
                 .expireAfterCreate(1000000)
