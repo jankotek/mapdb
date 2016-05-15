@@ -170,7 +170,7 @@ open class DB(
             )
 
     private val nameSer = object:SerializerBase.Ser<Any>(){
-        override fun serialize(out: DataOutput, value: Any, objectStack: SerializerBase.FastArrayList<*>?) {
+        override fun serialize(out: DataOutput, value: Any, objectStack: ElsaStack?) {
             val name = getNameForObject(value)
                     ?: throw DBException.SerializationError("Could not serialize named object, it was not instantiated by this db")
 
@@ -179,13 +179,14 @@ open class DB(
     }
 
     private val nameDeser = object:SerializerBase.Deser<Any>(){
-        override fun deserialize(input: DataInput, objectStack: SerializerBase.FastArrayList<*>?): Any? {
+        override fun deserialize(input: DataInput, objectStack: ElsaStack): Any? {
             val name = input.readUTF()
             return this@DB.get(name)
         }
     }
 
     private val elsaSerializer:SerializerPojo = SerializerPojo(
+            0,
             pojoSingletons(),
             namedClasses().map { Pair(it, nameSer) }.toMap(),
             namedClasses().map { Pair(it, NAMED_SERIALIZATION_HEADER)}.toMap(),
