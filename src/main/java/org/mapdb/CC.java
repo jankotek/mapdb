@@ -44,8 +44,7 @@ public interface CC{
 
     boolean LOG_WAL_CONTENT = false;
 
-    //TODO setting to use unsafe hashing
-    XXHashFactory HASH_FACTORY = XXHashFactory.safeInstance();
+    XXHashFactory HASH_FACTORY = XXHashFactory.fastestInstance();
 
     /** first byte on every file */
     long FILE_HEADER = 0x4A;
