@@ -245,11 +245,6 @@ public final class SerializerCompressionDeflateWrapper<E> implements GroupSerial
         return serializer.valueArrayDeleteValue(vals, pos);
     }
 
-//        @Override
-//        public BTreeKeySerializer getBTreeKeySerializer(Comparator comparator) {
-//            //TODO compress BTreeKey serializer?
-//            return serializer.getBTreeKeySerializer(comparator);
-//        }
 
     @Override
     public boolean equals(E a1, E a2) {
