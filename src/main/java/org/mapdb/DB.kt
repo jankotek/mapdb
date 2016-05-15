@@ -21,10 +21,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 /**
  * A database with easy access to named maps and other collections.
  */
-//TODO Elsa integration with class catalog
-//TODO named objects in elsa
-//TODO Serializer.* singletons in elsa
-//TODO DB singleton in
 //TODO consistency lock
 //TODO delete named object
 //TOOD metrics logger
@@ -954,12 +950,12 @@ open class DB(
             _valueSerializer = valueSerializer as GroupSerializer<V>
             return this as TreeMapMaker<K, A>
         }
-
-        fun valueLoader(valueLoader:(key:K)->V):TreeMapMaker<K,V>{
-            //TODO BTree value loader
-            _valueLoader = valueLoader
-            return this
-        }
+//
+//        fun valueLoader(valueLoader:(key:K)->V):TreeMapMaker<K,V>{
+//            //TODO BTree value loader
+//            _valueLoader = valueLoader
+//            return this
+//        }
 
 
         fun maxNodeSize(size:Int):TreeMapMaker<K,V>{
@@ -972,14 +968,12 @@ open class DB(
             return this;
         }
 
-        //TODO better name?
         fun valuesOutsideNodesEnable():TreeMapMaker<K,V>{
             _valueInline = false
             return this;
         }
 
         fun modificationListener(listener:MapModificationListener<K,V>):TreeMapMaker<K,V>{
-            //TODO BTree modification listener
             if(_modListeners==null)
                 _modListeners = ArrayList()
             _modListeners?.add(listener)

@@ -68,7 +68,6 @@ import java.util.function.BiConsumer
  * @author Jan Kotek
  * @author some parts by Doug Lea and JSR-166 group
  */
-//TODO values outside nodes
 //TODo counted btrees
 class BTreeMap<K,V>(
         override val keySerializer:GroupSerializer<K>,
