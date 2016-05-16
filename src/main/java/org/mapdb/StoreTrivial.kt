@@ -270,9 +270,13 @@ open class StoreTrivial(
         if (other !is StoreTrivial)
             return false
 
+        if(this===other)
+            return true;
+
         Utils.lockRead(lock) {
             if (records.size() != other.records.size())
                 return false;
+
 
             val recidIter = records.keySet().longIterator()
             //ByteArray has no equal method, must compare one by one
@@ -280,6 +284,9 @@ open class StoreTrivial(
                 val recid = recidIter.next();
                 val b1 = records.get(recid)
                 val b2 = other.records.get(recid)
+
+                if (b1 === b2)
+                    continue
 
                 if (b1 !== b2 && !Arrays.equals(b1, b2)) {
                     return false;
