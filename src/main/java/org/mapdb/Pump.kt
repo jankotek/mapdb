@@ -80,8 +80,7 @@ object Pump{
                         leftEdgeLeaf + LAST_KEY_DOUBLE,
                         link,
                         keySerializer.valueArrayFromArray(keys.toArray()),
-                        valueSerializer.valueArrayFromArray(values.toArray()),
-                        keySerializer, valueSerializer
+                        valueSerializer.valueArrayFromArray(values.toArray())
                 )
                 if(nextLeafLink==0L){
                     nextLeafLink = store.put(node, nodeSer)
@@ -118,8 +117,7 @@ object Pump{
                             dir.leftEdge + DIR,
                             link,
                             keySerializer.valueArrayFromArray(dir.keys.toArray()),
-                            dir.child.toArray(),
-                            keySerializer, valueSerializer
+                            dir.child.toArray()
                     )
                     //save dir
                     if(dir.nextDirLink==0L){
@@ -157,8 +155,7 @@ object Pump{
                     leftEdgeLeaf + RIGHT,
                     0L,
                     keySerializer.valueArrayFromArray(keys.toArray()),
-                    valueSerializer.valueArrayFromArray(values.toArray()),
-                    keySerializer, valueSerializer
+                    valueSerializer.valueArrayFromArray(values.toArray())
                 )
                 if(nextLeafLink==0L){
                     nextLeafLink = store.put(endLeaf, nodeSer)
@@ -184,8 +181,7 @@ object Pump{
                         dir.leftEdge + RIGHT + DIR,
                         0L,
                         keySerializer.valueArrayFromArray(dir.keys.toArray()),
-                        dir.child.toArray(),
-                        keySerializer, valueSerializer
+                        dir.child.toArray()
                     )
                     //save node
                     if(dir.nextDirLink==0L){

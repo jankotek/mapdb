@@ -33,41 +33,6 @@ public class BTreeMapJava {
         /** represents values for leaf node, or ArrayLong of children for dir node  */
         final Object values;
 
-        Node(int flags, long link, Object keys, Object values, GroupSerializer keySerializer, GroupSerializer valueSerializer) {
-            this(flags, link, keys, values);
-
-            if(CC.ASSERT) {
-                int keysLen = keySerializer.valueArraySize(keys);
-                if (isDir()){
-                    // compare directory size
-                    if( keysLen - 1 + intLeftEdge() + intRightEdge() !=
-                                ((long[]) values).length) {
-                        throw new AssertionError();
-                    }
-                } else{
-                    // compare leaf size
-                    if (keysLen != valueSerializer.valueArraySize(values) + 2 - intLeftEdge() - intRightEdge() - intLastKeyTwice()) {
-                        throw new AssertionError();
-                    }
-                }
-            }
-
-            if(CC.PARANOID){
-                //ensure keys are sorted
-                int keysLen = keySerializer.valueArraySize(keys);
-                if(keysLen>1) {
-                    for (int i = 1; i < keysLen; i++){
-                        int c = keySerializer.compare(
-                                keySerializer.valueArrayGet(keys, i-1),
-                                keySerializer.valueArrayGet(keys, i));
-                        if(c>0)
-                            throw new AssertionError();
-                        if(c==0 && i!=keysLen-1)
-                            throw new AssertionError();
-                    }
-                }
-            }
-        }
         Node(int flags, long link, Object keys, Object values){
             this.flags = (byte)flags;
             this.link = link;
@@ -134,6 +99,39 @@ public class BTreeMapJava {
         public long[] getChildren(){
             return (long[]) values;
         }
+
+
+        //TODO  hook this method
+        public void verifyNode(GroupSerializer keySerializer, Comparator comparator, GroupSerializer valueSerializer) {
+
+            int keysLen = keySerializer.valueArraySize(keys);
+            if (isDir()){
+                // compare directory size
+                if( keysLen - 1 + intLeftEdge() + intRightEdge() !=
+                        ((long[]) values).length) {
+                    throw new AssertionError();
+                }
+            } else{
+                // compare leaf size
+                if (keysLen != valueSerializer.valueArraySize(values) + 2 - intLeftEdge() - intRightEdge() - intLastKeyTwice()) {
+                    throw new AssertionError();
+                }
+            }
+
+
+            //ensure keys are sorted
+            if(keysLen>1) {
+                for (int i = 1; i < keysLen; i++){
+                    int c = comparator.compare(
+                            keySerializer.valueArrayGet(keys, i-1),
+                            keySerializer.valueArrayGet(keys, i));
+                    if(c>0)
+                        throw new AssertionError();
+                    if(c==0 && i!=keysLen-1)
+                        throw new AssertionError();
+                }
+            }
+        }
     }
 
     public static class NodeSerializer implements Serializer<Node>{
@@ -194,7 +192,7 @@ public class BTreeMapJava {
             }
 
 
-            return new Node(flags, link, keys, values, keySerializer, valueSerializer);
+            return new Node(flags, link, keys, values);
         }
 
         @Override
