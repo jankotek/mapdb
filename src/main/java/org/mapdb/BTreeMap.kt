@@ -119,7 +119,7 @@ class BTreeMap<K,V>(
             return store.put(
                     store.put(
                             Node(LEFT + RIGHT, 0L, keySerializer.valueArrayEmpty(),
-                                    valueSerializer.valueArrayEmpty(), keySerializer, valueSerializer),
+                                    valueSerializer.valueArrayEmpty()),
                             NodeSerializer(keySerializer, valueSerializer)),
                     Serializer.RECID)
         }
@@ -358,7 +358,7 @@ class BTreeMap<K,V>(
                         if(valueInline) {
                             val values = valueNodeSerializer.valueArrayUpdateVal(A.values, pos, value)
                             var flags = A.flags.toInt();
-                            A = Node(flags, A.link, A.keys, values, keySerializer, valueNodeSerializer)
+                            A = Node(flags, A.link, A.keys, values)
                             store.update(current, A, nodeSerializer)
                         }else{
                             //update external value
@@ -418,9 +418,7 @@ class BTreeMap<K,V>(
                             DIR + LEFT + RIGHT,
                             0L,
                             keySerializer.valueArrayFromArray(arrayOf(A.highKey(keySerializer) as Any?)),
-                            longArrayOf(current, q),
-                            keySerializer,
-                            valueSerializer
+                            longArrayOf(current, q)
                     )
                     unlock(current)
                     lock(rootRecidRecid)
@@ -537,7 +535,7 @@ class BTreeMap<K,V>(
                             }
 
                     if(values!=null) {
-                        A = Node(flags, A.link, keys, values, keySerializer, valueNodeSerializer)
+                        A = Node(flags, A.link, keys, values)
                         store.update(current, A, nodeSerializer)
                     }
                     listenerNotify(key, oldValueExpanded, replaceWithValue, false)
@@ -576,7 +574,7 @@ class BTreeMap<K,V>(
             valueNodeSerializer.valueArrayCopyOfRange(a.values, 0, valSplitPos)
         }
 
-        return Node(flags, link, keys, values, keySerializer, valueNodeSerializer)
+        return Node(flags, link, keys, values)
 
     }
 
@@ -594,7 +592,7 @@ class BTreeMap<K,V>(
             valueNodeSerializer.valueArrayCopyOfRange(a.values, valSplitPos, size)
         }
 
-        return Node(flags, a.link, keys, values, keySerializer, valueNodeSerializer)
+        return Node(flags, a.link, keys, values)
     }
 
 
@@ -609,7 +607,7 @@ class BTreeMap<K,V>(
             if(!a.isLastKeyDouble
                 && keysLen!=0
                 && insertPos>=keysLen-2
-                && keySerializer.compare(key, a.highKey(keySerializer))==0){ //TODO PERF this comparation can be optimized away
+                && comparator.compare(key, a.highKey(keySerializer))==0){ //TODO PERF this comparation can be optimized away
                 //last key is duplicated, no need to clone keys, just set duplication flag
                 flags += BTreeMapJava.LAST_KEY_DOUBLE
                 a.keys
@@ -624,7 +622,7 @@ class BTreeMap<K,V>(
 
         val values = valueNodeSerializer.valueArrayPut(a.values, valuesInsertPos, valueToInsert)
 
-        return Node(flags, a.link, keys, values, keySerializer, valueNodeSerializer)
+        return Node(flags, a.link, keys, values)
     }
 
     private fun copyAddKeyDir(a: Node, insertPos: Int, key: K, newChild: Long): Node {
@@ -635,7 +633,7 @@ class BTreeMap<K,V>(
 
         val values = arrayPut(a.values as LongArray, insertPos + a.intLeftEdge(), newChild)
 
-        return Node(a.flags.toInt(), a.link, keys, values, keySerializer, valueNodeSerializer)
+        return Node(a.flags.toInt(), a.link, keys, values)
     }
 
 
