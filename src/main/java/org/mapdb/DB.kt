@@ -114,32 +114,6 @@ open class DB(
 //        val headInsertRecid = "#headInsertRecid"
     }
 
-
-    init{
-        if(storeOpened.not()){
-            //create new structure
-            if(store.isReadOnly){
-                throw DBException.WrongConfiguration("Can not create new store in read-only mode")
-            }
-            //preallocate 16 recids
-            val nameCatalogRecid = store.put(TreeMap<String, String>(), NAME_CATALOG_SERIALIZER)
-            if(CC.RECID_NAME_CATALOG != nameCatalogRecid)
-                throw DBException.WrongConfiguration("Store does not support Reserved Recids: "+store.javaClass)
-
-            for(recid in 2L..CC.RECID_MAX_RESERVED){
-                val recid2 = store.put(0L, Serializer.LONG_PACKED)
-                if(recid!==recid2){
-                    throw DBException.WrongConfiguration("Store does not support Reserved Recids: "+store.javaClass)
-                }
-            }
-            store.commit()
-        }
-
-        val msgs = nameCatalogVerifyGetMessages().toList()
-        if(!msgs.isEmpty())
-            throw DBException.NewMapDBFormat("Name Catalog has some new unsupported features: "+msgs.toString());
-    }
-
     protected val lock = if(isThreadSafe) ReentrantReadWriteLock() else null
 
     @Volatile private  var closed = false;
@@ -223,6 +197,54 @@ open class DB(
 
     }
 
+
+    protected val classInfoSerializer = object : Serializer<Array<ClassInfo>> {
+
+        override fun serialize(out: DataOutput2, ci: Array<ClassInfo>) {
+            out.packInt(ci.size)
+            for(c in ci)
+                elsaSerializer.classInfoSerialize(out, c)
+        }
+
+        override fun deserialize(input: DataInput2, available: Int): Array<ClassInfo> {
+            return Array(input.unpackInt(), {
+                elsaSerializer.classInfoDeserialize(input)
+            })
+        }
+
+    }
+
+    init{
+        if(storeOpened.not()){
+            //create new structure
+            if(store.isReadOnly){
+                throw DBException.WrongConfiguration("Can not create new store in read-only mode")
+            }
+            //preallocate 16 recids
+            val nameCatalogRecid = store.put(TreeMap<String, String>(), NAME_CATALOG_SERIALIZER)
+            if(CC.RECID_NAME_CATALOG != nameCatalogRecid)
+                throw DBException.WrongConfiguration("Store does not support Reserved Recids: "+store.javaClass)
+
+            val classCatalogRecid = store.put(arrayOf<ClassInfo>(), classInfoSerializer)
+            if(CC.RECID_CLASS_INFOS != classCatalogRecid)
+                throw DBException.WrongConfiguration("Store does not support Reserved Recids: "+store.javaClass)
+
+
+            for(recid in 3L..CC.RECID_MAX_RESERVED){
+                val recid2 = store.put(null, Serializer.LONG_PACKED)
+                if(recid!==recid2){
+                    throw DBException.WrongConfiguration("Store does not support Reserved Recids: "+store.javaClass)
+                }
+            }
+            store.commit()
+        }
+
+        val msgs = nameCatalogVerifyGetMessages().toList()
+        if(!msgs.isEmpty())
+            throw DBException.NewMapDBFormat("Name Catalog has some new unsupported features: "+msgs.toString());
+    }
+
+
     init{
         //read all singleton from Serializer fields
         Serializer::class.java.declaredFields.forEach { f ->
@@ -261,21 +283,6 @@ open class DB(
     }
 
 
-    protected val classInfoSerializer = object : Serializer<Array<ClassInfo>> {
-
-        override fun serialize(out: DataOutput2, ci: Array<ClassInfo>) {
-            out.packInt(ci.size)
-            for(c in ci)
-                elsaSerializer.classInfoSerialize(out, c)
-        }
-
-        override fun deserialize(input: DataInput2, available: Int): Array<ClassInfo> {
-            return Array(input.unpackInt(), {
-                elsaSerializer.classInfoDeserialize(input)
-            })
-        }
-
-    }
 
 
     /** List of executors associated with this database. Those will be terminated on close() */
