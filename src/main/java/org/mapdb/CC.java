@@ -46,6 +46,11 @@ interface CC {
      */
     boolean ASSERT = true;
 
+    /**
+     * Print stack traces for the creation of objects which later display issues.
+     */
+    boolean CTORSTACKTRACE = false;
+
     boolean PARANOID = false;
 
 

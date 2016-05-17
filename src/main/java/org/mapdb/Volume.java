@@ -158,16 +158,28 @@ public abstract class Volume implements Closeable{
     }
 
     //uncomment to get stack trace on Volume leak warning
-//    final private Throwable constructorStackTrace = new AssertionError();
+    final private Throwable constructorStackTrace;
+    {
+        if (CC.CTORSTACKTRACE) {
+            constructorStackTrace = new AssertionError();
+        } else {
+            constructorStackTrace = null;
+        }
+    }
 
     @Override protected void finalize(){
         if(CC.ASSERT){
             if(!closed
                     && !(this instanceof ByteArrayVol)
                     && !(this instanceof SingleByteArrayVol)){
-                LOG.log(Level.WARNING, "Open Volume was GCed, possible file handle leak."
-//                        ,constructorStackTrace
-                );
+                if (CC.CTORSTACKTRACE) {
+                    LOG.log(Level.WARNING,
+                        "Open Volume was GCed, possible file handle leak."
+                        ,constructorStackTrace);
+                } else {
+                    LOG.log(Level.WARNING,
+                        "Open Volume was GCed, possible file handle leak.");
+                }
             }
         }
     }
@@ -2676,6 +2688,10 @@ public abstract class Volume implements Closeable{
                     }
                 }
             } catch (IOException e) {
+                // At this point, the caller will not be able to get a handle on this
+                // object and therefore the finalizer may incorrectly print that the
+                // object was unclosed on GC.
+                closed = true;
                 throw new DBException.VolumeIOError(e);
             }
         }
