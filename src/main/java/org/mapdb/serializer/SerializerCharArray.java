@@ -1,6 +1,5 @@
 package org.mapdb.serializer;
 
-import org.mapdb.DataIO;
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
 
@@ -61,4 +60,20 @@ public class SerializerCharArray extends GroupSerializerObjectArray<char[]> {
         return SerializerUtils.compareInt(o1.length, o2.length);
     }
 
+    @Override
+    public char[] nextValue(char[] value) {
+        value = value.clone();
+
+        for (int i = value.length-1; ;i--) {
+            char b1 = value[i];
+            if(b1==Character.MAX_VALUE){
+                if(i==0)
+                    return null;
+                value[i]=Character.MIN_VALUE;
+                continue;
+            }
+            value[i] = (char) (b1+1);
+            return value;
+        }
+    }
 }
