@@ -799,46 +799,76 @@ public class DBMaker<DBMakerT extends DBMaker<DBMakerT>> {
         if(propsGetBool(Keys.closeOnJvmShutdown)){
             engine = new EngineWrapper.CloseOnJVMShutdown(engine);
         }
-
-
-        //try to read one record from DB, to make sure encryption and compression are correctly set.
-        Fun.Tuple2<Integer,byte[]> check = null;
-        try{
-            check = (Fun.Tuple2<Integer, byte[]>) engine.get(Engine.CHECK_RECORD, Serializer.BASIC);
-            if(check!=null){
-                if(check.a != Arrays.hashCode(check.b))
-                    throw new RuntimeException("invalid checksum");
+        
+        //At this point the engine is now set, however we have not returned the reference of the engine
+        //thus we are responsible for closing any files if an exception occurs. 
+        try {
+    
+            //try to read one record from DB, to make sure encryption and compression are correctly set.
+            Fun.Tuple2<Integer,byte[]> check = null;
+            try{
+                check = (Fun.Tuple2<Integer, byte[]>) engine.get(Engine.CHECK_RECORD, Serializer.BASIC);
+                if(check!=null){
+                    if(check.a != Arrays.hashCode(check.b))
+                        throw new RuntimeException("invalid checksum");
+                }
+            } catch (Throwable e) {
+                throw new IllegalArgumentException("Error while opening store. Make sure you have right password, compression or encryption is well configured.", e);
             }
+        
+        
+            if(check == null && !engine.isReadOnly()){
+                //new db, so insert testing record
+                byte[] b = new byte[127];
+                new Random().nextBytes(b);
+                check = Fun.t2(Arrays.hashCode(b), b);
+                engine.update(Engine.CHECK_RECORD, check, Serializer.BASIC);
+                engine.commit();
+            }
+            
         } catch (Throwable e) {
+            //Something went wrong no one else is going to be able to close the volume so we close it
+            //here. The multiple try finally blocks are used to ensure that everything is closed even
+            //in the case close() throws an exception.
             Store store2 = Store.forEngine(engine);
             if (store2 instanceof StoreDirect) {
                 Volume vol = ((StoreDirect) store2).index;
-                if (vol != null && !vol.closed) {
-                    vol.close();
-                }
-                vol = ((StoreDirect) store2).phys;
-                if (vol != null && !vol.closed) {
-                    vol.close();
-                }
-                if (store2 instanceof StoreWAL) {
-                    vol = ((StoreWAL) store2).log;
+                try {
                     if (vol != null && !vol.closed) {
                         vol.close();
                     }
+                } finally {
+                    try {
+                        vol = ((StoreDirect) store2).phys;
+                        if (vol != null && !vol.closed) {
+                            vol.close();
+                        }
+                    } finally {
+                        if (store2 instanceof StoreWAL) {
+                            vol = ((StoreWAL) store2).log;
+                            if (vol != null && !vol.closed) {
+                                vol.close();
+                            }
+                        }
+                    }
                 }
+                
             }
-            throw new IllegalArgumentException("Error while opening store. Make sure you have right password, compression or encryption is well configured.", e);
+            
+            //Java 8 in eclipse is happy to just throw e; however compiling with maven complains
+            //the method does not throw Throwable. We do this to workarround that.
+            if(e instanceof RuntimeException) {
+                throw (RuntimeException)e;
+            }
+            if(e instanceof Error) {
+                //We know MapDB seems to use IOErrors
+                throw (Error) e;
+            }
+             
+            throw new RuntimeException(e);
         }
-        if(check == null && !engine.isReadOnly()){
-            //new db, so insert testing record
-            byte[] b = new byte[127];
-            new Random().nextBytes(b);
-            check = Fun.t2(Arrays.hashCode(b), b);
-            engine.update(Engine.CHECK_RECORD, check, Serializer.BASIC);
-            engine.commit();
-        }
-
-
+        //Our responsibility to close the engine/store ends here no more code should be placed between here
+        //and the above try {} catch{}.
         return engine;
     }
 
