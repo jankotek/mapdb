@@ -1,14 +1,12 @@
 package org.mapdb.serializer
 
 import org.junit.Test
-import java.io.IOException
 import java.io.Serializable
 import java.math.BigDecimal
 import java.math.BigInteger
 import java.util.*
 import org.junit.Assert.*
 import org.mapdb.*
-import org.mapdb.serializer.*
 
 abstract class SerializerTest<E> {
 
@@ -438,6 +436,69 @@ class Serializer_CHAR_ARRAY: GroupSerializerTest<CharArray>(){
         return ret
     }
     override val serializer = Serializer.CHAR_ARRAY
+
+    @Test fun prefix_submap(){
+        val map = BTreeMap.make(keySerializer = serializer, valueSerializer = Serializer.STRING)
+        for(i in 'a'..'f') for(j in 'a'..'f') {
+            map.put(charArrayOf(i, j), "$i-$j")
+        }
+
+        //zero subMap
+        assertEquals(0, map.prefixSubMap(charArrayOf('z')).size)
+
+        var i = 'b';
+        val sub = map.prefixSubMap(charArrayOf(i))
+        assertEquals(6, sub.size)
+        for(j in 'a'..'f')
+            assertEquals("$i-$j", sub[charArrayOf(i,j)])
+
+        //out of subMap range
+        assertNull(sub[charArrayOf('b','z')])
+
+        //max case
+        i = java.lang.Character.MAX_VALUE;
+        for(j in 'a'..'f')
+            map.put(charArrayOf(i, j), "$i-$j")
+
+        val subMax = map.prefixSubMap(charArrayOf(i))
+        assertEquals(6, subMax.size)
+        for(j in 'a'..'f')
+            assertEquals("$i-$j", subMax[charArrayOf(i,j.toChar())])
+
+        //out of subMap range
+        assertNull(sub[charArrayOf(i,'z')])
+
+        //max-max case
+        map.put(charArrayOf(i, i), "$i-$i")
+
+        val subMaxMax = map.prefixSubMap(charArrayOf(i, i))
+        assertEquals("$i-$i", subMaxMax[charArrayOf(i,i)])
+
+        //out of subMaxMax range
+        assertNull(subMaxMax[charArrayOf(i,'a')])
+
+        //min case
+        i = java.lang.Character.MIN_VALUE;
+        for(j in 'a'..'f')
+            map.put(charArrayOf(i, j.toChar()), "$i-$j")
+
+        val subMin = map.prefixSubMap(charArrayOf(i))
+        assertEquals(6, subMin.size)
+        for(j in 'a'..'f')
+            assertEquals("$i-$j", subMin[charArrayOf(i,j)])
+
+        //out of subMap range
+        assertNull(sub[charArrayOf('a','z')])
+
+        //min-min case
+        map.put(charArrayOf(i, i), "$i-$i")
+
+        val subMinMin = map.prefixSubMap(charArrayOf(i, i))
+        assertEquals("$i-$i", subMinMin[charArrayOf(i,i)])
+
+        //out of subMinMin range
+        assertNull(subMinMin[charArrayOf(i,'a')])
+    }
 }
 
 class Serializer_INT_ARRAY: GroupSerializerTest<IntArray>(){
@@ -468,7 +529,7 @@ class Serializer_INT_ARRAY: GroupSerializerTest<IntArray>(){
         //out of subMap range
         assertNull(sub[intArrayOf(3,5)])
 
-        //max int case
+        //max case
         i = Int.MAX_VALUE;
         for(j in 1..10)
             map.put(intArrayOf(i, j), "$i-$j")
@@ -481,7 +542,16 @@ class Serializer_INT_ARRAY: GroupSerializerTest<IntArray>(){
         //out of subMap range
         assertNull(sub[intArrayOf(3,5)])
 
-        //min int case
+        //max-max case
+        map.put(intArrayOf(i, i), "$i-$i")
+
+        val subMaxMax = map.prefixSubMap(intArrayOf(i, i))
+        assertEquals("$i-$i", subMaxMax[intArrayOf(i,i)])
+
+        //out of subMaxMax range
+        assertNull(subMaxMax[intArrayOf(i,5)])
+
+        //min case
         i = Int.MIN_VALUE;
         for(j in 1..10)
             map.put(intArrayOf(i, j), "$i-$j")
@@ -493,6 +563,15 @@ class Serializer_INT_ARRAY: GroupSerializerTest<IntArray>(){
 
         //out of subMap range
         assertNull(sub[intArrayOf(3,5)])
+
+        //min-min case
+        map.put(intArrayOf(i, i), "$i-$i")
+
+        val subMinMin = map.prefixSubMap(intArrayOf(i, i))
+        assertEquals("$i-$i", subMinMin[intArrayOf(i,i)])
+
+        //out of subMinMin range
+        assertNull(subMinMin[intArrayOf(i,5)])
     }
 }
 
@@ -506,6 +585,69 @@ class Serializer_LONG_ARRAY: GroupSerializerTest<LongArray>(){
         return ret
     }
     override val serializer = Serializer.LONG_ARRAY
+
+    @Test fun prefix_submap(){
+        val map = BTreeMap.make(keySerializer = serializer, valueSerializer = Serializer.STRING)
+        for(i in 1L..10L) for(j in 1L..10L) {
+            map.put(longArrayOf(i, j), "$i-$j")
+        }
+
+        //zero subMap
+        assertEquals(0, map.prefixSubMap(longArrayOf(15)).size)
+
+        var i = 5L;
+        val sub = map.prefixSubMap(longArrayOf(i))
+        assertEquals(10, sub.size)
+        for(j in 1L..10L)
+            assertEquals("$i-$j", sub[longArrayOf(i,j)])
+
+        //out of subMap range
+        assertNull(sub[longArrayOf(3,5)])
+
+        //max case
+        i = Long.MAX_VALUE;
+        for(j in 1L..10L)
+            map.put(longArrayOf(i, j), "$i-$j")
+
+        val subMax = map.prefixSubMap(longArrayOf(i))
+        assertEquals(10, subMax.size)
+        for(j in 1L..10L)
+            assertEquals("$i-$j", subMax[longArrayOf(i,j)])
+
+        //out of subMap range
+        assertNull(sub[longArrayOf(3,5)])
+
+        //max-max case
+        map.put(longArrayOf(i, i), "$i-$i")
+
+        val subMaxMax = map.prefixSubMap(longArrayOf(i, i))
+        assertEquals("$i-$i", subMaxMax[longArrayOf(i,i)])
+
+        //out of subMaxMax range
+        assertNull(subMaxMax[longArrayOf(i,5)])
+
+        //min case
+        i = Long.MIN_VALUE;
+        for(j in 1L..10L)
+            map.put(longArrayOf(i, j), "$i-$j")
+
+        val subMin = map.prefixSubMap(longArrayOf(i))
+        assertEquals(10, subMin.size)
+        for(j in 1L..10L)
+            assertEquals("$i-$j", subMin[longArrayOf(i,j)])
+
+        //out of subMap range
+        assertNull(sub[longArrayOf(3,5)])
+
+        //min-min case
+        map.put(longArrayOf(i, i), "$i-$i")
+
+        val subMinMin = map.prefixSubMap(longArrayOf(i, i))
+        assertEquals("$i-$i", subMinMin[longArrayOf(i,i)])
+
+        //out of subMinMin range
+        assertNull(subMinMin[longArrayOf(i,5)])
+    }
 }
 
 class Serializer_DOUBLE_ARRAY: GroupSerializerTest<DoubleArray>(){
@@ -659,6 +801,69 @@ class Serializer_SHORT_ARRAY: GroupSerializerTest<ShortArray>(){
         return ret
     }
     override val serializer = Serializer.SHORT_ARRAY
+
+    @Test fun prefix_submap(){
+        val map = BTreeMap.make(keySerializer = serializer, valueSerializer = Serializer.STRING)
+        for(i in 1..10) for(j in 1..10) {
+            map.put(shortArrayOf(i.toShort(), j.toShort()), "$i-$j")
+        }
+
+        //zero subMap
+        assertEquals(0, map.prefixSubMap(shortArrayOf(15)).size)
+
+        var i = 5.toShort();
+        val sub = map.prefixSubMap(shortArrayOf(i))
+        assertEquals(10, sub.size)
+        for(j in 1..10)
+            assertEquals("$i-$j", sub[shortArrayOf(i,j.toShort())])
+
+        //out of subMap range
+        assertNull(sub[shortArrayOf(3,5)])
+
+        //max case
+        i = Short.MAX_VALUE;
+        for(j in 1..10)
+            map.put(shortArrayOf(i, j.toShort()), "$i-$j")
+
+        val subMax = map.prefixSubMap(shortArrayOf(i))
+        assertEquals(10, subMax.size)
+        for(j in 1..10)
+            assertEquals("$i-$j", subMax[shortArrayOf(i,j.toShort())])
+
+        //out of subMap range
+        assertNull(sub[shortArrayOf(3,5)])
+
+        //max-max case
+        map.put(shortArrayOf(i, i), "$i-$i")
+
+        val subMaxMax = map.prefixSubMap(shortArrayOf(i, i))
+        assertEquals("$i-$i", subMaxMax[shortArrayOf(i,i)])
+
+        //out of subMaxMax range
+        assertNull(subMaxMax[shortArrayOf(i,5)])
+
+        //min case
+        i = Short.MIN_VALUE;
+        for(j in 1..10)
+            map.put(shortArrayOf(i, j.toShort()), "$i-$j")
+
+        val subMin = map.prefixSubMap(shortArrayOf(i))
+        assertEquals(10, subMin.size)
+        for(j in 1..10)
+            assertEquals("$i-$j", subMin[shortArrayOf(i,j.toShort())])
+
+        //out of subMap range
+        assertNull(sub[shortArrayOf(3,5)])
+
+        //min-min case
+        map.put(shortArrayOf(i, i), "$i-$i")
+
+        val subMinMin = map.prefixSubMap(shortArrayOf(i, i))
+        assertEquals("$i-$i", subMinMin[shortArrayOf(i,i)])
+
+        //out of subMinMin range
+        assertNull(subMinMin[shortArrayOf(i,5)])
+    }
 }
 
 class Serializer_BIG_INTEGER: GroupSerializerTest<BigInteger>(){
