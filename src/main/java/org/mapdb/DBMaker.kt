@@ -137,7 +137,7 @@ object DBMaker{
         private var _fileMmapPreclearDisable = false
         private var _fileLockWait = 0L
         private var _fileMmapfIfSupported = false
-        private var _closeOnJvmShutdown = false
+        private var _closeOnJvmShutdown = 0
         private var _readOnly = false
         private var _checksumStoreEnable = false
         private var _checksumHeaderBypass = false
@@ -367,7 +367,23 @@ object DBMaker{
          * @return this builder
          */
         fun closeOnJvmShutdown():Maker{
-            _closeOnJvmShutdown = true
+            _closeOnJvmShutdown = 1
+            return this;
+        }
+
+
+        /**
+         * Adds JVM shutdown hook and closes DB just before JVM.
+         * This is similar to `closeOnJvmShutdown()`, but DB is referenced with `WeakReference` from shutdown hook
+         * and can be GCed. That might prevent memory leaks under some conditions, but does not guarantee DB will be actually closed.
+         *
+         * `DB.close()` removes DB object from shutdown hook, so DB object can be GCed after close, even with regular
+         *
+         *
+         * @return this builder
+         */
+        fun closeOnJvmShutdownWeakReference():Maker{
+            _closeOnJvmShutdown = 2
             return this;
         }
 
@@ -435,18 +451,7 @@ object DBMaker{
                     }
                 }
 
-            val db =  DB(store=store, storeOpened = storeOpened, isThreadSafe = _isThreadSafe)
-            if(_closeOnJvmShutdown) {
-                val weakDB = WeakReference(db)
-                Runtime.getRuntime().addShutdownHook(object:Thread(){
-                    override fun run() {
-                        val db = weakDB.get()
-                        if(db!=null && db.isClosed().not())
-                            db.close()
-                    }
-                })
-            }
-            return db
+            return DB(store=store, storeOpened = storeOpened, isThreadSafe = _isThreadSafe, shutdownHook = _closeOnJvmShutdown)
         }
     }
 

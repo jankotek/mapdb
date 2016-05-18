@@ -11,12 +11,16 @@ import org.mapdb.serializer.GroupSerializerObjectArray
 import java.io.Closeable
 import java.io.DataInput
 import java.io.DataOutput
+import java.lang.ref.Reference
+import java.lang.ref.WeakReference
 import java.security.SecureRandom
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.locks.ReentrantReadWriteLock
+import java.util.logging.Level
 
 /**
  * A database with easy access to named maps and other collections.
@@ -30,7 +34,9 @@ open class DB(
         /** True if store existed before and was opened, false if store was created and is completely empty */
         protected val storeOpened:Boolean,
         override val isThreadSafe:Boolean,
-        val classLoader:ClassLoader = Thread.currentThread().contextClassLoader
+        val classLoader:ClassLoader = Thread.currentThread().contextClassLoader,
+        /** type of shutdown hook, 0 is disabled, 1 is hard ref, 2 is weak ref*/
+        val shutdownHook:Int = 0
 ): Closeable, ConcurrencyAware {
 
     companion object{
@@ -56,6 +62,33 @@ open class DB(
         }
 
         protected val NAMED_SERIALIZATION_HEADER = 1
+
+        /** list of DB objects to be closed */
+        private val shutdownHooks = Collections.synchronizedMap(IdentityHashMap<Any, Any>())
+
+        private var shutdownHookInstalled = AtomicBoolean(false)
+
+        protected fun addShutdownHook(ref:Any){
+            if(shutdownHookInstalled.compareAndSet(false, true)){
+                Runtime.getRuntime().addShutdownHook(object:Thread(){
+                    override fun run() {
+                        for(o in shutdownHooks.keys.toTypedArray()) { //defensive copy, DB.close() modifies the set
+                            try {
+                                var a = o
+                                if (a is Reference<*>)
+                                    a = a.get()
+                                if (a is DB)
+                                    a.close()
+                            } catch(e: Throwable) {
+                                //consume all exceptions from this DB object, so other DBs are also closed
+                                Utils.LOG.log(Level.SEVERE, "DB.close() thrown exception in shutdown hook.", e)
+                            }
+                        }
+                    }
+                })
+            }
+            shutdownHooks.put(ref, ref)
+        }
 
     }
 
@@ -99,7 +132,7 @@ open class DB(
         val counterRecid = "#counterRecid"
         val maxNodeSize = "#maxNodeSize"
 
-//        val valuesOutsideNodes = "#valuesOutsideNodes"
+        //        val valuesOutsideNodes = "#valuesOutsideNodes"
 //        val numberOfNodeMetas = "#numberOfNodeMetas"
 //
 //        val headRecid = "#headRecid"
@@ -112,10 +145,10 @@ open class DB(
 
     protected val lock = if(isThreadSafe) ReentrantReadWriteLock() else null
 
-    @Volatile private  var closed = false;
+    private  val closed = AtomicBoolean(false);
 
     protected fun checkNotClosed(){
-        if(closed)
+        if(closed.get())
             throw IllegalAccessError("DB was closed")
     }
 
@@ -137,7 +170,7 @@ open class DB(
             Atomic.Boolean::class.java,
             Atomic.Var::class.java,
             IndexTreeList::class.java
-            )
+    )
 
     private val nameSer = object:SerializerBase.Ser<Any>(){
         override fun serialize(out: DataOutput, value: Any, objectStack: ElsaStack?) {
@@ -252,6 +285,22 @@ open class DB(
         val defSerName = "org.mapdb.DB#defaultSerializer"
         classSingletonCat.put(defaultSerializer, defSerName)
         classSingletonRev.put(defSerName, defaultSerializer)
+
+    }
+
+
+    private val shutdownReference:Any? =
+            when(shutdownHook){
+                0 -> null
+                1 -> this@DB
+                2 -> WeakReference(this@DB)
+                else -> throw IllegalArgumentException()
+            }
+
+    init{
+        if(shutdownReference!=null){
+            DB.addShutdownHook(shutdownReference)
+        }
     }
 
 
@@ -259,7 +308,7 @@ open class DB(
         // NOTE !!! do not change index of any element!!!
         // it is storage format definition
         return arrayOf(
-            this@DB, this@DB.defaultSerializer,
+                this@DB, this@DB.defaultSerializer,
                 Serializer.CHAR, Serializer.STRING_ORIGHASH , Serializer.STRING, Serializer.STRING_DELTA,
                 Serializer.STRING_DELTA2, Serializer.STRING_INTERN, Serializer.STRING_ASCII, Serializer.STRING_NOSIZE,
                 Serializer.LONG, Serializer.LONG_PACKED, Serializer.LONG_DELTA, Serializer.INTEGER,
@@ -347,7 +396,7 @@ open class DB(
             key: String
     ):E?{
         val clazz = nameCatalog.get(key)
-            ?: return null
+                ?: return null
 
         val singleton = classSingletonRev.get(clazz)
         if(singleton!=null)
@@ -394,11 +443,17 @@ open class DB(
         }
     }
 
-    fun isClosed() = closed;
+    fun isClosed() = closed.get();
 
     override fun close(){
+        if(closed.compareAndSet(false,true).not())
+            return
+
+        // do not close this DB from JVM shutdown hook
+        if(shutdownReference!=null)
+            shutdownHooks.remove(shutdownReference)
+
         Utils.lockWrite(lock) {
-            checkNotClosed()
             unknownClassesSave()
 
             //shutdown running executors if any
@@ -410,7 +465,6 @@ open class DB(
                 }
             }
             executors.clear()
-            closed = true;
             store.close()
         }
     }
@@ -815,9 +869,9 @@ open class DB(
                     db.nameCatalogGetClass(catalog, name + if(hasValues)Keys.keySerializer else Keys.serializer)
                             ?: _keySerializer
             _valueSerializer = if(!hasValues) BTreeMap.NO_VAL_SERIALIZER as Serializer<V>
-                    else {
-                       db.nameCatalogGetClass(catalog, name + Keys.valueSerializer)?: _valueSerializer
-                    }
+            else {
+                db.nameCatalogGetClass(catalog, name + Keys.valueSerializer)?: _valueSerializer
+            }
             _valueInline = if(hasValues) catalog[name + Keys.valueInline]!!.toBoolean() else true
 
             val hashSeed = catalog[name + Keys.hashSeed]!!.toInt()
@@ -910,8 +964,8 @@ open class DB(
     fun hashMap(name:String):HashMapMaker<*,*> = HashMapMaker<Any?, Any?>(this, name)
     fun <K,V> hashMap(name:String, keySerializer: Serializer<K>, valueSerializer: Serializer<V>) =
             HashMapMaker<K,V>(this, name)
-            .keySerializer(keySerializer)
-            .valueSerializer(valueSerializer)
+                    .keySerializer(keySerializer)
+                    .valueSerializer(valueSerializer)
 
     abstract class TreeMapSink<K,V>:Pump.Sink<Pair<K,V>, BTreeMap<K,V>>(){
 
@@ -999,12 +1053,12 @@ open class DB(
         fun createFromSink(): TreeMapSink<K,V>{
 
             val consumer = Pump.treeMap(
-                store = db.store,
-                keySerializer = _keySerializer,
-                valueSerializer = _valueSerializer,
-                //TODO add custom comparator, once its enabled
-                dirNodeSize = _maxNodeSize *3/4,
-                leafNodeSize = _maxNodeSize *3/4
+                    store = db.store,
+                    keySerializer = _keySerializer,
+                    valueSerializer = _valueSerializer,
+                    //TODO add custom comparator, once its enabled
+                    dirNodeSize = _maxNodeSize *3/4,
+                    leafNodeSize = _maxNodeSize *3/4
             )
 
             return object: TreeMapSink<K,V>(){
@@ -1016,7 +1070,7 @@ open class DB(
                 override fun create(): BTreeMap<K, V> {
                     consumer.create()
                     this@TreeMapMaker._rootRecidRecid = consumer.rootRecidRecid
-                        ?: throw AssertionError()
+                            ?: throw AssertionError()
                     this@TreeMapMaker._counterRecid =
                             if(_counterEnable) db.store.put(consumer.counter, Serializer.LONG)
                             else 0L
@@ -1694,82 +1748,82 @@ open class DB(
         }
 
         return mapOf(
-            Pair("HashMap", mapOf(
-                Pair(Keys.keySerializer, CatVal(serializer, required=false)),
-                Pair(Keys.valueSerializer,CatVal(serializer, required=false)),
-                Pair(Keys.rootRecids,CatVal(recidArray)),
-                Pair(Keys.valueInline, CatVal(boolean)),
-                Pair(Keys.hashSeed, CatVal(int)),
-                Pair(Keys.concShift, CatVal(int)),
-                Pair(Keys.levels, CatVal(int)),
-                Pair(Keys.dirShift, CatVal(int)),
-                Pair(Keys.removeCollapsesIndexTree, CatVal(boolean)),
-                Pair(Keys.counterRecids, CatVal(recidArray)),
-                Pair(Keys.expireCreateQueue, CatVal(all)),
-                Pair(Keys.expireUpdateQueue, CatVal(all)),
-                Pair(Keys.expireGetQueue, CatVal(all)),
-                Pair(Keys.expireCreateTTL, CatVal(long)),
-                Pair(Keys.expireUpdateTTL, CatVal(long)),
-                Pair(Keys.expireGetTTL, CatVal(long))
-            )),
-            Pair("HashSet", mapOf(
-                Pair(Keys.serializer, CatVal(serializer, required=false)),
-                Pair(Keys.rootRecids, CatVal(recidArray)),
-                Pair(Keys.hashSeed, CatVal(int)),
-                Pair(Keys.concShift, CatVal(int)),
-                Pair(Keys.dirShift, CatVal(int)),
-                Pair(Keys.levels, CatVal(int)),
-                Pair(Keys.removeCollapsesIndexTree, CatVal(boolean)),
-                Pair(Keys.counterRecids, CatVal(recidArray)),
-                Pair(Keys.expireCreateQueue, CatVal(all)),
-                Pair(Keys.expireGetQueue, CatVal(all)),
-                Pair(Keys.expireCreateTTL, CatVal(long)),
-                Pair(Keys.expireGetTTL, CatVal(long))
-            )),
-            Pair("TreeMap", mapOf(
-                Pair(Keys.keySerializer, CatVal(serializer, required=false)),
-                Pair(Keys.valueSerializer, CatVal(serializer, required=false)),
-                Pair(Keys.rootRecidRecid, CatVal(recid)),
-                Pair(Keys.counterRecid, CatVal(recidOptional)),
-                Pair(Keys.maxNodeSize, CatVal(int)),
-                Pair(Keys.valueInline, CatVal(boolean))
-            )),
-            Pair("TreeSet", mapOf(
-                Pair(Keys.serializer, CatVal(serializer, required=false)),
-                Pair(Keys.rootRecidRecid, CatVal(recid)),
-                Pair(Keys.counterRecid, CatVal(recidOptional)),
-                Pair(Keys.maxNodeSize, CatVal(int))
-            )),
-            Pair("AtomicBoolean", mapOf(
-                Pair(Keys.recid, CatVal(recid))
-            )),
-            Pair("AtomicInteger", mapOf(
-                Pair(Keys.recid, CatVal(recid))
-            )),
-            Pair("AtomicVar", mapOf(
-                Pair(Keys.recid, CatVal(recid)),
-                Pair(Keys.serializer, CatVal(serializer, false))
-            )),
-            Pair("AtomicString", mapOf(
-                Pair(Keys.recid, CatVal(recid))
-            )),
-            Pair("AtomicLong", mapOf(
-                Pair(Keys.recid, CatVal(recid))
-            )),
-            Pair("IndexTreeList", mapOf(
-                Pair(Keys.serializer, CatVal(serializer, required=false)),
-                Pair(Keys.dirShift, CatVal(int)),
-                Pair(Keys.levels, CatVal(int)),
-                Pair(Keys.removeCollapsesIndexTree, CatVal(boolean)),
-                Pair(Keys.counterRecid, CatVal(recid)),
-                Pair(Keys.rootRecid, CatVal(recid))
-            )),
-            Pair("IndexTreeLongLongMap", mapOf(
-                Pair(Keys.dirShift, CatVal(int)),
-                Pair(Keys.levels, CatVal(int)),
-                Pair(Keys.removeCollapsesIndexTree, CatVal(boolean)),
-                Pair(Keys.rootRecid, CatVal(recid))
-            ))
+                Pair("HashMap", mapOf(
+                        Pair(Keys.keySerializer, CatVal(serializer, required=false)),
+                        Pair(Keys.valueSerializer,CatVal(serializer, required=false)),
+                        Pair(Keys.rootRecids,CatVal(recidArray)),
+                        Pair(Keys.valueInline, CatVal(boolean)),
+                        Pair(Keys.hashSeed, CatVal(int)),
+                        Pair(Keys.concShift, CatVal(int)),
+                        Pair(Keys.levels, CatVal(int)),
+                        Pair(Keys.dirShift, CatVal(int)),
+                        Pair(Keys.removeCollapsesIndexTree, CatVal(boolean)),
+                        Pair(Keys.counterRecids, CatVal(recidArray)),
+                        Pair(Keys.expireCreateQueue, CatVal(all)),
+                        Pair(Keys.expireUpdateQueue, CatVal(all)),
+                        Pair(Keys.expireGetQueue, CatVal(all)),
+                        Pair(Keys.expireCreateTTL, CatVal(long)),
+                        Pair(Keys.expireUpdateTTL, CatVal(long)),
+                        Pair(Keys.expireGetTTL, CatVal(long))
+                )),
+                Pair("HashSet", mapOf(
+                        Pair(Keys.serializer, CatVal(serializer, required=false)),
+                        Pair(Keys.rootRecids, CatVal(recidArray)),
+                        Pair(Keys.hashSeed, CatVal(int)),
+                        Pair(Keys.concShift, CatVal(int)),
+                        Pair(Keys.dirShift, CatVal(int)),
+                        Pair(Keys.levels, CatVal(int)),
+                        Pair(Keys.removeCollapsesIndexTree, CatVal(boolean)),
+                        Pair(Keys.counterRecids, CatVal(recidArray)),
+                        Pair(Keys.expireCreateQueue, CatVal(all)),
+                        Pair(Keys.expireGetQueue, CatVal(all)),
+                        Pair(Keys.expireCreateTTL, CatVal(long)),
+                        Pair(Keys.expireGetTTL, CatVal(long))
+                )),
+                Pair("TreeMap", mapOf(
+                        Pair(Keys.keySerializer, CatVal(serializer, required=false)),
+                        Pair(Keys.valueSerializer, CatVal(serializer, required=false)),
+                        Pair(Keys.rootRecidRecid, CatVal(recid)),
+                        Pair(Keys.counterRecid, CatVal(recidOptional)),
+                        Pair(Keys.maxNodeSize, CatVal(int)),
+                        Pair(Keys.valueInline, CatVal(boolean))
+                )),
+                Pair("TreeSet", mapOf(
+                        Pair(Keys.serializer, CatVal(serializer, required=false)),
+                        Pair(Keys.rootRecidRecid, CatVal(recid)),
+                        Pair(Keys.counterRecid, CatVal(recidOptional)),
+                        Pair(Keys.maxNodeSize, CatVal(int))
+                )),
+                Pair("AtomicBoolean", mapOf(
+                        Pair(Keys.recid, CatVal(recid))
+                )),
+                Pair("AtomicInteger", mapOf(
+                        Pair(Keys.recid, CatVal(recid))
+                )),
+                Pair("AtomicVar", mapOf(
+                        Pair(Keys.recid, CatVal(recid)),
+                        Pair(Keys.serializer, CatVal(serializer, false))
+                )),
+                Pair("AtomicString", mapOf(
+                        Pair(Keys.recid, CatVal(recid))
+                )),
+                Pair("AtomicLong", mapOf(
+                        Pair(Keys.recid, CatVal(recid))
+                )),
+                Pair("IndexTreeList", mapOf(
+                        Pair(Keys.serializer, CatVal(serializer, required=false)),
+                        Pair(Keys.dirShift, CatVal(int)),
+                        Pair(Keys.levels, CatVal(int)),
+                        Pair(Keys.removeCollapsesIndexTree, CatVal(boolean)),
+                        Pair(Keys.counterRecid, CatVal(recid)),
+                        Pair(Keys.rootRecid, CatVal(recid))
+                )),
+                Pair("IndexTreeLongLongMap", mapOf(
+                        Pair(Keys.dirShift, CatVal(int)),
+                        Pair(Keys.levels, CatVal(int)),
+                        Pair(Keys.removeCollapsesIndexTree, CatVal(boolean)),
+                        Pair(Keys.rootRecid, CatVal(recid))
+                ))
         )
     }
 

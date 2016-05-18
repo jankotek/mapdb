@@ -94,7 +94,7 @@ public abstract class ClosedThrowsExceptionTest {
         m.remove("aa");
     }
 
-    @Test(expected = IllegalAccessError.class)
+    @Test
     public void closed_close(){
         Map m = db.hashMap("test").create();
         m.put("aa","bb");
