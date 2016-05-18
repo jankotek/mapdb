@@ -137,18 +137,22 @@ public class BTreeMapJava {
     public static class NodeSerializer implements Serializer<Node>{
 
         final GroupSerializer keySerializer;
+        final Comparator comparator;
         final GroupSerializer valueSerializer;
 
-        NodeSerializer(GroupSerializer keySerializer, GroupSerializer valueSerializer) {
+        NodeSerializer(GroupSerializer keySerializer, Comparator comparator, GroupSerializer valueSerializer) {
             this.keySerializer = keySerializer;
+            this.comparator = comparator;
             this.valueSerializer = valueSerializer;
         }
 
         @Override
         public void serialize(@NotNull DataOutput2 out, @NotNull Node value) throws IOException {
-
             if(CC.ASSERT && value.flags>>>4!=0)
                 throw new AssertionError();
+            if(CC.PARANOID)
+                value.verifyNode(keySerializer, comparator, valueSerializer);
+
             int keysLenOrig = keySerializer.valueArraySize(value.keys);
             int keysLen = keySerializer.valueArraySize(value.keys)<<4;
             keysLen += value.flags;
@@ -192,7 +196,10 @@ public class BTreeMapJava {
             }
 
 
-            return new Node(flags, link, keys, values);
+            Node ret = new Node(flags, link, keys, values);
+            if(CC.PARANOID)
+                ret.verifyNode(keySerializer, comparator, valueSerializer);
+            return ret;
         }
 
         @Override

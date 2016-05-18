@@ -57,7 +57,7 @@ object Pump{
             var leftEdgeLeaf = LEFT
             var nextLeafLink = 0L
 
-            val nodeSer = NodeSerializer(keySerializer, valueSerializer)
+            val nodeSer = NodeSerializer(keySerializer, comparator, valueSerializer)
 
             override fun put(e: Pair<K, V>) {
                 if(prevKey!=null && comparator.compare(prevKey, e.first)>=0){

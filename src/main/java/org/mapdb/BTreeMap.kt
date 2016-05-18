@@ -119,7 +119,7 @@ class BTreeMap<K,V>(
                     store.put(
                             Node(LEFT + RIGHT, 0L, keySerializer.valueArrayEmpty(),
                                     valueSerializer.valueArrayEmpty()),
-                            NodeSerializer(keySerializer, valueSerializer)),
+                            NodeSerializer(keySerializer, keySerializer, valueSerializer)),
                     Serializer.RECID)
         }
 
@@ -199,7 +199,7 @@ class BTreeMap<K,V>(
     private val hasBinaryStore = store is StoreBinary
 
     protected val valueNodeSerializer = (if(valueInline) this.valueSerializer else Serializer.RECID) as GroupSerializer<Any>
-    protected val nodeSerializer = NodeSerializer(this.keySerializer, this.valueNodeSerializer);
+    protected val nodeSerializer = NodeSerializer(this.keySerializer, this.comparator, this.valueNodeSerializer);
 
     protected val rootRecid: Long
         get() = store.get(rootRecidRecid, Serializer.RECID)
@@ -614,7 +614,9 @@ class BTreeMap<K,V>(
                 keySerializer.valueArrayPut(a.keys, insertPos, key)
             }
 
-        val valuesInsertPos = insertPos - 1 + a.intLeftEdge();
+        val valuesInsertPos =
+            if(valueNodeSerializer.valueArraySize(a.values)==0) 0
+            else insertPos - 1 + a.intLeftEdge();
         val valueToInsert =
             if(valueInline) value
             else store.put(value, valueSerializer)
