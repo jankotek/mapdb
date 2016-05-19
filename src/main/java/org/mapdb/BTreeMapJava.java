@@ -101,7 +101,6 @@ public class BTreeMapJava {
         }
 
 
-        //TODO  hook this method
         public void verifyNode(GroupSerializer keySerializer, Comparator comparator, GroupSerializer valueSerializer) {
 
             int keysLen = keySerializer.valueArraySize(keys);
@@ -150,6 +149,7 @@ public class BTreeMapJava {
         public void serialize(@NotNull DataOutput2 out, @NotNull Node value) throws IOException {
             if(CC.ASSERT && value.flags>>>4!=0)
                 throw new AssertionError();
+
             if(CC.PARANOID)
                 value.verifyNode(keySerializer, comparator, valueSerializer);
 
