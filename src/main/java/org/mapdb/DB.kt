@@ -26,6 +26,7 @@ import java.util.logging.Level
  * A database with easy access to named maps and other collections.
  */
 //TODO consistency lock
+//TODO rename nemed object
 //TODO delete named object
 //TOOD metrics logger
 open class DB(
