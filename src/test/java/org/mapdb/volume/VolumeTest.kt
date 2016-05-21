@@ -38,7 +38,7 @@ class VolumeTest {
                     arrayOf(
                             BYTE_ARRAY_FAB,
                             MEMORY_VOL_FAB,
-                        {file -> SingleByteArrayVol(4e7.toInt()) },
+                        {file -> SingleByteArrayVol(12 * 1024 * 1024) },
                         {file -> ByteBufferMemoryVol(true, CC.PAGE_SHIFT, false, 0L) },
                         {file ->  Volume.UNSAFE_VOL_FACTORY.makeVolume(null, false, -1L, CC.PAGE_SHIFT, 0, false)},
                         {file -> FileChannelVol(File(file), false, 0L, CC.PAGE_SHIFT, 0L) },
