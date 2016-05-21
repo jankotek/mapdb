@@ -365,6 +365,10 @@ abstract class StoreTest {
                 ref.put(recid,b)
             }
             s.verify()
+            if(s is StoreWAL) {
+                s.commit()
+                s.verify()
+            }
         }
     }
 
