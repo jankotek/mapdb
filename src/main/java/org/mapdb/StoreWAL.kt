@@ -381,7 +381,6 @@ class StoreWAL(
                         allocateData(roundUp(di.pos, 16), false)
                     }
                     val walId = wal.walPutRecord(recid, di.buf, 0, di.pos)
-                    //TODO linked record
                     cacheRecords[segment].put(volOffset, walId)
                     val indexVal = indexValCompose(size = di.pos.toLong(), offset = volOffset, archive = 1, linked = 0, unused = 0)
                     setIndexVal(recid,indexVal)
@@ -425,6 +424,7 @@ class StoreWAL(
                 oldSize != NULL_RECORD_SIZE && oldSize > 5L )) {
             Utils.lock(structuralLock) {
                 if (oldLinked) {
+                    //TODO remove from cachedRecords
                     linkedRecordDelete(oldIndexVal,recid)
                 } else {
                     val oldOffset = indexValToOffset(oldIndexVal);
@@ -432,6 +432,7 @@ class StoreWAL(
                     if (CC.ZEROS)
                         volume.clear(oldOffset, oldOffset + sizeUp)
                     releaseData(sizeUp, oldOffset, false)
+                    cacheRecords[recidToSegment(recid)].remove(oldOffset);
                 }
             }
         }
