@@ -1,9 +1,12 @@
 package org.mapdb.StoreAccess
 
 import org.eclipse.collections.api.list.primitive.MutableLongList
+import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
+import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap
+import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
 import org.fest.reflect.core.Reflection
-import org.mapdb.StoreDirectAbstract
-import org.mapdb.Utils
+import org.mapdb.*
+import org.mapdb.volume.SingleByteArrayVol
 import org.mapdb.volume.Volume
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReadWriteLock
@@ -113,3 +116,37 @@ fun StoreDirectAbstract.linkedRecordGet(indexValue: Long): ByteArray =
                 .`in`(this)
                 .invoke(indexValue) as ByteArray
 
+
+
+
+val StoreWAL.headVol:SingleByteArrayVol
+    get() = Reflection.method("getHeadVol").`in`(this).invoke() as SingleByteArrayVol
+
+/** stack pages, key is offset, value is content */
+val StoreWAL.cacheStacks:LongObjectHashMap<ByteArray>
+    get() = Reflection.method("getCacheStacks").`in`(this).invoke() as LongObjectHashMap<ByteArray>
+
+
+/** modified indexVals, key is offset, value is indexValue */
+val StoreWAL.cacheIndexValsA: Array<LongLongHashMap>
+    get() = Reflection.method("getCacheIndexVals").`in`(this).invoke() as Array<LongLongHashMap>
+
+val StoreWAL.cacheIndexLinks: LongLongHashMap
+    get() = Reflection.method("getCacheIndexLinks").`in`(this).invoke() as LongLongHashMap
+
+/** modified records, key is offset, value is WAL ID */
+val StoreWAL.cacheRecords: Array<LongLongHashMap>
+    get() = Reflection.method("getCacheRecords").`in`(this).invoke() as Array<LongLongHashMap>
+
+
+val StoreWAL.wal: WriteAheadLog
+    get() = Reflection.method("getWal").`in`(this).invoke() as WriteAheadLog
+
+
+/** backup for `indexPages`, restored on rollback */
+val StoreWAL.indexPagesBackup: Array<Long>
+    get() = Reflection.method("getIndexPagesBackup").`in`(this).invoke() as Array<Long>
+
+
+val StoreWAL.allocatedPages: LongArrayList
+    get() = Reflection.method("getAllocatedPages").`in`(this).invoke() as LongArrayList

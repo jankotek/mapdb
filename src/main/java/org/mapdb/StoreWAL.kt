@@ -307,6 +307,7 @@ class StoreWAL(
 //            if(CC.ZEROS)
 //                volume.clear(offset,offset+sizeUp)
             releaseData(sizeUp, offset, false);
+            cacheRec.remove(offset)
         }
     }
 
@@ -424,7 +425,6 @@ class StoreWAL(
                 oldSize != NULL_RECORD_SIZE && oldSize > 5L )) {
             Utils.lock(structuralLock) {
                 if (oldLinked) {
-                    //TODO remove from cachedRecords
                     linkedRecordDelete(oldIndexVal,recid)
                 } else {
                     val oldOffset = indexValToOffset(oldIndexVal);

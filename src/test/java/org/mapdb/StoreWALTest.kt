@@ -2,6 +2,7 @@ package org.mapdb
 
 import org.junit.Assert.*
 import org.junit.Test
+import org.mapdb.StoreAccess.cacheRecords
 import org.mapdb.StoreAccess.volume
 import java.io.File
 import java.io.RandomAccessFile
@@ -69,4 +70,45 @@ class StoreWALTest: StoreDirectAbstractTest() {
         f.delete()
     }
 
+
+    @Test fun updateCached(){
+        val sizes = intArrayOf(6,20,200,4000,16000, 50000, 70000, 1024*1024*2)
+        for(size in sizes) {
+            val store = openStore()
+            store.commit()
+            val recid = store.put(ByteArray(size), Serializer.BYTE_ARRAY_NOSIZE)
+            assertTrue(0 < store.cacheRecords.map { it.size() }.sum())
+            store.update(recid, null, Serializer.BYTE_ARRAY_NOSIZE)
+            assertTrue(0 == store.cacheRecords.map { it.size() }.sum())
+        }
+
+        for(size in sizes) {
+            val store = openStore()
+            store.commit()
+            val recid = store.put(ByteArray(size), Serializer.BYTE_ARRAY_NOSIZE)
+            assertTrue(0 < store.cacheRecords.map { it.size() }.sum())
+            store.update(recid, ByteArray(1), Serializer.BYTE_ARRAY_NOSIZE)
+            assertTrue(0 == store.cacheRecords.map { it.size() }.sum())
+        }
+
+        for(size in sizes) {
+            val store = openStore();
+            store.commit()
+            val recid = store.put(ByteArray(size), Serializer.BYTE_ARRAY_NOSIZE)
+            assertTrue(0 < store.cacheRecords.map { it.size() }.sum())
+            store.delete(recid, Serializer.BYTE_ARRAY_NOSIZE)
+            assertTrue(0 == store.cacheRecords.map { it.size() }.sum())
+        }
+
+        for(size in sizes) {
+            val store = openStore();
+            store.commit()
+            val v = ByteArray(size)
+            val recid = store.put(v, Serializer.BYTE_ARRAY_NOSIZE)
+            assertTrue(0 < store.cacheRecords.map { it.size() }.sum())
+            store.compareAndSwap(recid, v, null, Serializer.BYTE_ARRAY_NOSIZE)
+            assertTrue(0 == store.cacheRecords.map { it.size() }.sum())
+        }
+
+    }
 }
