@@ -6,6 +6,8 @@ import org.mapdb.volume.FileChannelVol
 import org.mapdb.volume.MappedFileVol
 import org.mapdb.volume.RandomAccessFileVol
 import org.mapdb.StoreAccess.*
+import org.mapdb.VolumeAccess.*
+import org.mapdb.volume.ByteArrayVol
 
 class DBMakerTest{
 
@@ -171,6 +173,19 @@ class DBMakerTest{
         DBMaker.fileDB(f).fileLockDisable().fileMmapEnable().transactionEnable().make()
     }
 
+    @Test fun fileIncrement(){
+        val db = DBMaker.memoryDB().allocateIncrement(100).make()
+        val store = db.getStore() as StoreDirect
+        val volume = store.volume as ByteArrayVol
+        assertEquals(CC.PAGE_SHIFT, volume.sliceShift)
+    }
 
+
+    @Test fun fileIncrement2(){
+        val db = DBMaker.memoryDB().allocateIncrement(2*1024*1024).make()
+        val store = db.getStore() as StoreDirect
+        val volume = store.volume as ByteArrayVol
+        assertEquals(1+CC.PAGE_SHIFT, volume.sliceShift)
+    }
 
 }

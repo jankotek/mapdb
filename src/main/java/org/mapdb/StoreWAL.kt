@@ -21,6 +21,7 @@ class StoreWAL(
         fileLockWait:Long,
         isThreadSafe:Boolean,
         concShift:Int,
+        allocateIncrement:Long,
         allocateStartSize:Long,
         deleteFilesAfterClose:Boolean,
         checksum:Boolean,
@@ -44,6 +45,7 @@ class StoreWAL(
                 fileLockWait:Long = 0L,
                 isThreadSafe:Boolean = true,
                 concShift:Int = CC.STORE_DIRECT_CONC_SHIFT,
+                allocateIncrement: Long = CC.PAGE_SIZE,
                 allocateStartSize: Long = 0L,
                 deleteFilesAfterClose:Boolean = false,
                 checksum:Boolean = false,
@@ -55,6 +57,7 @@ class StoreWAL(
                 fileLockWait = fileLockWait,
                 isThreadSafe = isThreadSafe,
                 concShift = concShift,
+                allocateIncrement = allocateIncrement,
                 allocateStartSize = allocateStartSize,
                 deleteFilesAfterClose = deleteFilesAfterClose,
                 checksum = checksum,
@@ -66,7 +69,8 @@ class StoreWAL(
     }
 
     protected val realVolume: Volume = {
-        volumeFactory.makeVolume(file, false, fileLockWait, CC.PAGE_SHIFT,
+        volumeFactory.makeVolume(file, false, fileLockWait,
+                Math.max(CC.PAGE_SHIFT, DataIO.shift(allocateIncrement.toInt())),
                 DataIO.roundUp(allocateStartSize, CC.PAGE_SIZE), false)
     }()
 

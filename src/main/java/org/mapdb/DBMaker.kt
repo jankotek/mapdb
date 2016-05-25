@@ -129,6 +129,7 @@ object DBMaker{
             private val file:String?=null){
 
         private var _allocateStartSize:Long = 0L
+        private var _allocateIncrement:Long = 0L
         private var _transactionEnable = false
         private var _deleteFilesAfterClose = false
         private var _isThreadSafe = true
@@ -149,6 +150,11 @@ object DBMaker{
 
         fun allocateStartSize(size:Long):Maker{
             _allocateStartSize = size
+            return this
+        }
+
+        fun allocateIncrement(incrementSize:Long):Maker{
+            _allocateIncrement = incrementSize;
             return this
         }
 
@@ -430,6 +436,7 @@ object DBMaker{
                     if (_transactionEnable.not() || _readOnly) {
                        StoreDirect.make(file = file, volumeFactory = volfab!!,
                                fileLockWait = _fileLockWait,
+                               allocateIncrement = _allocateIncrement,
                                allocateStartSize = _allocateStartSize,
                                isReadOnly = _readOnly,
                                deleteFilesAfterClose = _deleteFilesAfterClose,
@@ -442,6 +449,7 @@ object DBMaker{
                             throw DBException.WrongConfiguration("Checksum is not supported with transaction enabled.")
                        StoreWAL.make(file = file, volumeFactory = volfab!!,
                                fileLockWait = _fileLockWait,
+                               allocateIncrement = _allocateIncrement,
                                allocateStartSize = _allocateStartSize,
                                deleteFilesAfterClose = _deleteFilesAfterClose,
                                concShift = concShift,

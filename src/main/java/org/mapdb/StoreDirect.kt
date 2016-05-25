@@ -20,6 +20,7 @@ class StoreDirect(
         fileLockWait:Long,
         isThreadSafe:Boolean,
         concShift:Int,
+        allocateIncrement: Long,
         allocateStartSize:Long,
         deleteFilesAfterClose:Boolean,
         checksum:Boolean,
@@ -45,6 +46,7 @@ class StoreDirect(
                 isReadOnly:Boolean = false,
                 isThreadSafe:Boolean = true,
                 concShift:Int = CC.STORE_DIRECT_CONC_SHIFT,
+                allocateIncrement:Long = CC.PAGE_SIZE,
                 allocateStartSize: Long = 0L,
                 deleteFilesAfterClose:Boolean = false,
                 checksum:Boolean = false,
@@ -57,6 +59,7 @@ class StoreDirect(
             isReadOnly = isReadOnly,
             isThreadSafe = isThreadSafe,
             concShift = concShift,
+            allocateIncrement = allocateIncrement,
             allocateStartSize = allocateStartSize,
             deleteFilesAfterClose = deleteFilesAfterClose,
             checksum = checksum,
@@ -68,7 +71,8 @@ class StoreDirect(
     protected val freeSize = AtomicLong(-1L)
 
     override protected val volume: Volume = {
-        volumeFactory.makeVolume(file, isReadOnly, fileLockWait, CC.PAGE_SHIFT,
+        volumeFactory.makeVolume(file, isReadOnly, fileLockWait,
+                Math.max(CC.PAGE_SHIFT, DataIO.shift(allocateIncrement.toInt())),
                 roundUp(allocateStartSize, CC.PAGE_SIZE), false)
     }()
 
