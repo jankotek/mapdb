@@ -1082,4 +1082,7 @@ class StoreDirect(
 
     fun getTotalSize():Long = fileTail
 
+    override fun fileLoad() = volume.fileLoad()
+
+
 }

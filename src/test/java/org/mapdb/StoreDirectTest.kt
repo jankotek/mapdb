@@ -723,4 +723,11 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
         f.delete()
     }
 
+    @Test fun fileLoad(){
+        val f = TT.tempFile()
+        val store = StoreDirect.make(file=f.path, volumeFactory = MappedFileVol.FACTORY)
+        assertTrue(store.fileLoad())
+        f.delete()
+    }
+
 }

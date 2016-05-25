@@ -312,6 +312,8 @@ open class StoreTrivial(
 
     override val isReadOnly = false
 
+    override fun fileLoad() = false
+
 }
 
 class StoreTrivialTx(val file:File, isThreadSafe:Boolean=true, val deleteFilesAfterClose:Boolean=false)

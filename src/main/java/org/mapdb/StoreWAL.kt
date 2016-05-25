@@ -870,6 +870,6 @@ class StoreWAL(
         return pos2.toLong()
     }
 
-
+    override fun fileLoad() = volume.fileLoad()
 
 }

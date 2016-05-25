@@ -38,6 +38,8 @@ interface Store: StoreImmutable, Verifiable,
     override fun verify()
 
     val isReadOnly: Boolean
+
+    fun fileLoad(): Boolean;
 }
 
 /**

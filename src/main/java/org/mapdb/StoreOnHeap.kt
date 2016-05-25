@@ -139,5 +139,8 @@ class StoreOnHeap(
     }
 
     override val isReadOnly = false
+
+    override fun fileLoad() = false
+
 }
 
