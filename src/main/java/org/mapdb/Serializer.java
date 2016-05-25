@@ -15,7 +15,6 @@
  */
 package org.mapdb;
 
-
 import org.jetbrains.annotations.NotNull;
 import org.mapdb.serializer.*;
 
@@ -25,107 +24,123 @@ import java.math.BigInteger;
 import java.util.*;
 
 /**
- * Provides serialization and deserialization
+ * This interface specifies how Java Objects are serialized and de-serialized
+ * and also how objects are compared, hashed and tested for equality for use
+ * with MapDB.
+ * <p>
+ * Implementing classes do not have to be thread safe.
+ *
+ * @param <A> the type of object that the Serializer handles.
  *
  * @author Jan Kotek
  */
-public interface Serializer<A> extends Comparator<A>{
-
-
-    GroupSerializer<Character> CHAR = new SerializerChar();
-
-
+public interface Serializer<A /*extends Comparable<? super A>*/> extends Comparator<A> {
 
     /**
+     * A predefined {@link Serializer} that handles non-null
+     * {@link Character Characters}.
      * <p>
-     * Serializes strings using UTF8 encoding.
-     * Stores string size so can be used as collection serializer.
-     * Does not handle null values
-     * </p><p>
-     * Unlike {@link Serializer#STRING} this method hashes String with {@link String#hashCode()}
-     * </p>
+     * If a {@code null} value is passed to the Serializer, a
+     * {@link NullPointerException} will be thrown.
+     */
+    GroupSerializer<Character> CHAR = new SerializerChar();
+
+    /**
+     * A predefined {@link Serializer} that handles non-null
+     * {@link String Strings} whereby serialized Strings are serialized to a
+     * UTF-8 encoded format. The Serializer also stores the String's size,
+     * allowing it to be used as a collection serializer.
+     * <p>
+     * This Serializer hashes Strings using the original
+     * {@link String#hashCode()} method as opposed to the
+     * {@link Serializer#STRING} Serializer.
+     * <p>
+     * If a {@code null} value is passed to the Serializer, a
+     * {@link NullPointerException} will be thrown.
+     *
+     * @see Serializer#STRING
      */
     GroupSerializer<String> STRING_ORIGHASH = new SerializerStringOrigHash();
 
     /**
-     * Serializes strings using UTF8 encoding.
-     * Stores string size so can be used as collection serializer.
-     * Does not handle null values
+     * A predefined {@link Serializer} that handles non-null
+     * {@link String Strings} whereby serialized Strings are serialized to a
+     * UTF-8 encoded format. The Serializer also stores the String's size,
+     * allowing it to be used as a collection serializer.
+     * <p>
+     * This Serializer hashes Strings using a specially tailored
+     * {@link String#hashCode()} method as opposed to the
+     * {@link Serializer#STRING_ORIGHASH} Serializer.
+     * <p>
+     * If a {@code null} value is passed to the Serializer, a
+     * {@link NullPointerException} will be thrown.
+     *
+     * @see Serializer#STRING_ORIGHASH
      */
     GroupSerializer<String> STRING = new SerializerString();
 
     GroupSerializer<String> STRING_DELTA = new SerializerStringDelta();
     GroupSerializer<String> STRING_DELTA2 = new SerializerStringDelta2();
 
-
-
     /**
-     * Serializes strings using UTF8 encoding.
-     * Deserialized String is interned {@link String#intern()},
-     * so it could save some memory.
+     * Serializes strings using UTF8 encoding. Deserialized String is interned
+     * {@link String#intern()}, so it could save some memory.
      *
-     * Stores string size so can be used as collection serializer.
-     * Does not handle null values
+     * Stores string size so can be used as collection serializer. Does not
+     * handle null values
      */
     GroupSerializer<String> STRING_INTERN = new SerializerStringIntern();
 
     /**
-     * Serializes strings using ASCII encoding (8 bit character).
-     * Is faster compared to UTF8 encoding.
-     * Stores string size so can be used as collection serializer.
-     * Does not handle null values
+     * Serializes strings using ASCII encoding (8 bit character). Is faster
+     * compared to UTF8 encoding. Stores string size so can be used as
+     * collection serializer. Does not handle null values
      */
     GroupSerializer<String> STRING_ASCII = new SerializerStringAscii();
 
     /**
-     * Serializes strings using UTF8 encoding.
-     * Used mainly for testing.
-     * Does not handle null values.
+     * Serializes strings using UTF8 encoding. Used mainly for testing. Does not
+     * handle null values.
      */
     Serializer<String> STRING_NOSIZE = new SerializerStringNoSize();
 
-
-
-
-
-    /** Serializes Long into 8 bytes, used mainly for testing.
-     * Does not handle null values.*/
-
+    /**
+     * Serializes Long into 8 bytes, used mainly for testing. Does not handle
+     * null values.
+     */
     GroupSerializer<Long> LONG = new SerializerLong();
 
     /**
-     *  Packs positive LONG, so smaller positive values occupy less than 8 bytes.
-     *  Large and negative values could occupy 8 or 9 bytes.
+     * Packs positive LONG, so smaller positive values occupy less than 8 bytes.
+     * Large and negative values could occupy 8 or 9 bytes.
      */
     GroupSerializer<Long> LONG_PACKED = new SerializerLongPacked();
 
     /**
-     * Applies delta packing on {@code java.lang.Long}.
-     * Difference between consequential numbers is also packed itself, so for small diffs it takes only single byte per
-     * number.
+     * Applies delta packing on {@code java.lang.Long}. Difference between
+     * consequential numbers is also packed itself, so for small diffs it takes
+     * only single byte per number.
      */
     GroupSerializer<Long> LONG_DELTA = new SerializerLongDelta();
 
-
-    /** Serializes Integer into 4 bytes, used mainly for testing.
-     * Does not handle null values.*/
-
+    /**
+     * Serializes Integer into 4 bytes, used mainly for testing. Does not handle
+     * null values.
+     */
     GroupSerializer<Integer> INTEGER = new SerializerInteger();
 
     /**
-     *  Packs positive Integer, so smaller positive values occupy less than 4 bytes.
-     *  Large and negative values could occupy 4 or 5 bytes.
+     * Packs positive Integer, so smaller positive values occupy less than 4
+     * bytes. Large and negative values could occupy 4 or 5 bytes.
      */
     GroupSerializer<Integer> INTEGER_PACKED = new SerializerIntegerPacked();
 
-
     /**
-     * Applies delta packing on {@code java.lang.Integer}.
-     * Difference between consequential numbers is also packed itself, so for small diffs it takes only single byte per
-     * number.
+     * Applies delta packing on {@code java.lang.Integer}. Difference between
+     * consequential numbers is also packed itself, so for small diffs it takes
+     * only single byte per number.
      */
     GroupSerializer<Integer> INTEGER_DELTA = new SerializerIntegerDelta();
-
 
     GroupSerializer<Boolean> BOOLEAN = new SerializerBoolean();
 
@@ -139,10 +154,10 @@ public interface Serializer<A> extends Comparator<A>{
     GroupSerializer<long[]> RECID_ARRAY = new SerializerRecidArray();
 
     /**
-     * Always throws {@link IllegalAccessError} when invoked. Useful for testing and assertions.
+     * Always throws {@link IllegalAccessError} when invoked. Useful for testing
+     * and assertions.
      */
     GroupSerializer<Object> ILLEGAL_ACCESS = new SerializerIllegalAccess();
-
 
     /**
      * Serializes {@code byte[]} it adds header which contains size information
@@ -153,8 +168,8 @@ public interface Serializer<A> extends Comparator<A>{
     GroupSerializer<byte[]> BYTE_ARRAY_DELTA2 = new SerializerByteArrayDelta2();
 
     /**
-     * Serializes {@code byte[]} directly into underlying store
-     * It does not store size, so it can not be used in Maps and other collections.
+     * Serializes {@code byte[]} directly into underlying store It does not
+     * store size, so it can not be used in Maps and other collections.
      */
     Serializer<byte[]> BYTE_ARRAY_NOSIZE = new SerializerByteArrayNoSize();
 
@@ -162,7 +177,6 @@ public interface Serializer<A> extends Comparator<A>{
      * Serializes {@code char[]} it adds header which contains size information
      */
     GroupSerializer<char[]> CHAR_ARRAY = new SerializerCharArray();
-
 
     /**
      * Serializes {@code int[]} it adds header which contains size information
@@ -175,23 +189,27 @@ public interface Serializer<A> extends Comparator<A>{
     GroupSerializer<long[]> LONG_ARRAY = new SerializerLongArray();
 
     /**
-     * Serializes {@code double[]} it adds header which contains size information
+     * Serializes {@code double[]} it adds header which contains size
+     * information
      */
     GroupSerializer<double[]> DOUBLE_ARRAY = new SerializerDoubleArray();
 
-
-    /** Serializer which uses standard Java Serialization with {@link java.io.ObjectInputStream} and {@link java.io.ObjectOutputStream} */
+    /**
+     * Serializer which uses standard Java Serialization with
+     * {@link java.io.ObjectInputStream} and {@link java.io.ObjectOutputStream}
+     */
     GroupSerializer JAVA = new SerializerJava();
 
     GroupSerializer ELSA = new SerializerElsa();
 
-    /** Serializers {@link java.util.UUID} class */
+    /**
+     * Serializers {@link java.util.UUID} class
+     */
     GroupSerializer<java.util.UUID> UUID = new SerializerUUID();
 
     GroupSerializer<Byte> BYTE = new SerializerByte();
 
     GroupSerializer<Float> FLOAT = new SerializerFloat();
-
 
     GroupSerializer<Double> DOUBLE = new SerializerDouble();
 
@@ -226,11 +244,7 @@ public interface Serializer<A> extends Comparator<A>{
 //            return Arrays.hashCode(booleans);
 //        }
 //    };
-
-
-
     GroupSerializer<short[]> SHORT_ARRAY = new SerializerShortArray();
-
 
     GroupSerializer<float[]> FLOAT_ARRAY = new SerializerFloatArray();
 
@@ -238,11 +252,9 @@ public interface Serializer<A> extends Comparator<A>{
 
     GroupSerializer<BigDecimal> BIG_DECIMAL = new SerializerBigDecimal();
 
-
     GroupSerializer<Class<?>> CLASS = new SerializerClass();
 
     GroupSerializer<Date> DATE = new SerializerDate();
-
 
     //    //this has to be lazily initialized due to circular dependencies
 //    static final  class __BasicInstance {
@@ -273,81 +285,136 @@ public interface Serializer<A> extends Comparator<A>{
 //        }
 //    };
 //
-
     /**
-     * Serialize the content of an object into a ObjectOutput
+     * Serialize the content of the given object into the given
+     * {@link DataOutput2}.
      *
-     * @param out ObjectOutput to save object into
+     * @param out DataOutput2 to save object into
      * @param value Object to serialize
      *
-     * @throws java.io.IOException in case of IO error
+     * @throws IOException in case of an I/O error
      */
     void serialize(@NotNull DataOutput2 out, @NotNull A value) throws IOException;
 
-
     /**
-     * Deserialize the content of an object from a DataInput.
+     * Deserializes and returns the content of the given {@link DataInput2}.
      *
-     * @param input to read serialized data from
-     * @param available how many bytes are available in DataInput for reading, may be -1 (in streams) or 0 (null).
-     * @return deserialized object
-     * @throws java.io.IOException in case of IO error
+     * @param input DataInput2 to de-serialize data from
+     * @param available how many bytes that are available in the DataInput2 for
+     * reading, may be -1 (in streams) or 0 (null).
+     * @return the de-serialized content of the given {@link DataInput2}
+     * @throws IOException in case of an I/O error
      */
     A deserialize(@NotNull DataInput2 input, int available) throws IOException;
 
     /**
-     * Data could be serialized into record with variable size or fixed size.
-     * Some optimizations can be applied to serializers with fixed size
+     * Returns the fixed size of the serialized form in bytes or -1 if the size
+     * is not fixed (e.g. for Strings).
+     * <p>
+     * Some optimizations can be applied to serializers with a fixed size.
      *
-     * @return fixed size or -1 for variable size
+     * @return the fixed size of the serialized form in bytes or -1 if the size
+     * is not fixed
      */
-    default int fixedSize(){
+    default int fixedSize() {
         return -1;
     }
 
     /**
+     * Returns if this Serializer is trusted to always read the same number of
+     * bytes as it writes for any given object being serialized/de-serialized.
      * <p>
-     * MapDB has relax record size boundary checking.
-     * It expect deserializer to read exactly as many bytes as were writen during serialization.
-     * If deserializer reads more bytes it might start reading others record data in store.
-     * </p><p>
-     * Some serializers (Kryo) have problems with this. To prevent this we can not read
-     * data directly from store, but must copy them into separate {@code byte[]}.
-     * So zero copy optimalizations is disabled by default, and must be explicitly enabled here.
-     * </p><p>
-     * This flag indicates if this serializer was 'verified' to read as many bytes as it
-     * writes. It should be also much better tested etc.
-     * </p>
+     * MapDB has a relaxed record size boundary checking. It expects
+     * deserializers to read exactly as many bytes as were written during
+     * serialization. If a deserializer reads more bytes than it wrote, it might
+     * start reading others record data in store.
+     * <p>
+     * Some serializers (Kryo) have problems with this. To prevent this, we can
+     * not read data directly from a store, but we must copy them into separate
+     * {@code byte[]} buffers. Thus, zero-copy optimizations are disabled by
+     * default, but can be explicitly enabled here by letting this method return
+     * {@code true}.
+     * <p>
+     * This flag indicates if this serializer was 'verified' to read as many
+     * bytes as it writes. It should also be much better tested etc.
      *
-     * @return true if this serializer is well tested and writes as many bytes as it reads.
+     *
+     * @return if this Serializer is trusted to always read the same number of
+     * bytes as it writes for any given object being serialized/de-serialized
      */
-    default boolean isTrusted(){
+    default boolean isTrusted() {
         return false;
     }
 
     @Override
-    default int compare(A o1, A o2) {
-        return ((Comparable)o1).compareTo(o2);
+    default int compare(A first, A second) {
+        return ((Comparable) first).compareTo(second);
     }
 
-    default boolean equals(A a1, A a2){
-        return a1==a2 || (a1!=null && a1.equals(a2));
+    /**
+     * Returns if the first and second arguments are equal to each other.
+     * Consequently, if both arguments are {@code null}, {@code true} is
+     * returned and if exactly one argument is {@code null}, {@code false} is
+     * returned.
+     *
+     * @param first an object
+     * @param second another object to be compared with the first object for
+     * equality
+     *
+     * @return if the first and second arguments are equal to each other
+     * @see Object#equals(Object)
+     */
+    default boolean equals(A first, A second) {
+        return Objects.equals(first, second);
     }
 
-    default int hashCode(@NotNull A a, int seed){
-        return DataIO.intHash(a.hashCode()+seed);
+    /**
+     * Returns a hash code of a non-null argument.
+     *
+     * @param a an object
+     * @return a hash code of a non-null argument
+     * @see Object#hashCode
+     */
+    /**
+     * Returns a hash code of a given non-null argument. The output of the
+     * method is affected by the given seed, allowing protection against crafted
+     * hash attacks and to provide a better distribution of hashes.
+     *
+     * @param o an object
+     * @param seed used to "scramble" the
+     * @return a hash code of a non-null argument
+     * @see Object#hashCode
+     * @throws NullPointerException if the
+     */
+    default int hashCode(@NotNull A o, int seed) {
+        return DataIO.intHash(o.hashCode() + seed);
     }
 
-    default boolean needsAvailableSizeHint(){
+    /**
+     * TODO: Document this method
+     *
+     * @return
+     */
+    default boolean needsAvailableSizeHint() {
         return false;
     }
 
-    default A deserializeFromLong(long input, int size) throws IOException {
-        if(CC.ASSERT && size<0 || size>8)
+    /**
+     * Deserializes and returns the content of the given long.
+     *
+     * @param input long to de-serialize data from
+     * @param available how many bytes that are available in the long for
+     * reading, or 0 (null).
+     * @return the de-serialized content of the given long
+     * @throws IOException in case of an I/O error
+     */
+    default A deserializeFromLong(long input, int available) throws IOException {
+        if (CC.ASSERT && available < 0 || available > 8) {
             throw new AssertionError();
-        byte[] b = new byte[size];
-        DataIO.putLong(b, 0, input, size);
-        return deserialize(new DataInput2.ByteArray(b), size);
+        }
+        byte[] b = new byte[available];
+        DataIO.putLong(b, 0, input, available);
+        return deserialize(new DataInput2.ByteArray(b), available);
     }
 
 //
