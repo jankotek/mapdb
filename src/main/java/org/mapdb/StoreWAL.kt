@@ -129,6 +129,8 @@ class StoreWAL(
                 realVolume.putData(0L, headBytes,0, headBytes.size)
                 realVolume.sync()
             } else {
+                if(volume.length()<=0)
+                    throw DBException.DataCorruption("File is empty")
                 volume.getData(0, headBytes, 0, headBytes.size)
                 fileHeaderCheck()
 

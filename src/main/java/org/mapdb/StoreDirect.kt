@@ -101,6 +101,8 @@ class StoreDirect(
 
                 commit()
             } else {
+                if(volume.length()<=0)
+                    throw DBException.DataCorruption("File is empty")
                 fileHeaderCheck()
                 loadIndexPages(indexPages)
             }
