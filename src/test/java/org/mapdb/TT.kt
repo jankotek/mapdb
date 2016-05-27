@@ -4,10 +4,8 @@ import org.junit.Test
 import org.junit.Assert.*
 import java.io.*
 import java.util.*
-import java.util.concurrent.Executors
-import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.*
 
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -161,28 +159,69 @@ object TT{
 
 
     fun fork(count:Int=1, body:(i:Int)->Unit){
-        val exec = Executors.newCachedThreadPool({ r->
-            val thread = Thread(r)
-            thread.isDaemon = true
-            thread
-        })
+        val finish = async(count=count, body=body)
+        finish()
+    }
+
+
+    fun async(count:Int=1, body:(i:Int)->Unit):()->Unit{
+        val exec = executor(count)
+        val wait = CountDownLatch(1)
         val exception = AtomicReference<Throwable>()
         for(i in 0 until count){
             exec.submit {
                 try{
+                    wait.await()
                     body(i)
                 }catch(e:Throwable){
                     exception.set(e)
                 }
             }
         }
+        wait.countDown()
         exec.shutdown()
-        while(!exec.awaitTermination(1, TimeUnit.MILLISECONDS)){
+        return {
+
+            while(!exec.awaitTermination(1, TimeUnit.MILLISECONDS)){
+                val e = exception.get()
+                if(e!=null)
+                    throw AssertionError(e)
+            }
+        }
+    }
+
+
+
+    fun forkExecutor(exec: ExecutorService, count:Int=1, body:(i:Int)->Unit){
+        val exception = AtomicReference<Throwable>()
+        val wait = CountDownLatch(1)
+        val tasks = (0 until count).map{i->
+            exec.submit {
+                try{
+                    wait.await()
+                    body(i)
+                }catch(e:Throwable){
+                    exception.set(e)
+                }
+            }
+        }.toMutableSet()
+        wait.countDown()
+
+        //await for all tasks to finish
+        while(!tasks.isEmpty()){
+            val iter = tasks.iterator()
+            while(iter.hasNext()){
+                if(iter.next().isDone)
+                    iter.remove()
+            }
+
             val e = exception.get()
             if(e!=null)
                 throw AssertionError(e)
+            Thread.sleep(1)
         }
     }
+
 
     fun assertAllZero(old: ByteArray) {
         val z = 0.toByte()
