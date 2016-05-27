@@ -8,6 +8,7 @@ import java.io.IOException
 import java.util.concurrent.locks.ReadWriteLock
 import org.mapdb.StoreDirectJava.*
 import org.mapdb.DataIO.*
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Common utils for StoreDirect, StoreWAL and StoreCached
@@ -48,13 +49,13 @@ abstract class StoreDirectAbstract(
         return indexPages.get(pageNum.toInt()) + 16 + ((recid)% StoreDirectJava.RECIDS_PER_INDEX_PAGE)*8
     }
 
-    protected @Volatile var closed = false;
+    protected val closed = AtomicBoolean(false)
 
     override val isClosed:Boolean
-        get() = closed
+        get() = closed.get()
 
     protected fun assertNotClosed(){
-        if(closed)
+        if(closed.get())
             throw IllegalAccessError("Store was closed");
     }
 

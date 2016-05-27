@@ -11,6 +11,7 @@ import java.nio.channels.FileLock
 import java.nio.channels.OverlappingFileLockException
 import java.nio.file.*
 import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.locks.ReadWriteLock
 
 
@@ -24,7 +25,7 @@ open class StoreTrivial(
 
     protected val lock: ReadWriteLock? = Utils.newReadWriteLock(isThreadSafe)
 
-    private @Volatile var closed = false;
+    private val closed = AtomicBoolean(false);
 
     /** stack of deleted recids, those will be reused*/
     //TODO check for duplicates in freeRecids
@@ -211,6 +212,9 @@ open class StoreTrivial(
     }
 
     override fun close() {
+        if(closed.compareAndSet(false,true).not())
+            return
+
         if(CC.PARANOID) {
             Utils.lockRead(lock) {
                 val freeRecidsSet = LongHashSet();
@@ -221,11 +225,10 @@ open class StoreTrivial(
                 }
             }
         }
-        closed = true
     }
 
     override val isClosed:Boolean
-        get()= closed
+        get()= closed.get()
 
     override fun <R> get(recid: Long, serializer: Serializer<R>): R? {
         val bytes:ByteArray? =

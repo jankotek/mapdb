@@ -844,7 +844,7 @@ class StoreDirect(
 
     override fun close() {
         //TODO lock this somehow?
-        if(closed)
+        if(closed.compareAndSet(false,true).not())
             return
 
         //update checksum
@@ -855,7 +855,6 @@ class StoreDirect(
             }
         }
 
-        closed = true;
         volume.close()
         if(deleteFilesAfterClose && file!=null) {
             File(file).delete()
