@@ -256,15 +256,19 @@ internal object Utils {
         if(locks==null)
             return
         for(lock in locks)
-            lock!!.writeLock().lock()
+            if(lock!=null)
+                lock.writeLock().lock()
     }
 
     fun unlockWriteAll(locks: Array<ReadWriteLock?>) {
         if(locks==null)
             return
         //unlock in reverse order to prevent deadlock
-        for(i in locks.size-1 downTo 0)
-            locks[i]!!.writeLock().unlock()
+        for(i in locks.size-1 downTo 0) {
+            val lock = locks[i]
+            if (lock != null)
+                lock.writeLock().unlock()
+        }
     }
 
     fun identityCount(vals: Array<*>): Int {
