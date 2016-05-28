@@ -90,4 +90,58 @@ class StoreParallelTest(val maker:()->Store){
         executor.shutdown()
     }
 
+
+    @Test(timeout = 10*60*1000)
+    fun commit(){
+        val end = TT.nowPlusMinutes(2.0)
+        val executor = TT.executor(threadCount)
+        while(System.currentTimeMillis()<end){
+            val store = maker()
+            val recids = (0..100).map{
+                store.put(100L, Serializer.LONG)
+            }
+            store.commit()
+            TT.forkExecutor(executor, threadCount){
+                recids.forEach {
+                    store.update(it, it, Serializer.LONG)
+                    store.commit()
+                }
+            }
+            recids.forEach {
+                assertEquals(it, store.get(it, Serializer.LONG))
+            }
+
+            store.close()
+        }
+        executor.shutdown()
+    }
+
+
+    @Test(timeout = 10*60*1000)
+    fun rollback(){
+        if(maker() !is StoreTx)
+            return
+        val end = TT.nowPlusMinutes(2.0)
+        val executor = TT.executor(threadCount)
+        while(System.currentTimeMillis()<end){
+            val store = maker() as StoreTx
+            val recids = (0..100).map{store.put(100L, Serializer.LONG)}
+            store.commit()
+            TT.forkExecutor(executor, threadCount){
+                recids.forEach {
+                    store.update(it, it, Serializer.LONG)
+                    store.rollback()
+                }
+            }
+            recids.forEach {
+                assertEquals(100L, store.get(it, Serializer.LONG))
+            }
+
+            store.close()
+        }
+        executor.shutdown()
+    }
+
+
+
 }

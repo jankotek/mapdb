@@ -552,58 +552,82 @@ class StoreWAL(
     }
 
     override fun rollback() {
-        realVolume.getData(0,headBytes, 0, headBytes.size)
-        cacheIndexLinks.clear()
-        cacheIndexVals.forEach { it.clear() }
-        cacheRecords.forEach { it.clear() }
-        cacheStacks.clear()
-        indexPages.clear()
-        for(page in indexPagesBackup)
-            indexPages.add(page)
-        wal.rollback()
+        //lock for write
+        for(lock in locks)
+            if(lock!=null)lock.writeLock().lock()
+        try {
+
+            realVolume.getData(0,headBytes, 0, headBytes.size)
+            cacheIndexLinks.clear()
+            cacheIndexVals.forEach { it.clear() }
+            cacheRecords.forEach { it.clear() }
+            cacheStacks.clear()
+            indexPages.clear()
+            for(page in indexPagesBackup)
+                indexPages.add(page)
+            wal.rollback()
+        }finally{
+            //unlock in revere order to prevent dead lock
+            for(lock in locks.reversed()){
+                if(lock!=null)
+                    lock.writeLock().unlock()
+            }
+        }
     }
 
     override fun commit() {
-        DataIO.putInt(headBytes,20, calculateHeaderChecksum())
-        //write index page
-        wal.walPutByteArray(0, headBytes, 0, headBytes.size)
-        wal.commit()
+        //lock for write
+        for(lock in locks)
+            if(lock!=null)lock.writeLock().lock()
+        try {
+            DataIO.putInt(headBytes, 20, calculateHeaderChecksum())
+            //write index page
+            wal.walPutByteArray(0, headBytes, 0, headBytes.size)
+            wal.commit()
 
-        realVolume.putData(0, headBytes, 0, headBytes.size)
-        realVolume.ensureAvailable(fileTail)
+            realVolume.putData(0, headBytes, 0, headBytes.size)
 
-        //flush index values
-        for(indexVals in cacheIndexVals){
-            indexVals.forEachKeyValue { indexOffset, indexVal ->
+            realVolume.ensureAvailable(fileTail)
+
+            //flush index values
+            for (indexVals in cacheIndexVals) {
+                indexVals.forEachKeyValue { indexOffset, indexVal ->
+                    realVolume.putLong(indexOffset, indexVal)
+                }
+                indexVals.clear()
+            }
+            cacheIndexLinks.forEachKeyValue { indexOffset, indexVal ->
                 realVolume.putLong(indexOffset, indexVal)
             }
-            indexVals.clear()
-        }
-        cacheIndexLinks.forEachKeyValue { indexOffset, indexVal ->
-            realVolume.putLong(indexOffset, indexVal)
-        }
-        cacheIndexLinks.clear()
+            cacheIndexLinks.clear()
 
-        //flush long stack pages
-        cacheStacks.forEachKeyValue { offset, bytes ->
-            realVolume.putData(offset, bytes, 0, bytes.size)
-        }
-        cacheStacks.clear()
-
-        //move modified records from indexPages
-        for(records in cacheRecords){
-            records.forEachKeyValue { offset, walId ->
-                val bytes = wal.walGetRecord(walId, 0)
+            //flush long stack pages
+            cacheStacks.forEachKeyValue { offset, bytes ->
                 realVolume.putData(offset, bytes, 0, bytes.size)
             }
-            records.clear()
+            cacheStacks.clear()
+
+            //move modified records from indexPages
+            for (records in cacheRecords) {
+                records.forEachKeyValue { offset, walId ->
+                    val bytes = wal.walGetRecord(walId, 0)
+                    realVolume.putData(offset, bytes, 0, bytes.size)
+                }
+                records.clear()
+            }
+
+            indexPagesBackup = indexPages.toArray()
+            realVolume.sync()
+
+            wal.destroyWalFiles()
+            wal.close()
+        }finally{
+            //unlock in revere order to prevent dead lock
+            for(lock in locks.reversed()){
+                if(lock!=null)
+                    lock.writeLock().unlock()
+            }
         }
-
-        indexPagesBackup = indexPages.toArray()
-        realVolume.sync()
-
-        wal.destroyWalFiles()
-        wal.close()
     }
 
     override fun compact() {
