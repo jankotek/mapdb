@@ -539,24 +539,25 @@ class StoreWAL(
 
     }
     override fun close() {
-        //TODO lock this somehow?
-        if(closed.compareAndSet(false,true).not())
-            return
+        Utils.lockWriteAll(locks)
+        try {
+            if (closed.compareAndSet(false, true).not())
+                return
 
-        volume.close()
-        if(deleteFilesAfterClose && file!=null) {
-            File(file).delete()
-            wal.destroyWalFiles()
+            volume.close()
+            if (deleteFilesAfterClose && file != null) {
+                File(file).delete()
+                wal.destroyWalFiles()
+            }
+        }finally{
+            Utils.unlockWriteAll(locks)
         }
 
     }
 
     override fun rollback() {
-        //lock for write
-        for(lock in locks)
-            if(lock!=null)lock.writeLock().lock()
+        Utils.lockWriteAll(locks)
         try {
-
             realVolume.getData(0,headBytes, 0, headBytes.size)
             cacheIndexLinks.clear()
             cacheIndexVals.forEach { it.clear() }
@@ -567,18 +568,12 @@ class StoreWAL(
                 indexPages.add(page)
             wal.rollback()
         }finally{
-            //unlock in revere order to prevent dead lock
-            for(lock in locks.reversed()){
-                if(lock!=null)
-                    lock.writeLock().unlock()
-            }
+            Utils.unlockWriteAll(locks)
         }
     }
 
     override fun commit() {
-        //lock for write
-        for(lock in locks)
-            if(lock!=null)lock.writeLock().lock()
+        Utils.lockWriteAll(locks)
         try {
             DataIO.putInt(headBytes, 20, calculateHeaderChecksum())
             //write index page
@@ -622,11 +617,7 @@ class StoreWAL(
             wal.destroyWalFiles()
             wal.close()
         }finally{
-            //unlock in revere order to prevent dead lock
-            for(lock in locks.reversed()){
-                if(lock!=null)
-                    lock.writeLock().unlock()
-            }
+            Utils.unlockWriteAll(locks)
         }
     }
 

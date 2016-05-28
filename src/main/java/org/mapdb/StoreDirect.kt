@@ -843,21 +843,25 @@ class StoreDirect(
     }
 
     override fun close() {
-        //TODO lock this somehow?
-        if(closed.compareAndSet(false,true).not())
-            return
+        Utils.lockWriteAll(locks)
+        try{
+            if(closed.compareAndSet(false,true).not())
+                return
 
-        //update checksum
-        if(!isReadOnly) {
-            volume.putInt(20, calculateHeaderChecksum())
-            if (checksum) {
-                volume.putLong(8, calculateChecksum())
+            //update checksum
+            if(!isReadOnly) {
+                volume.putInt(20, calculateHeaderChecksum())
+                if (checksum) {
+                    volume.putLong(8, calculateChecksum())
+                }
             }
-        }
 
-        volume.close()
-        if(deleteFilesAfterClose && file!=null) {
-            File(file).delete()
+            volume.close()
+            if(deleteFilesAfterClose && file!=null) {
+                File(file).delete()
+            }
+        }finally{
+            Utils.unlockWriteAll(locks)
         }
     }
 
