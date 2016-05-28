@@ -845,6 +845,7 @@ class StoreDirect(
     override fun close() {
         Utils.lockWriteAll(locks)
         try{
+
             if(closed.compareAndSet(false,true).not())
                 return
 

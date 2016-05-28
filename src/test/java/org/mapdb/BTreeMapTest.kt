@@ -1375,4 +1375,19 @@ class BTreeMapTest {
         assertTrue(m.containsAll(m2))
     }
 
+    @Test fun external_value_null_after_delete(){
+        val map = BTreeMap.make(
+                keySerializer = Serializer.INTEGER,
+                valueSerializer = Serializer.INTEGER,
+                valueInline = false)
+        map.put(1,1);
+        val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
+        val rootNode = map.store.get(rootRecid, map.nodeSerializer)!!
+        val valueRecid =  rootNode.children[0]
+
+        assertEquals(1, map.store.get(valueRecid, map.valueSerializer))
+        map.remove(1)
+        assertEquals(null, map.store.get(valueRecid, map.valueSerializer))
+    }
+
 }

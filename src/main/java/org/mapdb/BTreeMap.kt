@@ -524,6 +524,8 @@ class BTreeMap<K,V>(
                                     keys = keySerializer.valueArrayDeleteValue(A.keys, pos + 1)
                                 }
                                 counterIncrement(-1)
+                                if(!valueInline)
+                                    store.update(oldValueRecid as Long, replaceWithValue, valueSerializer)
                                 valueNodeSerializer.valueArrayDeleteValue(A.values, valuePos + 1)
                             } else if(valueInline){
                                 valueNodeSerializer.valueArrayUpdateVal(A.values, valuePos, replaceWithValue)
