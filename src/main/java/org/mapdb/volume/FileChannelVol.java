@@ -274,10 +274,8 @@ public final class FileChannelVol extends Volume {
     @Override
     public synchronized void close() {
         try{
-            if(closed) {
+            if (!closed.compareAndSet(false,true))
                 return;
-            }
-            closed = true;
 
             if(fileLock!=null && fileLock.isValid()){
                 fileLock.release();

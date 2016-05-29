@@ -111,10 +111,9 @@ public final class MappedFileVolSingle extends ByteBufferVolSingle {
 
     @Override
     synchronized public void close() {
-        if (closed) {
+        if (!closed.compareAndSet(false,true))
             return;
-        }
-        closed = true;
+
         //TODO not sure if no sync causes problems while unlocking files
         //however if it is here, it causes slow commits, sync is called on write-ahead-log just before it is deleted and closed
 //                if(!readOnly)

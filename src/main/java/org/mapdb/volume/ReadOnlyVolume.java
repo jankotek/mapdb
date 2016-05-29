@@ -88,8 +88,12 @@ public final class ReadOnlyVolume extends Volume {
     }
 
     @Override
+    public boolean isClosed() {
+        return vol.isClosed();
+    }
+
+    @Override
     public void close() {
-        closed = true;
         vol.close();
     }
 

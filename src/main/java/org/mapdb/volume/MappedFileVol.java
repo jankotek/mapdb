@@ -161,12 +161,12 @@ public final class MappedFileVol extends ByteBufferVol {
 
     @Override
     public void close() {
+        if (!closed.compareAndSet(false,true))
+            return;
+
         growLock.lock();
         try {
-            if (closed)
-                return;
 
-            closed = true;
             if (fileLock != null && fileLock.isValid()) {
                 fileLock.release();
             }

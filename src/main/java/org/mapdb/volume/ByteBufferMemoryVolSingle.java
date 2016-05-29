@@ -31,14 +31,13 @@ public final class ByteBufferMemoryVolSingle extends ByteBufferVolSingle {
 
     @Override
     synchronized public void close() {
-        if (closed)
+        if (!closed.compareAndSet(false,true))
             return;
 
         if (cleanerHackEnabled && buffer instanceof MappedByteBuffer) {
             ByteBufferVol.unmap((MappedByteBuffer) buffer);
         }
         buffer = null;
-        closed = true;
     }
 
     @Override

@@ -30,6 +30,7 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -143,10 +144,10 @@ public abstract class Volume implements Closeable{
         }
     };
 
-    protected volatile boolean closed;
+    protected final AtomicBoolean closed = new AtomicBoolean(false);
 
     public boolean isClosed(){
-        return closed;
+        return closed.get();
     }
 
     //uncomment to get stack trace on Volume leak warning
@@ -154,7 +155,7 @@ public abstract class Volume implements Closeable{
 
     @Override protected void finalize(){
         if(CC.LOG_VOLUME_GCED){
-            if(!closed
+            if(!closed.get()
                     && !(this instanceof ByteArrayVol)
                     && !(this instanceof SingleByteArrayVol)){
                 LOG.log(Level.WARNING, "Open Volume was GCed, possible file handle leak."

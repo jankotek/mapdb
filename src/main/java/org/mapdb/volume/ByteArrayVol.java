@@ -274,7 +274,7 @@ public final class ByteArrayVol extends Volume {
 
     @Override
     public void close() {
-        closed = true;
+        closed.set(true);
         slices = null;
     }
 

@@ -146,9 +146,11 @@ public final class ByteBufferMemoryVol extends ByteBufferVol {
 
     @Override
     public void close() {
+        if (!closed.compareAndSet(false,true))
+            return;
+
         growLock.lock();
         try {
-            closed = true;
             if (cleanerHackEnabled) {
                 for (ByteBuffer b : slices) {
                     if (b != null && (b instanceof MappedByteBuffer)) {

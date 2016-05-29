@@ -214,10 +214,9 @@ public final class RandomAccessFileVol extends Volume {
 
     @Override
     public synchronized void close() {
-        if (closed)
+        if (!closed.compareAndSet(false,true))
             return;
 
-        closed = true;
         try {
             if (fileLock != null && fileLock.isValid()) {
                 fileLock.release();

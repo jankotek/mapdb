@@ -144,7 +144,9 @@ public final class SingleByteArrayVol extends Volume {
 
     @Override
     public void close() {
-        closed = true;
+        if (!closed.compareAndSet(false,true))
+            return;
+
         //TODO perhaps set `data` to null? what are performance implications for non-final fieldd?
     }
 
