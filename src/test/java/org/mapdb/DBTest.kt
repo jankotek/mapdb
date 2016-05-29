@@ -22,7 +22,10 @@ class DBTest{
     val DB.executors: MutableSet<ExecutorService>
         get() = Reflection.method("getExecutors").`in`(this).invoke() as MutableSet<ExecutorService>
 
-
+    //TODO remove this once LongLongMap is thread safe
+    fun DB.indexTreeLongLongMap(name:String) =
+        Reflection.method("indexTreeLongLongMap").withParameterTypes(java.lang.String::class.java).
+                `in`(this).invoke(name) as DB.IndexTreeLongLongMapMaker
 
     @Test fun store_consistent(){
         val store = StoreTrivial()

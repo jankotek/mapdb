@@ -1583,7 +1583,7 @@ open class DB(
     }
 
     //TODO this is thread unsafe, but locks should not be added directly due to code overhead on HTreeMap
-    fun indexTreeLongLongMap(name: String) = IndexTreeLongLongMapMaker(this, name)
+    private fun indexTreeLongLongMap(name: String) = IndexTreeLongLongMapMaker(this, name)
 
 
     class IndexTreeListMaker<E>(
