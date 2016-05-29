@@ -183,7 +183,7 @@ class VolumeSingleTest(val fab: Function1<String, Volume>) {
         }
 
         for(pos in 0L until max step 8){
-            assertEquals(pos*2, vol.getLong(pos)
+            assertEquals(pos*2, vol.getLong(pos))
         }
         vol.close()
         f.delete()
