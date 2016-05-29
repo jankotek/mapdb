@@ -173,7 +173,7 @@ class VolumeSingleTest(val fab: Function1<String, Volume>) {
     @Test fun parallel_growth(){
         val f = TT.tempFile()
         val vol = fab.invoke(f.path)
-        val max = 10248*1024*12
+        val max = 40000000
 
         TT.fork(5){
             for(pos in 0L until max step 8){
