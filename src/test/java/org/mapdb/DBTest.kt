@@ -8,6 +8,7 @@ import org.junit.Test
 import org.mapdb.StoreAccess.*
 import org.mapdb.elsa.SerializerPojo
 import org.mapdb.serializer.GroupSerializerObjectArray
+import java.io.File
 import java.io.NotSerializableException
 import java.io.Serializable
 import java.math.BigDecimal
@@ -1242,5 +1243,70 @@ class DBTest{
         assertTrue(collisions < 1e6/1000)
         assertEquals(1e6.toLong(), size)
     }
+
+    @Test fun deleteFilesAfterOpen(){
+        fun test(fab:(f: String)->DB){
+            val dir = TT.tempDir()
+            assertTrue(dir.listFiles().isEmpty())
+            val db = fab(dir.path+ "/aa")
+            assertTrue(dir.listFiles().isEmpty())
+            val a = db.atomicString("aa").create()
+            a.set("adqwd")
+            assertTrue(dir.listFiles().isEmpty())
+            db.commit()
+            assertTrue(dir.listFiles().isEmpty())
+            db.close()
+            assertTrue(dir.listFiles().isEmpty())
+            TT.tempDeleteRecur(dir)
+        }
+
+        if(DataIO.isWindows())
+            return
+
+        test{DBMaker.fileDB(it).fileDeleteAfterOpen().make()}
+        test{DBMaker.fileDB(it).fileDeleteAfterOpen().fileChannelEnable().make()}
+        test{DBMaker.fileDB(it).fileDeleteAfterOpen().fileMmapEnable().make()}
+        test{DBMaker.fileDB(it).fileDeleteAfterOpen().fileMmapEnable().cleanerHackEnable().make()}
+
+        test{DBMaker.fileDB(it).fileDeleteAfterOpen().transactionEnable().make()}
+        test{DBMaker.fileDB(it).fileDeleteAfterOpen().transactionEnable().fileChannelEnable().make()}
+        test{DBMaker.fileDB(it).fileDeleteAfterOpen().transactionEnable().fileMmapEnable().make()}
+        test{DBMaker.fileDB(it).fileDeleteAfterOpen().transactionEnable().fileMmapEnable().cleanerHackEnable().make()}
+
+    }
+
+
+
+    @Test fun deleteFilesAfterClose(){
+        fun test(fab:(f: String)->DB){
+            val dir = TT.tempDir()
+            assertTrue(dir.listFiles().isEmpty())
+            val db = fab(dir.path+ "/aa")
+            assertFalse(dir.listFiles().isEmpty())
+            val a = db.atomicString("aa").create()
+            a.set("adqwd")
+            assertFalse(dir.listFiles().isEmpty())
+            db.commit()
+            assertFalse(dir.listFiles().isEmpty())
+            db.close()
+            assertTrue(dir.listFiles().isEmpty())
+            TT.tempDeleteRecur(dir)
+        }
+
+        if(DataIO.isWindows())
+            return
+
+        test{DBMaker.fileDB(it).fileDeleteAfterClose().make()}
+        test{DBMaker.fileDB(it).fileDeleteAfterClose().fileChannelEnable().make()}
+        test{DBMaker.fileDB(it).fileDeleteAfterClose().fileMmapEnable().make()}
+        test{DBMaker.fileDB(it).fileDeleteAfterClose().fileMmapEnable().cleanerHackEnable().make()}
+
+        test{DBMaker.fileDB(it).fileDeleteAfterClose().transactionEnable().make()}
+        test{DBMaker.fileDB(it).fileDeleteAfterClose().transactionEnable().fileChannelEnable().make()}
+        test{DBMaker.fileDB(it).fileDeleteAfterClose().transactionEnable().fileMmapEnable().make()}
+        test{DBMaker.fileDB(it).fileDeleteAfterClose().transactionEnable().fileMmapEnable().cleanerHackEnable().make()}
+
+    }
+
 
 }

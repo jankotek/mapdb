@@ -23,7 +23,8 @@ class StoreWAL(
         concShift:Int,
         allocateIncrement:Long,
         allocateStartSize:Long,
-        deleteFilesAfterClose:Boolean,
+        fileDeleteAfterClose:Boolean,
+        fileDeleteAfterOpen:Boolean,
         checksum:Boolean,
         checksumHeader:Boolean,
         checksumHeaderBypass:Boolean
@@ -32,7 +33,7 @@ class StoreWAL(
         volumeFactory=volumeFactory,
         isThreadSafe = isThreadSafe,
         concShift =  concShift,
-        deleteFilesAfterClose = deleteFilesAfterClose,
+        fileDeleteAfterClose = fileDeleteAfterClose,
         checksum = checksum,
         checksumHeader = checksumHeader,
         checksumHeaderBypass = checksumHeaderBypass
@@ -47,7 +48,8 @@ class StoreWAL(
                 concShift:Int = CC.STORE_DIRECT_CONC_SHIFT,
                 allocateIncrement: Long = CC.PAGE_SIZE,
                 allocateStartSize: Long = 0L,
-                deleteFilesAfterClose:Boolean = false,
+                fileDeleteAfterClose:Boolean = false,
+                fileDelteAfterOpen:Boolean = false,
                 checksum:Boolean = false,
                 checksumHeader:Boolean = true,
                 checksumHeaderBypass:Boolean = false
@@ -59,7 +61,8 @@ class StoreWAL(
                 concShift = concShift,
                 allocateIncrement = allocateIncrement,
                 allocateStartSize = allocateStartSize,
-                deleteFilesAfterClose = deleteFilesAfterClose,
+                fileDeleteAfterClose = fileDeleteAfterClose,
+                fileDeleteAfterOpen = fileDelteAfterOpen,
                 checksum = checksum,
                 checksumHeader = checksumHeader,
                 checksumHeaderBypass = checksumHeaderBypass
@@ -69,9 +72,14 @@ class StoreWAL(
     }
 
     protected val realVolume: Volume = {
-        volumeFactory.makeVolume(file, false, fileLockWait,
+        volumeFactory.makeVolume(
+                file,
+                false,
+                fileLockWait,
                 Math.max(CC.PAGE_SHIFT, DataIO.shift(allocateIncrement.toInt())),
-                DataIO.roundUp(allocateStartSize, CC.PAGE_SIZE), false)
+                DataIO.roundUp(allocateStartSize, CC.PAGE_SIZE),
+                false
+        )
     }()
 
     override protected val volume: Volume = if(CC.ASSERT) ReadOnlyVolume(realVolume) else realVolume
@@ -91,7 +99,12 @@ class StoreWAL(
     protected val cacheRecords = Array(segmentCount, { LongLongHashMap() })
 
 
-    protected val wal = WriteAheadLog(file)
+    protected val wal = WriteAheadLog(
+            file,
+            volumeFactory, //TODO PERF choose best file factory, mmap might not be fastest option
+            0L,
+            fileDeleteAfterOpen
+    )
 
     /** backup for `indexPages`, restored on rollback */
     protected var indexPagesBackup = longArrayOf();
@@ -137,6 +150,8 @@ class StoreWAL(
                 loadIndexPages(indexPages)
                 indexPagesBackup = indexPages.toArray()
             }
+            if(file!=null && fileDeleteAfterOpen)
+                File(file).delete()
         }
     }
 
@@ -545,7 +560,7 @@ class StoreWAL(
                 return
 
             volume.close()
-            if (deleteFilesAfterClose && file != null) {
+            if (fileDeleteAfterClose && file != null) {
                 File(file).delete()
                 wal.destroyWalFiles()
             }

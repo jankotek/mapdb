@@ -18,7 +18,7 @@ abstract class StoreDirectAbstract(
         val volumeFactory: VolumeFactory,
         override val isThreadSafe:Boolean,
         val concShift:Int,
-        val deleteFilesAfterClose:Boolean,
+        val fileDeleteAfterClose:Boolean,
         val checksum:Boolean,
         val checksumHeader:Boolean,
         val checksumHeaderBypass:Boolean

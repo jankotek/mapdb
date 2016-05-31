@@ -23,7 +23,7 @@ class StoreWALTest: StoreDirectAbstractTest() {
 
     @Test override fun delete_after_close(){
         val dir = TT.tempDir()
-        val store = StoreWAL.make(dir.path+"/aa",deleteFilesAfterClose = true)
+        val store = StoreWAL.make(dir.path+"/aa", fileDeleteAfterClose = true)
         store.put(11, Serializer.INTEGER)
         store.commit()
         store.put(11, Serializer.INTEGER)

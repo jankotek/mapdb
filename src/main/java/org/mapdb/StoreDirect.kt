@@ -22,7 +22,8 @@ class StoreDirect(
         concShift:Int,
         allocateIncrement: Long,
         allocateStartSize:Long,
-        deleteFilesAfterClose:Boolean,
+        fileDeleteAfterClose:Boolean,
+        fileDeleteAfterOpen: Boolean,
         checksum:Boolean,
         checksumHeader:Boolean,
         checksumHeaderBypass:Boolean
@@ -31,7 +32,7 @@ class StoreDirect(
         volumeFactory=volumeFactory,
         isThreadSafe = isThreadSafe,
         concShift =  concShift,
-        deleteFilesAfterClose=deleteFilesAfterClose,
+        fileDeleteAfterClose = fileDeleteAfterClose,
         checksum = checksum,
         checksumHeader = checksumHeader,
         checksumHeaderBypass = checksumHeaderBypass
@@ -48,7 +49,8 @@ class StoreDirect(
                 concShift:Int = CC.STORE_DIRECT_CONC_SHIFT,
                 allocateIncrement:Long = CC.PAGE_SIZE,
                 allocateStartSize: Long = 0L,
-                deleteFilesAfterClose:Boolean = false,
+                fileDeleteAfterClose:Boolean = false,
+                fileDeleteAfterOpen: Boolean = false,
                 checksum:Boolean = false,
                 checksumHeader:Boolean = true,
                 checksumHeaderBypass:Boolean = false
@@ -61,7 +63,8 @@ class StoreDirect(
             concShift = concShift,
             allocateIncrement = allocateIncrement,
             allocateStartSize = allocateStartSize,
-            deleteFilesAfterClose = deleteFilesAfterClose,
+            fileDeleteAfterClose = fileDeleteAfterClose,
+            fileDeleteAfterOpen = fileDeleteAfterOpen,
             checksum = checksum,
             checksumHeader = checksumHeader,
             checksumHeaderBypass = checksumHeaderBypass
@@ -71,9 +74,14 @@ class StoreDirect(
     protected val freeSize = AtomicLong(-1L)
 
     override protected val volume: Volume = {
-        volumeFactory.makeVolume(file, isReadOnly, fileLockWait,
+        volumeFactory.makeVolume(
+                file,
+                isReadOnly,
+                fileLockWait,
                 Math.max(CC.PAGE_SHIFT, DataIO.shift(allocateIncrement.toInt())),
-                roundUp(allocateStartSize, CC.PAGE_SIZE), false)
+                roundUp(allocateStartSize, CC.PAGE_SIZE),
+                false
+        )
     }()
 
     override protected val headVol = volume
@@ -106,6 +114,8 @@ class StoreDirect(
                 fileHeaderCheck()
                 loadIndexPages(indexPages)
             }
+            if(file!=null && fileDeleteAfterOpen)
+                File(file).delete()
         }
     }
 
@@ -858,7 +868,7 @@ class StoreDirect(
             }
 
             volume.close()
-            if(deleteFilesAfterClose && file!=null) {
+            if(fileDeleteAfterClose && file!=null) {
                 File(file).delete()
             }
         }finally{

@@ -576,6 +576,12 @@ public final class DataIO {
     }
 
 
+    /** return true if operating system is Windows*/
+    static boolean isWindows(){
+        String os = System.getProperty("os.name");
+        return os!=null && os.toLowerCase().startsWith("windows");
+    }
+
     /**
      * Check if large files can be mapped into memory.
      * For example 32bit JVM can only address 2GB and large files can not be mapped,
@@ -588,10 +594,9 @@ public final class DataIO {
             return false;
         }
 
-        String os = System.getProperty("os.name");
-        if(os==null || os.toLowerCase().startsWith("windows")){
+        if(isWindows())
             return false;
-        }
+
         //TODO better check for 32bit JVM
         return true;
     }

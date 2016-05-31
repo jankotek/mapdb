@@ -10,7 +10,7 @@ class WALCrashTest: CrashJVM(){
 
     override fun doInJVM(startSeed: Long, params: String) {
         val file = getTestDir().path+"/wal"
-        val wal = WriteAheadLog(file, CC.DEFAULT_FILE_VOLUME_FACTORY, 0L)
+        val wal = WriteAheadLog(file, CC.DEFAULT_FILE_VOLUME_FACTORY, 0L, false)
         var seed = startSeed;
         while(true){
             seed++
@@ -24,7 +24,7 @@ class WALCrashTest: CrashJVM(){
 
     override fun verifySeed(startSeed: Long, endSeed: Long, params: String): Long {
         val file = getTestDir().path+"/wal"
-        val wal = WriteAheadLog(file, CC.DEFAULT_FILE_VOLUME_FACTORY, 0L)
+        val wal = WriteAheadLog(file, CC.DEFAULT_FILE_VOLUME_FACTORY, 0L, false)
         var lastLong:Long?=null
         var lastBB:ByteArray?=null
         wal.replayWAL(object: WriteAheadLog.WALReplay by WriteAheadLog.NOREPLAY{

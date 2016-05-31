@@ -50,21 +50,30 @@ public class WriteAheadLog {
     protected final long pointerSizeMask = DataIO.fillLowBits(pointerSizeBites);
     protected final int pointerFileBites=16;
     protected final long pointerFileMask = DataIO.fillLowBits(pointerFileBites);
+    protected final boolean fileDeleteAfterOpen;
 
     protected int lastChecksum=0;
     protected long lastChecksumOffset=16;
 
-    public WriteAheadLog(String fileName, VolumeFactory volumeFactory, long featureBitMap) {
+
+
+    public WriteAheadLog(
+            String fileName,
+            VolumeFactory volumeFactory,
+            long featureBitMap,
+            boolean fileDeleteAfterOpen) {
         this.fileName = fileName;
         this.volumeFactory = volumeFactory;
         this.featureBitMap = featureBitMap;
+        this.fileDeleteAfterOpen = fileDeleteAfterOpen;
     }
 
     public WriteAheadLog(String fileName) {
         this(
                 fileName,
                 fileName==null? CC.DEFAULT_MEMORY_VOLUME_FACTORY:CC.DEFAULT_FILE_VOLUME_FACTORY,
-                0L
+                0L,
+                false
         );
     }
 
@@ -117,6 +126,8 @@ public class WriteAheadLog {
         fileNum++;
         String filewal = getWalFileName(""+fileNum);
         Volume nextVol = volumeFactory.makeVolume(filewal, false, -1L);
+        if(fileDeleteAfterOpen)
+            new File(filewal).delete();
 
         nextVol.ensureAvailable(16);
 
@@ -338,9 +349,12 @@ public class WriteAheadLog {
             //fill wal files
             for(int i=0;;i++){
                 String wname = getWalFileName(""+i);
-                if(!new File(wname).exists())
+                File wnameF = new File(wname);
+                if(!wnameF.exists())
                     break;
                 volumes.add(volumeFactory.makeVolume(wname, false, -1L));
+                if(fileDeleteAfterOpen)
+                    wnameF.delete();
             }
 
             long walId = replayWALSkipRollbacks(replay);

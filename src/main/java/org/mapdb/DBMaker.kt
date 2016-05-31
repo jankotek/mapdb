@@ -131,7 +131,8 @@ object DBMaker{
         private var _allocateStartSize:Long = 0L
         private var _allocateIncrement:Long = 0L
         private var _transactionEnable = false
-        private var _deleteFilesAfterClose = false
+        private var _fileDeleteAfterClose = false
+        private var _fileDeleteAfterOpen = false
         private var _isThreadSafe = true
         private var _concurrencyScale: Int = 1.shl(CC.STORE_DIRECT_CONC_SHIFT)
         private var _cleanerHack = false
@@ -158,8 +159,19 @@ object DBMaker{
             return this
         }
 
+        @Deprecated(message="method renamed to `fileDeleteAfterClose()`")
         fun deleteFilesAfterClose():Maker{
-            _deleteFilesAfterClose = true
+            _fileDeleteAfterClose = true
+            return this
+        }
+
+        fun fileDeleteAfterClose():Maker{
+            _fileDeleteAfterClose = true
+            return this
+        }
+
+        fun fileDeleteAfterOpen():Maker{
+            _fileDeleteAfterOpen = true
             return this
         }
 
@@ -439,7 +451,8 @@ object DBMaker{
                                allocateIncrement = _allocateIncrement,
                                allocateStartSize = _allocateStartSize,
                                isReadOnly = _readOnly,
-                               deleteFilesAfterClose = _deleteFilesAfterClose,
+                               fileDeleteAfterClose = _fileDeleteAfterClose,
+                               fileDeleteAfterOpen = _fileDeleteAfterOpen,
                                concShift = concShift,
                                checksum = _checksumStoreEnable,
                                isThreadSafe = _isThreadSafe ,
@@ -451,7 +464,8 @@ object DBMaker{
                                fileLockWait = _fileLockWait,
                                allocateIncrement = _allocateIncrement,
                                allocateStartSize = _allocateStartSize,
-                               deleteFilesAfterClose = _deleteFilesAfterClose,
+                               fileDeleteAfterClose = _fileDeleteAfterClose,
+                               fileDelteAfterOpen = _fileDeleteAfterOpen,
                                concShift = concShift,
                                checksum = _checksumStoreEnable,
                                isThreadSafe = _isThreadSafe ,

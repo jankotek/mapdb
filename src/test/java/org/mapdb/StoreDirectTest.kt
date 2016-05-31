@@ -458,7 +458,7 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
 
     @Test open fun delete_after_close(){
         val dir = TT.tempDir()
-        val store = StoreDirect.make(dir.path+"/aa",deleteFilesAfterClose = true)
+        val store = StoreDirect.make(dir.path+"/aa", fileDeleteAfterClose = true)
         store.put(11, Serializer.INTEGER)
         store.commit()
         store.put(11, Serializer.INTEGER)
