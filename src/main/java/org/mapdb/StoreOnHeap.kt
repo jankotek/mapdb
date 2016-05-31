@@ -142,5 +142,10 @@ class StoreOnHeap(
 
     override fun fileLoad() = false
 
+
+    override fun getAllFiles(): Iterable<String> {
+        return arrayListOf()
+    }
+
 }
 

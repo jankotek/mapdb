@@ -1104,5 +1104,9 @@ class StoreDirect(
 
     override fun fileLoad() = volume.fileLoad()
 
+    override fun getAllFiles(): Iterable<String> {
+        if(file==null) return Arrays.asList<String>()
+        else return Arrays.asList(file)
+    }
 
 }

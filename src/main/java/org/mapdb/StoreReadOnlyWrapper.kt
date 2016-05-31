@@ -59,4 +59,6 @@ class StoreReadOnlyWrapper(protected val store:Store):Store{
 
     override fun fileLoad() = store.fileLoad()
 
+    override fun getAllFiles() = store.getAllFiles()
+
 }

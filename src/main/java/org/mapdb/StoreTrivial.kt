@@ -317,6 +317,10 @@ open class StoreTrivial(
 
     override fun fileLoad() = false
 
+    open override fun getAllFiles(): Iterable<String> {
+        return arrayListOf()
+    }
+
 }
 
 class StoreTrivialTx(val file:File, isThreadSafe:Boolean=true, val deleteFilesAfterClose:Boolean=false)
@@ -468,5 +472,7 @@ class StoreTrivialTx(val file:File, isThreadSafe:Boolean=true, val deleteFilesAf
     }
 
 
-
+    override fun getAllFiles(): Iterable<String> {
+        return arrayListOf(file.path)
+    }
 }

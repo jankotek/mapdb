@@ -205,6 +205,15 @@ public class WriteAheadLog {
         curVol.sync();
     }
 
+    @NotNull
+    public Iterable<String> getAllFiles() {
+        ArrayList<String> ret = new ArrayList<>();
+        for(Volume vol:volumes){
+            if(vol.getFile()!=null)
+                ret.add(vol.getFile().getPath());
+        }
+        return ret;
+    }
 
     public interface WALReplay{
 

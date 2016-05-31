@@ -907,4 +907,13 @@ class StoreWAL(
 
     override fun fileLoad() = volume.fileLoad()
 
+    override fun getAllFiles(): Iterable<String> {
+        if(file==null)
+            return Arrays.asList<String>()
+
+        val ret = arrayListOf(file)
+        ret.addAll(wal.getAllFiles())
+        return ret.toList() //immutable copy
+    }
+
 }

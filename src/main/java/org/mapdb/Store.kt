@@ -4,13 +4,14 @@ package org.mapdb
 /**
  * Stores records
  */
-interface StoreImmutable{
+interface StoreImmutable {
 
     fun <R> get(recid: Long, serializer: Serializer<R>): R?
 
     fun getAllRecids(): LongIterator
-}
 
+    fun getAllFiles(): Iterable<String>
+}
 /**
  * Stores records, mutable version
  */

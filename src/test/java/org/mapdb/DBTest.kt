@@ -1272,7 +1272,7 @@ class DBTest{
         test{DBMaker.fileDB(it).fileDeleteAfterOpen().transactionEnable().fileChannelEnable().make()}
         test{DBMaker.fileDB(it).fileDeleteAfterOpen().transactionEnable().fileMmapEnable().make()}
         test{DBMaker.fileDB(it).fileDeleteAfterOpen().transactionEnable().fileMmapEnable().cleanerHackEnable().make()}
-
+        //TODO hook StoreTrivialTx into tests bellow
     }
 
 
@@ -1305,6 +1305,42 @@ class DBTest{
         test{DBMaker.fileDB(it).fileDeleteAfterClose().transactionEnable().fileChannelEnable().make()}
         test{DBMaker.fileDB(it).fileDeleteAfterClose().transactionEnable().fileMmapEnable().make()}
         test{DBMaker.fileDB(it).fileDeleteAfterClose().transactionEnable().fileMmapEnable().cleanerHackEnable().make()}
+
+    }
+
+
+
+
+    @Test fun allFiles(){
+        fun test(fab:(f: String)->DB){
+            val dir = TT.tempDir()
+            assertTrue(dir.listFiles().isEmpty())
+            val db = fab(dir.path+ "/aa")
+            fun eq() = assertEquals(dir.listFiles().map{it.path}.toSet(), db.getStore().getAllFiles().toSet())
+            eq()
+
+            val a = db.atomicString("aa").create()
+            a.set("adqwd")
+            eq()
+
+            db.commit()
+            eq()
+            db.close()
+            TT.tempDeleteRecur(dir)
+        }
+
+        if(DataIO.isWindows())
+            return
+
+        test{DBMaker.fileDB(it).make()}
+        test{DBMaker.fileDB(it).fileChannelEnable().make()}
+        test{DBMaker.fileDB(it).fileMmapEnable().make()}
+        test{DBMaker.fileDB(it).fileMmapEnable().cleanerHackEnable().make()}
+
+        test{DBMaker.fileDB(it).transactionEnable().make()}
+        test{DBMaker.fileDB(it).transactionEnable().fileChannelEnable().make()}
+        test{DBMaker.fileDB(it).transactionEnable().fileMmapEnable().make()}
+        test{DBMaker.fileDB(it).transactionEnable().fileMmapEnable().cleanerHackEnable().make()}
 
     }
 
