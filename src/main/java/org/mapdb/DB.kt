@@ -319,7 +319,11 @@ open class DB(
                 Serializer.LONG_ARRAY, Serializer.DOUBLE_ARRAY, Serializer.JAVA, Serializer.ELSA, Serializer.UUID,
                 Serializer.BYTE, Serializer.FLOAT, Serializer.DOUBLE, Serializer.SHORT, Serializer.SHORT_ARRAY,
                 Serializer.FLOAT_ARRAY, Serializer.BIG_INTEGER, Serializer.BIG_DECIMAL, Serializer.CLASS,
-                Serializer.DATE
+                Serializer.DATE,
+                Collections.emptyEnumeration(), Collections.emptyIterator(), Collections.emptyList(),
+                Collections.emptyListIterator(), Collections.emptyMap(), Collections.emptyNavigableMap(),
+                Collections.emptyNavigableSet(), Collections.emptySet(), Collections.emptySortedMap(),
+                Collections.emptySortedSet()
         )
 
     }
