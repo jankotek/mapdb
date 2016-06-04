@@ -320,10 +320,10 @@ open class DB(
                 Serializer.BYTE, Serializer.FLOAT, Serializer.DOUBLE, Serializer.SHORT, Serializer.SHORT_ARRAY,
                 Serializer.FLOAT_ARRAY, Serializer.BIG_INTEGER, Serializer.BIG_DECIMAL, Serializer.CLASS,
                 Serializer.DATE,
-                Collections.emptyEnumeration(), Collections.emptyIterator(), Collections.emptyList(),
-                Collections.emptyListIterator(), Collections.emptyMap(), Collections.emptyNavigableMap(),
-                Collections.emptyNavigableSet(), Collections.emptySet(), Collections.emptySortedMap(),
-                Collections.emptySortedSet()
+                Collections.emptyEnumeration<Any?>(), Collections.emptyIterator<Any?>(), Collections.emptyList<Any?>(),
+                Collections.emptyListIterator<Any?>(), Collections.emptyMap<Any?, Any?>(), Collections.emptyNavigableMap<Any?,Any?>(),
+                Collections.emptyNavigableSet<Any?>(), Collections.emptySet<Any?>(), Collections.emptySortedMap<Any?,Any?>(),
+                Collections.emptySortedSet<Any?>()
         )
 
     }
@@ -336,7 +336,7 @@ open class DB(
 
 
     /** List of executors associated with this database. Those will be terminated on close() */
-    protected val executors:MutableSet<ExecutorService> = Collections.synchronizedSet(LinkedHashSet());
+    protected val executors:MutableSet<ExecutorService> = Collections.synchronizedSet(LinkedHashSet())
 
     fun nameCatalogLoad():SortedMap<String, String> {
         return Utils.lockRead(lock){
