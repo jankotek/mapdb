@@ -5,7 +5,7 @@ import com.google.common.cache.CacheBuilder
 import org.eclipse.collections.api.map.primitive.MutableLongLongMap
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.mapdb.elsa.*
-import org.mapdb.elsa.SerializerPojo.ClassInfo
+import org.mapdb.elsa.ElsaSerializerPojo.ClassInfo
 import org.mapdb.serializer.GroupSerializer
 import org.mapdb.serializer.GroupSerializerObjectArray
 import java.io.Closeable
@@ -173,7 +173,7 @@ open class DB(
             IndexTreeList::class.java
     )
 
-    private val nameSer = object:SerializerBase.Ser<Any>(){
+    private val nameSer = object:ElsaSerializerBase.Ser<Any>(){
         override fun serialize(out: DataOutput, value: Any, objectStack: ElsaStack?) {
             val name = getNameForObject(value)
                     ?: throw DBException.SerializationError("Could not serialize named object, it was not instantiated by this db")
@@ -182,21 +182,21 @@ open class DB(
         }
     }
 
-    private val nameDeser = object:SerializerBase.Deser<Any>(){
+    private val nameDeser = object:ElsaSerializerBase.Deser<Any>(){
         override fun deserialize(input: DataInput, objectStack: ElsaStack): Any? {
             val name = input.readUTF()
             return this@DB.get(name)
         }
     }
 
-    private val elsaSerializer:SerializerPojo = SerializerPojo(
+    private val elsaSerializer:ElsaSerializerPojo = ElsaSerializerPojo(
             0,
             pojoSingletons(),
             namedClasses().map { Pair(it, nameSer) }.toMap(),
             namedClasses().map { Pair(it, NAMED_SERIALIZATION_HEADER)}.toMap(),
             mapOf(Pair(NAMED_SERIALIZATION_HEADER, nameDeser)),
-            ClassCallback { unknownClasses.add(it) },
-            object:ClassInfoResolver {
+            ElsaClassCallback { unknownClasses.add(it) },
+            object:ElsaClassInfoResolver {
                 override fun classToId(className: String): Int {
                     val classInfos = loadClassInfos()
                     classInfos.forEachIndexed { i, classInfo ->
@@ -206,7 +206,7 @@ open class DB(
                     return -1
                 }
 
-                override fun getClassInfo(classId: Int): SerializerPojo.ClassInfo? {
+                override fun getClassInfo(classId: Int): ElsaSerializerPojo.ClassInfo? {
                     return loadClassInfos()[classId]
                 }
             } )
@@ -327,7 +327,7 @@ open class DB(
 
     }
 
-    private fun loadClassInfos():Array<SerializerPojo.ClassInfo>{
+    private fun loadClassInfos():Array<ElsaSerializerPojo.ClassInfo>{
         return store.get(CC.RECID_CLASS_INFOS, classInfoSerializer)!!
     }
 

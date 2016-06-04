@@ -6,7 +6,7 @@ import org.fest.reflect.core.Reflection
 import org.junit.Assert.*
 import org.junit.Test
 import org.mapdb.StoreAccess.*
-import org.mapdb.elsa.SerializerPojo
+import org.mapdb.elsa.ElsaSerializerPojo
 import org.mapdb.serializer.GroupSerializerObjectArray
 import java.io.File
 import java.io.NotSerializableException
@@ -1053,7 +1053,7 @@ class DBTest{
     fun DB.loadClassInfos() =
             Reflection.method("loadClassInfos")
                     .`in`(this)
-                    .invoke() as Array<SerializerPojo.ClassInfo>
+                    .invoke() as Array<ElsaSerializerPojo.ClassInfo>
 
 
     @Test fun class_registered(){
@@ -1123,7 +1123,7 @@ class DBTest{
         db.defaultSerializerRegisterClass(TestPojo::class.java)
         val classInfos = db.loadClassInfos().clone()
         val z = classInfos[0]
-        classInfos[0] = SerializerPojo.ClassInfo(z.name, z.fields, true, true) //modify old value to make it recognizable
+        classInfos[0] = ElsaSerializerPojo.ClassInfo(z.name, z.fields, true, true) //modify old value to make it recognizable
         db.getStore().update(CC.RECID_CLASS_INFOS, classInfos, db.classInfoSerializer())
 
         //update again and check old class info is untouched
