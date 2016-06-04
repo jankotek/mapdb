@@ -320,10 +320,9 @@ open class DB(
                 Serializer.BYTE, Serializer.FLOAT, Serializer.DOUBLE, Serializer.SHORT, Serializer.SHORT_ARRAY,
                 Serializer.FLOAT_ARRAY, Serializer.BIG_INTEGER, Serializer.BIG_DECIMAL, Serializer.CLASS,
                 Serializer.DATE,
-                Collections.emptyEnumeration<Any?>(), Collections.emptyIterator<Any?>(), Collections.emptyList<Any?>(),
-                Collections.emptyListIterator<Any?>(), Collections.emptyMap<Any?, Any?>(), Collections.emptyNavigableMap<Any?,Any?>(),
-                Collections.emptyNavigableSet<Any?>(), Collections.emptySet<Any?>(), Collections.emptySortedMap<Any?,Any?>(),
-                Collections.emptySortedSet<Any?>()
+                Collections.EMPTY_LIST,
+                Collections.EMPTY_SET,
+                Collections.EMPTY_MAP
         )
 
     }

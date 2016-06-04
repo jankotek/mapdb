@@ -62,6 +62,8 @@ class DBSerTest{
         val db = DBMaker.memoryDB().make()
         val singletons = db.pojoSingletons()
 
+        // Verify that format is backward compatible. Verify that singletons declared in DB object are the same as this list.
+        //
         //if DB.pojoSingletons changes, this method will have to be updated as well.
         // !!! DO NOT CHANGE INDEX OF EXISTING VALUE, just add to the END!!!
         val other = arrayOf(
@@ -76,7 +78,10 @@ class DBSerTest{
                 Serializer.LONG_ARRAY, Serializer.DOUBLE_ARRAY, Serializer.JAVA, Serializer.ELSA, Serializer.UUID,
                 Serializer.BYTE, Serializer.FLOAT, Serializer.DOUBLE, Serializer.SHORT, Serializer.SHORT_ARRAY,
                 Serializer.FLOAT_ARRAY, Serializer.BIG_INTEGER, Serializer.BIG_DECIMAL, Serializer.CLASS,
-                Serializer.DATE
+                Serializer.DATE,
+                Collections.EMPTY_LIST,
+                Collections.EMPTY_SET,
+                Collections.EMPTY_MAP
         )
 
         singletons.forEachIndexed { i, singleton ->
