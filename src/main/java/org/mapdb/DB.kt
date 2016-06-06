@@ -218,7 +218,7 @@ open class DB(
     val defaultSerializer = object: GroupSerializerObjectArray<Any?>() {
 
         override fun deserialize(input: DataInput2, available: Int): Any? {
-            return elsaSerializer.deserialize(input, available)
+            return elsaSerializer.deserialize(input)
         }
 
         override fun serialize(out: DataOutput2, value: Any) {

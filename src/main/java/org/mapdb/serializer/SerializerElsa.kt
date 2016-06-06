@@ -12,7 +12,7 @@ class SerializerElsa :GroupSerializerObjectArray<Any?>(){
     protected val ser = ElsaSerializerPojo()
 
     override fun deserialize(input: DataInput2, available: Int): Any? {
-        return ser.deserialize(input, available)
+        return ser.deserialize(input)
     }
 
     override fun serialize(out: DataOutput2, value: Any) {
