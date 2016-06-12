@@ -86,7 +86,7 @@ object DBMaker{
 
 
     @JvmStatic fun volumeDB(volume: Volume, volumeExists: Boolean): Maker {
-        return Maker(_storeType = StoreType.directbuffer, volume=volume, volumeExist=volumeExists)
+        return Maker(_storeType = null, _customVolume =volume, _volumeExist =volumeExists)
     }
 
 
@@ -123,9 +123,9 @@ object DBMaker{
     }
 
     class Maker(
-            private var _storeType:StoreType,
-            private val volume: Volume?=null,
-            private val volumeExist:Boolean?=null,
+            private var _storeType: StoreType?,
+            private val _customVolume: Volume?=null,
+            private val _volumeExist:Boolean?=null,
             private val file:String?=null){
 
         private var _allocateStartSize:Long = 0L
@@ -433,6 +433,7 @@ object DBMaker{
                 StoreType.fileRaf -> RandomAccessFileVol.FACTORY
                 StoreType.fileChannel -> FileChannelVol.FACTORY
                 StoreType.fileMMap -> MappedFileVol.MappedFileFactory(_cleanerHack, _fileMmapPreclearDisable)
+                null -> VolumeFactory.wrap(_customVolume!!, _volumeExist!!)
             }
 
             if(_readOnly && volfab!=null && volfab.handlesReadonly().not())

@@ -188,4 +188,10 @@ class DBMakerTest{
         assertEquals(1+CC.PAGE_SHIFT, volume.sliceShift)
     }
 
+
+    @Test fun fromVolume(){
+        val vol = ByteArrayVol()
+        val db = DBMaker.volumeDB(vol, false).make()
+        assertTrue(vol === (db.getStore() as StoreDirect).volume)
+    }
 }

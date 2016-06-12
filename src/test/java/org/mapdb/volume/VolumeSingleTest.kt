@@ -2,10 +2,7 @@ package org.mapdb.volume
 
 import org.junit.Assert.*
 import org.junit.Test
-import org.mapdb.CC
-import org.mapdb.DataIO
-import org.mapdb.Serializer
-import org.mapdb.TT
+import org.mapdb.*
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.IOException
@@ -189,5 +186,43 @@ class VolumeSingleTest(val fab: Function1<String, Volume>) {
         f.delete()
     }
 
+
+    @Test fun copyFromDb(){
+        val volMem = ByteArrayVol()
+        val db = DBMaker.volumeDB(volMem, false).make()
+        val s = db.treeSet("aa",Serializer.STRING).createOrOpen()
+        val s2 = TreeSet<String>()
+
+        for(i in 0 until 10000){
+            val a = TT.randomString(10)
+            s+=(a)
+            s2+=a
+        }
+        db.commit()
+
+        val f= TT.tempFile()
+        val vol2 = fab.invoke(f.path)
+        volMem.copyTo(vol2)
+        val db2 = DBMaker.volumeDB(vol2, true).make()
+        val s3 = db2.treeSet("aa",Serializer.STRING).createOrOpen()
+
+        assertEquals(s2.size, s3.size)
+        assertEquals(s2,s3)
+        db2.close()
+        f.delete()
+    }
+
+    @Test fun length(){
+        val f= TT.tempFile()
+        val vol = fab.invoke(f.path)
+
+        val s = 12L * 1024 * 1024
+        vol.ensureAvailable(s-100)
+
+        assertTrue((s-100 .. s).contains(vol.length()))
+
+        vol.close()
+        f.delete()
+    }
 }
 
