@@ -7,7 +7,7 @@ import org.junit.Test
 import org.mapdb.IndexTreeListJava.*;
 import java.util.*
 
-class TreeArrayListTest{
+class IndexTreeListTest{
 //
 //    @Test fun putGet(){
 //        val l = IndexTreeList<Long>(maxSize = 1000)
