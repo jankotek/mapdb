@@ -498,7 +498,7 @@ class HTreeMap<K,V>(
                 //remove from leaf and from store
                 if (leaf.size == 3) {
                     //single entry, collapse leaf
-                    indexTree.remove(index)
+                    indexTree.removeKey(index)
                     store.delete(leafRecid, leafSerializer)
                 } else {
                     //more entries, update leaf
