@@ -85,26 +85,6 @@ public class IndexTreeLongLongMap(
             treeRemove(dirShift, rootRecid, store, levels, key, null)
     }
 
-
-    fun keyIterator(): LongIterator {
-        return object : LongIterator() {
-            //TODO lazy iteration
-            var next: LongArray? =
-                    treeIter(dirShift, rootRecid, store, levels, 0L)
-
-            override fun nextLong(): Long {
-                val ret = next ?: throw NoSuchElementException();
-                next = treeIter(dirShift, rootRecid, store, levels, ret[0] + 1)
-                return ret[0];
-            }
-
-            override fun hasNext(): Boolean {
-                return next != null
-            }
-        }
-    }
-
-
     private inline fun assertKey(key: Long) {
         if (key < 0)
             throw IllegalArgumentException("negative key")
@@ -144,36 +124,54 @@ public class IndexTreeLongLongMap(
         return ArrayListAdapter.adapt(ret)
     }
 
-    override fun longIterator(): MutableLongIterator {
-        return object : MutableLongIterator {
+    private class Iterator(
+            val m:IndexTreeLongLongMap,
+            val index:Int
+        ):MutableLongIterator{
 
-            //TODO lazy iteration
-            var next: LongArray? =
-                    treeIter(dirShift, rootRecid, store, levels, 0L)
+        var nextKey: Long? = -1L
+        var nextRet: Long? = null
+        var lastKey: Long? = null;
 
-            var lastKey: Long? = null;
-
-            override fun hasNext(): Boolean {
-                return next != null
+        override fun hasNext(): Boolean {
+            if(nextRet!=null)
+                return true
+            val prev = nextKey ?: return false;
+            val ret = treeIter(m.dirShift, m.rootRecid, m.store, m.levels, prev+1)
+            if(ret==null) {
+                nextRet = null
+                nextKey = null
+            }else{
+                nextRet = ret[index]
+                nextKey = ret[0]
             }
-
-            override fun next(): Long {
-                val ret = next
-                if (ret == null) {
-                    lastKey = null
-                    throw NoSuchElementException()
-                }
-                next = treeIter(dirShift, rootRecid, store, levels, ret[0] + 1)
-                lastKey = ret[0]
-                return ret[1];
-            }
-
-            override fun remove() {
-                removeKey(lastKey ?: throw IllegalStateException())
-                lastKey = null
-            }
-
+            return nextRet!=null
         }
+
+        override fun next(): Long {
+            val ret = nextRet
+            nextRet = null;
+            if (ret == null) {
+                if(nextKey!=null){
+                    //fetch next item
+                    if(hasNext())
+                        return next()
+                }
+                lastKey = null
+                throw NoSuchElementException()
+            }
+            lastKey = nextKey
+            return ret;
+        }
+
+        override fun remove() {
+            m.removeKey(lastKey ?: throw IllegalStateException())
+            lastKey = null
+        }
+    }
+
+    override fun longIterator(): MutableLongIterator {
+        return Iterator(this@IndexTreeLongLongMap, 1)
     }
 
     override fun reject(predicate: LongPredicate): MutableLongCollection? {
@@ -547,35 +545,7 @@ public class IndexTreeLongLongMap(
                 }
 
                 override fun longIterator(): MutableLongIterator {
-                    return object : MutableLongIterator{
-
-                        //TODO lazy init
-                        var next: LongArray? =
-                                treeIter(dirShift, rootRecid, store, levels, 0L)
-
-                        var lastKey: Long? = null;
-
-                        override fun hasNext(): Boolean {
-                            return next != null
-                        }
-
-                        override fun next(): Long {
-                            val ret = next
-                            if (ret == null) {
-                                lastKey = null
-                                throw NoSuchElementException()
-                            }
-                            next = treeIter(dirShift, rootRecid, store, levels, ret[0] + 1)
-                            lastKey = ret[0]
-                            return ret[0];
-                        }
-
-                        override fun remove() {
-                            removeKey(lastKey ?: throw IllegalStateException())
-                            lastKey = null
-                        }
-                    }
-
+                    return Iterator(this@IndexTreeLongLongMap, 0)
                 }
 
                 override fun remove(value: Long): Boolean {
@@ -657,32 +627,47 @@ public class IndexTreeLongLongMap(
 
         override fun iterator(): MutableIterator<LongLongPair> {
             return object : MutableIterator<LongLongPair> {
+                ;
+                    var nextKey: Long? = -1L
+                    var nextRet: LongLongPair? = null
+                    var lastKey: Long? = null;
 
-                //TODO lazy init
-                var next: LongArray? =
-                        treeIter(dirShift, rootRecid, store, levels, 0L)
-
-                var lastKey: Long? = null;
-
-                override fun hasNext(): Boolean {
-                    return next != null
-                }
-
-                override fun next(): LongLongPair {
-                    val ret = next
-                    if (ret == null) {
-                        lastKey = null
-                        throw NoSuchElementException()
+                    override fun hasNext(): Boolean {
+                        if(nextRet!=null)
+                            return true
+                        val prev = nextKey ?: return false;
+                        val ret = treeIter(dirShift, rootRecid, store, levels, prev+1)
+                        if(ret==null) {
+                            nextRet = null
+                            nextKey = null
+                        }else{
+                            nextRet = PrimitiveTuples.pair(ret[0], ret[1])
+                            nextKey = ret[0]
+                        }
+                        return nextRet!=null
                     }
-                    next = treeIter(dirShift, rootRecid, store, levels, ret[0] + 1)
-                    lastKey = ret[0]
-                    return PrimitiveTuples.pair(ret[0], ret[1]);
-                }
 
-                override fun remove() {
-                    removeKey(lastKey ?: throw UnsupportedOperationException())
-                    lastKey = null
-                }
+                    override fun next(): LongLongPair {
+                        val ret = nextRet
+                        nextRet = null;
+                        if (ret == null) {
+                            if(nextKey!=null){
+                                //fetch next item
+                                if(hasNext())
+                                    return next()
+                            }
+
+                            lastKey = null
+                            throw NoSuchElementException()
+                        }
+                        lastKey = ret.one
+                        return ret;
+                    }
+
+                    override fun remove() {
+                        removeKey(lastKey ?: throw UnsupportedOperationException())
+                        lastKey = null
+                    }
             }
         }
 
@@ -734,35 +719,7 @@ public class IndexTreeLongLongMap(
                 }
 
                 override fun longIterator(): MutableLongIterator? {
-                    return object : MutableLongIterator {
-
-                        //TODO lazy init
-                        var next: LongArray? =
-                                treeIter(dirShift, rootRecid, store, levels, 0L)
-
-                        var lastKey: Long? = null;
-
-                        override fun hasNext(): Boolean {
-                            return next != null
-                        }
-
-                        override fun next(): Long{
-                            val ret = next
-                            if (ret == null) {
-                                lastKey = null
-                                throw NoSuchElementException()
-                            }
-                            next = treeIter(dirShift, rootRecid, store, levels, ret[0] + 1)
-                            lastKey = ret[0]
-                            return ret[1]
-                        }
-
-                        override fun remove() {
-                            removeKey(lastKey ?: throw IllegalStateException())
-                            lastKey = null
-                        }
-                    }
-
+                    return Iterator(this@IndexTreeLongLongMap, 1)
                 }
 
                 override fun remove(value: Long): Boolean {

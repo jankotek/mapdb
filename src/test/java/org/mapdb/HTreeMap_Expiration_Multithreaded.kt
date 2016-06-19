@@ -2,8 +2,7 @@ package org.mapdb
 
 
 import org.junit.Test
-import java.util.Random
-import java.util.UUID
+import java.util.*
 import java.util.concurrent.TimeUnit
 
 class HTreeMap_Expiration_Multithreaded {
@@ -54,6 +53,25 @@ class HTreeMap_Expiration_Multithreaded {
                     i++
                 }
             }
+        }
+    }
+
+    @Test fun expiration_with_size(){
+        if(TT.shortTest()) return
+
+        val db = DBMaker.memoryDB().make()
+        val m = db
+                .hashMap("map", Serializer.JAVA, Serializer.JAVA)
+                .expireAfterCreate(100)
+                .expireExecutor(TT.executor(1))
+                .expireExecutorPeriod(1)
+                .layout(1,4,4)
+                .createOrOpen()
+
+        for(i in 0 until 1e7.toInt()){
+            m.put("london"+i, "aa")
+//            if(i%10000==0)
+//                Iterators.size(m.iterator())
         }
     }
 }

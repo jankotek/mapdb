@@ -5,9 +5,9 @@ import org.eclipse.collections.api.collection.primitive.MutableLongCollection
 import org.eclipse.collections.api.map.primitive.MutableLongLongMap
 import org.eclipse.collections.api.set.primitive.MutableLongSet
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap
-import org.mapdb.indexTreeLongLongMapTests_GS_GENERATED.*
 import org.junit.Assert.*
 import org.junit.Test
+import org.mapdb.indexTreeLongLongMapTests_GS_GENERATED.*
 import java.util.*
 
 class IndexTreeLongLongMapTest{
@@ -39,14 +39,14 @@ class IndexTreeLongLongMapTest{
         map.put(0L, 111L)
         map.put(3423L, 4234L)
 
-        val iter = map.keyIterator()
+        val iter = map.keySet().longIterator()
         assertTrue(iter.hasNext())
-        assertEquals(0L, iter.nextLong())
+        assertEquals(0L, iter.next())
         assertTrue(iter.hasNext())
-        assertEquals(3423L, iter.nextLong())
+        assertEquals(3423L, iter.next())
         assertFalse(iter.hasNext())
         TT.assertFailsWith(NoSuchElementException::class.java, {
-            iter.nextLong()
+            iter.next()
         })
 
     }
@@ -227,4 +227,46 @@ class IndexTreeLongLongMapTest{
 
     }
 
+
+    @Test fun concurrent_modification() {
+        if(TT.shortTest())
+            return
+
+        concModTest( IndexTreeLongLongMap.make(collapseOnRemove = true))
+    }
+
+
+    @Test fun concurrent_modification2() {
+        if(TT.shortTest())
+            return
+
+        concModTest( IndexTreeLongLongMap.make(collapseOnRemove = false))
+    }
+
+
+    private fun concModTest(s1: IndexTreeLongLongMap) {
+
+        val s2 = LongLongHashMap()
+        val size = 1e7.toLong()
+
+        for (i in 0L until size) {
+            s1.put(i, i * 11)
+            s2.put(i, i * 11)
+        }
+        val r = Random(1)
+        val iter = s1.keySet().longIterator()
+        while (iter.hasNext()) {
+            val next = iter.next()
+            assertTrue("aa $next", s2.containsKey(next))
+            assertEquals(next*11, s1.get(next) )
+
+            val v = r.nextInt(size.toInt()).toLong()
+            if (!s2.containsKey(v))
+                continue
+
+            s1.removeKey(v)
+            s2.remove(v)
+            //assertEquals(s1, s2)
+        }
+    }
 }

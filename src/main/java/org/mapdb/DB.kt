@@ -34,7 +34,7 @@ open class DB(
         private val store:Store,
         /** True if store existed before and was opened, false if store was created and is completely empty */
         protected val storeOpened:Boolean,
-        override val isThreadSafe:Boolean,
+        override val isThreadSafe:Boolean = true,
         val classLoader:ClassLoader = Thread.currentThread().contextClassLoader,
         /** type of shutdown hook, 0 is disabled, 1 is hard ref, 2 is weak ref*/
         val shutdownHook:Int = 0
