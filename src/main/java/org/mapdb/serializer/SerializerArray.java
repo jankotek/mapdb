@@ -5,20 +5,48 @@ import org.mapdb.DataOutput2;
 import org.mapdb.Serializer;
 
 import java.io.IOException;
-import java.io.Serializable;
+import java.lang.reflect.Array;
 
 /**
- * Created by jan on 2/28/16.
+ * Serializes an object array of non-primitive objects.
+ * This serializer takes two parameters:
+ *
+ * - serializer used for each component
+ *
+ * - componentType is class used to instantiate arrays. Generics are erased at runtime,
+ *   this class controls what type of array will be instantiated.
+ *   See {@link java.lang.reflect.Array#newInstance(Class, int)}
+ *
  */
 public class SerializerArray<T> extends GroupSerializerObjectArray<T[]>{
 
-    private static final long serialVersionUID = -7443421486382532062L;
+    private static final long serialVersionUID = -982394293898234253L;
     protected final Serializer<T> serializer;
+    protected final Class<T> componentType;
 
+
+    /**
+     * Wraps given serializer and produces Object[] serializer.
+     * To produce array with different component type, specify extra class.
+      */
     public SerializerArray(Serializer<T> serializer) {
+        this(serializer, null);
+    }
+
+
+    /**
+     * Wraps given serializer and produces array serializer.
+     *
+     * @param serializer
+     * @param componentType type of array which will be created on deserialization
+     */
+    public SerializerArray(Serializer<T> serializer, Class<T>  componentType) {
         if (serializer == null)
             throw new NullPointerException("null serializer");
         this.serializer = serializer;
+        this.componentType = componentType!=null
+                ? componentType
+                : (Class<T>)Object.class;
     }
 
 //        /** used for deserialization */
@@ -39,7 +67,7 @@ public class SerializerArray<T> extends GroupSerializerObjectArray<T[]>{
 
     @Override
     public T[] deserialize(DataInput2 in, int available) throws IOException {
-        T[] ret = (T[]) new Object[in.unpackInt()];
+        T[] ret = (T[]) Array.newInstance(componentType, in.unpackInt());
         for (int i = 0; i < ret.length; i++) {
             ret[i] = serializer.deserialize(in, -1);
         }

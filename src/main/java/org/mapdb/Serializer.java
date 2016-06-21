@@ -595,6 +595,14 @@ public interface Serializer<A /*extends Comparable<? super A>*/> extends Compara
         return deserialize(new DataInput2.ByteArray(b), available);
     }
 
+    /** Creates binary copy of given object. If the datatype is immutable the same instance might be returned */
+    default A clone(A value) throws IOException {
+        DataOutput2 out = new DataOutput2();
+        serialize(out, value);
+        DataInput2 in2 = new DataInput2.ByteArray(out.copyBytes());
+        return deserialize(in2, out.pos);
+    }
+
 //
 // TODO code from 2.0, perhaps it will be useful, do performance benchmarks etc
 //    /**
