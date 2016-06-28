@@ -49,11 +49,10 @@ public interface Serializer<A /*extends Comparable<? super A>*/> extends Compara
      * A predefined {@link Serializer} that handles non-null
      * {@link String Strings} whereby Strings are serialized to a UTF-8 encoded
      * format. The Serializer also stores the String's size, allowing it to be
-     * used as a collection serializer.
+     * used as a GroupSerializer in BTreeMaps.
      * <p>
-     * This Serializer hashes Strings using the original
-     * {@link String#hashCode()} method as opposed to the
-     * {@link Serializer#STRING} Serializer.
+     * This Serializer hashes Strings using the original hash code method as
+     * opposed to the {@link Serializer#STRING} Serializer.
      * <p>
      * If a {@code null} value is passed to the Serializer, a
      * {@link NullPointerException} will be thrown.
@@ -66,11 +65,10 @@ public interface Serializer<A /*extends Comparable<? super A>*/> extends Compara
      * A predefined {@link Serializer} that handles non-null
      * {@link String Strings} whereby Strings are serialized to a UTF-8 encoded
      * format. The Serializer also stores the String's size, allowing it to be
-     * used as a collection serializer.
+     * used as a GroupSerializer in BTreeMaps.
      * <p>
-     * This Serializer hashes Strings using a specially tailored
-     * {@link String#hashCode()} method as opposed to the
-     * {@link Serializer#STRING_ORIGHASH} Serializer.
+     * This Serializer hashes Strings using a specially tailored hash code
+     * method as opposed to the {@link Serializer#STRING_ORIGHASH} Serializer.
      * <p>
      * If a {@code null} value is passed to the Serializer, a
      * {@link NullPointerException} will be thrown.
@@ -83,12 +81,11 @@ public interface Serializer<A /*extends Comparable<? super A>*/> extends Compara
      * A predefined {@link Serializer} that handles non-null
      * {@link String Strings} whereby Strings are serialized to a UTF-8 encoded
      * format. The Serializer also stores the String's size, allowing it to be
-     * used as a collection serializer. Neighboring strings may be delta encoded
-     * for increased storage efficency.
+     * used as a GroupSerializer in BTreeMaps. Neighboring strings may be delta
+     * encoded for increased storage efficency.
      * <p>
-     * This Serializer hashes Strings using a specially tailored
-     * {@link String#hashCode()} method as opposed to the
-     * {@link Serializer#STRING_ORIGHASH} Serializer.
+     * This Serializer hashes Strings using a specially tailored hash code
+     * method as opposed to the {@link Serializer#STRING_ORIGHASH} Serializer.
      * <p>
      * If a {@code null} value is passed to the Serializer, a
      * {@link NullPointerException} will be thrown.
@@ -101,12 +98,11 @@ public interface Serializer<A /*extends Comparable<? super A>*/> extends Compara
      * A predefined {@link Serializer} that handles non-null
      * {@link String Strings} whereby Strings are serialized to a UTF-8 encoded
      * format. The Serializer also stores the String's size, allowing it to be
-     * used as a collection serializer. Neighboring strings may be delta encoded
-     * for increased storage efficency.
+     * used as a GroupSerializer in BTreeMaps. Neighboring strings may be delta
+     * encoded for increased storage efficency.
      * <p>
-     * This Serializer hashes Strings using a specially tailored
-     * {@link String#hashCode()} method as opposed to the
-     * {@link Serializer#STRING_ORIGHASH} Serializer.
+     * This Serializer hashes Strings using a specially tailored hash code
+     * method as opposed to the {@link Serializer#STRING_ORIGHASH} Serializer.
      * <p>
      * If a {@code null} value is passed to the Serializer, a
      * {@link NullPointerException} will be thrown.
@@ -119,15 +115,14 @@ public interface Serializer<A /*extends Comparable<? super A>*/> extends Compara
      * A predefined {@link Serializer} that handles non-null
      * {@link String Strings} whereby Strings are serialized to a UTF-8 encoded
      * format. The Serializer also stores the String's size, allowing it to be
-     * used as a collection serializer. Neighboring strings may be delta encoded
-     * for increased storage efficency.
+     * used as a GroupSerializer in BTreeMaps. Neighboring strings may be delta
+     * encoded for increased storage efficency.
      * <p>
      * Deserialized strings are automatically interned {@link String#intern()}
      * allowing a more heap space efficient storage for repeated strings.
      * <p>
-     * This Serializer hashes Strings using a specially tailored
-     * {@link String#hashCode()} method as opposed to the
-     * {@link Serializer#STRING_ORIGHASH} Serializer.
+     * This Serializer hashes Strings using a specially tailored hash code
+     * method as opposed to the {@link Serializer#STRING_ORIGHASH} Serializer.
      * <p>
      * If a {@code null} value is passed to the Serializer, a
      * {@link NullPointerException} will be thrown.
@@ -141,11 +136,10 @@ public interface Serializer<A /*extends Comparable<? super A>*/> extends Compara
      * {@link String Strings} whereby Strings are serialized to a ASCII encoded
      * format (8 bit character) which is faster than using a UTF-8 format. The
      * Serializer also stores the String's size, allowing it to be used as a
-     * collection serializer.
+     * GroupSerializer in BTreeMaps.
      * <p>
-     * This Serializer hashes Strings using a specially tailored
-     * {@link String#hashCode()} method as opposed to the
-     * {@link Serializer#STRING_ORIGHASH} Serializer.
+     * This Serializer hashes Strings using a specially tailored hash code
+     * method as opposed to the {@link Serializer#STRING_ORIGHASH} Serializer.
      * <p>
      * If a {@code null} value is passed to the Serializer, a
      * {@link NullPointerException} will be thrown.
@@ -158,11 +152,10 @@ public interface Serializer<A /*extends Comparable<? super A>*/> extends Compara
      * A predefined {@link Serializer} that handles non-null
      * {@link String Strings} whereby Strings are serialized to a UTF-8 encoded
      * format. The Serializer does <em>not</em> store the String's size, thereby
-     * preventing it from being used as a collection serializer.
+     * preventing it from being used as a GroupSerializer.
      * <p>
-     * This Serializer hashes Strings using the original
-     * {@link String#hashCode()} method as opposed to the
-     * {@link Serializer#STRING} Serializer.
+     * This Serializer hashes Strings using the original hash code method as
+     * opposed to the {@link Serializer#STRING} Serializer.
      * <p>
      * If a {@code null} value is passed to the Serializer, a
      * {@link NullPointerException} will be thrown.
@@ -173,7 +166,9 @@ public interface Serializer<A /*extends Comparable<? super A>*/> extends Compara
 
     /**
      * A predefined {@link Serializer} that handles non-null {@link Long Longs}
-     * whereby Longs are serialized to an 8 byte format.
+     * whereby Longs are serialized to an 8 byte format. The Serializer also
+     * stores the Longs's size, allowing it to be used as a GroupSerializer in
+     * BTreeMaps.
      * <p>
      * This Serializer hashes Longs using the original {@link Long#hashCode()}
      * method.
@@ -186,7 +181,9 @@ public interface Serializer<A /*extends Comparable<? super A>*/> extends Compara
 
     /**
      * A predefined {@link Serializer} that handles non-null {@link Long Longs}
-     * whereby Longs are serialized to a compressed byte format.
+     * whereby Longs are serialized to a compressed byte format. The Serializer
+     * also stores the Longs's size, allowing it to be used as a GroupSerializer
+     * in BTreeMaps.
      * <p>
      * Smaller positive values occupy less than 8 bytes. Large and negative
      * values could occupy 8 or 9 bytes.
@@ -203,8 +200,8 @@ public interface Serializer<A /*extends Comparable<? super A>*/> extends Compara
     /**
      * A predefined {@link Serializer} that handles non-null {@link Long Longs}
      * whereby Longs are serialized to a compressed byte format and neighboring
-     * Longs are delta encoded. Neighbors with a small delta can be encoded
-     * using a single byte.
+     * Longs are delta encoded in BTreeMaps. Neighbors with a small delta can be
+     * encoded using a single byte.
      * <p>
      * Smaller positive values occupy less than 8 bytes. Large and negative
      * values could occupy 8 or 9 bytes.
@@ -235,7 +232,8 @@ public interface Serializer<A /*extends Comparable<? super A>*/> extends Compara
     /**
      * A predefined {@link Serializer} that handles non-null
      * {@link Integer Integers} whereby Integers are serialized to a compressed
-     * byte format.
+     * byte format.The Serializer also stores the Longs's size, allowing it to
+     * be used as a GroupSerializer in BTreeMaps.
      * <p>
      * Smaller positive values occupy less than 4 bytes. Large and negative
      * values could occupy 4 or 5 bytes.
@@ -252,8 +250,8 @@ public interface Serializer<A /*extends Comparable<? super A>*/> extends Compara
     /**
      * A predefined {@link Serializer} that handles non-null
      * {@link Integer Integers} whereby Integers are serialized to a compressed
-     * byte format and neighboring Integers are delta encoded. Neighbors with a
-     * small delta can be encoded using a single byte.
+     * byte format and neighboring Integers are delta encoded in BTreeMaps.
+     * Neighbors with a small delta can be encoded using a single byte.
      * <p>
      * Smaller positive values occupy less than 4 bytes. Large and negative
      * values could occupy 4 or 5 bytes.
@@ -279,15 +277,35 @@ public interface Serializer<A /*extends Comparable<? super A>*/> extends Compara
     GroupSerializer<Boolean> BOOLEAN = new SerializerBoolean();
 
     /**
-     * Packs recid + it adds 1bit checksum.
+     * A predefined {@link Serializer} that handles non-null {@link Long Longs}
+     * used as a recid whereby recids are serialized to an eight byte format
+     * including a checksum.
+     * <p>
+     * If a {@code null} value is passed to the Serializer, a
+     * {@link NullPointerException} will be thrown.
+     *
      */
     GroupSerializer<Long> RECID = new SerializerRecid();
 
+    /**
+     * A predefined {@link Serializer} that handles non-null arrays of longs
+     * used as a recids whereby recids are serialized to an eight byte format
+     * including a checksum.
+     * <p>
+     * If a {@code null} array is passed to the Serializer, a
+     * {@link NullPointerException} will be thrown.
+     * <p>
+     * If an array that contains a {@code null} value is passed to the
+     * Serializer, a {@link NullPointerException} will be thrown.
+     *
+     */
     GroupSerializer<long[]> RECID_ARRAY = new SerializerRecidArray();
 
     /**
-     * Always throws {@link IllegalAccessError} when invoked. Useful for testing
-     * and assertions.
+     * A predefined {@link Serializer} that always throws an
+     * {@link IllegalAccessError} when invoked.
+     * <p>
+     * This serializer can be used for testing and assertions.
      */
     GroupSerializer<Object> ILLEGAL_ACCESS = new SerializerIllegalAccess();
 
@@ -327,8 +345,18 @@ public interface Serializer<A /*extends Comparable<? super A>*/> extends Compara
     GroupSerializer<double[]> DOUBLE_ARRAY = new SerializerDoubleArray();
 
     /**
-     * Serializer which uses standard Java Serialization with
-     * {@link java.io.ObjectInputStream} and {@link java.io.ObjectOutputStream}
+     * A predefined {@link Serializer} that handles non-null
+     * {@code Serializable} Java objects whereby the standard Java serialization
+     * will be applied using {@link java.io.ObjectInputStream} and
+     * {@link java.io.ObjectOutputStream} methods.
+     * <p>
+     * This Serializer hashes Objects using a specially tailored hash code
+     * method that, in turn, is using the objects own {@code hashCode()}
+     * <p>
+     * If a {@code null} value is passed to the Serializer, a
+     * {@link NullPointerException} will be thrown.
+     *
+     * @see java.io.Serializable
      */
     GroupSerializer JAVA = new SerializerJava();
 
@@ -355,6 +383,8 @@ public interface Serializer<A /*extends Comparable<? super A>*/> extends Compara
     /**
      * A predefined {@link Serializer} that handles non-null
      * {@link Float Floats} whereby Floats are serialized to a 4 byte format.
+     * The Serializer also stores the Float's size, allowing it to be used as a
+     * GroupSerializer in BTreeMaps.
      * <p>
      * This Serializer hashes Floats using the original {@link Float#hashCode()}
      * method.
@@ -368,7 +398,8 @@ public interface Serializer<A /*extends Comparable<? super A>*/> extends Compara
     /**
      * A predefined {@link Serializer} that handles non-null
      * {@link Double Doubles} whereby Doubles are serialized to an 8 byte
-     * format.
+     * format. The Serializer also stores the Float's size, allowing it to be
+     * used as a GroupSerializer in BTreeMaps.
      * <p>
      * This Serializer hashes Doubles using the original
      * {@link Double#hashCode()} method.
@@ -382,6 +413,8 @@ public interface Serializer<A /*extends Comparable<? super A>*/> extends Compara
     /**
      * A predefined {@link Serializer} that handles non-null
      * {@link Short Shorts} whereby Shorts are serialized to a 2 byte format.
+     * The Serializer also stores the Short's size, allowing it to be used as a
+     * GroupSerializer in BTreeMaps.
      * <p>
      * This Serializer hashes Shorts using the original {@link Short#hashCode()}
      * method.
@@ -546,13 +579,6 @@ public interface Serializer<A /*extends Comparable<? super A>*/> extends Compara
         return Objects.equals(first, second);
     }
 
-    /**
-     * Returns a hash code of a non-null argument.
-     *
-     * @param a an object
-     * @return a hash code of a non-null argument
-     * @see Object#hashCode
-     */
     /**
      * Returns a hash code of a given non-null argument. The output of the
      * method is affected by the given seed, allowing protection against crafted
