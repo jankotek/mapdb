@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/jankotek/mapdb-site/master/art/rocket-small.png" width=90 height=90 align="left"/>
+<img src="https://raw.githubusercontent.com/jankotek/mapdb-site/gh-pages/images/art/rocket-small.png" width=90 height=90 align="left"/>
 
 MapDB: database engine 
 =======================
