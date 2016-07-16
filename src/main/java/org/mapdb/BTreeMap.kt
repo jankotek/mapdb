@@ -342,31 +342,50 @@ class BTreeMap<K,V>(
 
                 //current node is locked, and its highest value is higher/equal to key
                 var pos = keySerializer.valueArraySearch(A.keys, v, comparator)
-                if (pos >= 0 && !isLinkValue(pos, A)) {
+                if (pos >= 0) {
                     if(A.isDir) {
                         throw AssertionError(key);
                     }
-                    //entry exist in current node, so just update
-                    pos = pos - 1 + A.intLeftEdge();
-                    //key exist in node, just update
-                    val oldValueRecid = valueNodeSerializer.valueArrayGet(A.values, pos)
-                    val oldValueExpand = valueExpand(oldValueRecid)
 
-                    //update only if not exist, return
-                    if (!onlyIfAbsent) {
-                        if(valueInline) {
-                            val values = valueNodeSerializer.valueArrayUpdateVal(A.values, pos, value)
-                            var flags = A.flags.toInt();
-                            A = Node(flags, A.link, A.keys, values)
-                            store.update(current, A, nodeSerializer)
-                        }else{
-                            //update external value
-                            store.update(oldValueRecid as Long, value, valueSerializer)
+                    if(!isLinkValue(pos, A)) {
+                        //entry exist in current node, so just update
+                        pos = pos - 1 + A.intLeftEdge();
+                        //key exist in node, just update
+                        val oldValueRecid = valueNodeSerializer.valueArrayGet(A.values, pos)
+                        val oldValueExpand = valueExpand(oldValueRecid)
+
+                        //update only if not exist, return
+                        if (!onlyIfAbsent) {
+                            if (valueInline) {
+                                val values = valueNodeSerializer.valueArrayUpdateVal(A.values, pos, value)
+                                var flags = A.flags.toInt();
+                                A = Node(flags, A.link, A.keys, values)
+                                store.update(current, A, nodeSerializer)
+                            } else {
+                                //update external value
+                                store.update(oldValueRecid as Long, value, valueSerializer)
+                            }
+                            listenerNotify(key, oldValueExpand, value, false)
                         }
-                        listenerNotify(key, oldValueExpand, value, false)
+                        unlock(current)
+                        return oldValueExpand
+                    }else{
+                        //is linked key, will set lastKeyDouble flag, keys are unmodified and values have new value
+                        if(A.isLastKeyDouble)
+                            throw AssertionError()
+                        val flags = A.flags + BTreeMapJava.LAST_KEY_DOUBLE
+                        val value2 =
+                                if(valueInline) value
+                                else store.put(value, valueSerializer)
+                        pos = pos - 1 + A.intLeftEdge()
+                        val values = valueNodeSerializer.valueArrayPut(A.values, pos, value2)
+                        A = Node(flags, A.link, A.keys, values)
+                        store.update(current, A, nodeSerializer)
+
+                        listenerNotify(key, null, value, false)
+                        unlock(current)
+                        return null
                     }
-                    unlock(current)
-                    return oldValueExpand
                 }
 
                 //normalise pos
