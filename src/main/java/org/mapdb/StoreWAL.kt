@@ -217,7 +217,7 @@ class StoreWAL(
                 Utils.lock(structuralLock) {
                     if (indexValFlagLinked(oldIndexVal)) {
                         linkedRecordDelete(oldIndexVal,recid)
-                    } else if(oldSize!=0L){
+                    } else if(oldSize>5){
                         val oldOffset = indexValToOffset(oldIndexVal);
                         val sizeUp = roundUp(oldSize, 16)
                         //TODO clear into WAL
