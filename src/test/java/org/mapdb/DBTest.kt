@@ -5,10 +5,8 @@ import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.fest.reflect.core.Reflection
 import org.junit.Assert.*
 import org.junit.Test
-import org.mapdb.StoreAccess.*
 import org.mapdb.elsa.ElsaSerializerPojo
 import org.mapdb.serializer.GroupSerializerObjectArray
-import java.io.File
 import java.io.NotSerializableException
 import java.io.Serializable
 import java.math.BigDecimal
@@ -1341,7 +1339,20 @@ class DBTest{
         test{DBMaker.fileDB(it).transactionEnable().fileChannelEnable().make()}
         test{DBMaker.fileDB(it).transactionEnable().fileMmapEnable().make()}
         test{DBMaker.fileDB(it).transactionEnable().fileMmapEnable().cleanerHackEnable().make()}
+    }
 
+
+    @Test
+    fun treeset_create_from_iterator() {
+        val db = DBMaker.memoryDB().make()
+        //#a
+        // note that source data are sorted
+        val source = Arrays.asList(1, 2, 3, 4, 5, 7, 8)
+
+        //create map with content from source
+        val set = db.treeSet("set").serializer(Serializer.INTEGER).createFrom(source) //use `createFrom` instead of `create`
+        //#z
+        assertEquals(7, set.size.toLong())
     }
 
 

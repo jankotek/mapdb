@@ -997,7 +997,9 @@ open class DB(
         }
     }
 
-     abstract class BTreeMapMaker<K,V,MAP>(
+    abstract class TreeSetSink<E>:Pump.Sink<E, NavigableSet<E>>(){}
+
+    abstract class BTreeMapMaker<K,V,MAP>(
              db:DB,
              name:String,
              protected val hasValues:Boolean
@@ -1144,11 +1146,20 @@ open class DB(
             return this;
         }
 
-
         fun createFrom(iterator:Iterator<Pair<K,V>>):BTreeMap<K,V>{
             val consumer = createFromSink()
             while(iterator.hasNext()){
                 consumer.put(iterator.next())
+            }
+            return consumer.create()
+        }
+
+        fun createFrom(source:Iterable<Pair<K,V>>):BTreeMap<K,V> = createFrom(source.iterator())
+
+        fun createFrom(source:SortedMap<K,V>):BTreeMap<K,V>{
+            val consumer = createFromSink()
+            for(e in source){
+                consumer.put(e.key, e.value)
             }
             return consumer.create()
         }
@@ -1202,7 +1213,7 @@ open class DB(
     class TreeSetMaker<E>(
             db:DB,
             name:String
-    ) :BTreeMapMaker<E, Void, NavigableSet<E>>(db,name,hasValues=false){
+    ) :BTreeMapMaker<E, Boolean, NavigableSet<E>>(db,name,hasValues=false){
 
 
         fun <A> serializer(serializer:GroupSerializer<A>):TreeSetMaker<A>{
@@ -1219,6 +1230,47 @@ open class DB(
             this._counterEnable = true
             return this;
         }
+
+        fun createFrom(source:Iterable<E>):NavigableSet<E> = createFrom(source.iterator())
+
+        fun createFrom(iterator:Iterator<E>):NavigableSet<E>{
+            val consumer = createFromSink()
+            while(iterator.hasNext()){
+                consumer.put(iterator.next())
+            }
+            return consumer.create()
+        }
+
+        fun createFromSink(): TreeSetSink<E>{
+
+            val consumer = Pump.treeMap(
+                    store = db.store,
+                    keySerializer = _keySerializer,
+                    valueSerializer = _valueSerializer,
+                    //TODO add custom comparator, once its enabled
+                    dirNodeSize = _maxNodeSize *3/4,
+                    leafNodeSize = _maxNodeSize *3/4,
+                    hasValues = false
+            )
+
+            return object: TreeSetSink<E>(){
+
+                override fun put(e: E) {
+                    consumer.put(Pair(e, true))
+                }
+
+                override fun create(): NavigableSet<E> {
+                    consumer.create()
+                    this@TreeSetMaker._rootRecidRecid = consumer.rootRecidRecid
+                            ?: throw AssertionError()
+                    this@TreeSetMaker._counterRecid =
+                            if(_counterEnable) db.store.put(consumer.counter, Serializer.LONG)
+                            else 0L
+                    return this@TreeSetMaker.make2(create=true)
+                }
+            }
+        }
+
     }
 
     fun treeMap(name:String):TreeMapMaker<*,*> = TreeMapMaker<Any?, Any?>(this, name)

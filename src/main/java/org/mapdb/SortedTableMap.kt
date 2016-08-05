@@ -45,8 +45,9 @@ class SortedTableMap<K,V>(
                 return this
             }
 
+            fun createFrom(pairs: Iterable<Pair<K, V>>): SortedTableMap<K, V> = createFrom(pairs.iterator())
 
-            fun createFrom(pairs: Iterable<Pair<K, V>>): SortedTableMap<K, V> {
+            fun createFrom(pairs: Iterator<Pair<K, V>>): SortedTableMap<K, V> {
                 val consumer = createFromSink()
                 for (pair in pairs)
                     consumer.put(pair)
