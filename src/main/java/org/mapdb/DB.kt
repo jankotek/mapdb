@@ -556,39 +556,281 @@ open class DB(
 //    }
 
 
-    class HashMapMaker<K,V>(
-            protected override val db:DB,
-            protected override val name:String,
+    open class HTreeMapMaker<K,V, MAP>(
+            db:DB,
+            name:String,
             protected val hasValues:Boolean=true,
             protected val _storeFactory:(segment:Int)->Store = {i-> db.store}
-    ):Maker<HTreeMap<K,V>>(){
+    ):Maker<MAP>(db,name, if(hasValues) "HashMap" else "HashSet"){
 
-        override val type = "HashMap"
-        private var _keySerializer:Serializer<K> = db.defaultSerializer as Serializer<K>
-        private var _valueSerializer:Serializer<V> = db.defaultSerializer as Serializer<V>
-        private var _valueInline = false
+        protected var _keySerializer:Serializer<K> = db.defaultSerializer as Serializer<K>
+        protected var _valueSerializer:Serializer<V> = db.defaultSerializer as Serializer<V>
+        protected var _valueInline = false
 
-        private var _concShift = CC.HTREEMAP_CONC_SHIFT
-        private var _dirShift = CC.HTREEMAP_DIR_SHIFT
-        private var _levels = CC.HTREEMAP_LEVELS
+        protected var _concShift = CC.HTREEMAP_CONC_SHIFT
+        protected var _dirShift = CC.HTREEMAP_DIR_SHIFT
+        protected var _levels = CC.HTREEMAP_LEVELS
 
-        private var _hashSeed:Int? = null
-        private var _expireCreateTTL:Long = 0L
-        private var _expireUpdateTTL:Long = 0L
-        private var _expireGetTTL:Long = 0L
-        private var _expireExecutor:ScheduledExecutorService? = null
-        private var _expireExecutorPeriod:Long = 10000
-        private var _expireMaxSize:Long = 0
-        private var _expireStoreSize:Long = 0
-        private var _expireCompactThreshold:Double? = null
+        protected var _hashSeed:Int? = null
+        protected var _expireCreateTTL:Long = 0L
+        protected var _expireUpdateTTL:Long = 0L
+        protected var _expireGetTTL:Long = 0L
+        protected var _expireExecutor:ScheduledExecutorService? = null
+        protected var _expireExecutorPeriod:Long = 10000
+        protected var _expireMaxSize:Long = 0
+        protected var _expireStoreSize:Long = 0
+        protected var _expireCompactThreshold:Double? = null
 
-        private var _counterEnable: Boolean = false
+        protected var _counterEnable: Boolean = false
 
-        private var _valueLoader:((key:K)->V?)? = null
-        private var _modListeners:MutableList<MapModificationListener<K,V>> = ArrayList()
-        private var _expireOverflow:MutableMap<K,V?>? = null;
-        private var _removeCollapsesIndexTree:Boolean = true
+        protected var _valueLoader:((key:K)->V?)? = null
+        protected var _modListeners:MutableList<MapModificationListener<K,V>> = ArrayList()
+        protected var _expireOverflow:MutableMap<K,V?>? = null;
+        protected var _removeCollapsesIndexTree:Boolean = true
 
+
+        override fun verify(){
+            if (_expireOverflow != null && _valueLoader != null)
+                throw DBException.WrongConfiguration("ExpireOverflow and ValueLoader can not be used at the same time")
+
+            val expireOverflow = _expireOverflow
+            if (expireOverflow != null) {
+                //load non existing values from overflow
+                _valueLoader = { key -> expireOverflow[key] }
+
+                //forward modifications to overflow
+                val listener = MapModificationListener<K, V> { key, oldVal, newVal, triggered ->
+                    if (!triggered && newVal == null && oldVal != null) {
+                        //removal, also remove from overflow map
+                        val oldVal2 = expireOverflow.remove(key)
+                        if (oldVal2 != null && _valueSerializer.equals(oldVal as V, oldVal2 as V)) {
+                            Utils.LOG.warning { "Key also removed from overflow Map, but value in overflow Map differs" }
+                        }
+                    } else if (triggered && newVal == null) {
+                        // triggered by eviction, put evicted entry into overflow map
+                        expireOverflow.put(key, oldVal)
+                    }
+                }
+                _modListeners.add(listener)
+            }
+
+            if (_expireExecutor != null)
+                db.executors.add(_expireExecutor!!)
+        }
+
+        override fun create2(catalog: SortedMap<String, String>): MAP {
+            val segmentCount = 1.shl(_concShift)
+            val hashSeed = _hashSeed ?: SecureRandom().nextInt()
+            val stores = Array(segmentCount, _storeFactory)
+
+            val rootRecids = LongArray(segmentCount)
+            var rootRecidsStr = "";
+            for (i in 0 until segmentCount) {
+                val rootRecid = stores[i].put(IndexTreeListJava.dirEmpty(), IndexTreeListJava.dirSer)
+                rootRecids[i] = rootRecid
+                rootRecidsStr += (if (i == 0) "" else ",") + rootRecid
+            }
+
+            db.nameCatalogPutClass(catalog, name + if(hasValues) Keys.keySerializer else Keys.serializer, _keySerializer)
+            if(hasValues) {
+                db.nameCatalogPutClass(catalog, name + Keys.valueSerializer, _valueSerializer)
+            }
+            if(hasValues)
+                catalog[name + Keys.valueInline] = _valueInline.toString()
+
+            catalog[name + Keys.rootRecids] = rootRecidsStr
+            catalog[name + Keys.hashSeed] = hashSeed.toString()
+            catalog[name + Keys.concShift] = _concShift.toString()
+            catalog[name + Keys.dirShift] = _dirShift.toString()
+            catalog[name + Keys.levels] = _levels.toString()
+            catalog[name + Keys.removeCollapsesIndexTree] = _removeCollapsesIndexTree.toString()
+
+            val counterRecids = if (_counterEnable) {
+                val cr = LongArray(segmentCount, { segment ->
+                    stores[segment].put(0L, Serializer.LONG_PACKED)
+                })
+                catalog[name + Keys.counterRecids] = LongArrayList.newListWith(*cr).makeString("", ",", "")
+                cr
+            } else {
+                catalog[name + Keys.counterRecids] = ""
+                null
+            }
+
+            catalog[name + Keys.expireCreateTTL] = _expireCreateTTL.toString()
+            if(hasValues)
+                catalog[name + Keys.expireUpdateTTL] = _expireUpdateTTL.toString()
+            catalog[name + Keys.expireGetTTL] = _expireGetTTL.toString()
+
+            var createQ = LongArrayList()
+            var updateQ = LongArrayList()
+            var getQ = LongArrayList()
+
+
+            fun emptyLongQueue(segment: Int, qq: LongArrayList): QueueLong {
+                val store = stores[segment]
+                val q = store.put(null, QueueLong.Node.SERIALIZER);
+                val tailRecid = store.put(q, Serializer.RECID)
+                val headRecid = store.put(q, Serializer.RECID)
+                val headPrevRecid = store.put(0L, Serializer.RECID)
+                qq.add(tailRecid)
+                qq.add(headRecid)
+                qq.add(headPrevRecid)
+                return QueueLong(store = store, tailRecid = tailRecid, headRecid = headRecid, headPrevRecid = headPrevRecid)
+            }
+
+            val expireCreateQueues =
+                    if (_expireCreateTTL == 0L) null
+                    else Array(segmentCount, { emptyLongQueue(it, createQ) })
+
+            val expireUpdateQueues =
+                    if (_expireUpdateTTL == 0L) null
+                    else Array(segmentCount, { emptyLongQueue(it, updateQ) })
+            val expireGetQueues =
+                    if (_expireGetTTL == 0L) null
+                    else Array(segmentCount, { emptyLongQueue(it, getQ) })
+
+            catalog[name + Keys.expireCreateQueue] = createQ.makeString("", ",", "")
+            if(hasValues)
+                catalog[name + Keys.expireUpdateQueue] = updateQ.makeString("", ",", "")
+            catalog[name + Keys.expireGetQueue] = getQ.makeString("", ",", "")
+
+            val indexTrees = Array<MutableLongLongMap>(1.shl(_concShift), { segment ->
+                IndexTreeLongLongMap(
+                        store = stores[segment],
+                        rootRecid = rootRecids[segment],
+                        dirShift = _dirShift,
+                        levels = _levels,
+                        collapseOnRemove = _removeCollapsesIndexTree
+                )
+            })
+
+            val ret = HTreeMap(
+                    keySerializer = _keySerializer,
+                    valueSerializer = _valueSerializer,
+                    valueInline = _valueInline,
+                    concShift = _concShift,
+                    dirShift = _dirShift,
+                    levels = _levels,
+                    stores = stores,
+                    indexTrees = indexTrees,
+                    hashSeed = hashSeed,
+                    counterRecids = counterRecids,
+                    expireCreateTTL = _expireCreateTTL,
+                    expireUpdateTTL = _expireUpdateTTL,
+                    expireGetTTL = _expireGetTTL,
+                    expireMaxSize = _expireMaxSize,
+                    expireStoreSize = _expireStoreSize,
+                    expireCreateQueues = expireCreateQueues,
+                    expireUpdateQueues = expireUpdateQueues,
+                    expireGetQueues = expireGetQueues,
+                    expireExecutor = _expireExecutor,
+                    expireExecutorPeriod = _expireExecutorPeriod,
+                    expireCompactThreshold = _expireCompactThreshold,
+                    isThreadSafe = db.isThreadSafe,
+                    valueLoader = _valueLoader,
+                    modificationListeners = if (_modListeners.isEmpty()) null else _modListeners.toTypedArray(),
+                    closeable = db,
+                    hasValues = hasValues
+            )
+            return (if(hasValues)ret else ret.keys) as MAP
+        }
+
+        override fun open2(catalog: SortedMap<String, String>): MAP {
+            val segmentCount = 1.shl(_concShift)
+            val stores = Array(segmentCount, _storeFactory)
+
+            _keySerializer =
+                    db.nameCatalogGetClass(catalog, name + if(hasValues)Keys.keySerializer else Keys.serializer)
+                            ?: _keySerializer
+            _valueSerializer = if(!hasValues) BTreeMap.NO_VAL_SERIALIZER as Serializer<V>
+            else {
+                db.nameCatalogGetClass(catalog, name + Keys.valueSerializer)?: _valueSerializer
+            }
+            _valueInline = if(hasValues) catalog[name + Keys.valueInline]!!.toBoolean() else true
+
+            val hashSeed = catalog[name + Keys.hashSeed]!!.toInt()
+            val rootRecids = catalog[name + Keys.rootRecids]!!.split(",").map { it.toLong() }.toLongArray()
+            val counterRecidsStr = catalog[name + Keys.counterRecids]!!
+            val counterRecids =
+                    if ("" == counterRecidsStr) null
+                    else counterRecidsStr.split(",").map { it.toLong() }.toLongArray()
+
+            _concShift = catalog[name + Keys.concShift]!!.toInt()
+            _dirShift = catalog[name + Keys.dirShift]!!.toInt()
+            _levels = catalog[name + Keys.levels]!!.toInt()
+            _removeCollapsesIndexTree = catalog[name + Keys.removeCollapsesIndexTree]!!.toBoolean()
+
+
+            _expireCreateTTL = catalog[name + Keys.expireCreateTTL]!!.toLong()
+            _expireUpdateTTL = if(hasValues)catalog[name + Keys.expireUpdateTTL]!!.toLong() else 0L
+            _expireGetTTL = catalog[name + Keys.expireGetTTL]!!.toLong()
+
+
+            fun queues(ttl: Long, queuesName: String): Array<QueueLong>? {
+                if (ttl == 0L)
+                    return null
+                val rr = catalog[queuesName]!!.split(",").map { it.toLong() }.toLongArray()
+                if (rr.size != segmentCount * 3)
+                    throw DBException.WrongConfiguration("wrong segment count");
+                return Array(segmentCount, { segment ->
+                    QueueLong(store = stores[segment],
+                            tailRecid = rr[segment * 3 + 0], headRecid = rr[segment * 3 + 1], headPrevRecid = rr[segment * 3 + 2]
+                    )
+                })
+            }
+
+            val expireCreateQueues = queues(_expireCreateTTL, name + Keys.expireCreateQueue)
+            val expireUpdateQueues = queues(_expireUpdateTTL, name + Keys.expireUpdateQueue)
+            val expireGetQueues = queues(_expireGetTTL, name + Keys.expireGetQueue)
+
+            val indexTrees = Array<MutableLongLongMap>(1.shl(_concShift), { segment ->
+                IndexTreeLongLongMap(
+                        store = stores[segment],
+                        rootRecid = rootRecids[segment],
+                        dirShift = _dirShift,
+                        levels = _levels,
+                        collapseOnRemove = _removeCollapsesIndexTree
+                )
+            })
+            val ret = HTreeMap(
+                    keySerializer = _keySerializer,
+                    valueSerializer = _valueSerializer,
+                    valueInline = _valueInline,
+                    concShift = _concShift,
+                    dirShift = _dirShift,
+                    levels = _levels,
+                    stores = stores,
+                    indexTrees = indexTrees,
+                    hashSeed = hashSeed,
+                    counterRecids = counterRecids,
+                    expireCreateTTL = _expireCreateTTL,
+                    expireUpdateTTL = _expireUpdateTTL,
+                    expireGetTTL = _expireGetTTL,
+                    expireMaxSize = _expireMaxSize,
+                    expireStoreSize = _expireStoreSize,
+                    expireCreateQueues = expireCreateQueues,
+                    expireUpdateQueues = expireUpdateQueues,
+                    expireGetQueues = expireGetQueues,
+                    expireExecutor = _expireExecutor,
+                    expireExecutorPeriod = _expireExecutorPeriod,
+                    expireCompactThreshold = _expireCompactThreshold,
+                    isThreadSafe = db.isThreadSafe,
+                    valueLoader = _valueLoader,
+                    modificationListeners = if (_modListeners.isEmpty()) null else _modListeners.toTypedArray(),
+                    closeable = db,
+                    hasValues = hasValues
+            )
+            return (if(hasValues)ret else ret.keys) as MAP
+        }
+
+    }
+
+
+    class HashMapMaker<K,V>(
+        db:DB,
+        name:String,
+        storeFactory:(segment:Int)->Store = {i-> db.store}
+    ):HTreeMapMaker<K,V,HTreeMap<K,V>>(db,name,true,storeFactory){
 
         fun <A> keySerializer(keySerializer:Serializer<A>):HashMapMaker<A,V>{
             _keySerializer = keySerializer as Serializer<K>
@@ -605,6 +847,7 @@ open class DB(
             _valueInline = true
             return this
         }
+
 
 
         fun removeCollapsesIndexTreeDisable():HashMapMaker<K,V>{
@@ -710,8 +953,9 @@ open class DB(
 
         fun counterEnable():HashMapMaker<K,V>{
             _counterEnable = true
-            return this;
+            return this
         }
+
 
         fun modificationListener(listener:MapModificationListener<K,V>):HashMapMaker<K,V>{
             if(_modListeners==null)
@@ -720,237 +964,6 @@ open class DB(
             return this;
         }
 
-        override fun verify(){
-            if (_expireOverflow != null && _valueLoader != null)
-                throw DBException.WrongConfiguration("ExpireOverflow and ValueLoader can not be used at the same time")
-
-            val expireOverflow = _expireOverflow
-            if (expireOverflow != null) {
-                //load non existing values from overflow
-                _valueLoader = { key -> expireOverflow[key] }
-
-                //forward modifications to overflow
-                val listener = MapModificationListener<K, V> { key, oldVal, newVal, triggered ->
-                    if (!triggered && newVal == null && oldVal != null) {
-                        //removal, also remove from overflow map
-                        val oldVal2 = expireOverflow.remove(key)
-                        if (oldVal2 != null && _valueSerializer.equals(oldVal as V, oldVal2 as V)) {
-                            Utils.LOG.warning { "Key also removed from overflow Map, but value in overflow Map differs" }
-                        }
-                    } else if (triggered && newVal == null) {
-                        // triggered by eviction, put evicted entry into overflow map
-                        expireOverflow.put(key, oldVal)
-                    }
-                }
-                _modListeners.add(listener)
-            }
-
-            if (_expireExecutor != null)
-                db.executors.add(_expireExecutor!!)
-        }
-
-        override fun create2(catalog: SortedMap<String, String>): HTreeMap<K, V> {
-            val segmentCount = 1.shl(_concShift)
-            val hashSeed = _hashSeed ?: SecureRandom().nextInt()
-            val stores = Array(segmentCount, _storeFactory)
-
-            val rootRecids = LongArray(segmentCount)
-            var rootRecidsStr = "";
-            for (i in 0 until segmentCount) {
-                val rootRecid = stores[i].put(IndexTreeListJava.dirEmpty(), IndexTreeListJava.dirSer)
-                rootRecids[i] = rootRecid
-                rootRecidsStr += (if (i == 0) "" else ",") + rootRecid
-            }
-
-            db.nameCatalogPutClass(catalog, name + if(hasValues) Keys.keySerializer else Keys.serializer, _keySerializer)
-            if(hasValues) {
-                db.nameCatalogPutClass(catalog, name + Keys.valueSerializer, _valueSerializer)
-            }
-            if(hasValues)
-                catalog[name + Keys.valueInline] = _valueInline.toString()
-
-            catalog[name + Keys.rootRecids] = rootRecidsStr
-            catalog[name + Keys.hashSeed] = hashSeed.toString()
-            catalog[name + Keys.concShift] = _concShift.toString()
-            catalog[name + Keys.dirShift] = _dirShift.toString()
-            catalog[name + Keys.levels] = _levels.toString()
-            catalog[name + Keys.removeCollapsesIndexTree] = _removeCollapsesIndexTree.toString()
-
-            val counterRecids = if (_counterEnable) {
-                val cr = LongArray(segmentCount, { segment ->
-                    stores[segment].put(0L, Serializer.LONG_PACKED)
-                })
-                catalog[name + Keys.counterRecids] = LongArrayList.newListWith(*cr).makeString("", ",", "")
-                cr
-            } else {
-                catalog[name + Keys.counterRecids] = ""
-                null
-            }
-
-            catalog[name + Keys.expireCreateTTL] = _expireCreateTTL.toString()
-            if(hasValues)
-                catalog[name + Keys.expireUpdateTTL] = _expireUpdateTTL.toString()
-            catalog[name + Keys.expireGetTTL] = _expireGetTTL.toString()
-
-            var createQ = LongArrayList()
-            var updateQ = LongArrayList()
-            var getQ = LongArrayList()
-
-
-            fun emptyLongQueue(segment: Int, qq: LongArrayList): QueueLong {
-                val store = stores[segment]
-                val q = store.put(null, QueueLong.Node.SERIALIZER);
-                val tailRecid = store.put(q, Serializer.RECID)
-                val headRecid = store.put(q, Serializer.RECID)
-                val headPrevRecid = store.put(0L, Serializer.RECID)
-                qq.add(tailRecid)
-                qq.add(headRecid)
-                qq.add(headPrevRecid)
-                return QueueLong(store = store, tailRecid = tailRecid, headRecid = headRecid, headPrevRecid = headPrevRecid)
-            }
-
-            val expireCreateQueues =
-                    if (_expireCreateTTL == 0L) null
-                    else Array(segmentCount, { emptyLongQueue(it, createQ) })
-
-            val expireUpdateQueues =
-                    if (_expireUpdateTTL == 0L) null
-                    else Array(segmentCount, { emptyLongQueue(it, updateQ) })
-            val expireGetQueues =
-                    if (_expireGetTTL == 0L) null
-                    else Array(segmentCount, { emptyLongQueue(it, getQ) })
-
-            catalog[name + Keys.expireCreateQueue] = createQ.makeString("", ",", "")
-            if(hasValues)
-                catalog[name + Keys.expireUpdateQueue] = updateQ.makeString("", ",", "")
-            catalog[name + Keys.expireGetQueue] = getQ.makeString("", ",", "")
-
-            val indexTrees = Array<MutableLongLongMap>(1.shl(_concShift), { segment ->
-                IndexTreeLongLongMap(
-                        store = stores[segment],
-                        rootRecid = rootRecids[segment],
-                        dirShift = _dirShift,
-                        levels = _levels,
-                        collapseOnRemove = _removeCollapsesIndexTree
-                )
-            })
-
-            return HTreeMap(
-                    keySerializer = _keySerializer,
-                    valueSerializer = _valueSerializer,
-                    valueInline = _valueInline,
-                    concShift = _concShift,
-                    dirShift = _dirShift,
-                    levels = _levels,
-                    stores = stores,
-                    indexTrees = indexTrees,
-                    hashSeed = hashSeed,
-                    counterRecids = counterRecids,
-                    expireCreateTTL = _expireCreateTTL,
-                    expireUpdateTTL = _expireUpdateTTL,
-                    expireGetTTL = _expireGetTTL,
-                    expireMaxSize = _expireMaxSize,
-                    expireStoreSize = _expireStoreSize,
-                    expireCreateQueues = expireCreateQueues,
-                    expireUpdateQueues = expireUpdateQueues,
-                    expireGetQueues = expireGetQueues,
-                    expireExecutor = _expireExecutor,
-                    expireExecutorPeriod = _expireExecutorPeriod,
-                    expireCompactThreshold = _expireCompactThreshold,
-                    isThreadSafe = db.isThreadSafe,
-                    valueLoader = _valueLoader,
-                    modificationListeners = if (_modListeners.isEmpty()) null else _modListeners.toTypedArray(),
-                    closeable = db,
-                    hasValues = hasValues
-            )
-        }
-
-        override fun open2(catalog: SortedMap<String, String>): HTreeMap<K, V> {
-            val segmentCount = 1.shl(_concShift)
-            val stores = Array(segmentCount, _storeFactory)
-
-            _keySerializer =
-                    db.nameCatalogGetClass(catalog, name + if(hasValues)Keys.keySerializer else Keys.serializer)
-                            ?: _keySerializer
-            _valueSerializer = if(!hasValues) BTreeMap.NO_VAL_SERIALIZER as Serializer<V>
-            else {
-                db.nameCatalogGetClass(catalog, name + Keys.valueSerializer)?: _valueSerializer
-            }
-            _valueInline = if(hasValues) catalog[name + Keys.valueInline]!!.toBoolean() else true
-
-            val hashSeed = catalog[name + Keys.hashSeed]!!.toInt()
-            val rootRecids = catalog[name + Keys.rootRecids]!!.split(",").map { it.toLong() }.toLongArray()
-            val counterRecidsStr = catalog[name + Keys.counterRecids]!!
-            val counterRecids =
-                    if ("" == counterRecidsStr) null
-                    else counterRecidsStr.split(",").map { it.toLong() }.toLongArray()
-
-            _concShift = catalog[name + Keys.concShift]!!.toInt()
-            _dirShift = catalog[name + Keys.dirShift]!!.toInt()
-            _levels = catalog[name + Keys.levels]!!.toInt()
-            _removeCollapsesIndexTree = catalog[name + Keys.removeCollapsesIndexTree]!!.toBoolean()
-
-
-            _expireCreateTTL = catalog[name + Keys.expireCreateTTL]!!.toLong()
-            _expireUpdateTTL = if(hasValues)catalog[name + Keys.expireUpdateTTL]!!.toLong() else 0L
-            _expireGetTTL = catalog[name + Keys.expireGetTTL]!!.toLong()
-
-
-            fun queues(ttl: Long, queuesName: String): Array<QueueLong>? {
-                if (ttl == 0L)
-                    return null
-                val rr = catalog[queuesName]!!.split(",").map { it.toLong() }.toLongArray()
-                if (rr.size != segmentCount * 3)
-                    throw DBException.WrongConfiguration("wrong segment count");
-                return Array(segmentCount, { segment ->
-                    QueueLong(store = stores[segment],
-                            tailRecid = rr[segment * 3 + 0], headRecid = rr[segment * 3 + 1], headPrevRecid = rr[segment * 3 + 2]
-                    )
-                })
-            }
-
-            val expireCreateQueues = queues(_expireCreateTTL, name + Keys.expireCreateQueue)
-            val expireUpdateQueues = queues(_expireUpdateTTL, name + Keys.expireUpdateQueue)
-            val expireGetQueues = queues(_expireGetTTL, name + Keys.expireGetQueue)
-
-            val indexTrees = Array<MutableLongLongMap>(1.shl(_concShift), { segment ->
-                IndexTreeLongLongMap(
-                        store = stores[segment],
-                        rootRecid = rootRecids[segment],
-                        dirShift = _dirShift,
-                        levels = _levels,
-                        collapseOnRemove = _removeCollapsesIndexTree
-                )
-            })
-            return HTreeMap(
-                    keySerializer = _keySerializer,
-                    valueSerializer = _valueSerializer,
-                    valueInline = _valueInline,
-                    concShift = _concShift,
-                    dirShift = _dirShift,
-                    levels = _levels,
-                    stores = stores,
-                    indexTrees = indexTrees,
-                    hashSeed = hashSeed,
-                    counterRecids = counterRecids,
-                    expireCreateTTL = _expireCreateTTL,
-                    expireUpdateTTL = _expireUpdateTTL,
-                    expireGetTTL = _expireGetTTL,
-                    expireMaxSize = _expireMaxSize,
-                    expireStoreSize = _expireStoreSize,
-                    expireCreateQueues = expireCreateQueues,
-                    expireUpdateQueues = expireUpdateQueues,
-                    expireGetQueues = expireGetQueues,
-                    expireExecutor = _expireExecutor,
-                    expireExecutorPeriod = _expireExecutorPeriod,
-                    expireCompactThreshold = _expireCompactThreshold,
-                    isThreadSafe = db.isThreadSafe,
-                    valueLoader = _valueLoader,
-                    modificationListeners = if (_modListeners.isEmpty()) null else _modListeners.toTypedArray(),
-                    closeable = db,
-                    hasValues = hasValues
-            )
-        }
 
         override fun create(): HTreeMap<K, V> {
             return super.create()
@@ -984,25 +997,111 @@ open class DB(
         }
     }
 
+     abstract class BTreeMapMaker<K,V,MAP>(
+             db:DB,
+             name:String,
+             protected val hasValues:Boolean
+         ) :Maker<MAP>(db,name, if(hasValues)"TreeMap" else "TreeSet"){
+
+
+         protected var _keySerializer:GroupSerializer<K> = db.defaultSerializer as GroupSerializer<K>
+         protected var _valueSerializer:GroupSerializer<V> =
+                 (if(hasValues) db.defaultSerializer else BTreeMap.NO_VAL_SERIALIZER) as GroupSerializer<V>
+         protected var _maxNodeSize = CC.BTREEMAP_MAX_NODE_SIZE
+         protected var _counterEnable: Boolean = false
+         protected var _valueLoader:((key:K)->V)? = null
+         protected var _modListeners:MutableList<MapModificationListener<K,V>>? = null
+
+         protected var _rootRecidRecid:Long? = null
+         protected var _counterRecid:Long? = null
+         protected var _valueInline:Boolean = true
+
+
+         override fun create2(catalog: SortedMap<String, String>): MAP {
+             db.nameCatalogPutClass(catalog, name +
+                     (if(hasValues)Keys.keySerializer else Keys.serializer), _keySerializer)
+             if(hasValues) {
+                 db.nameCatalogPutClass(catalog, name + Keys.valueSerializer, _valueSerializer)
+                 catalog[name + Keys.valueInline] = _valueInline.toString()
+             }
+
+             val rootRecidRecid2 = _rootRecidRecid
+                     ?: BTreeMap.putEmptyRoot(db.store, _keySerializer , _valueSerializer)
+             catalog[name + Keys.rootRecidRecid] = rootRecidRecid2.toString()
+
+             val counterRecid2 =
+                     if (_counterEnable) _counterRecid ?: db.store.put(0L, Serializer.LONG)
+                     else 0L
+             catalog[name + Keys.counterRecid] = counterRecid2.toString()
+
+             catalog[name + Keys.maxNodeSize] = _maxNodeSize.toString()
+
+             val ret = BTreeMap(
+                     keySerializer = _keySerializer,
+                     valueSerializer = _valueSerializer,
+                     rootRecidRecid = rootRecidRecid2,
+                     store = db.store,
+                     maxNodeSize = _maxNodeSize,
+                     comparator = _keySerializer, //TODO custom comparator
+                     isThreadSafe = db.isThreadSafe,
+                     counterRecid = counterRecid2,
+                     hasValues = hasValues,
+                     valueInline = _valueInline,
+                     modificationListeners = if(_modListeners==null) null else _modListeners!!.toTypedArray()
+             )
+
+             return (if(hasValues) ret else ret.keys) as MAP
+         }
+
+         override fun open2(catalog: SortedMap<String, String>): MAP {
+             val rootRecidRecid2 = catalog[name + Keys.rootRecidRecid]!!.toLong()
+
+             _keySerializer =
+                     db.nameCatalogGetClass(catalog, name +
+                             if(hasValues)Keys.keySerializer else Keys.serializer)
+                             ?: _keySerializer
+             _valueSerializer =
+                     if(!hasValues) {
+                         BTreeMap.NO_VAL_SERIALIZER as GroupSerializer<V>
+                     }else {
+                         db.nameCatalogGetClass(catalog, name + Keys.valueSerializer) ?: _valueSerializer
+                     }
+
+             val counterRecid2 = catalog[name + Keys.counterRecid]!!.toLong()
+             _maxNodeSize = catalog[name + Keys.maxNodeSize]!!.toInt()
+
+             //TODO compatibility with older versions, remove before stable version
+             if(_valueSerializer!= BTreeMap.Companion.NO_VAL_SERIALIZER &&
+                     catalog[name + Keys.valueInline]==null
+                     && db.store.isReadOnly.not()){
+                 //patch store with default value
+                 catalog[name + Keys.valueInline] = "true"
+                 db.nameCatalogSaveLocked(catalog)
+             }
+
+             _valueInline = (catalog[name + Keys.valueInline]?:"true").toBoolean()
+             val ret = BTreeMap(
+                     keySerializer = _keySerializer,
+                     valueSerializer = _valueSerializer,
+                     rootRecidRecid = rootRecidRecid2,
+                     store = db.store,
+                     maxNodeSize = _maxNodeSize,
+                     comparator = _keySerializer, //TODO custom comparator
+                     isThreadSafe = db.isThreadSafe,
+                     counterRecid = counterRecid2,
+                     hasValues = hasValues,
+                     valueInline = _valueInline,
+                     modificationListeners = if(_modListeners==null)null else _modListeners!!.toTypedArray()
+             )
+             return (if(hasValues) ret else ret.keys) as MAP
+         }
+
+     }
+
     class TreeMapMaker<K,V>(
-            protected override val db:DB,
-            protected override val name:String,
-            protected val hasValues:Boolean=true
-    ):Maker<BTreeMap<K,V>>(){
-
-        override val type = "TreeMap"
-
-        private var _keySerializer:GroupSerializer<K> = db.defaultSerializer as GroupSerializer<K>
-        private var _valueSerializer:GroupSerializer<V> =
-                (if(hasValues) db.defaultSerializer else BTreeMap.NO_VAL_SERIALIZER) as GroupSerializer<V>
-        private var _maxNodeSize = CC.BTREEMAP_MAX_NODE_SIZE
-        private var _counterEnable: Boolean = false
-        private var _valueLoader:((key:K)->V)? = null
-        private var _modListeners:MutableList<MapModificationListener<K,V>>? = null
-
-        private var _rootRecidRecid:Long? = null
-        private var _counterRecid:Long? = null
-        private var _valueInline:Boolean = true
+            db:DB,
+            name:String
+    ):BTreeMapMaker<K,V,BTreeMap<K,V>>(db,name,hasValues=true){
 
         fun <A> keySerializer(keySerializer:GroupSerializer<A>):TreeMapMaker<A,V>{
             _keySerializer = keySerializer as GroupSerializer<K>
@@ -1084,82 +1183,8 @@ open class DB(
             }
         }
 
-        override fun create2(catalog: SortedMap<String, String>): BTreeMap<K, V> {
-            db.nameCatalogPutClass(catalog, name +
-                    (if(hasValues)Keys.keySerializer else Keys.serializer), _keySerializer)
-            if(hasValues) {
-                db.nameCatalogPutClass(catalog, name + Keys.valueSerializer, _valueSerializer)
-                catalog[name + Keys.valueInline] = _valueInline.toString()
-            }
 
-            val rootRecidRecid2 = _rootRecidRecid
-                    ?: BTreeMap.putEmptyRoot(db.store, _keySerializer , _valueSerializer)
-            catalog[name + Keys.rootRecidRecid] = rootRecidRecid2.toString()
-
-            val counterRecid2 =
-                    if (_counterEnable) _counterRecid ?: db.store.put(0L, Serializer.LONG)
-                    else 0L
-            catalog[name + Keys.counterRecid] = counterRecid2.toString()
-
-            catalog[name + Keys.maxNodeSize] = _maxNodeSize.toString()
-
-            return BTreeMap(
-                    keySerializer = _keySerializer,
-                    valueSerializer = _valueSerializer,
-                    rootRecidRecid = rootRecidRecid2,
-                    store = db.store,
-                    maxNodeSize = _maxNodeSize,
-                    comparator = _keySerializer, //TODO custom comparator
-                    isThreadSafe = db.isThreadSafe,
-                    counterRecid = counterRecid2,
-                    hasValues = hasValues,
-                    valueInline = _valueInline,
-                    modificationListeners = if(_modListeners==null) null else _modListeners!!.toTypedArray()
-            )
-        }
-
-        override fun open2(catalog: SortedMap<String, String>): BTreeMap<K, V> {
-            val rootRecidRecid2 = catalog[name + Keys.rootRecidRecid]!!.toLong()
-
-            _keySerializer =
-                    db.nameCatalogGetClass(catalog, name +
-                            if(hasValues)Keys.keySerializer else Keys.serializer)
-                            ?: _keySerializer
-            _valueSerializer =
-                    if(!hasValues) {
-                        BTreeMap.NO_VAL_SERIALIZER as GroupSerializer<V>
-                    }else {
-                        db.nameCatalogGetClass(catalog, name + Keys.valueSerializer) ?: _valueSerializer
-                    }
-
-            val counterRecid2 = catalog[name + Keys.counterRecid]!!.toLong()
-            _maxNodeSize = catalog[name + Keys.maxNodeSize]!!.toInt()
-
-            //TODO compatibility with older versions, remove before stable version
-            if(_valueSerializer!= BTreeMap.Companion.NO_VAL_SERIALIZER &&
-                    catalog[name + Keys.valueInline]==null
-                    && db.store.isReadOnly.not()){
-                //patch store with default value
-                catalog[name + Keys.valueInline] = "true"
-                db.nameCatalogSaveLocked(catalog)
-            }
-
-            _valueInline = (catalog[name + Keys.valueInline]?:"true").toBoolean()
-            return BTreeMap(
-                    keySerializer = _keySerializer,
-                    valueSerializer = _valueSerializer,
-                    rootRecidRecid = rootRecidRecid2,
-                    store = db.store,
-                    maxNodeSize = _maxNodeSize,
-                    comparator = _keySerializer, //TODO custom comparator
-                    isThreadSafe = db.isThreadSafe,
-                    counterRecid = counterRecid2,
-                    hasValues = hasValues,
-                    valueInline = _valueInline,
-                    modificationListeners = if(_modListeners==null)null else _modListeners!!.toTypedArray()
-            )
-        }
-
+        //TODO next three methods should not be here, but there is bug in Kotlin generics
         override fun create(): BTreeMap<K, V> {
             return super.create()
         }
@@ -1171,44 +1196,29 @@ open class DB(
         override fun open(): BTreeMap<K, V> {
             return super.open()
         }
+
     }
 
     class TreeSetMaker<E>(
-            protected override val db:DB,
-            protected override val name:String
-    ) :Maker<NavigableSet<E>>(){
-
-        protected val maker = TreeMapMaker<E, Any?>(db, name, hasValues = false)
+            db:DB,
+            name:String
+    ) :BTreeMapMaker<E, Void, NavigableSet<E>>(db,name,hasValues=false){
 
 
         fun <A> serializer(serializer:GroupSerializer<A>):TreeSetMaker<A>{
-            maker.keySerializer(serializer)
+            this._keySerializer = serializer as GroupSerializer<E>
             return this as TreeSetMaker<A>
         }
 
         fun maxNodeSize(size:Int):TreeSetMaker<E>{
-            maker.maxNodeSize(size)
+            this._maxNodeSize = size
             return this;
         }
 
         fun counterEnable():TreeSetMaker<E>{
-            maker.counterEnable()
+            this._counterEnable = true
             return this;
         }
-
-        override fun verify() {
-            maker.`%%%verify`()
-        }
-
-        override fun open2(catalog: SortedMap<String, String>): NavigableSet<E> {
-            return maker.`%%%open2`(catalog).keys as NavigableSet<E>
-        }
-
-        override fun create2(catalog: SortedMap<String, String>): NavigableSet<E> {
-            return maker.`%%%create2`(catalog).keys as NavigableSet<E>
-        }
-
-        override val type = "TreeSet"
     }
 
     fun treeMap(name:String):TreeMapMaker<*,*> = TreeMapMaker<Any?, Any?>(this, name)
@@ -1225,40 +1235,40 @@ open class DB(
 
 
     class HashSetMaker<E>(
-            protected override val db:DB,
-            protected override val name:String,
-            protected val _storeFactory:(segment:Int)->Store = {i-> db.store}
-
-    ) :Maker<HTreeMap.KeySet<E>>(){
-
-        protected val maker = HashMapMaker<E, Any?>(db, name, hasValues=false, _storeFactory = _storeFactory)
+            db:DB,
+            name:String,
+            storeFactory:(segment:Int)->Store = {i-> db.store}
+    ) :HTreeMapMaker<E, Void, HTreeMap.KeySet<E>>(db,name, false, storeFactory){
 
         init{
-            maker.valueSerializer(BTreeMap.NO_VAL_SERIALIZER).valueInline()
+            _valueSerializer = BTreeMap.NO_VAL_SERIALIZER as Serializer<Void>
+            _valueInline =true
         }
 
         fun <A> serializer(serializer:Serializer<A>):HashSetMaker<A>{
-            maker.keySerializer(serializer)
+            _keySerializer = serializer as Serializer<E>
             return this as HashSetMaker<A>
         }
 
-        fun counterEnable():HashSetMaker<E>{
-            maker.counterEnable()
-            return this;
-        }
+
 
         fun removeCollapsesIndexTreeDisable():HashSetMaker<E>{
-            maker.removeCollapsesIndexTreeDisable()
+            _removeCollapsesIndexTree = false
             return this
         }
 
         fun hashSeed(hashSeed:Int):HashSetMaker<E>{
-            maker.hashSeed(hashSeed)
+            _hashSeed = hashSeed
             return this
         }
 
         fun layout(concurrency:Int, dirSize:Int, levels:Int):HashSetMaker<E>{
-            maker.layout(concurrency, dirSize, levels)
+            fun toShift(value:Int):Int{
+                return 31 - Integer.numberOfLeadingZeros(DataIO.nextPowTwo(Math.max(1,value)))
+            }
+            _concShift = toShift(concurrency)
+            _dirShift = toShift(dirSize)
+            _levels = levels
             return this
         }
 
@@ -1267,7 +1277,7 @@ open class DB(
         }
 
         fun expireAfterCreate(ttl:Long):HashSetMaker<E>{
-            maker.expireAfterCreate(ttl)
+            _expireCreateTTL = ttl
             return this
         }
 
@@ -1276,60 +1286,54 @@ open class DB(
             return expireAfterCreate(unit.toMillis(ttl))
         }
 
+
         fun expireAfterGet():HashSetMaker<E>{
             return expireAfterGet(-1)
         }
 
         fun expireAfterGet(ttl:Long):HashSetMaker<E>{
-            maker.expireAfterGet(ttl)
+            _expireGetTTL = ttl
             return this
         }
 
 
-        fun expireAfterGet(ttl:Long, unit:TimeUnit):HashSetMaker<E> {
+        fun expireAfterGet(ttl:Long, unit:TimeUnit):HashSetMaker<E>{
             return expireAfterGet(unit.toMillis(ttl))
         }
 
 
         fun expireExecutor(executor: ScheduledExecutorService?):HashSetMaker<E>{
-            maker.expireExecutor(executor)
+            _expireExecutor = executor;
             return this
         }
 
         fun expireExecutorPeriod(period:Long):HashSetMaker<E>{
-            maker.expireExecutorPeriod(period)
+            _expireExecutorPeriod = period
             return this
         }
 
         fun expireCompactThreshold(freeFraction: Double):HashSetMaker<E>{
-            maker.expireCompactThreshold(freeFraction)
+            _expireCompactThreshold = freeFraction
             return this
         }
 
 
         fun expireMaxSize(maxSize:Long):HashSetMaker<E>{
-            maker.expireMaxSize(maxSize)
-            return this
+            _expireMaxSize = maxSize;
+            return counterEnable()
         }
 
         fun expireStoreSize(storeSize:Long):HashSetMaker<E>{
-            maker.expireStoreSize(storeSize)
+            _expireStoreSize = storeSize;
             return this
         }
 
-        override fun verify() {
-            maker.`%%%verify`()
+
+        fun counterEnable():HashSetMaker<E>{
+            _counterEnable = true
+            return this
         }
 
-        override fun open2(catalog: SortedMap<String, String>): HTreeMap.KeySet<E> {
-            return maker.`%%%open2`(catalog).keys
-        }
-
-        override fun create2(catalog: SortedMap<String, String>): HTreeMap.KeySet<E> {
-            return maker.`%%%create2`(catalog).keys
-        }
-
-        override val type = "HashSet"
     }
 
     fun hashSet(name:String):HashSetMaker<*> = HashSetMaker<Any?>(this, name)
@@ -1339,7 +1343,11 @@ open class DB(
 
 
 
-    abstract class Maker<E>(){
+    abstract class Maker<E>(
+        protected val db:DB,
+        protected val name:String,
+        protected val type:String
+    ){
         /**
          * Creates new collection if it does not exist, or throw {@link DBException.WrongConfiguration}
          * if collection already exists.
@@ -1409,19 +1417,9 @@ open class DB(
         abstract protected fun create2(catalog:SortedMap<String,String>):E
         abstract protected fun open2(catalog:SortedMap<String,String>):E
 
-        //TODO this is hack to make internal methods not accessible from Java. Remove once internal method names are obfuscated in bytecode
-        internal fun `%%%verify`(){verify()}
-        internal fun `%%%create2`(catalog:SortedMap<String,String>) = create2(catalog)
-        internal fun `%%%open2`(catalog:SortedMap<String,String>) = open2(catalog)
-
-        abstract protected val db:DB
-        abstract protected val name:String
-        abstract protected val type:String
     }
 
-    class AtomicIntegerMaker(protected override val db:DB, protected override val name:String, protected val value:Int=0):Maker<Atomic.Integer>(){
-
-        override val type = "AtomicInteger"
+    class AtomicIntegerMaker(db:DB, name:String, protected val value:Int=0):Maker<Atomic.Integer>(db, name, "AtomicInteger"){
 
         override fun create2(catalog: SortedMap<String, String>): Atomic.Integer {
             val recid = db.store.put(value, Serializer.INTEGER)
@@ -1441,9 +1439,7 @@ open class DB(
 
 
 
-    class AtomicLongMaker(protected override val db:DB, protected override val name:String, protected val value:Long=0):Maker<Atomic.Long>(){
-
-        override val type = "AtomicLong"
+    class AtomicLongMaker(db:DB, name:String, protected val value:Long=0):Maker<Atomic.Long>(db, name, "AtomicLong"){
 
         override fun create2(catalog: SortedMap<String, String>): Atomic.Long {
             val recid = db.store.put(value, Serializer.LONG)
@@ -1462,9 +1458,7 @@ open class DB(
     fun atomicLong(name:String, value:Long) = AtomicLongMaker(this, name, value)
 
 
-    class AtomicBooleanMaker(protected override val db:DB, protected override val name:String, protected val value:Boolean=false):Maker<Atomic.Boolean>(){
-
-        override val type = "AtomicBoolean"
+    class AtomicBooleanMaker(db:DB, name:String, protected val value:Boolean=false):Maker<Atomic.Boolean>(db,name,"AtomicBoolean"){
 
         override fun create2(catalog: SortedMap<String, String>): Atomic.Boolean {
             val recid = db.store.put(value, Serializer.BOOLEAN)
@@ -1483,9 +1477,7 @@ open class DB(
     fun atomicBoolean(name:String, value:Boolean) = AtomicBooleanMaker(this, name, value)
 
 
-    class AtomicStringMaker(protected override val db:DB, protected override val name:String, protected val value:String?=null):Maker<Atomic.String>(){
-
-        override val type = "AtomicString"
+    class AtomicStringMaker(db:DB, name:String, protected val value:String?=null):Maker<Atomic.String>(db,name,"AtomicString"){
 
         override fun create2(catalog: SortedMap<String, String>): Atomic.String {
             val recid = db.store.put(value, Serializer.STRING_NOSIZE)
@@ -1504,12 +1496,10 @@ open class DB(
     fun atomicString(name:String, value:String?) = AtomicStringMaker(this, name, value)
 
 
-    class AtomicVarMaker<E>(protected override val db:DB,
-                            protected override val name:String,
+    class AtomicVarMaker<E>(db:DB,
+                            name:String,
                             protected val serializer:Serializer<E> = db.defaultSerializer as Serializer<E>,
-                            protected val value:E? = null):Maker<Atomic.Var<E>>(){
-
-        override val type = "AtomicVar"
+                            protected val value:E? = null):Maker<Atomic.Var<E>>(db,name, "AtomicVar"){
 
         override fun create2(catalog: SortedMap<String, String>): Atomic.Var<E> {
             val recid = db.store.put(value, serializer)
@@ -1532,16 +1522,12 @@ open class DB(
 
     fun <E> atomicVar(name:String, serializer:Serializer<E>, value:E? ) = AtomicVarMaker(this, name, serializer, value)
 
-    class IndexTreeLongLongMapMaker(
-            protected override val db:DB,
-            protected override val name:String
-    ):Maker<IndexTreeLongLongMap>(){
+    class IndexTreeLongLongMapMaker(db:DB,name:String
+    ):Maker<IndexTreeLongLongMap>(db, name, "IndexTreeLongLongMap"){
 
         private var _dirShift = CC.HTREEMAP_DIR_SHIFT
         private var _levels = CC.HTREEMAP_LEVELS
         private var _removeCollapsesIndexTree:Boolean = true
-
-        override val type = "IndexTreeLongLongMap"
 
         fun layout(dirSize:Int, levels:Int):IndexTreeLongLongMapMaker{
             fun toShift(value:Int):Int{
@@ -1589,17 +1575,13 @@ open class DB(
     private fun indexTreeLongLongMap(name: String) = IndexTreeLongLongMapMaker(this, name)
 
 
-    class IndexTreeListMaker<E>(
-            protected override val db:DB,
-            protected override val name:String,
+    class IndexTreeListMaker<E>(db:DB, name:String,
             protected val serializer:Serializer<E>
-    ):Maker<IndexTreeList<E>>(){
+    ):Maker<IndexTreeList<E>>(db, name, "IndexTreeList"){
 
         private var _dirShift = CC.HTREEMAP_DIR_SHIFT
         private var _levels = CC.HTREEMAP_LEVELS
         private var _removeCollapsesIndexTree:Boolean = true
-
-        override val type = "IndexTreeList"
 
         fun layout(dirSize:Int, levels:Int):IndexTreeListMaker<E>{
             fun toShift(value:Int):Int{

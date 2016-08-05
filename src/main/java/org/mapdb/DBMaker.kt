@@ -2,7 +2,6 @@ package org.mapdb
 
 import org.mapdb.volume.*
 import java.io.File
-import java.lang.ref.WeakReference
 
 
 /**
@@ -92,7 +91,7 @@ object DBMaker{
 
     @JvmStatic fun memoryShardedHashSet(concurrency:Int): DB.HashSetMaker<*> {
         val db = DB(store = StoreOnHeap(), storeOpened = false, isThreadSafe = true)
-        return DB.HashSetMaker<Any>(db,"map",_storeFactory = { i ->
+        return DB.HashSetMaker<Any>(db,"map",storeFactory = { i ->
                 StoreDirect.make(isThreadSafe = false)
             })
             .layout(concurrency = concurrency, dirSize = 1.shl(CC.HTREEMAP_DIR_SHIFT), levels = CC.HTREEMAP_LEVELS)
@@ -100,7 +99,7 @@ object DBMaker{
 
     @JvmStatic fun heapShardedHashSet(concurrency:Int): DB.HashSetMaker<*> {
         val db = DB(store = StoreOnHeap(), storeOpened = false, isThreadSafe = true)
-        return DB.HashSetMaker<Any>(db,"map",_storeFactory = { i ->
+        return DB.HashSetMaker<Any>(db,"map",storeFactory = { i ->
                 StoreOnHeap(isThreadSafe = false)
             })
             .layout(concurrency = concurrency, dirSize = 1.shl(CC.HTREEMAP_DIR_SHIFT), levels = CC.HTREEMAP_LEVELS)
@@ -108,7 +107,7 @@ object DBMaker{
 
     @JvmStatic fun memoryShardedHashMap(concurrency:Int): DB.HashMapMaker<*,*> {
         val db = DB(store = StoreOnHeap(), storeOpened = false, isThreadSafe = true)
-        return DB.HashMapMaker<Any,Any>(db,"map",_storeFactory = { i ->
+        return DB.HashMapMaker<Any,Any>(db,"map",storeFactory = { i ->
                 StoreDirect.make(isThreadSafe = false)
             })
             .layout(concurrency = concurrency, dirSize = 1.shl(CC.HTREEMAP_DIR_SHIFT), levels = CC.HTREEMAP_LEVELS)
@@ -116,7 +115,7 @@ object DBMaker{
 
     @JvmStatic fun heapShardedHashMap(concurrency:Int): DB.HashMapMaker<*,*> {
         val db = DB(store = StoreOnHeap(), storeOpened = false, isThreadSafe = true)
-        return DB.HashMapMaker<Any,Any>(db,"map",_storeFactory = { i ->
+        return DB.HashMapMaker<Any,Any>(db,"map",storeFactory = { i ->
                 StoreOnHeap(isThreadSafe = false)
             })
             .layout(concurrency = concurrency, dirSize = 1.shl(CC.HTREEMAP_DIR_SHIFT), levels = CC.HTREEMAP_LEVELS)
