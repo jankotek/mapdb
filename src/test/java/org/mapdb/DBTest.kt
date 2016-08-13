@@ -1119,9 +1119,9 @@ class DBTest{
     @Test fun register_class_leaves_old_value(){
         var db = DBMaker.memoryDB().make()
         db.defaultSerializerRegisterClass(TestPojo::class.java)
-        val classInfos = db.loadClassInfos().clone()
+        val classInfos = db.loadClassInfos().clone() 
         val z = classInfos[0]
-        classInfos[0] = ElsaSerializerPojo.ClassInfo(z.name, z.fields, true, true) //modify old value to make it recognizable
+        classInfos[0] = ElsaSerializerPojo.ClassInfo(z.name, z.fields, true, true, true) //modify old value to make it recognizable
         db.getStore().update(CC.RECID_CLASS_INFOS, classInfos, db.classInfoSerializer())
 
         //update again and check old class info is untouched

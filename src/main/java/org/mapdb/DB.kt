@@ -1722,7 +1722,7 @@ open class DB(
             return; //class is already present
         //add as last item to an array
         infos = Arrays.copyOf(infos, infos.size + 1)
-        infos[infos.size - 1] = elsaSerializer.makeClassInfo(className)
+        infos[infos.size - 1] = ElsaSerializerPojo.makeClassInfo(clazz)
         //and save
         store.update(CC.RECID_CLASS_INFOS, infos, classInfoSerializer)
     }

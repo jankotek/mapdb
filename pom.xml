@@ -43,7 +43,7 @@
         <ec.version>[7.0.0,7.20.0)</ec.version>
         <guava.version>[15.0,19.20)</guava.version>
 
-        <elsa.version>3.0.0-M5</elsa.version>
+        <elsa.version>3.0.0-M6</elsa.version>
 
         <threadCount>3</threadCount>
         <argline />
