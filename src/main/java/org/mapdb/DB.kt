@@ -192,6 +192,7 @@ open class DB(
     private val elsaSerializer:ElsaSerializerPojo = ElsaSerializerPojo(
             0,
             pojoSingletons(),
+            //TODO add Tuples into default serializer
             namedClasses().map { Pair(it, nameSer) }.toMap(),
             namedClasses().map { Pair(it, NAMED_SERIALIZATION_HEADER)}.toMap(),
             mapOf(Pair(NAMED_SERIALIZATION_HEADER, nameDeser)),
