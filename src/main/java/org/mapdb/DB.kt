@@ -563,6 +563,7 @@ open class DB(
             protected val hasValues:Boolean=true,
             protected val _storeFactory:(segment:Int)->Store = {i-> db.store}
     ):Maker<MAP>(db,name, if(hasValues) "HashMap" else "HashSet"){
+        override fun awareItems() = arrayOf(_keySerializer, _valueSerializer, _valueLoader)
 
         protected var _keySerializer:Serializer<K> = db.defaultSerializer as Serializer<K>
         protected var _valueSerializer:Serializer<V> = db.defaultSerializer as Serializer<V>
@@ -1006,8 +1007,10 @@ open class DB(
              protected val hasValues:Boolean
          ) :Maker<MAP>(db,name, if(hasValues)"TreeMap" else "TreeSet"){
 
+        override fun awareItems() = arrayOf(_keySerializer, _valueSerializer, _valueLoader)
 
-         protected var _keySerializer:GroupSerializer<K> = db.defaultSerializer as GroupSerializer<K>
+
+        protected var _keySerializer:GroupSerializer<K> = db.defaultSerializer as GroupSerializer<K>
          protected var _valueSerializer:GroupSerializer<V> =
                  (if(hasValues) db.defaultSerializer else BTreeMap.NO_VAL_SERIALIZER) as GroupSerializer<V>
          protected var _maxNodeSize = CC.BTREEMAP_MAX_NODE_SIZE
@@ -1416,6 +1419,9 @@ open class DB(
         @Deprecated(message="use createOrOpen() method", replaceWith=ReplaceWith("createOrOpen()"))
         open fun makeOrGet() = make2(null)
 
+
+        protected abstract fun awareItems():Array<Any?>
+
         /**
          * Create new collection or open existing.
          */
@@ -1462,6 +1468,12 @@ open class DB(
                 val ret = create2(catalog)
                 db.nameCatalogSaveLocked(catalog)
                 db.namesInstanciated.put(name,ret)
+                for(obj in awareItems()){
+                    if(obj is DBAware)
+                        obj.callbackDB(db)
+                    if(obj is NamedRecordAware)
+                        obj.callbackRecord(name, ret as Any)
+                }
                 return ret
             }
         }
@@ -1473,6 +1485,8 @@ open class DB(
     }
 
     class AtomicIntegerMaker(db:DB, name:String, protected val value:Int=0):Maker<Atomic.Integer>(db, name, "AtomicInteger"){
+
+        override fun awareItems(): Array<Any?> = arrayOf()
 
         override fun create2(catalog: SortedMap<String, String>): Atomic.Integer {
             val recid = db.store.put(value, Serializer.INTEGER)
@@ -1494,6 +1508,8 @@ open class DB(
 
     class AtomicLongMaker(db:DB, name:String, protected val value:Long=0):Maker<Atomic.Long>(db, name, "AtomicLong"){
 
+        override fun awareItems(): Array<Any?> = arrayOf()
+
         override fun create2(catalog: SortedMap<String, String>): Atomic.Long {
             val recid = db.store.put(value, Serializer.LONG)
             catalog[name+Keys.recid] = recid.toString()
@@ -1513,6 +1529,8 @@ open class DB(
 
     class AtomicBooleanMaker(db:DB, name:String, protected val value:Boolean=false):Maker<Atomic.Boolean>(db,name,"AtomicBoolean"){
 
+        override fun awareItems(): Array<Any?> = arrayOf()
+
         override fun create2(catalog: SortedMap<String, String>): Atomic.Boolean {
             val recid = db.store.put(value, Serializer.BOOLEAN)
             catalog[name+Keys.recid] = recid.toString()
@@ -1531,6 +1549,8 @@ open class DB(
 
 
     class AtomicStringMaker(db:DB, name:String, protected val value:String?=null):Maker<Atomic.String>(db,name,"AtomicString"){
+
+        override fun awareItems(): Array<Any?> = arrayOf()
 
         override fun create2(catalog: SortedMap<String, String>): Atomic.String {
             val recid = db.store.put(value, Serializer.STRING_NOSIZE)
@@ -1553,6 +1573,8 @@ open class DB(
                             name:String,
                             protected val serializer:Serializer<E> = db.defaultSerializer as Serializer<E>,
                             protected val value:E? = null):Maker<Atomic.Var<E>>(db,name, "AtomicVar"){
+
+        override fun awareItems():Array<Any?> = arrayOf(serializer)
 
         override fun create2(catalog: SortedMap<String, String>): Atomic.Var<E> {
             val recid = db.store.put(value, serializer)
@@ -1581,6 +1603,8 @@ open class DB(
         private var _dirShift = CC.HTREEMAP_DIR_SHIFT
         private var _levels = CC.HTREEMAP_LEVELS
         private var _removeCollapsesIndexTree:Boolean = true
+
+        override fun awareItems(): Array<Any?> = arrayOf()
 
         fun layout(dirSize:Int, levels:Int):IndexTreeLongLongMapMaker{
             fun toShift(value:Int):Int{
@@ -1635,6 +1659,8 @@ open class DB(
         private var _dirShift = CC.HTREEMAP_DIR_SHIFT
         private var _levels = CC.HTREEMAP_LEVELS
         private var _removeCollapsesIndexTree:Boolean = true
+
+        override fun awareItems(): Array<Any?> = arrayOf(serializer)
 
         fun layout(dirSize:Int, levels:Int):IndexTreeListMaker<E>{
             fun toShift(value:Int):Int{
@@ -1907,5 +1933,23 @@ open class DB(
                 ret+=param+": unknown parameter"
 
         return ret;
+    }
+
+
+    /**
+     * Callback interface which gets reference to DB object. Classes which implements it (for example serializers)
+     * can get reference to `DB` object
+     */
+    interface DBAware{
+        fun callbackDB(db:DB)
+    }
+
+
+    /**
+     * Callback interface which gets reference to collection(record) and its name. Classes which implements it (for example serializers)
+     * can get reference to collection they were created with
+     */
+    interface NamedRecordAware{
+        fun callbackRecord(name:String, collection:Any)
     }
 }
