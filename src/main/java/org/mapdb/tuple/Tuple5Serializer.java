@@ -1,6 +1,7 @@
 package org.mapdb.tuple;
 
 import org.jetbrains.annotations.NotNull;
+import org.mapdb.DB;
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
 import org.mapdb.Serializer;
@@ -29,19 +30,24 @@ import static org.mapdb.tuple.Tuple.compare2;
  * @param <B> second tuple value
  * @param <C> third tuple value
  */
-public class Tuple5Serializer<A,B,C,D,E> extends GroupSerializerObjectArray<Tuple5<A,B,C,D,E>> implements Serializable {
+public class Tuple5Serializer<A,B,C,D,E> extends GroupSerializerObjectArray<Tuple5<A,B,C,D,E>>
+        implements Serializable, DB.DBAware {
 
     private static final long serialVersionUID = 8607477718850453705L;
-    protected final Comparator<A> aComparator;
-    protected final Comparator<B> bComparator;
-    protected final Comparator<C> cComparator;
-    protected final Comparator<D> dComparator;
-    protected final Comparator<E> eComparator;
-    protected final Serializer<A> aSerializer;
-    protected final Serializer<B> bSerializer;
-    protected final Serializer<C> cSerializer;
-    protected final Serializer<D> dSerializer;
-    protected final Serializer<E> eSerializer;
+    protected Comparator<A> aComparator;
+    protected Comparator<B> bComparator;
+    protected Comparator<C> cComparator;
+    protected Comparator<D> dComparator;
+    protected Comparator<E> eComparator;
+    protected Serializer<A> aSerializer;
+    protected Serializer<B> bSerializer;
+    protected Serializer<C> cSerializer;
+    protected Serializer<D> dSerializer;
+    protected Serializer<E> eSerializer;
+
+    public Tuple5Serializer(){
+        this(null, null, null, null, null, null, null, null, null, null);
+    }
 
     public Tuple5Serializer(
             Serializer<A> aSerializer, Serializer<B> bSerializer, Serializer<C> cSerializer, Serializer<D> dSerializer, Serializer<E> eSerializer){
@@ -265,5 +271,19 @@ public class Tuple5Serializer<A,B,C,D,E> extends GroupSerializerObjectArray<Tupl
         seed += -1640531527 * dSerializer.hashCode(o.d, seed);
         seed += -1640531527 * eSerializer.hashCode(o.e, seed);
         return seed;
+    }
+
+    @Override
+    public void callbackDB(@NotNull DB db) {
+        if(aComparator==null) aComparator = (Comparator<A>) db.getDefaultSerializer();
+        if(bComparator==null) bComparator = (Comparator<B>) db.getDefaultSerializer();
+        if(cComparator==null) cComparator = (Comparator<C>) db.getDefaultSerializer();
+        if(dComparator==null) dComparator = (Comparator<D>) db.getDefaultSerializer();
+        if(eComparator==null) eComparator = (Comparator<E>) db.getDefaultSerializer();
+        if(aSerializer==null) aSerializer = (Serializer<A>) db.getDefaultSerializer();
+        if(bSerializer==null) bSerializer = (Serializer<B>) db.getDefaultSerializer();
+        if(cSerializer==null) cSerializer = (Serializer<C>) db.getDefaultSerializer();
+        if(dSerializer==null) dSerializer = (Serializer<D>) db.getDefaultSerializer();
+        if(eSerializer==null) eSerializer = (Serializer<E>) db.getDefaultSerializer();
     }
 }

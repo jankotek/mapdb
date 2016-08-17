@@ -2,7 +2,10 @@ package org.mapdb.tuple;
 
 
 import org.junit.Test;
+import org.mapdb.DB;
+import org.mapdb.DBMaker;
 
+import java.util.Set;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
@@ -234,4 +237,12 @@ public class TupleTest {
 
     }
 
+    @Test public void null_set(){
+        DB db = DBMaker.memoryDB().make();
+        Set set = (Set)db.treeSet("aa", new Tuple2Serializer()).create();
+        set.add(Tuple.t2("aa",11));
+        assertEquals(1, set.size());
+    }
+
 }
+

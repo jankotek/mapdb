@@ -1,6 +1,7 @@
 package org.mapdb.tuple;
 
 import org.jetbrains.annotations.NotNull;
+import org.mapdb.DB;
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
 import org.mapdb.Serializer;
@@ -29,17 +30,23 @@ import static org.mapdb.tuple.Tuple.compare2;
  * @param <B> second tuple value
  * @param <C> third tuple value
  */
-public class Tuple4Serializer<A,B,C,D> extends GroupSerializerObjectArray<Tuple4<A,B,C,D>> implements Serializable {
+public class Tuple4Serializer<A,B,C,D> extends GroupSerializerObjectArray<Tuple4<A,B,C,D>>
+        implements Serializable, DB.DBAware {
 
     private static final long serialVersionUID = -1835761249723528530L;
-    protected final Comparator<A> aComparator;
-    protected final Comparator<B> bComparator;
-    protected final Comparator<C> cComparator;
-    protected final Comparator<D> dComparator;
-    protected final Serializer<A> aSerializer;
-    protected final Serializer<B> bSerializer;
-    protected final Serializer<C> cSerializer;
-    protected final Serializer<D> dSerializer;
+    protected Comparator<A> aComparator;
+    protected Comparator<B> bComparator;
+    protected Comparator<C> cComparator;
+    protected Comparator<D> dComparator;
+    protected Serializer<A> aSerializer;
+    protected Serializer<B> bSerializer;
+    protected Serializer<C> cSerializer;
+    protected Serializer<D> dSerializer;
+
+
+    public Tuple4Serializer(){
+        this(null, null, null, null, null, null, null, null);
+    }
 
     public Tuple4Serializer(
             Serializer<A> aSerializer, Serializer<B> bSerializer, Serializer<C> cSerializer, Serializer<D> dSerializer){
@@ -232,5 +239,17 @@ public class Tuple4Serializer<A,B,C,D> extends GroupSerializerObjectArray<Tuple4
         seed += -1640531527 * cSerializer.hashCode(o.c, seed);
         seed += -1640531527 * dSerializer.hashCode(o.d, seed);
         return seed;
+    }
+
+    @Override
+    public void callbackDB(@NotNull DB db) {
+        if(aComparator==null) aComparator = (Comparator<A>) db.getDefaultSerializer();
+        if(bComparator==null) bComparator = (Comparator<B>) db.getDefaultSerializer();
+        if(cComparator==null) cComparator = (Comparator<C>) db.getDefaultSerializer();
+        if(dComparator==null) dComparator = (Comparator<D>) db.getDefaultSerializer();
+        if(aSerializer==null) aSerializer = (Serializer<A>) db.getDefaultSerializer();
+        if(bSerializer==null) bSerializer = (Serializer<B>) db.getDefaultSerializer();
+        if(cSerializer==null) cSerializer = (Serializer<C>) db.getDefaultSerializer();
+        if(dSerializer==null) dSerializer = (Serializer<D>) db.getDefaultSerializer();
     }
 }

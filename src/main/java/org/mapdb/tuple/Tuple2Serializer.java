@@ -1,6 +1,7 @@
 package org.mapdb.tuple;
 
 import org.jetbrains.annotations.NotNull;
+import org.mapdb.DB;
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
 import org.mapdb.Serializer;
@@ -28,14 +29,18 @@ import static org.mapdb.tuple.Tuple.compare2;
  * @param <A> first tuple value
  * @param <B> second tuple value
  */
-public final class Tuple2Serializer<A,B> extends GroupSerializerObjectArray<Tuple2<A,B>> implements Serializable {
+public final class Tuple2Serializer<A,B> extends GroupSerializerObjectArray<Tuple2<A,B>>
+        implements Serializable, DB.DBAware {
 
     private static final long serialVersionUID = 2183804367032891772L;
-    protected final Comparator<A> aComparator;
-    protected final Comparator<B> bComparator;
-    protected final Serializer<A> aSerializer;
-    protected final Serializer<B> bSerializer;
+    protected Comparator<A> aComparator;
+    protected Comparator<B> bComparator;
+    protected Serializer<A> aSerializer;
+    protected Serializer<B> bSerializer;
 
+    public Tuple2Serializer(){
+        this(null, null, null, null);
+    }
 
     public Tuple2Serializer(
             Serializer<A> aSerializer, Serializer<B> bSerializer){
@@ -160,5 +165,13 @@ public final class Tuple2Serializer<A,B> extends GroupSerializerObjectArray<Tupl
         seed += -1640531527 * aSerializer.hashCode(o.a, seed);
         seed += -1640531527 * bSerializer.hashCode(o.b, seed);
         return seed;
+    }
+
+    @Override
+    public void callbackDB(@NotNull DB db) {
+        if(aComparator==null) aComparator = (Comparator<A>) db.getDefaultSerializer();
+        if(bComparator==null) bComparator = (Comparator<B>) db.getDefaultSerializer();
+        if(aSerializer==null) aSerializer = (Serializer<A>) db.getDefaultSerializer();
+        if(bSerializer==null) bSerializer = (Serializer<B>) db.getDefaultSerializer();
     }
 }
