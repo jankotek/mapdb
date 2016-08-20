@@ -46,6 +46,11 @@ public class Tuple3Serializer<A,B,C> extends GroupSerializerObjectArray<Tuple3<A
         this(null, null, null, null, null, null);
     }
 
+
+    public Tuple3Serializer(Serializer serializer){
+        this(serializer, serializer, serializer);
+    }
+
     public Tuple3Serializer(
             Serializer<A> aSerializer, Serializer<B> bSerializer, Serializer<C> cSerializer){
         this(

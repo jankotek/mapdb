@@ -49,6 +49,11 @@ public class Tuple5Serializer<A,B,C,D,E> extends GroupSerializerObjectArray<Tupl
         this(null, null, null, null, null, null, null, null, null, null);
     }
 
+
+    public Tuple5Serializer(Serializer serializer){
+        this(serializer, serializer, serializer, serializer, serializer);
+    }
+
     public Tuple5Serializer(
             Serializer<A> aSerializer, Serializer<B> bSerializer, Serializer<C> cSerializer, Serializer<D> dSerializer, Serializer<E> eSerializer){
         this(

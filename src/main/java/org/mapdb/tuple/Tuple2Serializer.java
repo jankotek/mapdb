@@ -42,6 +42,11 @@ public final class Tuple2Serializer<A,B> extends GroupSerializerObjectArray<Tupl
         this(null, null, null, null);
     }
 
+
+    public Tuple2Serializer(Serializer serializer){
+        this(serializer, serializer);
+    }
+
     public Tuple2Serializer(
             Serializer<A> aSerializer, Serializer<B> bSerializer){
         this(
