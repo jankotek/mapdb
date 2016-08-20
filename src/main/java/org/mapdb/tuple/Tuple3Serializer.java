@@ -12,6 +12,7 @@ import java.io.Serializable;
 import java.util.Comparator;
 
 import static org.mapdb.tuple.Tuple.compare2;
+import static org.mapdb.tuple.Tuple.hiIfNull;
 
 /**
  * Applies delta compression on array of tuple. First and second tuple value may be shared between consequentive tuples, so only
@@ -218,5 +219,10 @@ public class Tuple3Serializer<A,B,C> extends GroupSerializerObjectArray<Tuple3<A
         if(aSerializer==null) aSerializer = (Serializer<A>) db.getDefaultSerializer();
         if(bSerializer==null) bSerializer = (Serializer<B>) db.getDefaultSerializer();
         if(cSerializer==null) cSerializer = (Serializer<C>) db.getDefaultSerializer();
+    }
+
+    @Override
+    public Tuple3<A, B, C> nextValue(Tuple3<A, B, C> v) {
+        return new Tuple3(hiIfNull(v.a), hiIfNull(v.b), hiIfNull(v.c));
     }
 }

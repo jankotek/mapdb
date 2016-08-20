@@ -15,8 +15,6 @@ public final class Tuple {
     static boolean eq(Object a, Object b) {
         return a==b || (a!=null && a.equals(b));
     }
-
-
     /** compare method which respects 'null' as negative infinity and 'HI' as positive inf */
     static <E> int compare2(Comparator<E> comparator, E a, E b) {
         if(a==b) return 0;
@@ -50,6 +48,10 @@ public final class Tuple {
     /** autocast version of `HI`*/
     public static <A> A HI(){
         return (A) HI;
+    }
+
+    static <E> E hiIfNull(E e){
+        return e==null ? HI() : e;
     }
 
     public static <A,B> Tuple2<A,B> t2(A a, B b) {
