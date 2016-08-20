@@ -163,10 +163,10 @@ public class Tuple3Serializer<A,B,C> extends GroupSerializerObjectArray<Tuple3<A
     @Override
     public int hashCode() {
         int result = aComparator != null ? aComparator.hashCode() : 0;
-        result = 31 * result + (bComparator != null ? bComparator.hashCode() : 0);
-        result = 31 * result + (aSerializer != null ? aSerializer.hashCode() : 0);
-        result = 31 * result + (bSerializer != null ? bSerializer.hashCode() : 0);
-        result = 31 * result + (cSerializer != null ? cSerializer.hashCode() : 0);
+        result =  -1640531527 * result + (bComparator != null ? bComparator.hashCode() : 0);
+        result =  -1640531527 * result + (aSerializer != null ? aSerializer.hashCode() : 0);
+        result =  -1640531527 * result + (bSerializer != null ? bSerializer.hashCode() : 0);
+        result =  -1640531527 * result + (cSerializer != null ? cSerializer.hashCode() : 0);
         return result;
     }
 
@@ -203,9 +203,9 @@ public class Tuple3Serializer<A,B,C> extends GroupSerializerObjectArray<Tuple3<A
 
     @Override
     public int hashCode(@NotNull Tuple3<A, B, C> o, int seed) {
-        seed += -1640531527 * aSerializer.hashCode(o.a, seed);
-        seed += -1640531527 * bSerializer.hashCode(o.b, seed);
-        seed += -1640531527 * cSerializer.hashCode(o.c, seed);
+        seed =  -1640531527 * seed + aSerializer.hashCode(o.a, seed);
+        seed =  -1640531527 * seed + bSerializer.hashCode(o.b, seed);
+        seed =  -1640531527 * seed + cSerializer.hashCode(o.c, seed);
         return seed;
     }
 

@@ -191,12 +191,12 @@ public class Tuple4Serializer<A,B,C,D> extends GroupSerializerObjectArray<Tuple4
     @Override
     public int hashCode() {
         int result = aComparator != null ? aComparator.hashCode() : 0;
-        result = 31 * result + (bComparator != null ? bComparator.hashCode() : 0);
-        result = 31 * result + (cComparator != null ? cComparator.hashCode() : 0);
-        result = 31 * result + (aSerializer != null ? aSerializer.hashCode() : 0);
-        result = 31 * result + (bSerializer != null ? bSerializer.hashCode() : 0);
-        result = 31 * result + (cSerializer != null ? cSerializer.hashCode() : 0);
-        result = 31 * result + (dSerializer != null ? dSerializer.hashCode() : 0);
+        result =  -1640531527 * result + (bComparator != null ? bComparator.hashCode() : 0);
+        result =  -1640531527 * result + (cComparator != null ? cComparator.hashCode() : 0);
+        result =  -1640531527 * result + (aSerializer != null ? aSerializer.hashCode() : 0);
+        result =  -1640531527 * result + (bSerializer != null ? bSerializer.hashCode() : 0);
+        result =  -1640531527 * result + (cSerializer != null ? cSerializer.hashCode() : 0);
+        result =  -1640531527 * result + (dSerializer != null ? dSerializer.hashCode() : 0);
         return result;
     }
 
@@ -238,10 +238,10 @@ public class Tuple4Serializer<A,B,C,D> extends GroupSerializerObjectArray<Tuple4
 
     @Override
     public int hashCode(@NotNull Tuple4<A, B, C, D> o, int seed) {
-        seed += -1640531527 * aSerializer.hashCode(o.a, seed);
-        seed += -1640531527 * bSerializer.hashCode(o.b, seed);
-        seed += -1640531527 * cSerializer.hashCode(o.c, seed);
-        seed += -1640531527 * dSerializer.hashCode(o.d, seed);
+        seed =  -1640531527 * seed + aSerializer.hashCode(o.a, seed);
+        seed =  -1640531527 * seed + bSerializer.hashCode(o.b, seed);
+        seed =  -1640531527 * seed + cSerializer.hashCode(o.c, seed);
+        seed =  -1640531527 * seed + dSerializer.hashCode(o.d, seed);
         return seed;
     }
 

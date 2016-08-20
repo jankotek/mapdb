@@ -43,9 +43,9 @@ final public class Tuple4<A,B,C,D> implements Comparable<Tuple4<A,B,C,D>>, Seria
         @Override
         public int hashCode() {
             int result = a != null ? a.hashCode() : 0;
-            result = 31 * result + (b != null ? b.hashCode() : 0);
-            result = 31 * result + (c != null ? c.hashCode() : 0);
-            result = 31 * result + (d != null ? d.hashCode() : 0);
+            result =  -1640531527 * result + (b != null ? b.hashCode() : 0);
+            result =  -1640531527 * result + (c != null ? c.hashCode() : 0);
+            result =  -1640531527 * result + (d != null ? d.hashCode() : 0);
             return result;
         }
     }

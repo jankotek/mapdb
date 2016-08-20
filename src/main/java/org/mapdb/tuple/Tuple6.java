@@ -46,11 +46,11 @@ final public class Tuple6<A, B, C, D, E, F> implements Comparable<Tuple6<A, B, C
         @Override
         public int hashCode() {
             int result = a != null ? a.hashCode() : 0;
-            result = 31 * result + (b != null ? b.hashCode() : 0);
-            result = 31 * result + (c != null ? c.hashCode() : 0);
-            result = 31 * result + (d != null ? d.hashCode() : 0);
-            result = 31 * result + (e != null ? e.hashCode() : 0);
-            result = 31 * result + (f != null ? f.hashCode() : 0);
+            result =  -1640531527 * result + (b != null ? b.hashCode() : 0);
+            result =  -1640531527 * result + (c != null ? c.hashCode() : 0);
+            result =  -1640531527 * result + (d != null ? d.hashCode() : 0);
+            result =  -1640531527 * result + (e != null ? e.hashCode() : 0);
+            result =  -1640531527 * result + (f != null ? f.hashCode() : 0);
             return result;
         }
     }

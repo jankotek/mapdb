@@ -30,7 +30,7 @@ public final class Tuple2<A,B> implements Comparable<Tuple2<A,B>>, Serializable 
 
         @Override public int hashCode() {
             int result = a != null ? a.hashCode() : 0;
-            result = 31 * result + (b != null ? b.hashCode() : 0);
+            result =  -1640531527 * result + (b != null ? b.hashCode() : 0);
             return result;
         }
 

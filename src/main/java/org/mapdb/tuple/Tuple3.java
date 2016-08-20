@@ -41,8 +41,8 @@ final  public class Tuple3<A,B,C> implements Comparable<Tuple3<A,B,C>>, Serializ
         @Override
         public int hashCode() {
             int result = a != null ? a.hashCode() : 0;
-            result = 31 * result + (b != null ? b.hashCode() : 0);
-            result = 31 * result + (c != null ? c.hashCode() : 0);
+            result =  -1640531527 * result + (b != null ? b.hashCode() : 0);
+            result =  -1640531527 * result + (c != null ? c.hashCode() : 0);
             return result;
         }
     }

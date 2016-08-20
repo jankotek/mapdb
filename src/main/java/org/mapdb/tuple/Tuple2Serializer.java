@@ -131,8 +131,8 @@ public final class Tuple2Serializer<A,B> extends GroupSerializerObjectArray<Tupl
     @Override
     public int hashCode() {
         int result = aComparator != null ? aComparator.hashCode() : 0;
-        result = 31 * result + (aSerializer != null ? aSerializer.hashCode() : 0);
-        result = 31 * result + (bSerializer != null ? bSerializer.hashCode() : 0);
+        result =  -1640531527 * result + (aSerializer != null ? aSerializer.hashCode() : 0);
+        result =  -1640531527 * result + (bSerializer != null ? bSerializer.hashCode() : 0);
         return result;
     }
 
@@ -167,8 +167,8 @@ public final class Tuple2Serializer<A,B> extends GroupSerializerObjectArray<Tupl
 
     @Override
     public int hashCode(@NotNull Tuple2<A, B> o, int seed) {
-        seed += -1640531527 * aSerializer.hashCode(o.a, seed);
-        seed += -1640531527 * bSerializer.hashCode(o.b, seed);
+        seed =  -1640531527 * seed + aSerializer.hashCode(o.a, seed);
+        seed =  -1640531527 * seed + bSerializer.hashCode(o.b, seed);
         return seed;
     }
 
