@@ -1085,16 +1085,16 @@ class DBTest{
 
     @Test fun registered_class_smaller_serialized_size(){
         val db = DBMaker.memoryDB().make()
-        val size1 = TT.serializedSize(TestPojo(), db.defaultSerializer)
+        val size1 = TT.serializedSize(TestPojo(), db.getDefaultSerializer<Any?>())
         db.defaultSerializerRegisterClass(TestPojo::class.java)
-        val size2 = TT.serializedSize(TestPojo(), db.defaultSerializer)
+        val size2 = TT.serializedSize(TestPojo(), db.getDefaultSerializer<Any?>())
         assertTrue(size1>size2)
     }
 
     @Test fun unknown_class_updated_on_commit(){
         val db = DBMaker.memoryDB().make()
         assertEquals(0, db.loadClassInfos().size)
-        TT.serializedSize(TestPojo(), db.defaultSerializer)
+        TT.serializedSize(TestPojo(), db.getDefaultSerializer<Any?>())
         assertEquals(0, db.loadClassInfos().size)
         db.commit()
         assertEquals(1, db.loadClassInfos().size)
@@ -1105,7 +1105,7 @@ class DBTest{
         val f = TT.tempFile()
         var db = DBMaker.fileDB(f).make()
         assertEquals(0, db.loadClassInfos().size)
-        TT.serializedSize(TestPojo(), db.defaultSerializer)
+        TT.serializedSize(TestPojo(), db.getDefaultSerializer<Any?>())
         assertEquals(0, db.loadClassInfos().size)
         db.close()
         db = DBMaker.fileDB(f).make()

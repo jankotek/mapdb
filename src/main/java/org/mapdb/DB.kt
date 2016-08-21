@@ -8,11 +8,14 @@ import org.mapdb.elsa.*
 import org.mapdb.elsa.ElsaSerializerPojo.ClassInfo
 import org.mapdb.serializer.GroupSerializer
 import org.mapdb.serializer.GroupSerializerObjectArray
+import org.mapdb.tuple.*
 import java.io.Closeable
 import java.io.DataInput
 import java.io.DataOutput
 import java.lang.ref.Reference
 import java.lang.ref.WeakReference
+import java.math.BigDecimal
+import java.math.BigInteger
 import java.security.SecureRandom
 import java.util.*
 import java.util.concurrent.ExecutorService
@@ -162,7 +165,9 @@ open class DB(
 
     private val unknownClasses = Collections.synchronizedSet(HashSet<Class<*>>())
 
-    private fun namedClasses() = arrayOf(BTreeMap::class.java, HTreeMap::class.java,
+    private fun namedClasses() = arrayOf(
+            BTreeMap::class.java,
+            HTreeMap::class.java,
             HTreeMap.KeySet::class.java,
             BTreeMapJava.KeySet::class.java,
             Atomic.Integer::class.java,
@@ -213,14 +218,51 @@ open class DB(
             } )
 
     protected fun  <K> serializerForClass(clazz: Class<K>): GroupSerializer<K> {
-        //TODO make a table of basic serializers, include tuple serializers (and other) with default serializer
-        return defaultSerializer as GroupSerializer<K>
+        return when(clazz){
+
+            Character.TYPE -> Serializer.CHAR
+            Char::class.java -> Serializer.CHAR
+            String::class.java -> Serializer.STRING
+            java.lang.Long.TYPE -> Serializer.LONG
+            Long::class.java -> Serializer.LONG
+            Integer.TYPE -> Serializer.INTEGER
+            Int::class.java -> Serializer.INTEGER
+            java.lang.Boolean.TYPE -> Serializer.BOOLEAN
+            Boolean::class.java -> Serializer.BOOLEAN
+            ByteArray::class.java -> Serializer.BYTE_ARRAY
+            CharArray::class.java -> Serializer.CHAR_ARRAY
+            IntArray::class.java -> Serializer.INT_ARRAY
+            LongArray::class.java -> Serializer.LONG_ARRAY
+            DoubleArray::class.java -> Serializer.DOUBLE_ARRAY
+            UUID::class.java -> Serializer.UUID
+            java.lang.Byte.TYPE -> Serializer.BYTE
+            Byte::class.java -> Serializer.BYTE
+            java.lang.Float.TYPE -> Serializer.FLOAT
+            Float::class.java -> Serializer.FLOAT
+            java.lang.Double.TYPE -> Serializer.DOUBLE
+            Double::class.java -> Serializer.DOUBLE
+            java.lang.Short.TYPE -> Serializer.SHORT
+            Short::class.java -> Serializer.SHORT
+            ShortArray::class.java -> Serializer.SHORT_ARRAY
+            FloatArray::class.java -> Serializer.FLOAT_ARRAY
+            BigDecimal::class.java -> Serializer.BIG_DECIMAL
+            BigInteger::class.java -> Serializer.BIG_INTEGER
+            Class::class.java -> Serializer.CLASS
+            Date::class.java -> Serializer.DATE
+            Tuple2::class.java -> Tuple2Serializer<Any?,Any?>(defaultSerializer)
+            Tuple3::class.java -> Tuple3Serializer<Any?,Any?,Any?>(defaultSerializer)
+            Tuple4::class.java -> Tuple4Serializer<Any?,Any?,Any?,Any?>(defaultSerializer)
+            Tuple5::class.java -> Tuple5Serializer<Any?,Any?,Any?,Any?,Any?>(defaultSerializer)
+            Tuple6::class.java -> Tuple6Serializer<Any?,Any?,Any?,Any?,Any?,Any?>(defaultSerializer)
+
+            else -> defaultSerializer
+        } as GroupSerializer<K>
     }
     /**
      * Default serializer used if collection does not specify specialized serializer.
      * It uses Elsa Serializer.
      */
-    val defaultSerializer = object: GroupSerializerObjectArray<Any?>() {
+    protected val defaultSerializer = object: GroupSerializerObjectArray<Any?>() {
 
         override fun deserialize(input: DataInput2, available: Int): Any? {
             return elsaSerializer.deserialize(input)
@@ -231,6 +273,8 @@ open class DB(
         }
 
     }
+
+    fun <E> getDefaultSerializer() = defaultSerializer as GroupSerializer<E>
 
 
     protected val classInfoSerializer = object : Serializer<Array<ClassInfo>> {

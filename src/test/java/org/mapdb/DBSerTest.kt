@@ -41,7 +41,7 @@ class DBSerTest{
     }
 
     fun <E> dbClone(e:E, db:DB):E {
-        return TT.clone(e, db.defaultSerializer) as E
+        return TT.clone(e, db.getDefaultSerializer<Any?>()) as E
     }
 
     @Test fun dbSingleton(){
@@ -68,7 +68,7 @@ class DBSerTest{
         // !!! DO NOT CHANGE INDEX OF EXISTING VALUE, just add to the END!!!
         val other = arrayOf(
                 db,
-                db.defaultSerializer,
+                db.getDefaultSerializer<Any?>(),
                 Serializer.CHAR, Serializer.STRING_ORIGHASH , Serializer.STRING, Serializer.STRING_DELTA,
                 Serializer.STRING_DELTA2, Serializer.STRING_INTERN, Serializer.STRING_ASCII, Serializer.STRING_NOSIZE,
                 Serializer.LONG, Serializer.LONG_PACKED, Serializer.LONG_DELTA, Serializer.INTEGER,

@@ -1,12 +1,12 @@
 package org.mapdb.serializer
 
+import org.junit.Assert.*
 import org.junit.Test
+import org.mapdb.*
 import java.io.Serializable
 import java.math.BigDecimal
 import java.math.BigInteger
 import java.util.*
-import org.junit.Assert.*
-import org.mapdb.*
 
 abstract class SerializerTest<E> {
 
@@ -752,7 +752,7 @@ class Serializer_ELSA: GroupSerializerTest<Any>(){
 
 class Serializer_DB_default: GroupSerializerTest<Any?>(){
     override fun randomValue() = TT.randomString(11)
-    override val serializer = DBMaker.memoryDB().make().defaultSerializer
+    override val serializer = DBMaker.memoryDB().make().getDefaultSerializer<Any?>()
 
     @Test override fun trusted(){
     }

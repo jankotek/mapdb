@@ -43,7 +43,7 @@ class DBAwareTest{
     }
 
     @Test fun dbAware_treemap_key(){
-        val c = db.treeMap("aaa", aware, db.defaultSerializer).createOrOpen()
+        val c = db.treeMap("aaa", aware, db.getDefaultSerializer<Any?>()).createOrOpen()
         assertSame(db, aware.db)
         assertEquals("aaa", aware.name)
         assertSame(c, aware.record)
@@ -51,7 +51,7 @@ class DBAwareTest{
 
 
     @Test fun dbAware_treemap_value(){
-        val c = db.treeMap("aaa", db.defaultSerializer,aware).createOrOpen()
+        val c = db.treeMap("aaa", db.getDefaultSerializer<Any?>(),aware).createOrOpen()
         assertSame(db, aware.db)
         assertEquals("aaa", aware.name)
         assertSame(c, aware.record)

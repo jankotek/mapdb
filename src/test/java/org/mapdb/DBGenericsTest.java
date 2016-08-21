@@ -1,6 +1,8 @@
 package org.mapdb;
 
 import org.junit.Test;
+import org.mapdb.tuple.Tuple2;
+import org.mapdb.tuple.Tuple2Serializer;
 
 public class DBGenericsTest {
 
@@ -36,6 +38,14 @@ public class DBGenericsTest {
         m = db.treeMap("a").keySerializer(Serializer.LONG).valueSerializer(Serializer.STRING).maxNodeSize(11).create();
         m = db.treeMap("a").keySerializer(Serializer.LONG).valueSerializer(Serializer.STRING).maxNodeSize(11).createOrOpen();
         m = db.treeMap("a").keySerializer(Serializer.LONG).valueSerializer(Serializer.STRING).maxNodeSize(11).open();
+    }
+
+
+    @Test public void treemap_4(){
+        BTreeMap<Tuple2<String,Long>,String> m;
+        m = db.treeMap("a", new Tuple2Serializer(db.getDefaultSerializer(), Serializer.LONG), Serializer.STRING).maxNodeSize(11).create();
+        m = db.treeMap("a", new Tuple2Serializer(db.getDefaultSerializer(), Serializer.LONG), Serializer.STRING).maxNodeSize(11).createOrOpen();
+        m = db.treeMap("a", new Tuple2Serializer(db.getDefaultSerializer(), Serializer.LONG), Serializer.STRING).maxNodeSize(11).open();
     }
 
 ///////////////////////
