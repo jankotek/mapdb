@@ -12,7 +12,7 @@ public class BTreeSetTest extends HTreeSetTest{
     public void setUp() throws Exception {
         db = DBMaker.memoryDB().make();
 
-        hs = db.treeSet("name").make();
+        hs = db.treeSet("name").createOrOpen();
 
         Collections.addAll(hs, objArray);
     }

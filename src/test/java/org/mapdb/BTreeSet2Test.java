@@ -33,7 +33,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      */
     private NavigableSet<Integer> populatedSet(int n) {
         NavigableSet q = DBMaker.memoryDB().make().
-                treeSet("test").serializer(Serializer.INTEGER).make();
+                treeSet("test").serializer(Serializer.INTEGER).createOrOpen();
 
         assertTrue(q.isEmpty());
         for (int i = n-1; i >= 0; i-=2)
@@ -50,7 +50,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      */
     private NavigableSet set5() {
         NavigableSet q = DBMaker.memoryDB().make().
-                treeSet("test").serializer(Serializer.INTEGER).make();
+                treeSet("test").serializer(Serializer.INTEGER).createOrOpen();
         assertTrue(q.isEmpty());
         q.add(one);
         q.add(two);
@@ -65,7 +65,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      * A new set has unbounded capacity
      */
     public void testConstructor1() {
-        assertEquals(0, DBMaker.memoryDB().make().treeSet("test").make().size());
+        assertEquals(0, DBMaker.memoryDB().make().treeSet("test").createOrOpen().size());
     }
 
 //    /*
@@ -165,7 +165,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      */
     public void testAddNull() {
         try {
-            NavigableSet q = DBMaker.memoryDB().make().treeSet("test").make();
+            NavigableSet q = DBMaker.memoryDB().make().treeSet("test").createOrOpen();
             q.add(null);
             shouldThrow();
         } catch (NullPointerException success) {}
@@ -175,7 +175,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      * Add of comparable element succeeds
      */
     public void testAdd() {
-        NavigableSet q = DBMaker.memoryDB().make().treeSet("test").make();
+        NavigableSet q = DBMaker.memoryDB().make().treeSet("test").createOrOpen();
         assertTrue(q.add(zero));
         assertTrue(q.add(one));
     }
@@ -184,7 +184,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      * Add of duplicate element fails
      */
     public void testAddDup() {
-        NavigableSet q = DBMaker.memoryDB().make().treeSet("test").make();
+        NavigableSet q = DBMaker.memoryDB().make().treeSet("test").createOrOpen();
         assertTrue(q.add(zero));
         assertFalse(q.add(zero));
     }
@@ -194,7 +194,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      */
     public void testAddNonComparable() {
         try {
-            NavigableSet q = DBMaker.memoryDB().make().treeSet("test").make();
+            NavigableSet q = DBMaker.memoryDB().make().treeSet("test").createOrOpen();
             q.add(new BTreeMapSubSetTest.SerializableNonComparable());
             q.add(new BTreeMapSubSetTest.SerializableNonComparable());
             q.add(new BTreeMapSubSetTest.SerializableNonComparable());
@@ -207,7 +207,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      */
     public void testAddAll1() {
         try {
-            NavigableSet q = DBMaker.memoryDB().make().treeSet("test").make();
+            NavigableSet q = DBMaker.memoryDB().make().treeSet("test").createOrOpen();
             q.addAll(null);
             shouldThrow();
         } catch (NullPointerException success) {}
@@ -218,7 +218,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      */
     public void testAddAll2() {
         try {
-            NavigableSet q = DBMaker.memoryDB().make().treeSet("test").make();
+            NavigableSet q = DBMaker.memoryDB().make().treeSet("test").createOrOpen();
             Integer[] ints = new Integer[SIZE];
             q.addAll(Arrays.asList(ints));
             shouldThrow();
@@ -231,7 +231,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      */
     public void testAddAll3() {
         try {
-            NavigableSet q = DBMaker.memoryDB().make().treeSet("test").make();
+            NavigableSet q = DBMaker.memoryDB().make().treeSet("test").createOrOpen();
             Integer[] ints = new Integer[SIZE];
             for (int i = 0; i < SIZE-1; ++i)
                 ints[i] = new Integer(i);
@@ -248,7 +248,7 @@ public class BTreeSet2Test extends JSR166TestCase {
         Integer[] ints = new Integer[SIZE];
         for (int i = 0; i < SIZE; ++i)
             ints[i] = new Integer(SIZE-1-i);
-        NavigableSet q = DBMaker.memoryDB().make().treeSet("test").make();
+        NavigableSet q = DBMaker.memoryDB().make().treeSet("test").createOrOpen();
         assertFalse(q.addAll(Arrays.asList(empty)));
         assertTrue(q.addAll(Arrays.asList(ints)));
         for (int i = 0; i < SIZE; ++i)
@@ -329,7 +329,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      */
     public void testContainsAll() {
         NavigableSet q = populatedSet(SIZE);
-        NavigableSet p = DBMaker.memoryDB().make().treeSet("test").make();
+        NavigableSet p = DBMaker.memoryDB().make().treeSet("test").createOrOpen();
         for (int i = 0; i < SIZE; ++i) {
             assertTrue(q.containsAll(p));
             assertFalse(p.containsAll(q));
@@ -484,7 +484,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      * iterator of empty set has no elements
      */
     public void testEmptyIterator() {
-        NavigableSet q = DBMaker.memoryDB().make().treeSet("test").make();
+        NavigableSet q = DBMaker.memoryDB().make().treeSet("test").createOrOpen();
         int i = 0;
         Iterator it = q.iterator();
         while (it.hasNext()) {
@@ -498,7 +498,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      * iterator.remove removes current element
      */
     public void testIteratorRemove() {
-        final NavigableSet q = DBMaker.memoryDB().make().treeSet("test").make();
+        final NavigableSet q = DBMaker.memoryDB().make().treeSet("test").createOrOpen();
         q.add(new Integer(2));
         q.add(new Integer(1));
         q.add(new Integer(3));
@@ -693,7 +693,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      */
     public void testAddAll_idempotent() throws Exception {
         Set x = populatedSet(SIZE);
-        Set y = DBMaker.memoryDB().make().treeSet("test").make();
+        Set y = DBMaker.memoryDB().make().treeSet("test").createOrOpen();
         y.addAll(x);
         assertEquals(x, y);
         assertEquals(y, x);
@@ -701,7 +701,7 @@ public class BTreeSet2Test extends JSR166TestCase {
 
     static NavigableSet<Integer> newSet(Class cl) throws Exception {
         NavigableSet result = DBMaker.memoryDB().make().
-                treeSet("test").serializer(Serializer.INTEGER).make();
+                treeSet("test").serializer(Serializer.INTEGER).createOrOpen();
 
         //(NavigableSet<Integer>) cl.newInstance();
         assertEquals(0, result.size());

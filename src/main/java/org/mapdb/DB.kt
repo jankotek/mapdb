@@ -212,6 +212,10 @@ open class DB(
                 }
             } )
 
+    protected fun  <K> serializerForClass(clazz: Class<K>): GroupSerializer<K> {
+        //TODO make a table of basic serializers, include tuple serializers (and other) with default serializer
+        return defaultSerializer as GroupSerializer<K>
+    }
     /**
      * Default serializer used if collection does not specify specialized serializer.
      * It uses Elsa Serializer.
@@ -966,25 +970,28 @@ open class DB(
             return this;
         }
 
+        override fun create() = make2(true)
 
-        override fun create(): HTreeMap<K, V> {
-            return super.create()
-        }
+        override fun createOrOpen() =  make2(null)
 
-        override fun createOrOpen(): HTreeMap<K, V> {
-            return super.createOrOpen()
-        }
+        override fun open() = make2(false)
 
-        override fun open(): HTreeMap<K, V> {
-            return super.open()
-        }
     }
 
-    fun hashMap(name:String):HashMapMaker<*,*> = HashMapMaker<Any?, Any?>(this, name)
+    fun hashMap(name:String):HashMapMaker<Any?,Any?> = HashMapMaker<Any?, Any?>(this, name)
+
     fun <K,V> hashMap(name:String, keySerializer: Serializer<K>, valueSerializer: Serializer<V>) =
             HashMapMaker<K,V>(this, name)
                     .keySerializer(keySerializer)
                     .valueSerializer(valueSerializer)
+
+
+    fun <K,V> hashMap(name:String, keyClass: Class<K>, valueClass: Class<V>) =
+            HashMapMaker<K,V>(this, name)
+                    .keySerializer(serializerForClass(keyClass))
+                    .valueSerializer(serializerForClass(valueClass))
+
+
 
     abstract class TreeMapSink<K,V>:Pump.Sink<Pair<K,V>, BTreeMap<K,V>>(){
 
@@ -1198,19 +1205,11 @@ open class DB(
             }
         }
 
+        override fun create() = make2(true)
 
-        //TODO next three methods should not be here, but there is bug in Kotlin generics
-        override fun create(): BTreeMap<K, V> {
-            return super.create()
-        }
+        override fun createOrOpen() =  make2(null)
 
-        override fun createOrOpen(): BTreeMap<K, V> {
-            return super.createOrOpen()
-        }
-
-        override fun open(): BTreeMap<K, V> {
-            return super.open()
-        }
+        override fun open() = make2(false)
 
     }
 
@@ -1275,19 +1274,35 @@ open class DB(
             }
         }
 
+        override fun create() = make2(true)
+
+        override fun createOrOpen() =  make2(null)
+
+        override fun open() = make2(false)
+
+
     }
 
-    fun treeMap(name:String):TreeMapMaker<*,*> = TreeMapMaker<Any?, Any?>(this, name)
+    fun treeMap(name:String):TreeMapMaker<Any?,Any?> = TreeMapMaker<Any?, Any?>(this, name)
     fun <K,V> treeMap(name:String, keySerializer: GroupSerializer<K>, valueSerializer: GroupSerializer<V>) =
             TreeMapMaker<K,V>(this, name)
                     .keySerializer(keySerializer)
                     .valueSerializer(valueSerializer)
 
-    fun treeSet(name:String):TreeSetMaker<*> = TreeSetMaker<Any?>(this, name)
+    fun <K,V> treeMap(name:String, keyClass: Class<K>, valueClass: Class<V>) =
+            TreeMapMaker<K,V>(this, name)
+                    .keySerializer(serializerForClass(keyClass))
+                    .valueSerializer(serializerForClass(valueClass))
+
+    fun treeSet(name:String):TreeSetMaker<Any?> = TreeSetMaker<Any?>(this, name)
+
     fun <E> treeSet(name:String, serializer: GroupSerializer<E>) =
             TreeSetMaker<E>(this, name)
                     .serializer(serializer)
 
+    fun <E> treeSet(name:String, clazz: Class<E>) =
+            TreeSetMaker<E>(this, name)
+                    .serializer(serializerForClass(clazz))
 
 
     class HashSetMaker<E>(
@@ -1390,13 +1405,22 @@ open class DB(
             return this
         }
 
+        override fun create() = make2(true)
+
+        override fun createOrOpen() =  make2(null)
+
+        override fun open() = make2(false)
+
     }
 
-    fun hashSet(name:String):HashSetMaker<*> = HashSetMaker<Any?>(this, name)
+    fun hashSet(name:String):HashSetMaker<Any?> = HashSetMaker<Any?>(this, name)
     fun <E> hashSet(name:String, serializer: Serializer<E>) =
             HashSetMaker<E>(this, name)
                     .serializer(serializer)
 
+    fun <E> hashSet(name:String, clazz: Class<E>) =
+            HashSetMaker<E>(this, name)
+                    .serializer(serializerForClass(clazz))
 
 
     abstract class Maker<E>(
@@ -1409,16 +1433,6 @@ open class DB(
          * if collection already exists.
          */
         open fun create():E = make2( true)
-
-        /**
-         * Create new collection or open existing.
-         */
-        @Deprecated(message="use createOrOpen() method", replaceWith=ReplaceWith("createOrOpen()"))
-        open fun make():E = make2(null)
-
-        @Deprecated(message="use createOrOpen() method", replaceWith=ReplaceWith("createOrOpen()"))
-        open fun makeOrGet() = make2(null)
-
 
         protected abstract fun awareItems():Array<Any?>
 
@@ -1498,6 +1512,10 @@ open class DB(
             val recid = catalog[name+Keys.recid]!!.toLong()
             return Atomic.Integer(db.store, recid)
         }
+
+        override fun create()= make2(true)
+        override fun createOrOpen() = make2(null)
+        override fun open() = make2(false)
     }
 
     fun atomicInteger(name:String) = AtomicIntegerMaker(this, name)
@@ -1520,6 +1538,10 @@ open class DB(
             val recid = catalog[name+Keys.recid]!!.toLong()
             return Atomic.Long(db.store, recid)
         }
+
+        override fun create()= make2(true)
+        override fun createOrOpen() = make2(null)
+        override fun open() = make2(false)
     }
 
     fun atomicLong(name:String) = AtomicLongMaker(this, name)
@@ -1541,6 +1563,12 @@ open class DB(
             val recid = catalog[name+Keys.recid]!!.toLong()
             return Atomic.Boolean(db.store, recid)
         }
+
+
+        override fun create()= make2(true)
+        override fun createOrOpen() = make2(null)
+        override fun open() = make2(false)
+
     }
 
     fun atomicBoolean(name:String) = AtomicBooleanMaker(this, name)
@@ -1562,6 +1590,11 @@ open class DB(
             val recid = catalog[name+Keys.recid]!!.toLong()
             return Atomic.String(db.store, recid)
         }
+
+
+        override fun create()= make2(true)
+        override fun createOrOpen() = make2(null)
+        override fun open() = make2(false)
     }
 
     fun atomicString(name:String) = AtomicStringMaker(this, name)
@@ -1590,12 +1623,21 @@ open class DB(
                     ?: this.serializer
             return Atomic.Var(db.store, recid, serializer)
         }
+
+        override fun create() = make2(true)
+
+        override fun createOrOpen() =  make2(null)
+
+        override fun open() = make2(false)
+
     }
 
     fun atomicVar(name:String) = atomicVar(name, defaultSerializer)
     fun <E> atomicVar(name:String, serializer:Serializer<E> ) = AtomicVarMaker(this, name, serializer)
-
+    fun <E> atomicVar(name:String, clazz:Class<E> ) = AtomicVarMaker(this, name, serializerForClass(clazz))
     fun <E> atomicVar(name:String, serializer:Serializer<E>, value:E? ) = AtomicVarMaker(this, name, serializer, value)
+
+    fun <E> atomicVar(name:String, clazz:Class<E>, value:E? ) = AtomicVarMaker(this, name, serializerForClass(clazz), value)
 
     class IndexTreeLongLongMapMaker(db:DB,name:String
     ):Maker<IndexTreeLongLongMap>(db, name, "IndexTreeLongLongMap"){
@@ -1646,6 +1688,11 @@ open class DB(
                     rootRecid = catalog[name+Keys.rootRecid]!!.toLong(),
                     collapseOnRemove = catalog[name + Keys.removeCollapsesIndexTree]!!.toBoolean())
         }
+
+
+        override fun create()= make2(true)
+        override fun createOrOpen() = make2(null)
+        override fun open() = make2(false)
     }
 
     //TODO this is thread unsafe, but locks should not be added directly due to code overhead on HTreeMap
@@ -1718,10 +1765,19 @@ open class DB(
                     counterRecid = catalog[name+Keys.counterRecid]!!.toLong()
             )
         }
+
+        override fun create() = make2(true)
+
+        override fun createOrOpen() =  make2(null)
+
+        override fun open() = make2(false)
+
     }
 
-    fun <E> indexTreeList(name: String, serializer:Serializer<E>) = IndexTreeListMaker(this, name, serializer)
-    fun indexTreeList(name: String) = indexTreeList(name, defaultSerializer)
+    fun <E> indexTreeList(name: String, clazz:Class<E>) = IndexTreeListMaker<E>(this, name, serializerForClass(clazz))
+
+    fun <E> indexTreeList(name: String, serializer:Serializer<E>) = IndexTreeListMaker<E>(this, name, serializer)
+    fun indexTreeList(name: String) = IndexTreeListMaker<Any?>(this, name, defaultSerializer)
 
 
     override fun checkThreadSafe() {

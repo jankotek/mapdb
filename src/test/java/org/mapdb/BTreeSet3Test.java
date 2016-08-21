@@ -25,7 +25,7 @@ public class BTreeSet3Test extends JSR166TestCase {
      */
     private NavigableSet<Integer> populatedSet(int n) {
         NavigableSet<Integer> q =
-                DBMaker.memoryDB().make().treeSet("test").serializer(Serializer.INTEGER).make();
+                DBMaker.memoryDB().make().treeSet("test").serializer(Serializer.INTEGER).createOrOpen();
         assertTrue(q.isEmpty());
 
         for (int i = n-1; i >= 0; i-=2)
@@ -45,7 +45,7 @@ public class BTreeSet3Test extends JSR166TestCase {
      */
     private NavigableSet set5() {
         NavigableSet q =
-                DBMaker.memoryDB().make().treeSet("test").serializer(Serializer.INTEGER).make();
+                DBMaker.memoryDB().make().treeSet("test").serializer(Serializer.INTEGER).createOrOpen();
         assertTrue(q.isEmpty());
         q.add(one);
         q.add(two);
@@ -63,7 +63,7 @@ public class BTreeSet3Test extends JSR166TestCase {
      * Returns a new set of first 5 negative ints.
      */
     private NavigableSet dset5() {
-        NavigableSet q = DBMaker.memoryDB().make().treeSet("test").make();
+        NavigableSet q = DBMaker.memoryDB().make().treeSet("test").createOrOpen();
         assertTrue(q.isEmpty());
         q.add(m1);
         q.add(m2);
@@ -77,14 +77,14 @@ public class BTreeSet3Test extends JSR166TestCase {
 
     private static NavigableSet set0() {
         NavigableSet set =
-                DBMaker.memoryDB().make().treeSet("test").serializer(Serializer.INTEGER).make();
+                DBMaker.memoryDB().make().treeSet("test").serializer(Serializer.INTEGER).createOrOpen();
         assertTrue(set.isEmpty());
         return set.tailSet(m1, true);
     }
 
     private static NavigableSet dset0() {
         NavigableSet set =
-                DBMaker.memoryDB().make().treeSet("test").serializer(Serializer.INTEGER).make();
+                DBMaker.memoryDB().make().treeSet("test").serializer(Serializer.INTEGER).createOrOpen();
         assertTrue(set.isEmpty());
         return set;
     }

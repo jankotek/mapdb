@@ -22,7 +22,7 @@ class BTreeMapParTest {
             return
 
 
-        val m = DBMaker.memoryDB().make().treeMap("test").valueSerializer(Serializer.LONG).keySerializer(Serializer.LONG).make()
+        val m = DBMaker.memoryDB().make().treeMap("test").valueSerializer(Serializer.LONG).keySerializer(Serializer.LONG).createOrOpen()
 
         val t = System.currentTimeMillis()
         val counter = AtomicLong()

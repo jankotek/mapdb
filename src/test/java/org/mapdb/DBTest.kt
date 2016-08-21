@@ -452,7 +452,7 @@ class DBTest{
     @Test fun treeSet_base(){
         val db = DB(store =StoreTrivial(), storeOpened = false, isThreadSafe = false)
 
-        val set = db.treeSet("set").serializer(Serializer.INTEGER).make();
+        val set = db.treeSet("set").serializer(Serializer.INTEGER).createOrOpen();
         set.add(1)
         assertEquals(1, set.size)
 
@@ -466,7 +466,7 @@ class DBTest{
     @Test fun hashSet_base(){
         val db = DB(store =StoreTrivial(), storeOpened = false, isThreadSafe = false)
 
-        val set = db.hashSet("set").serializer(Serializer.INTEGER).make();
+        val set = db.hashSet("set").serializer(Serializer.INTEGER).createOrOpen();
         set.add(1)
         assertEquals(1, set.size)
 
@@ -854,7 +854,7 @@ class DBTest{
 
     @Test fun indexTreeLongLongMap_create(){
         val db = DBMaker.memoryDB().make()
-        val map = db.indexTreeLongLongMap("map").make();
+        val map = db.indexTreeLongLongMap("map").createOrOpen();
         map.put(1L, 2L);
         assertEquals(1, map.size())
     }
@@ -864,7 +864,7 @@ class DBTest{
         val f = TT.tempFile()
 
         var db = DB(store =StoreDirect.make(file=f.path), storeOpened = false, isThreadSafe = false)
-        var map = db.indexTreeLongLongMap("aa").layout(3,5).removeCollapsesIndexTreeDisable().make()
+        var map = db.indexTreeLongLongMap("aa").layout(3,5).removeCollapsesIndexTreeDisable().createOrOpen()
         for(i in 1L .. 1000L)
             map.put(i,i*2)
         db.commit()
@@ -890,7 +890,7 @@ class DBTest{
 
     @Test fun indexTreeList_create(){
         val db = DBMaker.memoryDB().make()
-        val list:IndexTreeList<Int> = db.indexTreeList("map", Serializer.INTEGER).make();
+        val list:IndexTreeList<Int> = db.indexTreeList("map", Serializer.INTEGER).createOrOpen();
         list.add(11)
         assertEquals(1, list.size)
     }
@@ -900,7 +900,7 @@ class DBTest{
         val f = TT.tempFile()
 
         var db = DB(store =StoreDirect.make(file=f.path), storeOpened = false, isThreadSafe = false)
-        var list = db.indexTreeList("aa",Serializer.INTEGER).layout(3,5).removeCollapsesIndexTreeDisable().make()
+        var list = db.indexTreeList("aa",Serializer.INTEGER).layout(3,5).removeCollapsesIndexTreeDisable().createOrOpen()
         for(i in 1 .. 1000)
             list.add(i)
         db.commit()
@@ -928,20 +928,20 @@ class DBTest{
     @Test fun weakref_test(){
         fun test(f:(db:DB)->DB.Maker<*>){
             var db = DBMaker.memoryDB().make()
-            var c = f(db).make()
-            assertTrue(c===f(db).make())
+            var c = f(db).createOrOpen()
+            assertTrue(c===f(db).createOrOpen())
 
             db = DBMaker.memoryDB().make()
-            c = f(db).make()
-            assertTrue(c===f(db).open())
+            c = f(db).createOrOpen()
+            assertTrue(c===f(db).createOrOpen())
 
             db = DBMaker.memoryDB().make()
-            c = f(db).create()
-            assertTrue(c===f(db).open())
+            c = f(db).createOrOpen()
+            assertTrue(c===f(db).createOrOpen())
 
             db = DBMaker.memoryDB().make()
-            c = f(db).create()
-            assertTrue(c===f(db).make())
+            c = f(db).createOrOpen()
+            assertTrue(c===f(db).createOrOpen())
         }
 
         test{it.hashMap("aa")}
@@ -963,19 +963,19 @@ class DBTest{
         val db = DBMaker.memoryDB().make()
 
         assertNull(db.get<Any?>("aa"))
-        assertTrue(db.treeMap("aa").make() === db.get<Any?>("aa"))
-        assertTrue(db.treeSet("ab").make() === db.get<Any?>("ab"))
-        assertTrue(db.hashMap("ac").make() === db.get<Any?>("ac"))
-        assertTrue(db.hashSet("ad").make() === db.get<Any?>("ad"))
+        assertTrue(db.treeMap("aa").createOrOpen() === db.get<Any?>("aa"))
+        assertTrue(db.treeSet("ab").createOrOpen() === db.get<Any?>("ab"))
+        assertTrue(db.hashMap("ac").createOrOpen() === db.get<Any?>("ac"))
+        assertTrue(db.hashSet("ad").createOrOpen() === db.get<Any?>("ad"))
 
-        assertTrue(db.atomicBoolean("ae").make() === db.get<Any?>("ae"))
-        assertTrue(db.atomicInteger("af").make() === db.get<Any?>("af"))
-        assertTrue(db.atomicVar("ag").make() === db.get<Any?>("ag"))
-        assertTrue(db.atomicString("ah").make() === db.get<Any?>("ah"))
-        assertTrue(db.atomicLong("ai").make() === db.get<Any?>("ai"))
+        assertTrue(db.atomicBoolean("ae").createOrOpen() === db.get<Any?>("ae"))
+        assertTrue(db.atomicInteger("af").createOrOpen() === db.get<Any?>("af"))
+        assertTrue(db.atomicVar("ag").createOrOpen() === db.get<Any?>("ag"))
+        assertTrue(db.atomicString("ah").createOrOpen() === db.get<Any?>("ah"))
+        assertTrue(db.atomicLong("ai").createOrOpen() === db.get<Any?>("ai"))
 
-        assertTrue(db.indexTreeList("aj").make() === db.get<Any?>("aj"))
-        assertTrue(db.indexTreeLongLongMap("ak").make() === db.get<Any?>("ak"))
+        assertTrue(db.indexTreeList("aj").createOrOpen() === db.get<Any?>("aj"))
+        assertTrue(db.indexTreeLongLongMap("ak").createOrOpen() === db.get<Any?>("ak"))
     }
 
 

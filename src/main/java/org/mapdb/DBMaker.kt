@@ -89,17 +89,17 @@ object DBMaker{
     }
 
 
-    @JvmStatic fun memoryShardedHashSet(concurrency:Int): DB.HashSetMaker<*> {
+    @JvmStatic fun memoryShardedHashSet(concurrency:Int): DB.HashSetMaker<Any?> {
         val db = DB(store = StoreOnHeap(), storeOpened = false, isThreadSafe = true)
-        return DB.HashSetMaker<Any>(db,"map",storeFactory = { i ->
+        return DB.HashSetMaker<Any?>(db,"map",storeFactory = { i ->
                 StoreDirect.make(isThreadSafe = false)
             })
             .layout(concurrency = concurrency, dirSize = 1.shl(CC.HTREEMAP_DIR_SHIFT), levels = CC.HTREEMAP_LEVELS)
     }
 
-    @JvmStatic fun heapShardedHashSet(concurrency:Int): DB.HashSetMaker<*> {
+    @JvmStatic fun heapShardedHashSet(concurrency:Int): DB.HashSetMaker<Any?> {
         val db = DB(store = StoreOnHeap(), storeOpened = false, isThreadSafe = true)
-        return DB.HashSetMaker<Any>(db,"map",storeFactory = { i ->
+        return DB.HashSetMaker<Any?>(db,"map",storeFactory = { i ->
                 StoreOnHeap(isThreadSafe = false)
             })
             .layout(concurrency = concurrency, dirSize = 1.shl(CC.HTREEMAP_DIR_SHIFT), levels = CC.HTREEMAP_LEVELS)

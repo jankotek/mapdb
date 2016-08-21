@@ -1,17 +1,12 @@
 package org.mapdb.serializer;
 
-import kotlin.jvm.functions.Function0;
-import org.junit.Test;import org.mapdb.*;
+import org.junit.Test;
+import org.mapdb.*;
 
-import java.io.DataInput;
 import java.io.IOException;
 import java.util.*;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mapdb.Serializer.*;
+import static org.junit.Assert.*;
 
 @SuppressWarnings({"rawtypes","unchecked"})
 public class BTreeKeySerializerTest {
@@ -21,7 +16,7 @@ public class BTreeKeySerializerTest {
                 .make();
         Map m = db.treeMap("test")
                 .keySerializer(Serializer.LONG)
-                .make();
+                .createOrOpen();
 
         for(long i = 0; i<1000;i++){
             m.put(i*i,i*i+1);
@@ -105,7 +100,7 @@ public class BTreeKeySerializerTest {
                 .make();
         Map m =  db.treeMap("test")
                 .keySerializer(Serializer.STRING)
-                .make();
+                .createOrOpen();
 
 
         List<String> list = new ArrayList <String>();

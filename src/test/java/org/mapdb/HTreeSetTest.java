@@ -53,7 +53,7 @@ public class HTreeSetTest{
 
     @Before public void init(){
         db = DBMaker.memoryDB().make();
-        hs = db.treeSet("set1").make();
+        hs = db.treeSet("set1").createOrOpen();
         Collections.addAll(hs, objArray);
     }
 
@@ -95,7 +95,7 @@ public class HTreeSetTest{
 
     @Test public void test_isEmpty() {
         // Test for method boolean java.util.HashSet.isEmpty()
-        assertTrue("Empty set returned false", db.treeSet("set2").make().isEmpty());
+        assertTrue("Empty set returned false", db.treeSet("set2").createOrOpen().isEmpty());
         assertTrue("Non-empty set returned true", !hs.isEmpty());
     }
 
@@ -135,7 +135,7 @@ public class HTreeSetTest{
         Set s = DBMaker.fileDB(f.getPath())
                 .make()
                 .hashSet("name")
-                .make();
+                .createOrOpen();
         assertTrue(s.isEmpty());
         assertEquals(0,s.size());
         s.add("aa");
