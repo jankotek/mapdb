@@ -8,7 +8,7 @@ MapDB: database engine
 
 
 MapDB combines embedded database engine and Java collections.
-It is free under Apache 2 license. MapDB is fplexible and can be used in many roles:
+It is free under Apache 2 license. MapDB is flexible and can be used in many roles:
 
 * Drop-in replacement for Maps, Lists, Queues and other collections.
 * Off-heap collections not affected by Garbage Collector
@@ -45,10 +45,11 @@ More [details](http://www.mapdb.org/support/).
 Development
 --------------------
 
-MapDB is written in Kotlin. You will need Intellij Idea 15 Community Edition to edit it.
+MapDB is written in Kotlin. You will need IntelliJ Idea 15 and newer to edit it.
 
-Use Maven to build MapDB: `mvn install`
+You can use Maven to build MapDB by issuing command `mvn install`.
 
-MapDB comes with extensive unit tests, by default only tiny fraction is executed, so build finishes under 10 minutes.
-Full test suite has over million test cases and runs several hours/days.
-To run full test suite set `-Dmdbtest=1` property.
+MapDB is extensively unit-tested.
+By default, only tiny fraction of all tests are executed, so build finishes under 10 minutes.
+Full test suite has over million test cases and runs for several hours/days.
+To run full test suite, set `-Dmdbtest=1` VM option.
