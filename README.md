@@ -21,21 +21,24 @@ Hello world
 
 Maven snippet, VERSION is [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.mapdb/mapdb/badge.svg)](https://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.mapdb%22%20AND%20a%3Amapdb)
 
-    <dependency>
-        <groupId>org.mapdb</groupId>
-        <artifactId>mapdb</artifactId>
-        <version>VERSION</version>
-    </dependency>
-
+```xml
+<dependency>
+    <groupId>org.mapdb</groupId>
+    <artifactId>mapdb</artifactId>
+    <version>VERSION</version>
+</dependency>
+```
 
 Hello world:
 
-        //import org.mapdb.*
-        DB db = DBMaker.memoryDB().make();
-        ConcurrentMap map = db.hashMap("map").make();
-        map.put("something", "here");
+```java
+//import org.mapdb.*
+DB db = DBMaker.memoryDB().make();
+ConcurrentMap map = db.hashMap("map").make();
+map.put("something", "here");
+```
 
-Continue at [Quick Start](https://jankotek.gitbooks.io/mapdb/content/quick-start/) or at  [Documentation](http://www.mapdb.org/doc/).
+You can continue with [quick Start](https://jankotek.gitbooks.io/mapdb/content/quick-start/) or refer to the  [documentation](http://www.mapdb.org/doc/).
 
 Support
 ------------
