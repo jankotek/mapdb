@@ -38,7 +38,7 @@ ConcurrentMap map = db.hashMap("map").make();
 map.put("something", "here");
 ```
 
-You can continue with [quick Start](https://jankotek.gitbooks.io/mapdb/content/quick-start/) or refer to the  [documentation](http://www.mapdb.org/doc/).
+You can continue with [quick start](https://jankotek.gitbooks.io/mapdb/content/quick-start/) or refer to the  [documentation](http://www.mapdb.org/doc/).
 
 Support
 ------------
