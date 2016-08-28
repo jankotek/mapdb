@@ -1,5 +1,7 @@
 package org.mapdb.serializer;
 
+import org.jetbrains.annotations.NotNull;
+import org.mapdb.DB;
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
 import org.mapdb.Serializer;
@@ -18,12 +20,17 @@ import java.lang.reflect.Array;
  *   See {@link java.lang.reflect.Array#newInstance(Class, int)}
  *
  */
-public class SerializerArray<T> extends GroupSerializerObjectArray<T[]>{
+public class SerializerArray<T> extends GroupSerializerObjectArray<T[]>, DB.DBAware{
 
     private static final long serialVersionUID = -982394293898234253L;
-    protected final Serializer<T> serializer;
+    protected Serializer<T> serializer;
     protected final Class<T> componentType;
 
+
+    public SerializerArray(){
+        this.serializer = null;
+        this.componentType = (Class<T>)Object.class
+    }
 
     /**
      * Wraps given serializer and produces Object[] serializer.
@@ -140,4 +147,9 @@ public class SerializerArray<T> extends GroupSerializerObjectArray<T[]>{
         return SerializerUtils.compareInt(o1.length, o2.length);
     }
 
+    @Override
+    public void callbackDB(@NotNull DB db) {
+        if(this.serializer==null)
+            this.serializer = db.getDefaultSerializer()
+    }
 }

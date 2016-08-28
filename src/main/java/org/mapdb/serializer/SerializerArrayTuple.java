@@ -12,11 +12,17 @@ import java.util.Comparator;
  *
  * It takes array of serializes in constructor parameter. All tuples (arrays) must have the same size.
  */
-public class SerializerArrayTuple implements GroupSerializer<Object[]> {
+public class SerializerArrayTuple implements GroupSerializer<Object[]>, DB.DBAware {
 
     protected final Serializer[] ser;
     protected final Comparator[] comp;
     protected final int size;
+
+    public SerializerArrayTuple(int size) {
+        this.size = size
+        ser = new Serializer[size];
+        comp = new Comparator[size];
+    }
 
     public SerializerArrayTuple(Serializer[] serializers, Comparator[] comparators) {
         this.ser = serializers.clone();
@@ -206,5 +212,15 @@ public class SerializerArrayTuple implements GroupSerializer<Object[]> {
             if(!s.isTrusted())
                 return false;
         return true;
+    }
+
+    @Override
+    public void callbackDB(@NotNull DB db) {
+        for(int i=0; i<size; i++){
+            if(ser[i]==null)
+                ser[i] = db.getDefaultSerializer();
+            if(comp[i]==null)
+                comp[i] = db.getDefaultSerializer();
+        }
     }
 }
