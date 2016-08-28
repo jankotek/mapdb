@@ -13,6 +13,9 @@ public class SerializerArrayDelta<T> extends SerializerArray<T> {
 
     private static final long serialVersionUID = -930920902390439234L;
 
+    public SerializerArrayDelta() {
+        super();
+    }
 
     public SerializerArrayDelta(Serializer<T> serializer) {
         super(serializer);
