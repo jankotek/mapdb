@@ -19,7 +19,7 @@ public class SerializerArrayTuple implements GroupSerializer<Object[]>, DB.DBAwa
     protected final int size;
 
     public SerializerArrayTuple(int size) {
-        this.size = size
+        this.size = size;
         ser = new Serializer[size];
         comp = new Comparator[size];
     }

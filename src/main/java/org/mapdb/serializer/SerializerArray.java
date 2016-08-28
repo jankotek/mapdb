@@ -20,7 +20,7 @@ import java.lang.reflect.Array;
  *   See {@link java.lang.reflect.Array#newInstance(Class, int)}
  *
  */
-public class SerializerArray<T> extends GroupSerializerObjectArray<T[]>, DB.DBAware{
+public class SerializerArray<T> extends GroupSerializerObjectArray<T[]> implements DB.DBAware {
 
     private static final long serialVersionUID = -982394293898234253L;
     protected Serializer<T> serializer;
@@ -29,7 +29,7 @@ public class SerializerArray<T> extends GroupSerializerObjectArray<T[]>, DB.DBAw
 
     public SerializerArray(){
         this.serializer = null;
-        this.componentType = (Class<T>)Object.class
+        this.componentType = (Class<T>)Object.class;
     }
 
     /**
@@ -150,6 +150,6 @@ public class SerializerArray<T> extends GroupSerializerObjectArray<T[]>, DB.DBAw
     @Override
     public void callbackDB(@NotNull DB db) {
         if(this.serializer==null)
-            this.serializer = db.getDefaultSerializer()
+            this.serializer = db.getDefaultSerializer();
     }
 }
