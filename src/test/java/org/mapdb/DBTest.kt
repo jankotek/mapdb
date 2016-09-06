@@ -1356,4 +1356,16 @@ class DBTest{
     }
 
 
+    @Test fun delete(){
+        val db = DBMaker.memoryDB().make()
+        val a = db.atomicBoolean("aa").createOrOpen()
+        db.delete("aa")
+        TT.assertFailsWith(DBException.GetVoid::class.java) {
+            a.get()
+        }
+        TT.assertFailsWith(DBException.WrongConfiguration::class.java) {
+            db.atomicBoolean("aa").open()
+        }
+    }
+
 }

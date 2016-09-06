@@ -3,6 +3,7 @@ package org.mapdb
 import com.google.common.cache.Cache
 import com.google.common.cache.CacheBuilder
 import org.eclipse.collections.api.map.primitive.MutableLongLongMap
+import org.eclipse.collections.api.map.primitive.MutableLongValuesMap
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.mapdb.elsa.*
 import org.mapdb.elsa.ElsaSerializerPojo.ClassInfo
@@ -30,7 +31,6 @@ import java.util.logging.Level
  */
 //TODO consistency lock
 //TODO rename nemed object
-//TODO delete named object
 //TOOD metrics logger
 open class DB(
         /** Stores all underlying data */
@@ -556,7 +556,6 @@ open class DB(
             return nameCatalogGet(name + Keys.type) != null
         }
     }
-
     fun getAllNames():Iterable<String>{
         return nameCatalogLoad().keys
                 .filter { it.endsWith(Keys.type) }
@@ -567,6 +566,45 @@ open class DB(
         val ret = TreeMap<String,Any?>();
         getAllNames().forEach { ret.put(it, get(it)) }
         return ret
+    }
+
+    fun delete(name:String){
+        Utils.lockWrite(lock) {
+
+            val params = nameCatalogParamsFor(name)
+            if (params.isEmpty())
+                return
+            val obj = get<Any>(name)
+
+            fun deleteRecid(serializer: Serializer<*>) {
+                val recid = params.get(name + Keys.recid)!!.toLong()
+                store.delete(recid, serializer)
+            }
+
+            //clear collection
+            when (obj) {
+                is Atomic.Boolean -> deleteRecid(Serializer.BOOLEAN)
+                is Atomic.Integer -> deleteRecid(Serializer.INTEGER)
+                is Atomic.Long -> deleteRecid(Serializer.LONG)
+                is Atomic.String -> deleteRecid(Serializer.STRING)
+                is Atomic.Var<*> -> deleteRecid(obj.serializer)
+
+                is MutableCollection<*> -> obj.clear()
+                is MutableMap<*, *> -> obj.clear()
+                is MutableLongValuesMap -> obj.clear()
+
+                null -> null
+                else -> DBException.WrongConfiguration("Collection has unknown class: " + obj.javaClass)
+            }
+
+            //remove all parameters
+            val nameParams = nameCatalogLoad()
+            nameParams.keys.removeAll(params.keys)
+            nameCatalogSave(nameParams)
+
+            //remove instantiated objects
+            namesInstanciated.invalidate(name)
+        }
     }
 //
 //
@@ -2052,4 +2090,5 @@ open class DB(
     interface NamedRecordAware{
         fun callbackRecord(name:String, collection:Any)
     }
+
 }
