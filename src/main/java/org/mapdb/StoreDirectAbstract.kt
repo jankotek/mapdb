@@ -2,13 +2,14 @@ package org.mapdb
 
 import org.eclipse.collections.api.list.primitive.MutableLongList
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
+import org.mapdb.DataIO.parity1Get
+import org.mapdb.DataIO.parity1Set
+import org.mapdb.StoreDirectJava.RECID_LONG_STACK
 import org.mapdb.volume.Volume
 import org.mapdb.volume.VolumeFactory
 import java.io.IOException
-import java.util.concurrent.locks.ReadWriteLock
-import org.mapdb.StoreDirectJava.*
-import org.mapdb.DataIO.*
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.locks.ReadWriteLock
 
 /**
  * Common utils for StoreDirect, StoreWAL and StoreCached
@@ -31,6 +32,8 @@ abstract class StoreDirectAbstract(
     protected val segmentMask = 1L.shl(concShift)-1
     protected val locks:Array<ReadWriteLock?> = Array(segmentCount, {Utils.newReadWriteLock(isThreadSafe)})
     protected val structuralLock = Utils.newLock(isThreadSafe)
+    protected val compactionLock = Utils.newReadWriteLock(isThreadSafe)
+
 
     protected val volumeExistsAtStart = volumeFactory.exists(file)
 
