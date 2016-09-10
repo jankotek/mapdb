@@ -1336,11 +1336,8 @@ class HTreeMap<K,V>(
 
 
     override fun close() {
-        Utils.lockWriteAll(locks)
-        try {
+        Utils.lockWrite(locks){
             closeable?.close()
-        }finally{
-            Utils.unlockWriteAll(locks)
         }
     }
 

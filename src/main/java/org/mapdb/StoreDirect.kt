@@ -1,8 +1,8 @@
 package org.mapdb
 
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
-import org.mapdb.StoreDirectJava.*
 import org.mapdb.DataIO.*
+import org.mapdb.StoreDirectJava.*
 import org.mapdb.volume.Volume
 import org.mapdb.volume.VolumeFactory
 import java.io.File
@@ -585,39 +585,42 @@ class StoreDirect(
 
         val di = serialize(record, serializer);
 
-        val recid = Utils.lock(structuralLock) {
-            allocateRecid()
-        }
+        Utils.lockRead(compactionLock) {
 
-        Utils.lockWrite(locks[recidToSegment(recid)]) {
-            if (di == null) {
-                setIndexVal(recid, indexValCompose(size = NULL_RECORD_SIZE, offset = 0, linked = 0, unused = 0, archive = 1))
-                return recid
+            val recid = Utils.lock(structuralLock) {
+                allocateRecid()
             }
 
-            if (di.pos > MAX_RECORD_SIZE) {
-                //save as linked record
-                val indexVal = linkedRecordPut(di.buf, di.pos)
-                setIndexVal(recid, indexVal);
-                return recid
-            }
-            val size = di.pos.toLong()
-            var offset:Long
-            //allocate space for data
-            if(di.pos==0){
-                offset = 0L
-            }else if(di.pos<6) {
-                //store inside offset at index table
-                offset = DataIO.getLong(di.buf,0).ushr((7-di.pos)*8)
-            }else{
-                offset = Utils.lock(structuralLock) {
-                    allocateData(roundUp(di.pos, 16), false)
+            Utils.lockWrite(locks[recidToSegment(recid)]) {
+                if (di == null) {
+                    setIndexVal(recid, indexValCompose(size = NULL_RECORD_SIZE, offset = 0, linked = 0, unused = 0, archive = 1))
+                    return recid
                 }
-                volume.putData(offset, di.buf, 0, di.pos)
-            }
 
-            setIndexVal(recid, indexValCompose(size = size, offset = offset, linked = 0, unused = 0, archive = 1))
-            return recid;
+                if (di.pos > MAX_RECORD_SIZE) {
+                    //save as linked record
+                    val indexVal = linkedRecordPut(di.buf, di.pos)
+                    setIndexVal(recid, indexVal);
+                    return recid
+                }
+                val size = di.pos.toLong()
+                var offset: Long
+                //allocate space for data
+                if (di.pos == 0) {
+                    offset = 0L
+                } else if (di.pos < 6) {
+                    //store inside offset at index table
+                    offset = DataIO.getLong(di.buf, 0).ushr((7 - di.pos) * 8)
+                } else {
+                    offset = Utils.lock(structuralLock) {
+                        allocateData(roundUp(di.pos, 16), false)
+                    }
+                    volume.putData(offset, di.buf, 0, di.pos)
+                }
+
+                setIndexVal(recid, indexValCompose(size = size, offset = offset, linked = 0, unused = 0, archive = 1))
+                return recid;
+            }
         }
     }
 
@@ -743,70 +746,69 @@ class StoreDirect(
     }
 
     override fun compact() {
-        Utils.lockWriteAll(locks)
-        try{
-            Utils.lock(structuralLock){
-                //TODO use file for compaction, if store is file based
-                val store2 = StoreDirect.make(isThreadSafe=false, concShift = 0)
+        Utils.lockWrite(compactionLock) {
+            Utils.lockWrite(locks) {
+                Utils.lock(structuralLock) {
+                    //TODO use file for compaction, if store is file based
+                    val store2 = StoreDirect.make(isThreadSafe = false, concShift = 0)
 
-                //first allocate enough index pages, so they are at beginning of store
-                for(i in 0 until indexPages.size())
-                    store2.allocateNewIndexPage()
+                    //first allocate enough index pages, so they are at beginning of store
+                    for (i in 0 until indexPages.size())
+                        store2.allocateNewIndexPage()
 
-                if(CC.ASSERT && store2.indexPages.size()!=indexPages.size())
-                    throw AssertionError();
+                    if (CC.ASSERT && store2.indexPages.size() != indexPages.size())
+                        throw AssertionError();
 
-                //now iterate over all recids
-                val maxRecid = maxRecid
-                for (recid in 1..maxRecid) {
-                    var data:ByteArray? = null;
-                    var exist = true;
-                    try{
-                        data = get(recid, Serializer.BYTE_ARRAY_NOSIZE)
-                        exist = true
-                    } catch(e: Exception) {
-                        //TODO better way to check for parity errors, EOF etc
-                        exist = false
+                    //now iterate over all recids
+                    val maxRecid = maxRecid
+                    for (recid in 1..maxRecid) {
+                        var data: ByteArray? = null;
+                        var exist = true;
+                        try {
+                            data = get(recid, Serializer.BYTE_ARRAY_NOSIZE)
+                            exist = true
+                        } catch(e: Exception) {
+                            //TODO better way to check for parity errors, EOF etc
+                            exist = false
+                        }
+
+                        if (!exist) {
+                            //recid does not exist, mark it as deleted in other store
+                            store2.releaseRecid(recid)
+                            store2.setIndexVal(recid, store2.indexValCompose(
+                                    size = DELETED_RECORD_SIZE, offset = 0L, linked = 0, unused = 0, archive = 1))
+                        } else {
+                            store2.putCompact(recid, data)
+                        }
                     }
 
-                    if(!exist) {
-                        //recid does not exist, mark it as deleted in other store
-                        store2.releaseRecid(recid)
-                        store2.setIndexVal(recid, store2.indexValCompose(
-                                size = DELETED_RECORD_SIZE, offset = 0L, linked = 0, unused = 0, archive = 1))
-                    }else{
-                        store2.putCompact(recid, data)
+                    //finished, update some variables
+                    store2.maxRecid = maxRecid
+
+                    // copy content of volume
+                    //TODO it would be faster to just swap volumes or rename file, but that is concurrency issue
+                    val fileTail = store2.fileTail;
+                    volume.truncate(fileTail)
+
+                    for (page in 0 until fileTail step CC.PAGE_SIZE) {
+                        store2.volume.copyTo(page, volume, page, CC.PAGE_SIZE)
                     }
+
+                    //take index pages from second store
+                    indexPages.clear()
+                    indexPages.addAll(store2.indexPages)
+                    //and update statistics
+                    freeSize.set(store2.freeSize.get());
+
+                    store2.close()
                 }
-
-                //finished, update some variables
-                store2.maxRecid = maxRecid
-
-                // copy content of volume
-                //TODO it would be faster to just swap volumes or rename file, but that is concurrency issue
-                val fileTail = store2.fileTail;
-                volume.truncate(fileTail)
-
-                for(page in 0 until fileTail step CC.PAGE_SIZE){
-                    store2.volume.copyTo(page, volume, page, CC.PAGE_SIZE)
-                }
-
-                //take index pages from second store
-                indexPages.clear()
-                indexPages.addAll(store2.indexPages)
-                //and update statistics
-                freeSize.set(store2.freeSize.get());
-
-                store2.close()
             }
-        }finally{
-            Utils.unlockWriteAll(locks)
         }
     }
 
     /** only called from compaction, it inserts new record under given recid */
     private fun putCompact(recid: Long, data: ByteArray?) {
-        if(CC.ASSERT && isThreadSafe) //compaction is always thread unsafe
+        if(CC.ASSERT && isThreadSafe) //compaction is done on second store, which sis always thread unsafe
             throw AssertionError();
         if (data == null) {
             setIndexVal(recid, indexValCompose(size = NULL_RECORD_SIZE, offset = 0, linked = 0, unused = 0, archive = 1))
@@ -853,9 +855,7 @@ class StoreDirect(
     }
 
     override fun close() {
-        Utils.lockWriteAll(locks)
-        try{
-
+        Utils.lockWrite(locks){
             if(closed.compareAndSet(false,true).not())
                 return
 
@@ -871,16 +871,13 @@ class StoreDirect(
             if(fileDeleteAfterClose && file!=null) {
                 File(file).delete()
             }
-        }finally{
-            Utils.unlockWriteAll(locks)
         }
     }
 
     override fun getAllRecids(): LongIterator {
         val ret = LongArrayList()
 
-        Utils.lockReadAll(locks)
-        try {
+        Utils.lockRead(locks){
             val maxRecid = maxRecid
 
             for (recid in 1..maxRecid) {
@@ -893,8 +890,6 @@ class StoreDirect(
                     //TODO better way to check for parity errors, EOF etc
                 }
             }
-        }finally{
-            Utils.unlockReadAll(locks)
         }
         return ret.toArray().iterator()
     }

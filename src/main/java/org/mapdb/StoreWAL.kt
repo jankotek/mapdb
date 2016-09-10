@@ -3,12 +3,12 @@ package org.mapdb
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
+import org.mapdb.DataIO.*
+import org.mapdb.StoreDirectJava.*
 import org.mapdb.volume.ReadOnlyVolume
 import org.mapdb.volume.SingleByteArrayVol
 import org.mapdb.volume.Volume
 import org.mapdb.volume.VolumeFactory
-import org.mapdb.DataIO.*
-import org.mapdb.StoreDirectJava.*
 import java.io.File
 import java.util.*
 
@@ -531,8 +531,7 @@ class StoreWAL(
     override fun getAllRecids(): LongIterator {
         val ret = LongArrayList()
 
-        Utils.lockReadAll(locks)
-        try {
+        Utils.lockRead(locks){
             val maxRecid = maxRecid
             for (recid in 1..maxRecid) {
                 try {
@@ -543,8 +542,6 @@ class StoreWAL(
                     //TODO better way to check for parity errors, EOF etc
                 }
             }
-        }finally{
-            Utils.unlockReadAll(locks)
         }
         return ret.toArray().iterator()
     }
@@ -554,8 +551,7 @@ class StoreWAL(
 
     }
     override fun close() {
-        Utils.lockWriteAll(locks)
-        try {
+        Utils.lockWrite(locks){
             if (closed.compareAndSet(false, true).not())
                 return
 
@@ -564,15 +560,12 @@ class StoreWAL(
                 File(file).delete()
                 wal.destroyWalFiles()
             }
-        }finally{
-            Utils.unlockWriteAll(locks)
         }
 
     }
 
     override fun rollback() {
-        Utils.lockWriteAll(locks)
-        try {
+        Utils.lockWrite(locks){
             realVolume.getData(0,headBytes, 0, headBytes.size)
             cacheIndexLinks.clear()
             cacheIndexVals.forEach { it.clear() }
@@ -582,14 +575,11 @@ class StoreWAL(
             for(page in indexPagesBackup)
                 indexPages.add(page)
             wal.rollback()
-        }finally{
-            Utils.unlockWriteAll(locks)
         }
     }
 
     override fun commit() {
-        Utils.lockWriteAll(locks)
-        try {
+        Utils.lockWrite(locks){
             DataIO.putInt(headBytes, 20, calculateHeaderChecksum())
             //write index page
             wal.walPutByteArray(0, headBytes, 0, headBytes.size)
@@ -631,8 +621,6 @@ class StoreWAL(
 
             wal.destroyWalFiles()
             wal.close()
-        }finally{
-            Utils.unlockWriteAll(locks)
         }
     }
 

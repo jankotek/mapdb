@@ -237,6 +237,25 @@ internal object Utils {
         return serializer.deserialize(in2, out.pos)
     }
 
+
+    inline fun <E> lockWrite(locks: Array<ReadWriteLock?>,f:()->E):E{
+        lockWriteAll(locks)
+        try{
+            return f.invoke();
+        }finally{
+            unlockWriteAll(locks)
+        }
+    }
+
+    inline fun <E> lockRead(locks: Array<ReadWriteLock?>,f:()->E):E{
+       lockReadAll(locks)
+        try{
+            return f.invoke();
+        }finally{
+            unlockReadAll(locks)
+        }
+    }
+
     fun lockReadAll(locks: Array<ReadWriteLock?>) {
         if(locks==null)
             return
