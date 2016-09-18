@@ -1,13 +1,9 @@
 package org.mapdb;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
-
-import static java.lang.Long.rotateLeft;
 
 /**
  * Various IO classes and utilities..

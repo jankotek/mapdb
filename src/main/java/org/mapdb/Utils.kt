@@ -292,9 +292,18 @@ internal object Utils {
 
     fun identityCount(vals: Array<*>): Int {
         val a = IdentityHashMap<Any?, Any?>()
-        vals.forEach { a.put(it,"") }
+        vals.forEach { a.put(it, "") }
         return a.size
     }
 
+
+    inline fun logExceptions(crossinline run:()->Unit):()->Unit = {
+        try {
+            run()
+        }catch (e:Throwable){
+            LOG.log(Level.SEVERE,"Exception in background task", e)
+            throw e
+        }
+    }
 
 }

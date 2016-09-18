@@ -2,12 +2,12 @@ package org.mapdb
 
 import org.junit.Assert.*
 import org.junit.Test
+import org.mapdb.StoreAccess.volume
+import org.mapdb.VolumeAccess.sliceShift
+import org.mapdb.volume.ByteArrayVol
 import org.mapdb.volume.FileChannelVol
 import org.mapdb.volume.MappedFileVol
 import org.mapdb.volume.RandomAccessFileVol
-import org.mapdb.StoreAccess.*
-import org.mapdb.VolumeAccess.*
-import org.mapdb.volume.ByteArrayVol
 
 class DBMakerTest{
 
@@ -23,20 +23,20 @@ class DBMakerTest{
 
     @Test fun conc_scale(){
         val db =DBMaker.memoryDB().concurrencyScale(32).make()
-        assertEquals(DataIO.shift(32), (db.getStore() as StoreDirect).concShift)
+        assertEquals(DataIO.shift(32), (db.store as StoreDirect).concShift)
     }
 
 
     @Test fun conc_disable(){
         var db =DBMaker.memoryDB().make()
         assertTrue(db.isThreadSafe)
-        assertTrue(db.getStore().isThreadSafe)
+        assertTrue(db.store.isThreadSafe)
         assertTrue(db.hashMap("aa1").create().isThreadSafe)
         assertTrue(db.treeMap("aa2").create().isThreadSafe)
 
         db =DBMaker.memoryDB().concurrencyDisable().make()
         assertFalse(db.isThreadSafe)
-        assertFalse(db.getStore().isThreadSafe)
+        assertFalse(db.store.isThreadSafe)
         assertFalse(db.hashMap("aa1").create().isThreadSafe)
         assertFalse(db.treeMap("aa2").create().isThreadSafe)
     }
@@ -44,14 +44,14 @@ class DBMakerTest{
     @Test fun raf(){
         val file = TT.tempFile()
         val db = DBMaker.fileDB(file).make()
-        assertTrue((db.getStore() as StoreDirect).volumeFactory == RandomAccessFileVol.FACTORY)
+        assertTrue((db.store as StoreDirect).volumeFactory == RandomAccessFileVol.FACTORY)
         file.delete()
     }
 
     @Test fun channel(){
         val file = TT.tempFile()
         val db = DBMaker.fileDB(file).fileChannelEnable().make()
-        assertTrue((db.getStore() as StoreDirect).volumeFactory == FileChannelVol.FACTORY)
+        assertTrue((db.store as StoreDirect).volumeFactory == FileChannelVol.FACTORY)
         file.delete()
     }
 
@@ -59,7 +59,7 @@ class DBMakerTest{
     @Test fun mmap(){
         val file = TT.tempFile()
         val db = DBMaker.fileDB(file).fileMmapEnable().make()
-        assertTrue((db.getStore() as StoreDirect).volumeFactory is MappedFileVol.MappedFileFactory)
+        assertTrue((db.store as StoreDirect).volumeFactory is MappedFileVol.MappedFileFactory)
         file.delete()
     }
 
@@ -68,9 +68,9 @@ class DBMakerTest{
         val file = TT.tempFile()
         val db = DBMaker.fileDB(file).fileChannelEnable().fileMmapEnableIfSupported().make()
         if(DataIO.JVMSupportsLargeMappedFiles())
-            assertTrue((db.getStore() as StoreDirect).volumeFactory is MappedFileVol.MappedFileFactory)
+            assertTrue((db.store as StoreDirect).volumeFactory is MappedFileVol.MappedFileFactory)
         else
-            assertTrue((db.getStore() as StoreDirect).volumeFactory == FileChannelVol.FACTORY)
+            assertTrue((db.store as StoreDirect).volumeFactory == FileChannelVol.FACTORY)
 
         file.delete()
     }
@@ -84,7 +84,7 @@ class DBMakerTest{
         db.close()
 
         fun checkReadOnly(){
-            assertTrue(((db.getStore()) as StoreDirect).volume.isReadOnly)
+            assertTrue(((db.store) as StoreDirect).volume.isReadOnly)
             TT.assertFailsWith(UnsupportedOperationException::class.java){
                 db.hashMap("zz").create()
             }
@@ -107,7 +107,7 @@ class DBMakerTest{
 
     @Test fun checksumStore(){
         val db = DBMaker.memoryDB().checksumStoreEnable().make()
-        assertTrue(((db.getStore()) as StoreDirect).checksum)
+        assertTrue(((db.store) as StoreDirect).checksum)
     }
 
     @Test(timeout=10000)
@@ -175,7 +175,7 @@ class DBMakerTest{
 
     @Test fun fileIncrement(){
         val db = DBMaker.memoryDB().allocateIncrement(100).make()
-        val store = db.getStore() as StoreDirect
+        val store = db.store as StoreDirect
         val volume = store.volume as ByteArrayVol
         assertEquals(CC.PAGE_SHIFT, volume.sliceShift)
     }
@@ -183,7 +183,7 @@ class DBMakerTest{
 
     @Test fun fileIncrement2(){
         val db = DBMaker.memoryDB().allocateIncrement(2*1024*1024).make()
-        val store = db.getStore() as StoreDirect
+        val store = db.store as StoreDirect
         val volume = store.volume as ByteArrayVol
         assertEquals(1+CC.PAGE_SHIFT, volume.sliceShift)
     }
@@ -192,6 +192,6 @@ class DBMakerTest{
     @Test fun fromVolume(){
         val vol = ByteArrayVol()
         val db = DBMaker.volumeDB(vol, false).make()
-        assertTrue(vol === (db.getStore() as StoreDirect).volume)
+        assertTrue(vol === (db.store as StoreDirect).volume)
     }
 }

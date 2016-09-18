@@ -366,6 +366,8 @@ class StoreDirect(
 
         //by now we should have determined size to take, so just take it
         val newChunkOffset:Long = allocateData(newChunkSize.toInt(), true)  //TODO recursive=true here is too paranoid, and could be improved
+        if(!CC.ZEROS)
+            volume.clear(newChunkOffset, newChunkOffset+newChunkSize) //zeroes are used to determine end of stack page, so it must be zeroed out, even if allocateData does not clear out pages
         //write size of current chunk with link to prev chunk
         volume.putLong(newChunkOffset, parity4Set((newChunkSize shl 48) + prevPageOffset))
         //put value
@@ -405,8 +407,9 @@ class StoreDirect(
             throw DBException.DataCorruption("position beyond chunk "+masterLinkOffset);
 
         //get value and zero it out
-        val ret = volume.getPackedLong(offset+pos) and DataIO.PACK_LONG_RESULT_MASK
-        volume.clear(offset+pos, offset+pos+ DataIO.packLongSize(ret))
+        var ret = volume.getPackedLong(offset+pos)
+        volume.clear(offset+pos, offset+pos+ ret.ushr(60))
+        ret = ret and DataIO.PACK_LONG_RESULT_MASK
 
         //update size on master link
         if(pos>8L) {
@@ -459,19 +462,20 @@ class StoreDirect(
         return pos2
     }
 
-    protected fun longStackForEach(masterLinkOffset: Long, body: (value: Long) -> Unit) {
+    protected fun longStackForEach(masterLinkOffset: Long, body: (value: Long) -> Unit,
+                                   setZeroes: Function2<Long,Long,Unit>? = null ) {
 
         // assert first page
         val linkVal = parity4Get(volume.getLong(masterLinkOffset))
         var endSize = indexValToSize(linkVal)
         var offset = indexValToOffset(linkVal)
-        endSize = longStackFindEnd(offset, endSize)
-
-
 
         while (offset != 0L) {
-            var currHead = parity4Get(volume.getLong(offset))
+            val currHead = parity4Get(volume.getLong(offset))
+            val currSize = indexValToSize(currHead)
 
+            setZeroes?.invoke(offset, offset+currSize)
+            volume.assertZeroes(offset + endSize, offset + currSize)
             //iterate over values
             var pos = 8L
             while(pos< endSize) {
@@ -481,7 +485,8 @@ class StoreDirect(
 
                 if (stackVal.ushr(48) != 0L)
                     throw AssertionError()
-                parity1Get(stackVal)
+
+                parity1Get(stackVal) //assert parity
                 body(stackVal)
             }
 
@@ -973,55 +978,20 @@ class StoreDirect(
                 }
             }
 
-            fun longStackForEach(masterLinkOffset: Long, body: (value: Long) -> Unit) {
-
-                // assert first page
-                val linkVal = parity4Get(volume.getLong(masterLinkOffset))
-                var offset = indexValToOffset(linkVal)
-                var endSize = indexValToSize(linkVal)
-                //endSize = longStackFindEnd(offset, endSize)
-
-                while (offset != 0L) {
-                    var currHead = parity4Get(volume.getLong(offset))
-                    val currSize = indexValToSize(currHead)
-
-                    //mark as used
-                    set(offset, offset + currSize, false)
-                    volume.assertZeroes(offset + endSize, offset + currSize)
-
-                    //iterate over values
-                    var pos = 8L
-                    while(pos< endSize) {
-                        var stackVal = volume.getPackedLong(offset + pos)
-                        pos+=stackVal.ushr(60)
-                        stackVal = stackVal and DataIO.PACK_LONG_RESULT_MASK
-                        if (stackVal.ushr(48) != 0L)
-                            throw AssertionError()
-                        parity1Get(stackVal) //check parity
-                        body(stackVal)
-                    }
-
-                    //set values for next page
-                    offset = indexValToOffset(currHead)
-                    if (offset != 0L) {
-                        endSize = indexValToSize(parity4Get(volume.getLong(offset)))
-                        endSize = longStackFindEnd(offset, endSize)
-                    }
-                }
+            val setZeroes = { start:Long, end:Long ->
+                set(start, end , false)
             }
-
-            longStackForEach(RECID_LONG_STACK) { freeRecid ->
+            longStackForEach(masterLinkOffset = RECID_LONG_STACK, setZeroes = setZeroes, body = { freeRecid ->
                 //deleted recids should be marked separately
-
-            }
+            })
 
             //iterate over free data
             for (size in 16..MAX_RECORD_SIZE step 16) {
                 val masterLinkOffset = longStackMasterLinkOffset(size)
-                longStackForEach(masterLinkOffset) { freeOffset ->
+                longStackForEach(masterLinkOffset=masterLinkOffset, setZeroes = setZeroes, body= { freeOffset ->
                     val freeOffset = parity1Get(freeOffset).shl(3)
                     set(freeOffset, freeOffset + size, true)
-                }
+                })
             }
 
             //ensure all data are set
@@ -1070,20 +1040,22 @@ class StoreDirect(
         }
     }
 
-    protected fun calculateFreeSize(): Long {
+    private fun calculateFreeSize(): Long {
         Utils.assertLocked(structuralLock)
-
         //traverse list of records
         var ret1 = 0L
+        val fileTail = fileTail
         for (size in 16..MAX_RECORD_SIZE step 16) {
             val masterLinkOffset = longStackMasterLinkOffset(size)
-            longStackForEach(masterLinkOffset) { v ->
+            longStackForEach(masterLinkOffset, { v ->
                 val v = parity1Get(v).shl(3)
                 if(CC.ASSERT && v==0L)
                     throw AssertionError()
+                if(CC.ASSERT && v>fileTail)
+                    throw AssertionError()
 
                 ret1 += size
-            }
+            })
         }
           //TODO Free size should include rest of data page, but that make stats unreliable for some reason
 //        //set rest of data page

@@ -1,21 +1,17 @@
 package org.mapdb
 
-import org.eclipse.collections.api.list.primitive.MutableLongList
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
-import org.fest.reflect.core.Reflection
-import org.junit.Test
 import org.junit.Assert.*
-import java.io.File
-import org.mapdb.StoreDirectJava.*
+import org.junit.Test
 import org.mapdb.DataIO.*
-import java.util.*
-import java.util.concurrent.locks.Lock
-import java.util.concurrent.locks.ReadWriteLock
 import org.mapdb.StoreAccess.*
+import org.mapdb.StoreDirectJava.*
 import org.mapdb.volume.*
+import java.io.File
 import java.io.RandomAccessFile
+import java.util.*
 
 class StoreDirectTest:StoreDirectAbstractTest(){
 
@@ -173,6 +169,32 @@ class StoreDirectTest:StoreDirectAbstractTest(){
             StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol,true), checksum=true)
         }
     }
+
+    @Test fun longStackForeach(){
+        var store = StoreDirect.make(checksumHeader = false)
+        store.structuralLock!!.lock()
+        val longStack = StoreDirectJava.UNUSED1_LONG_STACK
+
+        val count = 1600
+        val maxVal = Integer.MAX_VALUE
+        val r = Random()
+        val values = LongArrayList()
+        for(v in 0 until count){
+            val value = DataIO.parity1Set(r.nextInt(maxVal).toLong().shl(1))
+            values.add(value)
+
+            store._longStackPut(longStack, value, false)
+
+            //check all existing values in long stack are matching values
+            val fromStack = LongArrayList()
+            store._longStackForEach(longStack,{fromStack.add(it)})
+
+            assertEquals(values.toSortedList(), fromStack.toSortedList())
+
+        }
+
+    }
+
 }
 
 abstract class StoreDirectAbstractTest:StoreReopenTest() {
@@ -418,7 +440,7 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
 
     @Test fun freeSpace3(){
         val db = DBMaker.memoryDB().make()
-        val store = db.getStore() as StoreDirect
+        val store = db.store as StoreDirect
         val map = db.hashMap("map",Serializer.LONG, Serializer.BYTE_ARRAY).create()
 
         for(i in 0..10) for(key in 1L .. 10000){

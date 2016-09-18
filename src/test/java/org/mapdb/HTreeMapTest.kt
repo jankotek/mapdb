@@ -1,17 +1,15 @@
 package org.mapdb
 
 import org.fest.reflect.core.Reflection
-import org.junit.Test
 import org.junit.Assert.*
+import org.junit.Test
 import org.mapdb.volume.SingleByteArrayVol
 import java.io.Closeable
 import java.io.Serializable
 import java.util.*
-import java.util.concurrent.ExecutorService
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.locks.ReadWriteLock
-import java.util.concurrent.locks.ReentrantReadWriteLock
 
 class HTreeMapTest{
 

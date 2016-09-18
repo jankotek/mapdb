@@ -1,9 +1,8 @@
 package org.mapdb
 
-import org.junit.Test
 import org.junit.Assert.*
+import org.junit.Test
 import org.mapdb.volume.SingleByteArrayVol
-import org.mapdb.volume.Volume
 import java.util.*
 
 class HTreeMapExpirationTest {
@@ -243,7 +242,7 @@ class HTreeMapExpirationTest {
                 .expireStoreSize(1024*1024*400)
                 .create()
 
-        val store = db.getStore() as StoreDirect
+        val store = db.store as StoreDirect
         val max = 1000000
         for(i in 0L .. max){
 //            if(i%1000==0L)
@@ -355,13 +354,13 @@ class HTreeMapExpirationTest {
         assertEquals(1024*10, map.size)
 
         //insert 15MB into store, that should displace some entries
-        db.getStore().put(ByteArray(1024*1024*15), Serializer.BYTE_ARRAY)
+        db.store.put(ByteArray(1024*1024*15), Serializer.BYTE_ARRAY)
         map.expireEvict()
         assertTrue(map.size>0)
         assertTrue(map.size<1024*10)
 
         //insert another 15MB, map will become empty
-        db.getStore().put(ByteArray(1024*1024*15), Serializer.BYTE_ARRAY)
+        db.store.put(ByteArray(1024*1024*15), Serializer.BYTE_ARRAY)
         map.expireEvict()
         assertEquals(0, map.size)
     }

@@ -34,7 +34,7 @@ import java.util.logging.Level
 //TOOD metrics logger
 open class DB(
         /** Stores all underlying data */
-        private val store:Store,
+       store:Store,
         /** True if store existed before and was opened, false if store was created and is completely empty */
         protected val storeOpened:Boolean,
         override val isThreadSafe:Boolean = true,
@@ -42,6 +42,14 @@ open class DB(
         /** type of shutdown hook, 0 is disabled, 1 is hard ref, 2 is weak ref*/
         val shutdownHook:Int = 0
 ): Closeable, ConcurrencyAware {
+
+    private val store2 = store
+
+    val store:Store
+        get() {
+            checkNotClosed();
+            return store2
+        }
 
     companion object{
 
@@ -94,11 +102,6 @@ open class DB(
             shutdownHooks.put(ref, ref)
         }
 
-    }
-
-    fun getStore():Store{
-        checkNotClosed()
-        return store
     }
 
     object Keys {
@@ -377,7 +380,7 @@ open class DB(
     }
 
     private fun loadClassInfos():Array<ElsaSerializerPojo.ClassInfo>{
-        return store.get(CC.RECID_CLASS_INFOS, classInfoSerializer)!!
+        return store2.get(CC.RECID_CLASS_INFOS, classInfoSerializer)!!
     }
 
 
@@ -486,6 +489,7 @@ open class DB(
     }
 
     fun rollback(){
+        val store = store
         if(store !is StoreTx)
             throw UnsupportedOperationException("Store does not support rollback")
 
@@ -518,7 +522,7 @@ open class DB(
                 }
             }
             executors.clear()
-            store.close()
+            store2.close()
         }
     }
 
@@ -1884,12 +1888,12 @@ open class DB(
         var infos = loadClassInfos()
         val className = clazz.name
         if (infos.find { it.name == className } != null)
-            return; //class is already present
+            return //class is already present
         //add as last item to an array
         infos = Arrays.copyOf(infos, infos.size + 1)
         infos[infos.size - 1] = ElsaSerializerPojo.makeClassInfo(clazz)
         //and save
-        store.update(CC.RECID_CLASS_INFOS, infos, classInfoSerializer)
+        store2.update(CC.RECID_CLASS_INFOS, infos, classInfoSerializer)
     }
 
     protected data class CatVal(val msg:(String)->String?, val required:Boolean=true)

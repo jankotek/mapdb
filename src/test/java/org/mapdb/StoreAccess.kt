@@ -91,12 +91,21 @@ fun StoreDirectAbstract._longStackTake(masterLinkOffset: Long, recursive: Boolea
                 .`in`(this)
                 .invoke(masterLinkOffset, recursive) as Long
 
+fun StoreDirect._longStackForEach(masterLinkOffset: Long, body: Function1<Long, Unit>) {
+    Reflection.method("longStackForEach")
+            .withParameterTypes(masterLinkOffset.javaClass, Function1::class.java, Function2::class.java)
+            .`in`(this)
+            .invoke(masterLinkOffset, body, null)
+}
+
+
 fun StoreDirectAbstract._longStackPut(masterLinkOffset: Long, value: Long, recursive: Boolean) {
     Reflection.method("longStackPut")
             .withParameterTypes(masterLinkOffset.javaClass, value.javaClass, recursive.javaClass)
             .`in`(this)
             .invoke(masterLinkOffset, value, recursive)
 }
+
 
 fun StoreDirectAbstract.linkedRecordPut(output: ByteArray, size: Int): Long =
         Reflection.method("linkedRecordPut")

@@ -114,7 +114,7 @@ class Issues760_compact_thread_safe {
             //compact continuous loop
             val compact = Thread({
                 while (end.get()) {
-                    make.getStore().compact()
+                    make.store.compact()
                     Thread.sleep(10)
                 }
             })

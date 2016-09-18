@@ -141,11 +141,11 @@ class HTreeMap<K,V>(
         //schedule background expiration if needed
         if(expireExecutor!=null && (expireCreateQueues!=null || expireUpdateQueues!=null || expireGetQueues!=null)){
             for(segment in 0 until segmentCount){
-                expireExecutor.scheduleAtFixedRate({
+                expireExecutor.scheduleAtFixedRate(Utils.logExceptions({
                     segmentWrite(segment){
                         expireEvictSegment(segment)
                     }
-                },
+                }),
                 (expireExecutorPeriod * Math.random()).toLong(), // put random delay, so eviction are not executed all at once
                 expireExecutorPeriod, TimeUnit.MILLISECONDS)
             }

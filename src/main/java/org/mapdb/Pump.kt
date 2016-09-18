@@ -156,7 +156,8 @@ object Pump{
                     leftEdgeLeaf + RIGHT,
                     0L,
                     keySerializer.valueArrayFromArray(keys.toArray()),
-                    if(hasValues)valueSerializer.valueArrayFromArray(values!!.toArray()) else null
+                    if(hasValues)valueSerializer.valueArrayFromArray(values!!.toArray())
+                    else keys.size
                 )
                 if(nextLeafLink==0L){
                     nextLeafLink = store.put(endLeaf, nodeSer)

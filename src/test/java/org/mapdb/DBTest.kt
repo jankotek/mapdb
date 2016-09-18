@@ -30,7 +30,7 @@ class DBTest{
         val store = StoreTrivial()
         val db = DB(store, storeOpened = false, isThreadSafe = false);
         val htreemap = db.hashMap("map", keySerializer = Serializer.LONG, valueSerializer = Serializer.LONG).create()
-        assertTrue(store===db.getStore())
+        assertTrue(store===db.store)
         htreemap.stores.forEach{
             assertTrue(store===it)
         }
@@ -174,8 +174,8 @@ class DBTest{
         assertEquals("", p["aa"+DB.Keys.counterRecids])
 
 
-        hmap.stores.forEach{assertTrue(db.getStore()===it)}
-        hmap.indexTrees.forEach{assertTrue(db.getStore()===(it as IndexTreeLongLongMap).store)}
+        hmap.stores.forEach{assertTrue(db.store===it)}
+        hmap.indexTrees.forEach{assertTrue(db.store===(it as IndexTreeLongLongMap).store)}
     }
 
     @Test fun hashMap_Create_conc_expire(){
@@ -211,11 +211,11 @@ class DBTest{
         assertEquals(null, hmap.counterRecids)
         assertEquals("", p["aa"+DB.Keys.counterRecids])
 
-        hmap.stores.forEach{assertTrue(db.getStore()===it)}
-        hmap.indexTrees.forEach{assertTrue(db.getStore()===(it as IndexTreeLongLongMap).store)}
-        hmap.expireCreateQueues!!.forEach{assertTrue(db.getStore()===it.store)}
-        hmap.expireUpdateQueues!!.forEach{assertTrue(db.getStore()===it.store)}
-        hmap.expireGetQueues!!.forEach{assertTrue(db.getStore()===it.store)}
+        hmap.stores.forEach{assertTrue(db.store===it)}
+        hmap.indexTrees.forEach{assertTrue(db.store===(it as IndexTreeLongLongMap).store)}
+        hmap.expireCreateQueues!!.forEach{assertTrue(db.store===it.store)}
+        hmap.expireUpdateQueues!!.forEach{assertTrue(db.store===it.store)}
+        hmap.expireGetQueues!!.forEach{assertTrue(db.store===it.store)}
 
 
         fun qToString(qq:Array<QueueLong>):String{
@@ -383,7 +383,7 @@ class DBTest{
         val p = db.nameCatalogParamsFor("aa")
 
         assertEquals(7, p.size)
-        assertEquals(map.store, db.getStore())
+        assertEquals(map.store, db.store)
         assertEquals("0", p["aa"+DB.Keys.counterRecid])
         assertEquals(CC.BTREEMAP_MAX_NODE_SIZE.toString(), p["aa"+DB.Keys.maxNodeSize])
         assertEquals(map.rootRecidRecid.toString(), p["aa"+DB.Keys.rootRecidRecid])
@@ -579,8 +579,8 @@ class DBTest{
         assertEquals("", p["aa"+DB.Keys.counterRecids])
 
 
-        hmap.map.stores.forEach{assertTrue(db.getStore()===it)}
-        hmap.map.indexTrees.forEach{assertTrue(db.getStore()===(it as IndexTreeLongLongMap).store)}
+        hmap.map.stores.forEach{assertTrue(db.store===it)}
+        hmap.map.indexTrees.forEach{assertTrue(db.store===(it as IndexTreeLongLongMap).store)}
     }
 
     @Test fun hashSet_Create_conc_expire(){
@@ -617,11 +617,11 @@ class DBTest{
         assertEquals(null, hmap.map.counterRecids)
         assertEquals("", p["aa"+DB.Keys.counterRecids])
 
-        hmap.map.stores.forEach{assertTrue(db.getStore()===it)}
-        hmap.map.indexTrees.forEach{assertTrue(db.getStore()===(it as IndexTreeLongLongMap).store)}
-        hmap.map.expireCreateQueues!!.forEach{assertTrue(db.getStore()===it.store)}
+        hmap.map.stores.forEach{assertTrue(db.store===it)}
+        hmap.map.indexTrees.forEach{assertTrue(db.store===(it as IndexTreeLongLongMap).store)}
+        hmap.map.expireCreateQueues!!.forEach{assertTrue(db.store===it.store)}
         assertNull(hmap.map.expireUpdateQueues)
-        hmap.map.expireGetQueues!!.forEach{assertTrue(db.getStore()===it.store)}
+        hmap.map.expireGetQueues!!.forEach{assertTrue(db.store===it.store)}
 
 
         fun qToString(qq:Array<QueueLong>):String{
@@ -787,7 +787,7 @@ class DBTest{
         val p = db.nameCatalogParamsFor("aa")
 
         assertEquals(5, p.size)
-        assertEquals(btreemap(map).store, db.getStore())
+        assertEquals(btreemap(map).store, db.store)
         assertEquals("0", p["aa"+DB.Keys.counterRecid])
         assertEquals(CC.BTREEMAP_MAX_NODE_SIZE.toString(), p["aa"+DB.Keys.maxNodeSize])
         assertEquals(btreemap(map).rootRecidRecid.toString(), p["aa"+DB.Keys.rootRecidRecid])
@@ -1023,8 +1023,8 @@ class DBTest{
     }
 
     @Test fun store_wal_def(){
-        assertEquals(StoreWAL::class.java, DBMaker.memoryDB().transactionEnable().make().getStore().javaClass)
-        assertEquals(StoreDirect::class.java, DBMaker.memoryDB().make().getStore().javaClass)
+        assertEquals(StoreWAL::class.java, DBMaker.memoryDB().transactionEnable().make().store.javaClass)
+        assertEquals(StoreDirect::class.java, DBMaker.memoryDB().make().store.javaClass)
     }
 
 
@@ -1122,7 +1122,7 @@ class DBTest{
         val classInfos = db.loadClassInfos().clone()
         val z = classInfos[0]
         classInfos[0] = ElsaSerializerPojo.ClassInfo(z.name, z.fields, true, true, true) //modify old value to make it recognizable
-        db.getStore().update(CC.RECID_CLASS_INFOS, classInfos, db.classInfoSerializer())
+        db.store.update(CC.RECID_CLASS_INFOS, classInfos, db.classInfoSerializer())
 
         //update again and check old class info is untouched
         db.defaultSerializerRegisterClass(TestPojo::class.java)
@@ -1314,7 +1314,7 @@ class DBTest{
             val dir = TT.tempDir()
             assertTrue(dir.listFiles().isEmpty())
             val db = fab(dir.path+ "/aa")
-            fun eq() = assertEquals(dir.listFiles().map{it.path}.toSet(), db.getStore().getAllFiles().toSet())
+            fun eq() = assertEquals(dir.listFiles().map{it.path}.toSet(), db.store.getAllFiles().toSet())
             eq()
 
             val a = db.atomicString("aa").create()
