@@ -359,13 +359,16 @@ class StoreDirect(
                         else
                             remainderSize
             }
-        }
+        } 
 
         if(CC.ASSERT && newChunkSize % 16!=0L)
             throw AssertionError()
 
         //by now we should have determined size to take, so just take it
         val newChunkOffset:Long = allocateData(newChunkSize.toInt(), true)  //TODO recursive=true here is too paranoid, and could be improved
+        if(!CC.ZEROS)
+            volume.clear(newChunkOffset, newChunkOffset+newChunkSize) //zeroes are used to determine end of stack page, so it must be zeroed out, even if allocateData does not clear out pages
+
         //write size of current chunk with link to prev chunk
         volume.putLong(newChunkOffset, parity4Set((newChunkSize shl 48) + prevPageOffset))
         //put value
