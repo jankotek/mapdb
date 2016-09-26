@@ -2,11 +2,11 @@ package org.mapdb
 
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
-import org.junit.Test
-import java.util.*
 import org.junit.Assert.*
-import java.util.concurrent.atomic.AtomicLong
+import org.junit.Test
 import org.mapdb.TT.assertFailsWith
+import java.util.*
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Tests contract on `Store` interface
@@ -344,12 +344,13 @@ abstract class StoreTest {
         val random = Random(1);
         val endTime = TT.nowPlusMinutes(10.0)
         val ref = LongObjectHashMap<ByteArray>()
-
+        //TODO params could cause OOEM if too big. Make another case of tests with extremely large memory, or disk space
+        val maxRecSize = 1000
         val maxSize = 66000 * 3
 
         //fill up
         for (i in 0 until maxSize){
-            val size = random.nextInt(maxSize)
+            val size = random.nextInt(maxRecSize)
             val b = TT.randomByteArray(size, random.nextInt())
             val recid = s.put(b, Serializer.BYTE_ARRAY_NOSIZE)
             ref.put(recid, b)
@@ -361,7 +362,7 @@ abstract class StoreTest {
                 val old = s.get(recid, Serializer.BYTE_ARRAY_NOSIZE)
                 assertTrue(Arrays.equals(record, old))
 
-                val size = random.nextInt(maxSize)
+                val size = random.nextInt(maxRecSize)
                 val b = TT.randomByteArray(size, random.nextInt())
                 ref.put(recid,b.clone())
                 s.update(recid, b, Serializer.BYTE_ARRAY_NOSIZE)
