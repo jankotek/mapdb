@@ -18,7 +18,6 @@ package org.mapdb.indexTreeLongLongMapTests_GS_GENERATED;
 
 import org.eclipse.collections.api.LazyLongIterable;
 import org.eclipse.collections.api.LongIterable;
-import org.eclipse.collections.api.RichIterable;
 import org.eclipse.collections.api.bag.MutableBag;
 import org.eclipse.collections.api.block.function.primitive.LongToObjectFunction;
 import org.eclipse.collections.api.iterator.LongIterator;
@@ -26,11 +25,10 @@ import org.eclipse.collections.api.map.primitive.ImmutableLongLongMap;
 import org.eclipse.collections.api.map.primitive.LongLongMap;
 import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.eclipse.collections.api.tuple.primitive.LongLongPair;
-import org.eclipse.collections.impl.bag.mutable.HashBag;
 import org.eclipse.collections.impl.bag.mutable.primitive.LongHashBag;
 import org.eclipse.collections.impl.block.factory.primitive.LongPredicates;
 import org.eclipse.collections.impl.factory.Bags;
-import org.eclipse.collections.impl.factory.Lists;
+import org.eclipse.collections.impl.factory.primitive.LongBags;
 import org.eclipse.collections.impl.factory.primitive.LongLongMaps;
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
@@ -565,18 +563,15 @@ public abstract class AbstractLongLongMapTestCase
         Assert.assertEquals(LongLongHashMap.newWithKeysValues(1L, 1L, 3L, 3L), actual2);
     }
 
+
     @Test
     public void select_value()
     {
         LongLongMap map = this.newWithKeysValues(0L, 0L, 1L, 1L, 2L, 2L, 3L, 3L);
         LongIterable actual1 = map.select(LongPredicates.greaterThan(1L));
-        Assert.assertTrue(
-                LongArrayList.newListWith(2L, 3L).equals(actual1)
-                        || LongArrayList.newListWith(3L, 2L).equals(actual1));
+        Assert.assertEquals(LongBags.immutable.with(2L, 3L), actual1);
         LongIterable actual2 = map.select(LongPredicates.lessThan(2L));
-        Assert.assertTrue(
-                LongArrayList.newListWith(0L, 1L).equals(actual2)
-                        || LongArrayList.newListWith(1L, 0L).equals(actual2));
+        Assert.assertEquals(LongBags.immutable.with(0L, 1L), actual2);
     }
 
     @Test
@@ -584,13 +579,9 @@ public abstract class AbstractLongLongMapTestCase
     {
         LongLongMap map = this.newWithKeysValues(0L, 0L, 1L, 1L, 2L, 2L, 3L, 3L);
         LongIterable actual1 = map.reject(LongPredicates.lessThan(2L));
-        Assert.assertTrue(
-                LongArrayList.newListWith(2L, 3L).equals(actual1)
-                        || LongArrayList.newListWith(3L, 2L).equals(actual1));
+        Assert.assertEquals(LongBags.immutable.with(2L, 3L), actual1);
         LongIterable actual2 = map.reject(LongPredicates.greaterThan(1L));
-        Assert.assertTrue(
-                LongArrayList.newListWith(0L, 1L).equals(actual2)
-                        || LongArrayList.newListWith(1L, 0L).equals(actual2));
+        Assert.assertEquals(LongBags.immutable.with(0L, 1L), actual2);
     }
 
     @Test
@@ -598,12 +589,10 @@ public abstract class AbstractLongLongMapTestCase
     {
         LongLongMap map = this.newWithKeysValues(0L, 0L, 1L, 1L, 2L, 2L, 3L, 3L);
 
-        LongToObjectFunction<Long> function = (long parameter) -> parameter + 1;
-        RichIterable<Long> objects = map.collect(function);
-
-        Assert.assertEquals(HashBag.newBagWith(1L, 2L, 3L, 4L), objects.toBag());
-        Assert.assertEquals(Lists.immutable.with(), this.getEmptyMap().collect(function));
-        Assert.assertEquals(Lists.immutable.with(2L), this.newWithKeysValues(1L, 1L).collect(function));
+        LongToObjectFunction<Long> function = (parameter) -> parameter + 1;
+        Assert.assertEquals(Bags.immutable.with(1L, 2L, 3L, 4L), map.collect(function));
+        Assert.assertEquals(Bags.immutable.empty(), this.getEmptyMap().collect(function));
+        Assert.assertEquals(Bags.immutable.with(2L), this.newWithKeysValues(1L, 1L).collect(function));
     }
 
     @Test
