@@ -45,8 +45,9 @@
 
         <elsa.version>3.0.0-M6</elsa.version>
 
-        <threadCount>3</threadCount>
-        <argline />
+        <testThreadCount>3</testThreadCount>
+        <testArgLine></testArgLine>
+        <testReuseForks>true</testReuseForks>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
@@ -218,9 +219,11 @@
                         </property>
                     </properties>
                     <parallel>classesAndMethods</parallel>
-                    <threadCount>${threadCount}</threadCount>
+                    <threadCount>${testThreadCount}</threadCount>
+                    <reuseForks>${testReuseForks}</reuseForks>
+
                     <perCoreThreadCount>false</perCoreThreadCount>
-                    <argLine>${argline}</argLine>
+                    <argLine>${testArgLine}</argLine>
 
                     <includes>
                         <include>**/*</include>

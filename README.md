@@ -56,3 +56,9 @@ MapDB is extensively unit-tested.
 By default, only tiny fraction of all tests are executed, so build finishes under 10 minutes.
 Full test suite has over million test cases and runs for several hours/days.
 To run full test suite, set `-Dmdbtest=1` VM option.
+
+Longer unit tests might require more memory. Use this to increase heap memory assigned to unit tests: `-DtestArgLine="-Xmx3G"`
+
+By default unit tests are executed in 3 threads. Thread count is controlled by `-DtestThreadCount=3` property
+
+On machine with limited memory you can change fork mode so unit test consume less RAM, but run longer: `-DtestReuseForks=false`
