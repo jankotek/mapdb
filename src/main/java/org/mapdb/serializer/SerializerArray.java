@@ -74,8 +74,9 @@ public class SerializerArray<T> extends GroupSerializerObjectArray<T[]> implemen
 
     @Override
     public T[] deserialize(DataInput2 in, int available) throws IOException {
-        T[] ret = (T[]) Array.newInstance(componentType, in.unpackInt());
-        for (int i = 0; i < ret.length; i++) {
+        int size = in.unpackInt();
+        T[] ret = (T[]) Array.newInstance(componentType, size);
+        for (int i = 0; i < size; i++) {
             ret[i] = serializer.deserialize(in, -1);
         }
         return ret;
