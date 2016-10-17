@@ -401,7 +401,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         }finally {
             lock.unlock();
         }
-        if(valueCreator==null){
+        if(valueCreator==null || ln!=null){
             if(ln==null)
                 return null;
             return ln.value;
