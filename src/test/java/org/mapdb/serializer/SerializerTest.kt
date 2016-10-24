@@ -752,7 +752,7 @@ class Serializer_ELSA: GroupSerializerTest<Any>(){
 
 class Serializer_DB_default: GroupSerializerTest<Any?>(){
     override fun randomValue() = TT.randomString(11)
-    override val serializer = DBMaker.memoryDB().make().getDefaultSerializer<Any?>()
+    override val serializer = DBMaker.memoryDB().make().defaultSerializer as Serializer<Any?>
 
     @Test override fun trusted(){
     }

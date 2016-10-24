@@ -29,19 +29,19 @@ class ElsaTestExternalizable: Externalizable {
 }
 
 class ElsaTest{
-    fun size(serializer: Serializer<Any?>, value:Any):Int{
+    fun size(serializer: Serializer<*>, value:Any):Int{
         val out = DataOutput2()
-        serializer.serialize(out, value)
+        (serializer as Serializer<Any?>).serialize(out, value)
         return out.pos
     }
 
     @Test fun sizeSerializable(){
         val my = ElsaTestMyClass()
         val javaSize = size(Serializer.JAVA, my)
-        val defSize = size(DBMaker.memoryDB().make().getDefaultSerializer<Any?>(), my)
+        val defSize = size(DBMaker.memoryDB().make().defaultSerializer, my)
         val regDB = DBMaker.memoryDB().make()
         regDB.defaultSerializerRegisterClass(ElsaTestMyClass::class.java)
-        val defRegSize = size(regDB.getDefaultSerializer<Any?>(), my)
+        val defRegSize = size(regDB.defaultSerializer, my)
 
 //        println("$javaSize - $defSize - $defRegSize")
 
@@ -53,10 +53,10 @@ class ElsaTest{
     @Test fun sizeExtern(){
         val my = ElsaTestExternalizable()
         val javaSize = size(Serializer.JAVA, my)
-        val defSize = size(DBMaker.memoryDB().make().getDefaultSerializer<Any?>(), my)
+        val defSize = size(DBMaker.memoryDB().make().defaultSerializer, my)
         val regDB = DBMaker.memoryDB().make()
         regDB.defaultSerializerRegisterClass(ElsaTestExternalizable::class.java)
-        val defRegSize = size(regDB.getDefaultSerializer<Any?>(), my)
+        val defRegSize = size(regDB.defaultSerializer, my)
 
 //        println("$javaSize - $defSize - $defRegSize")
 

@@ -1,11 +1,10 @@
 package org.mapdb
 
-import org.junit.Test
 import org.junit.Assert.*
+import org.junit.Test
 import java.io.*
 import java.util.*
 import java.util.concurrent.*
-
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -132,9 +131,9 @@ object TT{
     }
 
     /* clone value using serialization */
-    @JvmStatic fun <E> clone(value: E, serializer: Serializer<E>, out:DataOutput2 = DataOutput2()): E {
+    @JvmStatic fun <E> clone(value: E, serializer: Serializer<*>, out:DataOutput2 = DataOutput2()): E {
         out.pos = 0
-        serializer.serialize(out, value)
+        (serializer as Serializer<E>).serialize(out, value)
         val in2 = DataInput2.ByteArray(out.copyBytes())
         return serializer.deserialize(in2, out.pos)
     }
@@ -150,9 +149,9 @@ object TT{
         return ObjectInputStream(in2).readObject() as E
     }
 
-    @JvmStatic fun <E> serializedSize(value: E, serializer: Serializer<E>, out:DataOutput2 = DataOutput2()): Int {
+    @JvmStatic fun <E> serializedSize(value: E, serializer: Serializer<*>, out:DataOutput2 = DataOutput2()): Int {
         out.pos = 0
-        serializer.serialize(out, value)
+        (serializer as Serializer<E>).serialize(out, value)
         return out.pos;
     }
 

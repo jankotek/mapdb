@@ -151,6 +151,6 @@ public class SerializerArray<T> extends GroupSerializerObjectArray<T[]> implemen
     @Override
     public void callbackDB(@NotNull DB db) {
         if(this.serializer==null)
-            this.serializer = db.getDefaultSerializer();
+            this.serializer = (Serializer<T>) db.getDefaultSerializer();
     }
 }

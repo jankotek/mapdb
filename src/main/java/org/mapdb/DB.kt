@@ -265,7 +265,7 @@ open class DB(
      * Default serializer used if collection does not specify specialized serializer.
      * It uses Elsa Serializer.
      */
-    protected val defaultSerializer = object: GroupSerializerObjectArray<Any?>() {
+    val defaultSerializer:GroupSerializer<Any?> = object: GroupSerializerObjectArray<Any?>() {
 
         override fun deserialize(input: DataInput2, available: Int): Any? {
             return elsaSerializer.deserialize(input)
@@ -277,7 +277,7 @@ open class DB(
 
     }
 
-    fun <E> getDefaultSerializer() = defaultSerializer as GroupSerializer<E>
+    //fun <E> getDefaultSerializer() = defaultSerializer as GroupSerializer<E>
 
 
     protected val classInfoSerializer = object : Serializer<Array<ClassInfo>> {
@@ -1863,7 +1863,7 @@ open class DB(
     fun <E> indexTreeList(name: String, clazz:Class<E>) = IndexTreeListMaker<E>(this, name, serializerForClass(clazz))
 
     fun <E> indexTreeList(name: String, serializer:Serializer<E>) = IndexTreeListMaker<E>(this, name, serializer)
-    fun indexTreeList(name: String) = IndexTreeListMaker<Any?>(this, name, defaultSerializer)
+    fun indexTreeList(name: String) = IndexTreeListMaker<Any?>(this, name, defaultSerializer as Serializer<Any?>)
 
 
     override fun checkThreadSafe() {
@@ -2091,8 +2091,13 @@ open class DB(
      * Callback interface which gets reference to collection(record) and its name. Classes which implements it (for example serializers)
      * can get reference to collection they were created with
      */
-    interface NamedRecordAware{
-        fun callbackRecord(name:String, collection:Any)
+    interface NamedRecordAware {
+        fun callbackRecord(name: String, collection: Any)
     }
+
+    fun compact(){
+        store.compact()
+    }
+
 
 }
