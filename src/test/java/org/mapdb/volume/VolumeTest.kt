@@ -1,24 +1,12 @@
 package org.mapdb.volume
 
-import net.jpountz.xxhash.XXHash64
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.Parameterized
-
-import java.nio.ByteBuffer
-import java.util.ArrayList
-import java.util.Arrays
-import java.util.Random
-
 import org.junit.Assert.*
 import org.mapdb.CC
 import org.mapdb.DBException
-import org.mapdb.DataIO
-import org.mapdb.Serializer
-import org.mapdb.volume.*
-import java.io.*
-import java.lang.Byte
-import java.nio.file.Files
+import java.io.File
+import java.io.IOException
+import java.io.RandomAccessFile
+import java.util.*
 
 class VolumeTest {
 
@@ -45,7 +33,8 @@ class VolumeTest {
                         {file -> RandomAccessFileVol(File(file), false, 0L, 0L) },
                         {file -> MappedFileVol(File(file), false, 0L, CC.PAGE_SHIFT, false, 0L, false) },
                         {file -> MappedFileVolSingle(File(file), false, 0L, 4e7.toLong(), false) },
-                        {file -> ByteBufferMemoryVolSingle(false, 4e7.toLong(), false) }
+                        {file -> ByteBufferMemoryVolSingle(false, 4e7.toLong(), false) },
+                        {file -> UnsafeVolume(0, CC.PAGE_SHIFT, 0) }
                     )
     }
 
