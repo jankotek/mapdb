@@ -465,6 +465,12 @@ public interface Serializer<A /*extends Comparable<? super A>*/> extends Compara
     GroupSerializer<Class<?>> CLASS = new SerializerClass();
 
     GroupSerializer<Date> DATE = new SerializerDate();
+    
+    GroupSerializer<java.sql.Date> SQL_DATE = new SerializerSqlDate();
+    
+    GroupSerializer<java.sql.Time> SQL_TIME = new SerializerSqlTime();
+    
+    GroupSerializer<java.sql.Timestamp> SQL_TIMESTAMP = new SerializerSqlTimestamp();
 
     //    //this has to be lazily initialized due to circular dependencies
 //    static final  class __BasicInstance {

@@ -1,6 +1,5 @@
 package org.mapdb.serializer;
 
-import org.mapdb.Serializer;
 
 import java.util.HashMap;
 
@@ -16,50 +15,61 @@ import java.util.*;
  */
 public final class SerializerUtils {
 
-    private static Map<Class, Serializer> SERIALIZER_FOR_CLASS = new HashMap();
-
-    static {
-            SERIALIZER_FOR_CLASS.put(char.class, CHAR);
-            SERIALIZER_FOR_CLASS.put(Character.class, CHAR);
-            SERIALIZER_FOR_CLASS.put(String.class, STRING);
-            SERIALIZER_FOR_CLASS.put(long.class, LONG);
-            SERIALIZER_FOR_CLASS.put(Long.class, LONG);
-            SERIALIZER_FOR_CLASS.put(int.class, INTEGER);
-            SERIALIZER_FOR_CLASS.put(Integer.class, INTEGER);
-            SERIALIZER_FOR_CLASS.put(boolean.class, BOOLEAN);
-            SERIALIZER_FOR_CLASS.put(Boolean.class, BOOLEAN);
-            SERIALIZER_FOR_CLASS.put(byte[].class, BYTE_ARRAY);
-            SERIALIZER_FOR_CLASS.put(char[].class, CHAR_ARRAY);
-            SERIALIZER_FOR_CLASS.put(int[].class, INT_ARRAY);
-            SERIALIZER_FOR_CLASS.put(long[].class, LONG_ARRAY);
-            SERIALIZER_FOR_CLASS.put(double[].class, DOUBLE_ARRAY);
-            SERIALIZER_FOR_CLASS.put(UUID.class, UUID);
-            SERIALIZER_FOR_CLASS.put(byte.class, BYTE);
-            SERIALIZER_FOR_CLASS.put(Byte.class, BYTE);
-            SERIALIZER_FOR_CLASS.put(float.class, FLOAT);
-            SERIALIZER_FOR_CLASS.put(Float.class, FLOAT);
-            SERIALIZER_FOR_CLASS.put(double.class, DOUBLE);
-            SERIALIZER_FOR_CLASS.put(Double.class, DOUBLE);
-            SERIALIZER_FOR_CLASS.put(short.class, SHORT);
-            SERIALIZER_FOR_CLASS.put(Short.class, SHORT);
-            SERIALIZER_FOR_CLASS.put(short[].class, SHORT_ARRAY);
-            SERIALIZER_FOR_CLASS.put(float[].class, FLOAT_ARRAY);
-            SERIALIZER_FOR_CLASS.put(BigDecimal.class, BIG_DECIMAL);
-            SERIALIZER_FOR_CLASS.put(BigInteger.class, BIG_INTEGER);
-            SERIALIZER_FOR_CLASS.put(Class.class, CLASS);
-            SERIALIZER_FOR_CLASS.put(Date.class, DATE);
-
+    private static final Map<Class<?>, Serializer<?>> SERIALIZER_FOR_CLASS = new HashMap<>();
+    
+    static {       
+        put(char.class, CHAR);
+        put(Character.class, CHAR);
+        put(String.class, STRING);
+        put(long.class, LONG);
+        put(Long.class, LONG);
+        put(int.class, INTEGER);
+        put(Integer.class, INTEGER);
+        put(boolean.class, BOOLEAN);
+        put(Boolean.class, BOOLEAN);
+        put(byte[].class, BYTE_ARRAY);
+        put(char[].class, CHAR_ARRAY);
+        put(int[].class, INT_ARRAY);
+        put(long[].class, LONG_ARRAY);
+        put(double[].class, DOUBLE_ARRAY);
+        put(UUID.class, UUID);
+        put(byte.class, BYTE);
+        put(Byte.class, BYTE);
+        put(float.class, FLOAT);
+        put(Float.class, FLOAT);
+        put(double.class, DOUBLE);
+        put(Double.class, DOUBLE);
+        put(short.class, SHORT);
+        put(Short.class, SHORT);
+        put(short[].class, SHORT_ARRAY);
+        put(float[].class, FLOAT_ARRAY);
+        put(BigDecimal.class, BIG_DECIMAL);
+        put(BigInteger.class, BIG_INTEGER);
+        put(Class.class, CLASS);
+        put(Date.class, DATE);
+        put(java.sql.Date.class, SQL_DATE);
+        put(java.sql.Time.class, SQL_TIME);
+        put(java.sql.Timestamp.class, SQL_TIMESTAMP);
     }
+    
+    // Make sure we are type safe!
+    private static <T> void put(Class<? super T> clazz, Serializer<T> serializer) {
+        SERIALIZER_FOR_CLASS.put(clazz, serializer);
+    } 
+    
 
-
-    public static <R> Serializer<R> serializerForClass(Class<R> clazz){
-        return SERIALIZER_FOR_CLASS.get(clazz);
+    public static <R> Serializer<R> serializerForClass(Class<R> clazz) {
+        @SuppressWarnings("unchecked")
+        final Serializer<R> result = (Serializer<R>) SERIALIZER_FOR_CLASS.get(clazz);
+        return result;
     }
 
     public static int compareInt(int x, int y) {
         return (x < y) ? -1 : ((x == y) ? 0 : 1);
     }
 
-
+    private SerializerUtils() {
+        throw new UnsupportedOperationException("Instance of utility class not allowed");
+    }
 
 }
