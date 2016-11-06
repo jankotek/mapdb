@@ -6,7 +6,7 @@ import org.mapdb.DataOutput2;
 import java.io.IOException;
 
 /**
- * Created by jan on 2/29/16.
+ * Serializes group of {@code byte[]} with delta compression.
  */
 public class SerializerByteArrayDelta extends SerializerByteArray {
 

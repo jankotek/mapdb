@@ -5,7 +5,7 @@ import org.mapdb.Serializer;
 import java.util.Comparator;
 
 /**
- * Created by jan on 8/14/16.
+ * Utility methods for tuples
  */
 public final class Tuple {
 
@@ -55,23 +55,23 @@ public final class Tuple {
     }
 
     public static <A,B> Tuple2<A,B> t2(A a, B b) {
-        return new Tuple2<A, B>(a,b);
+        return new Tuple2<>(a, b);
     }
 
     public static <A,B,C> Tuple3<A,B,C> t3(A a, B b, C c) {
-        return new Tuple3<A, B, C>(a, b, c);
+        return new Tuple3<>(a, b, c);
     }
 
     public static <A,B,C,D> Tuple4<A,B,C,D> t4(A a, B b, C c, D d) {
-        return new Tuple4<A, B, C, D>(a,b,c,d);
+        return new Tuple4<>(a, b, c, d);
     }
 
     public static <A,B,C,D,E> Tuple5<A,B,C,D,E> t5(A a, B b, C c, D d, E e) {
-        return new Tuple5<A,B,C,D,E>(a,b,c,d,e);
+        return new Tuple5<>(a, b, c, d, e);
     }
 
     public static <A,B,C,D,E,F> Tuple6<A,B,C,D,E,F> t6(A a, B b, C c, D d, E e, F f) {
-        return new Tuple6<A,B,C,D,E,F>(a, b, c, d, e, f);
+        return new Tuple6<>(a, b, c, d, e, f);
     }
 
 //

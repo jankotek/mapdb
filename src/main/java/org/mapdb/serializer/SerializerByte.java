@@ -2,12 +2,11 @@ package org.mapdb.serializer;
 
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
-import org.mapdb.Serializer;
 
 import java.io.IOException;
 
 /**
- * Created by jan on 2/28/16.
+ * Single byte serializer
  */
 public class SerializerByte extends GroupSerializerObjectArray<Byte> {
     @Override

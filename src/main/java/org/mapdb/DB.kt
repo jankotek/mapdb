@@ -374,7 +374,10 @@ open class DB(
                 Serializer.DATE,
                 Collections.EMPTY_LIST,
                 Collections.EMPTY_SET,
-                Collections.EMPTY_MAP
+                Collections.EMPTY_MAP,
+                Serializer.SQL_DATE,
+                Serializer.SQL_TIME,
+                Serializer.SQL_TIMESTAMP
         )
 
     }

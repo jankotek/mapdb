@@ -8,7 +8,15 @@ import java.io.IOException;
 import java.util.Comparator;
 
 /**
- * Created by jan on 2/29/16.
+ * Extension of {@link Serializer} to serialize group of objects together.
+ * <p/>
+ * This is mostly used in BTreeMap where BTree node stores multiple values in single array.
+ * Some data types can be optimized when stored together. For example multiple {@code java.util.Date}s can be
+ * represented by primitive {@code long[]} with much improved memory usage.
+ * GroupSerializer is than used to access Nth item from {@code long[]} and convert it from/to object.
+ * <p/>
+ * GroupSerializer might also compress serialized data.
+ * For example sorted data can be efficiently compressed with delta compression.
  */
 public interface GroupSerializer<A> extends Serializer<A> {
 

@@ -9,7 +9,7 @@ import java.util.Comparator;
 
 /**
  * Serializer for tuples. It serializes fixed size array, where each array index can use different serializer.
- *
+ * <p/>
  * It takes array of serializes in constructor parameter. All tuples (arrays) must have the same size.
  */
 public class SerializerArrayTuple implements GroupSerializer<Object[]>, DB.DBAware {
