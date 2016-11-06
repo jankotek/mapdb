@@ -15,16 +15,16 @@ public final class DataIO {
     /**
      * Unpack int value from the input stream.
      *
-     * @param is The input stream.
+     * @param in The input stream.
      * @return The long value.
      *
      * @throws java.io.IOException in case of IO error
      */
-    static public int unpackInt(DataInput is) throws IOException {
+    static public int unpackInt(DataInput in) throws IOException {
         int ret = 0;
         byte v;
         do{
-            v = is.readByte();
+            v = in.readByte();
             ret = (ret<<7 ) | (v & 0x7F);
         }while((v&0x80)==0);
 
