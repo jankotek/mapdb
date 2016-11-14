@@ -106,13 +106,42 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         public final long expireLinkNodeRecid;
 
         public final K key;
-        public final V value;
+        private final V value;
+        private final DataInput2 di;
+        private final Serializer<V> valueDeser;
+        private final int pos;
 
         public LinkedNode(final long next, long expireLinkNodeRecid, final K key, final V value ){
             this.key = key;
             this.expireLinkNodeRecid = expireLinkNodeRecid;
             this.value = value;
             this.next = next;
+            this.di = null;
+            this.valueDeser = null;
+            this.pos = 0;
+        }
+
+        public LinkedNode(final long next, long expireLinkNodeRecid, final K key, DataInput2 di, Serializer<V> valueSerilaiser, int size){
+            this.key = key;
+            this.expireLinkNodeRecid = expireLinkNodeRecid;
+            this.value = null;
+            this.di = di;
+            this.pos = di.pos;
+            di.pos = size;
+            this.valueDeser = valueSerilaiser;
+            this.next = next;
+        }
+
+        public V getValue() {
+            if (value == null && di != null) {
+                try {
+                    di.pos = pos;
+                    return valueDeser.deserialize(di, -1);
+                } catch (IOException e) {
+                    throw new RuntimeException("Unexpected error during deserialization", e);
+                }
+            }
+            return value;
         }
     }
 
@@ -126,18 +155,28 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 DataOutput2.packLong(out, value.expireLinkNodeRecid);
             keySerializer.serialize(out,value.key);
             if(hasValues)
-                valueSerializer.serialize(out,value.value);
+                valueSerializer.serialize(out,value.getValue());
         }
 
         @Override
         public LinkedNode<K,V> deserialize(DataInput in, int available) throws IOException {
             assert(available!=0);
-            return new LinkedNode<K, V>(
-                    DataInput2.unpackLong(in),
-                    expireFlag?DataInput2.unpackLong(in):0L,
-                    keySerializer.deserialize(in,-1),
-                    hasValues? valueSerializer.deserialize(in,-1) : (V) BTreeMap.EMPTY
-            );
+            if (hasValues) {
+                int pos = ((DataInput2) in).pos;
+                return new LinkedNode<K, V>(
+                        DataInput2.unpackLong(in),
+                        expireFlag ? DataInput2.unpackLong(in) : 0L,
+                        keySerializer.deserialize(in, -1),
+                        (DataInput2) in, valueSerializer, pos + available
+                );
+            } else {
+                return new LinkedNode<K, V>(
+                        DataInput2.unpackLong(in),
+                        expireFlag ? DataInput2.unpackLong(in) : 0L,
+                        keySerializer.deserialize(in, -1),
+                        (V) BTreeMap.EMPTY
+                );
+            }
         }
 
         @Override
@@ -146,6 +185,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         }
 
     };
+
 
 
     protected static final Serializer<long[][]>DIR_SERIALIZER = new Serializer<long[][]>() {
@@ -404,7 +444,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         if(valueCreator==null || ln!=null){
             if(ln==null)
                 return null;
-            return ln.value;
+            return ln.getValue();
         }
 
         //value creator is set, so create and put new value
@@ -435,7 +475,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         try{
             LinkedNode<K,V> ln = getInner(key, h, segment);
             if(ln==null) return null;
-            return ln.value;
+            return ln.getValue();
         }finally {
             lock.unlock();
         }
@@ -528,7 +568,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 while(ln!=null){
                     if(hasher.equals(ln.key,key)){
                         //found, replace value at this node
-                        V oldVal = ln.value;
+                        V oldVal = ln.getValue();
                         ln = new LinkedNode<K, V>(ln.next, ln.expireLinkNodeRecid, ln.key, value);
                         engine.update(recid, ln, LN_SERIALIZER);
                         if(expireFlag) expireLinkBump(segment,ln.expireLinkNodeRecid,false);
@@ -566,7 +606,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     final long nextRecid = n.next;
                     int pos = (hash(n.key) >>>(7*(level -1) )) & 0x7F;
                     if(nextDir[pos>>>DIV8]==null) nextDir[pos>>>DIV8] = new long[8];
-                    n = new LinkedNode<K, V>(nextDir[pos>>>DIV8][pos&MOD8]>>>1, n.expireLinkNodeRecid, n.key, n.value);
+                    n = new LinkedNode<K, V>(nextDir[pos>>>DIV8][pos&MOD8]>>>1, n.expireLinkNodeRecid, n.key, n.getValue());
                     nextDir[pos>>>DIV8][pos&MOD8] = (nodeRecid<<1) | 1;
                     engine.update(nodeRecid, n, LN_SERIALIZER);
                     nodeRecid = nextRecid;
@@ -668,15 +708,15 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
                             }else{
                                 //referenced from LinkedNode
-                                prevLn = new LinkedNode<K, V>(ln.next, prevLn.expireLinkNodeRecid,prevLn.key, prevLn.value);
+                                prevLn = new LinkedNode<K, V>(ln.next, prevLn.expireLinkNodeRecid,prevLn.key, prevLn.getValue());
                                 engine.update(prevRecid, prevLn, LN_SERIALIZER);
                             }
                             //found, remove this node
                             assert(hash(ln.key)==h);
                             engine.delete(recid, LN_SERIALIZER);
                             if(removeExpire && expireFlag) expireLinkRemove(segment, ln.expireLinkNodeRecid);
-                            notify((K) key, ln.value, null);
-                            return ln.value;
+                            notify((K) key, ln.getValue(), null);
+                            return ln.getValue();
                         }
                         prevRecid = recid;
                         prevLn = ln;
@@ -776,7 +816,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                     while(recid!=0){
                         LinkedNode n = engine.get(recid, LN_SERIALIZER);
                         engine.delete(recid,LN_SERIALIZER);
-                        notify((K)n.key, (V)n.value , null);
+                        notify((K)n.key, (V)n.getValue() , null);
                         recid = n.next;
                     }
                 }
@@ -1135,7 +1175,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         public V next() {
         	if(currentLinkedList == null)
         		throw new NoSuchElementException();
-            V value = (V) currentLinkedList[currentLinkedListPos].value;
+            V value = (V) currentLinkedList[currentLinkedListPos].getValue();
             moveToNext();
             return value;
         }
@@ -1203,7 +1243,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             if (ln==null)
                  return put(key, value);
             else
-                 return ln.value;
+                 return ln.getValue();
 
         }finally {
             segmentLocks[segment].writeLock().unlock();
@@ -1219,7 +1259,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             segmentLocks[segment].writeLock().lock();
 
             LinkedNode otherVal = getInner(key, h, segment);
-            if (otherVal!=null && otherVal.value.equals(value)) {
+            if (otherVal!=null && otherVal.getValue().equals(value)) {
                 removeInternal(key, segment, h, true);
                 return true;
             }else
@@ -1239,7 +1279,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             segmentLocks[segment].writeLock().lock();
 
             LinkedNode<K,V> ln = getInner(key, h,segment);
-            if (ln!=null && ln.value.equals(oldValue)) {
+            if (ln!=null && ln.getValue().equals(oldValue)) {
                  putInner(key, newValue,h,segment);
                  return true;
             } else
