@@ -66,7 +66,7 @@ public class HTreeMap2Test {
                                     (HTreeMap.LinkedNode) engine.get
                                             (r2 >>> 1, serializer);
                             while(node!=null){
-                                m.put(node.key, node.value);
+                                m.put(node.key, node.getValue());
                                 node = (HTreeMap.LinkedNode) engine.get(node.next, serializer);
                             }
                             for(Object k:m.keySet()){
@@ -133,7 +133,7 @@ public class HTreeMap2Test {
         assertEquals(123456, n2.next);
         assertEquals(0L, n2.expireLinkNodeRecid);
         assertEquals(123L,n2.key);
-        assertEquals(456L,n2.value);
+        assertEquals(456L,n2.getValue());
     }
 
     @Test public void test_simple_put(){
@@ -198,7 +198,7 @@ public class HTreeMap2Test {
             assertTrue(recid!=0);
             HTreeMap.LinkedNode  n = (HTreeMap.LinkedNode) engine.get(recid, m.LN_SERIALIZER);
             assertEquals(i, n.key);
-            assertEquals(i, n.value);
+            assertEquals(i, n.getValue());
             recid = n.next;
         }
 
@@ -240,7 +240,7 @@ public class HTreeMap2Test {
 
             assertNotNull(n);
             assertEquals(i, n.key);
-            assertEquals(i, n.value);
+            assertEquals(i, n.getValue());
             recid = n.next;
         }
 
