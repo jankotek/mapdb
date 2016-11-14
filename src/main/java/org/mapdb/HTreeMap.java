@@ -207,6 +207,74 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
     };
 
+    protected static final Serializer<long[][]> DIR_SERIALIZER_POOLED = new Serializer<long[][]>() {
+        @Override
+        public void serialize(DataOutput out, long[][] value) throws IOException {
+            assert(value.length==16);
+
+            //first write mask which indicate subarray nullability
+            int nulls = 0;
+            for(int i = 0;i<16;i++){
+                if(value[i]!=null){
+                    for(long l:value[i]){
+                        if(l!=0){
+                            nulls |= 1<<i;
+                            break;
+                        }
+                    }
+                }
+            }
+            out.writeShort(nulls);
+
+            //write non null subarrays
+            for(int i = 0;i<16;i++){
+                if(value[i]!=null){
+                    assert(value[i].length==8);
+                    for(long l:value[i]){
+                        DataOutput2.packLong(out, l);
+                    }
+                }
+            }
+        }
+
+
+        @Override
+        public long[][] deserialize(DataInput in, int available) throws IOException {
+
+            final long[][] ret = ThreadLocalBufStorage.borrowLong16Buf();
+
+            //there are 16  subArrays, each bite indicates if subArray is null
+            int nulls = in.readUnsignedShort();
+            final long[][] subArrays = ThreadLocalBufStorage.borrowLong8Bufs();
+            for(int i=0;i<16;i++){
+                ret[i] = null;
+                if((nulls & 1)!=0){
+                    long[] subArray = subArrays[i];
+                    subArray[0] = DataInput2.unpackLong(in);
+                    subArray[1] = DataInput2.unpackLong(in);
+                    subArray[2] = DataInput2.unpackLong(in);
+                    subArray[3] = DataInput2.unpackLong(in);
+                    subArray[4] = DataInput2.unpackLong(in);
+                    subArray[5] = DataInput2.unpackLong(in);
+                    subArray[6] = DataInput2.unpackLong(in);
+                    subArray[7] = DataInput2.unpackLong(in);
+                    ret[i] = subArray;
+                }
+                nulls = nulls>>>1;
+            }
+
+            return ret;
+        }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+
+    };
+
+    private final Serializer<long[][]> internalDirSerializer;
+
     /** list of segments, this is immutable*/
     protected final long[] segmentRecids;
 
@@ -241,6 +309,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         if(segmentRecids.length!=16) throw new IllegalArgumentException();
 
         this.engine = engine;
+        internalDirSerializer = hasCachedEngine(engine) ? DIR_SERIALIZER : DIR_SERIALIZER_POOLED;
         this.hashSalt = hashSalt;
         this.segmentRecids = Arrays.copyOf(segmentRecids,16);
         this.keySerializer = keySerializer;
@@ -277,13 +346,23 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             Thread t = new Thread(new ExpireRunnable(this),"HTreeMap expirator");
             t.setDaemon(true);
             t.start();
-            
+
             engine.closeListenerRegister(closeListener);
         }
 
     }
 
-
+    private boolean hasCachedEngine(Engine engine) {
+        EngineWrapper ew = engine instanceof EngineWrapper ? (EngineWrapper) engine : null;
+        while(ew != null) {
+            if (ew instanceof Caches.HashTable) {
+                return true;
+            }
+            Engine e = ew.getWrappedEngine();
+            ew = e instanceof EngineWrapper ? (EngineWrapper) e : null;
+        }
+        return false;
+    }
 
     protected static long[] preallocateSegments(Engine engine){
         //prealocate segmentRecids, so we dont have to lock on those latter
@@ -333,7 +412,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     }
 
     private long recursiveDirCount(final long dirRecid) {
-        long[][] dir = engine.get(dirRecid, DIR_SERIALIZER);
+        long[][] dir = engine.get(dirRecid, DIR_SERIALIZER); // this should always be DIR_SERIALIZER as recursion is used and there's no possibility to pool recursive calls
         long counter = 0;
         for(long[] subdir:dir){
             if(subdir == null) continue;
@@ -369,7 +448,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 segmentLocks[i].readLock().lock();
 
                 long dirRecid = segmentRecids[i];
-                long[][] dir = engine.get(dirRecid, DIR_SERIALIZER);
+                long[][] dir = engine.get(dirRecid, internalDirSerializer);
                 for(long[] d:dir){
                     if(d!=null) return false;
                 }
@@ -385,7 +464,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
 
     @Override
-	public V get(final Object o){
+    public V get(final Object o){
         if(o==null) return null;
         final int h = hash(o);
         final int segment = h >>>28;
@@ -445,7 +524,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     protected LinkedNode<K,V> getInner(Object o, int h, int segment) {
         long recid = segmentRecids[segment];
         for(int level=3;level>=0;level--){
-            long[][] dir = engine.get(recid, DIR_SERIALIZER);
+            long[][] dir = engine.get(recid, internalDirSerializer);
             if(dir == null) return null;
             int slot = (h>>>(level*7 )) & 0x7F;
             assert(slot<128);
@@ -497,7 +576,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         int level = 3;
         while(true){
-            long[][] dir = engine.get(dirRecid, DIR_SERIALIZER);
+            long[][] dir = engine.get(dirRecid, internalDirSerializer);
             final int slot =  (h>>>(7*level )) & 0x7F;
             assert(slot<=127);
 
@@ -573,12 +652,12 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 }
 
                 //insert nextDir and update parent dir
-                long nextDirRecid = engine.put(nextDir, DIR_SERIALIZER);
+                long nextDirRecid = engine.put(nextDir, internalDirSerializer);
                 int parentPos = (h>>>(7*level )) & 0x7F;
                 dir = Arrays.copyOf(dir,16);
                 dir[parentPos>>>DIV8] = Arrays.copyOf(dir[parentPos>>>DIV8],8);
                 dir[parentPos>>>DIV8][parentPos&MOD8] = (nextDirRecid<<1) | 0;
-                engine.update(dirRecid, dir, DIR_SERIALIZER);
+                engine.update(dirRecid, dir, internalDirSerializer);
                 notify(key, null, value);
                 return null;
             }else{
@@ -590,7 +669,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 dir = Arrays.copyOf(dir,16);
                 dir[slot>>>DIV8] = Arrays.copyOf(dir[slot>>>DIV8],8);
                 dir[slot>>>DIV8][slot&MOD8] = (newRecid<<1) | 1;
-                engine.update(dirRecid, dir, DIR_SERIALIZER);
+                engine.update(dirRecid, dir, internalDirSerializer);
                 if(expireFlag) expireLinkAdd(segment,expireNodeRecid, newRecid,h);
                 notify(key, null, value);
                 return null;
@@ -614,83 +693,83 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
 
     protected V removeInternal(Object key, int segment, int h, boolean removeExpire){
-            final  long[] dirRecids = new long[4];
-            int level = 3;
-            dirRecids[level] = segmentRecids[segment];
+        final  long[] dirRecids = new long[4];
+        int level = 3;
+        dirRecids[level] = segmentRecids[segment];
 
-            assert(segment==h>>>28);
+        assert(segment==h>>>28);
 
-            while(true){
-                long[][] dir = engine.get(dirRecids[level], DIR_SERIALIZER);
-                final int slot =  (h>>>(7*level )) & 0x7F;
-                assert(slot<=127);
+        while(true){
+            long[][] dir = engine.get(dirRecids[level], internalDirSerializer);
+            final int slot =  (h>>>(7*level )) & 0x7F;
+            assert(slot<=127);
 
-                if(dir == null ){
-                    //create new dir
-                    dir = new long[16][];
-                }
+            if(dir == null ){
+                //create new dir
+                dir = new long[16][];
+            }
 
-                if(dir[slot>>>DIV8] == null){
-                    dir = Arrays.copyOf(dir,16);
-                    dir[slot>>>DIV8] = new long[8];
-                }
+            if(dir[slot>>>DIV8] == null){
+                dir = Arrays.copyOf(dir,16);
+                dir[slot>>>DIV8] = new long[8];
+            }
 
 //                int counter = 0;
-                long recid = dir[slot>>>DIV8][slot&MOD8];
+            long recid = dir[slot>>>DIV8][slot&MOD8];
 
-                if(recid!=0){
-                    if((recid&1) == 0){
-                        level--;
-                        dirRecids[level] = recid>>>1;
-                        continue;
-                    }
-                    recid = recid>>>1;
+            if(recid!=0){
+                if((recid&1) == 0){
+                    level--;
+                    dirRecids[level] = recid>>>1;
+                    continue;
+                }
+                recid = recid>>>1;
 
-                    //traverse linked list, try to remove node
-                    LinkedNode<K,V> ln = engine.get(recid, LN_SERIALIZER);
-                    LinkedNode<K,V> prevLn = null;
-                    long prevRecid = 0;
-                    while(ln!=null){
-                        if(hasher.equals(ln.key, (K) key)){
-                            //remove from linkedList
-                            if(prevLn == null ){
-                                //referenced directly from dir
-                                if(ln.next==0){
-                                    recursiveDirDelete(h, level, dirRecids, dir, slot);
+                //traverse linked list, try to remove node
+                LinkedNode<K,V> ln = engine.get(recid, LN_SERIALIZER);
+                LinkedNode<K,V> prevLn = null;
+                long prevRecid = 0;
+                while(ln!=null){
+                    if(hasher.equals(ln.key, (K) key)){
+                        //remove from linkedList
+                        if(prevLn == null ){
+                            //referenced directly from dir
+                            if(ln.next==0){
+                                recursiveDirDelete(h, level, dirRecids, dir, slot);
 
-
-                                }else{
-                                    dir=Arrays.copyOf(dir,16);
-                                    dir[slot>>>DIV8] = Arrays.copyOf(dir[slot>>>DIV8],8);
-                                    dir[slot>>>DIV8][slot&MOD8] = (ln.next<<1)|1;
-                                    engine.update(dirRecids[level], dir, DIR_SERIALIZER);
-                                }
 
                             }else{
-                                //referenced from LinkedNode
-                                prevLn = new LinkedNode<K, V>(ln.next, prevLn.expireLinkNodeRecid,prevLn.key, prevLn.value);
-                                engine.update(prevRecid, prevLn, LN_SERIALIZER);
+                                dir=Arrays.copyOf(dir,16);
+                                dir[slot>>>DIV8] = Arrays.copyOf(dir[slot>>>DIV8],8);
+                                dir[slot>>>DIV8][slot&MOD8] = (ln.next<<1)|1;
+                                engine.update(dirRecids[level], dir, internalDirSerializer);
                             }
-                            //found, remove this node
-                            assert(hash(ln.key)==h);
-                            engine.delete(recid, LN_SERIALIZER);
-                            if(removeExpire && expireFlag) expireLinkRemove(segment, ln.expireLinkNodeRecid);
-                            notify((K) key, ln.value, null);
-                            return ln.value;
-                        }
-                        prevRecid = recid;
-                        prevLn = ln;
-                        recid = ln.next;
-                        ln = recid==0? null : engine.get(recid, LN_SERIALIZER);
-//                        counter++;
-                    }
-                    //key was not found at linked list, so it does not exist
-                    return null;
-                }
-                //recid is 0, so entry does not exist
-                return null;
 
+                        }else{
+                            //referenced from LinkedNode
+                            prevLn = new LinkedNode<K, V>(ln.next, prevLn.expireLinkNodeRecid,prevLn.key, prevLn.value);
+                            engine.update(prevRecid, prevLn, LN_SERIALIZER);
+                        }
+                        //found, remove this node
+                        assert(hash(ln.key)==h);
+                        engine.delete(recid, LN_SERIALIZER);
+                        if(removeExpire && expireFlag) expireLinkRemove(segment, ln.expireLinkNodeRecid);
+                        notify((K) key, ln.value, null);
+                        return ln.value;
+                    }
+                    prevRecid = recid;
+                    prevLn = ln;
+                    recid = ln.next;
+                    ln = recid==0? null : engine.get(recid, LN_SERIALIZER);
+//                        counter++;
+                }
+                //key was not found at linked list, so it does not exist
+                return null;
             }
+            //recid is 0, so entry does not exist
+            return null;
+
+        }
     }
 
 
@@ -722,19 +801,19 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
             //delete from parent dir
             if(level==3){
                 //parent is segment, recid of this dir can not be modified,  so just update to null
-                engine.update(dirRecids[level], new long[16][], DIR_SERIALIZER);
+                engine.update(dirRecids[level], new long[16][], internalDirSerializer);
             }else{
-                engine.delete(dirRecids[level], DIR_SERIALIZER);
+                engine.delete(dirRecids[level], internalDirSerializer);
 
-                final long[][] parentDir = engine.get(dirRecids[level + 1], DIR_SERIALIZER);
+                final long[][] parentDir = engine.get(dirRecids[level + 1], internalDirSerializer);
                 final int parentPos = (h >>> (7 * (level + 1))) & 0x7F;
                 recursiveDirDelete(h,level+1,dirRecids, parentDir, parentPos);
                 //parentDir[parentPos>>>DIV8][parentPos&MOD8] = 0;
-                //engine.update(dirRecids[level + 1],parentDir,DIR_SERIALIZER);
+                //engine.update(dirRecids[level + 1],parentDir,internalDirSerializer);
 
             }
         }else{
-            engine.update(dirRecids[level], dir, DIR_SERIALIZER);
+            engine.update(dirRecids[level], dir, internalDirSerializer);
         }
     }
 
@@ -758,7 +837,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
     }
 
     private void recursiveDirClear(final long dirRecid) {
-        final long[][] dir = engine.get(dirRecid, DIR_SERIALIZER);
+        final long[][] dir = engine.get(dirRecid, DIR_SERIALIZER); // this should always be DIR_SERIALIZER as recursion is used and there's no possibility to pool recursive calls
         if(dir == null) return;
         for(long[] subdir:dir){
             if(subdir==null) continue;
@@ -1018,7 +1097,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
                 int level = 3;
                 //dive into tree, finding last hash position
                 while(true){
-                    long[][] dir = engine.get(dirRecid, DIR_SERIALIZER);
+                    long[][] dir = engine.get(dirRecid, internalDirSerializer);
                     int pos = (lastHash>>>(7 * level)) & 0x7F;
 
                     //check if we need to expand deeper
@@ -1076,7 +1155,7 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
         }
 
         private LinkedNode[] findNextLinkedNodeRecur(long dirRecid, int newHash, int level){
-            long[][] dir = engine.get(dirRecid, DIR_SERIALIZER);
+            long[][] dir = engine.get(dirRecid, internalDirSerializer);
             if(dir == null) return null;
             int pos = (newHash>>>(level*7))  & 0x7F;
             boolean first = true;
@@ -1121,8 +1200,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         @Override
         public K next() {
-        	if(currentLinkedList == null)
-        		throw new NoSuchElementException();
+            if(currentLinkedList == null)
+                throw new NoSuchElementException();
             K key = (K) currentLinkedList[currentLinkedListPos].key;
             moveToNext();
             return key;
@@ -1133,8 +1212,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         @Override
         public V next() {
-        	if(currentLinkedList == null)
-        		throw new NoSuchElementException();
+            if(currentLinkedList == null)
+                throw new NoSuchElementException();
             V value = (V) currentLinkedList[currentLinkedListPos].value;
             moveToNext();
             return value;
@@ -1145,8 +1224,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
         @Override
         public Entry<K, V> next() {
-        	if(currentLinkedList == null)
-        		throw new NoSuchElementException();
+            if(currentLinkedList == null)
+                throw new NoSuchElementException();
             K key = (K) currentLinkedList[currentLinkedListPos].key;
             moveToNext();
             return new Entry2(key);
@@ -1201,9 +1280,9 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
             LinkedNode<K,V> ln = HTreeMap.this.getInner(key,h,segment);
             if (ln==null)
-                 return put(key, value);
+                return put(key, value);
             else
-                 return ln.value;
+                return ln.value;
 
         }finally {
             segmentLocks[segment].writeLock().unlock();
@@ -1240,8 +1319,8 @@ public class HTreeMap<K,V>   extends AbstractMap<K,V> implements ConcurrentMap<K
 
             LinkedNode<K,V> ln = getInner(key, h,segment);
             if (ln!=null && ln.value.equals(oldValue)) {
-                 putInner(key, newValue,h,segment);
-                 return true;
+                putInner(key, newValue,h,segment);
+                return true;
             } else
                 return false;
 
