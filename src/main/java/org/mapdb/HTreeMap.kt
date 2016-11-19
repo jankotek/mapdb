@@ -1335,6 +1335,11 @@ class HTreeMap<K,V>(
     }
 
 
+    /**
+     * Closes underlying store and `DB`. It will release all related resources (file handles, background threads...)
+     *
+     * This will close not just this map, but also other collections in the same DB.
+     */
     override fun close() {
         Utils.lockWrite(locks){
             closeable?.close()
