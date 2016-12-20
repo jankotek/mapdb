@@ -370,7 +370,7 @@ public abstract class JSR166Test extends org.junit.Assert{
 //            PriorityQueueTest.suite(),
 //            ReentrantLockTest.suite(),
 //            ReentrantReadWriteLockTest.suite(),
-//            ScheduledExecutorTest.suite(),
+//            ScheduledExecutorServiceWrapperTest.suite(),
 //            ScheduledExecutorSubclassTest.suite(),
 //            SemaphoreTest.suite(),
 //            SynchronousQueueTest.suite(),

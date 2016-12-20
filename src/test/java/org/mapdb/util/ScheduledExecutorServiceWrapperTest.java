@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-public class ScheduledExecutorTest extends JSR166TestCase {
+public class ScheduledExecutorServiceWrapperTest extends JSR166TestCase {
 
     
     

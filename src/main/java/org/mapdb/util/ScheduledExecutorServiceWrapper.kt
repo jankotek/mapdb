@@ -1,6 +1,6 @@
 package org.mapdb.util
 
-import java.lang.ref.WeakReference
+import com.google.common.collect.MapMaker
 import java.util.*
 import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicBoolean
@@ -14,39 +14,39 @@ class ScheduledExecutorServiceWrapper
 
     protected val isShutdown = AtomicBoolean(false)
 
-    protected val tasks = LinkedList<WeakReference<Future<*>>>()
+    protected val tasks:MutableMap<Future<*>, Any> = MapMaker().weakValues().makeMap()
 
     @Synchronized override fun schedule(command: Runnable, delay: Long, unit: TimeUnit): ScheduledFuture<*> {
         check()
         val ret = s.schedule(command, delay, unit)
-        tasks.add(WeakReference(ret));
+        tasks.put(ret, command);
         return ret;
     }
 
     @Synchronized override fun <V : Any?> schedule(callable: Callable<V>, delay: Long, unit: TimeUnit): ScheduledFuture<V> {
         check()
         val ret = s.schedule(callable, delay, unit)
-        tasks.add(WeakReference(ret));
+        tasks.put(ret,callable)
         return ret;    }
 
     @Synchronized override fun <T : Any?> submit(task: Callable<T>): Future<T> {
         check()
         val ret = s.submit(task)
-        tasks.add(WeakReference(ret));
+        tasks.put(ret, task)
         return ret;
     }
 
     @Synchronized override fun <T : Any?> submit(task: Runnable, result: T): Future<T> {
         check()
         val ret = s.submit(task, result)
-        tasks.add(WeakReference(ret));
+        tasks.put(ret, task)
         return ret;
     }
 
     @Synchronized override fun submit(task: Runnable): Future<*> {
         check()
         val ret = s.submit(task)
-        tasks.add(WeakReference(ret));
+        tasks.put(ret,task)
         return ret;
     }
 
@@ -54,21 +54,21 @@ class ScheduledExecutorServiceWrapper
     @Synchronized override fun execute(command: Runnable) {
         check()
         val ret = submit(command)
-        tasks.add(WeakReference(ret));
+        tasks.put(ret,command);
     }
 
 
     @Synchronized override fun scheduleAtFixedRate(command: Runnable, initialDelay: Long, period: Long, unit: TimeUnit): ScheduledFuture<*> {
         check()
         val ret = s.scheduleAtFixedRate(command, initialDelay, period, unit)
-        tasks.add(WeakReference(ret));
+        tasks.put(ret, command)
         return ret;
     }
 
     @Synchronized override fun scheduleWithFixedDelay(command: Runnable, initialDelay: Long, delay: Long, unit: TimeUnit): ScheduledFuture<*> {
         check()
         val ret = s.scheduleWithFixedDelay(command, initialDelay, delay, unit)
-        tasks.add(WeakReference(ret));
+        tasks.put(ret,command)
         return ret;
     }
 
@@ -159,18 +159,18 @@ class ScheduledExecutorServiceWrapper
 
 
     @Synchronized protected fun clearFinishedTasks(){
-        val iter = tasks.iterator()
+        val iter = tasks.keys.iterator()
         while(iter.hasNext()){
-            val v = iter.next().get()
+            val v = iter.next()
             if(v == null || v.isDone || v.isCancelled)
                 iter.remove()
         }
     }
 
     @Synchronized protected fun cancelScheduledTasks() {
-        val iter = tasks.iterator()
+        val iter = tasks.keys.iterator()
         while(iter.hasNext()){
-            val v = iter.next().get()
+            val v = iter.next()
             if(v==null) {
                 iter.remove()
                 continue
@@ -188,9 +188,9 @@ class ScheduledExecutorServiceWrapper
         if(!isShutdown())
             return false
         //check if there are any tasks running
-        val iter = tasks.iterator()
+        val iter = tasks.keys.iterator()
         while(iter.hasNext()){
-            val v = iter.next().get()
+            val v = iter.next()
             if(v!=null && !v.isDone && !v.isCancelled){
                 return false
             }
