@@ -1,6 +1,7 @@
 package org.mapdb.volume
 
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mapdb.*
 import java.io.ByteArrayInputStream
@@ -215,6 +216,9 @@ class VolumeSingleTest(val fab: Function1<String, Volume>) {
     @Test fun length(){
         val f= TT.tempFile()
         val vol = fab.invoke(f.path)
+
+        if(vol.javaClass.simpleName.contains("Single"))
+            return
 
         val s = 12L * 1024 * 1024
         vol.ensureAvailable(s-100)

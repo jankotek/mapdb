@@ -483,7 +483,7 @@ public class UnsafeVolume extends Volume {
                 //$DELAY$
                 v = UNSAFE.getByte(pos++);
                 ret = (ret<<7 ) | (v & 0x7F);
-            }while(v<0);
+            }while((v&0x80)==0);
             pos2 = pos;
             return ret;
         }
@@ -498,12 +498,10 @@ public class UnsafeVolume extends Volume {
                 //$DELAY$
                 v = UNSAFE.getByte(pos++);
                 ret = (ret<<7 ) | (v & 0x7F);
-            }while(v<0);
+            }while((v&0x80)==0);
             pos2 = pos;
             return ret;
-
         }
-
 
         @Override
         public long[] unpackLongArrayDeltaCompression(final int size) throws IOException {
@@ -518,7 +516,7 @@ public class UnsafeVolume extends Volume {
                     //$DELAY$
                     v = UNSAFE.getByte(pos2_++);
                     r = (r << 7) | (v & 0x7F);
-                } while (v < 0);
+                } while ((v&0x80)==0);
                 prev+=r;
                 ret[i]=prev;
             }
@@ -538,7 +536,7 @@ public class UnsafeVolume extends Volume {
                     //$DELAY$
                     v = UNSAFE.getByte(pos2_++);
                     ret = (ret << 7) | (v & 0x7F);
-                } while (v < 0);
+                } while ((v&0x80)==0);
                 array[start] = ret;
             }
             pos2 = pos2_;
@@ -556,7 +554,7 @@ public class UnsafeVolume extends Volume {
                     //$DELAY$
                     v = UNSAFE.getByte(pos2_++);
                     ret = (ret << 7) | (v & 0x7F);
-                } while (v < 0);
+                } while ((v&0x80)==0);
                 array[start]=ret;
             }
             pos2 = pos2_;
