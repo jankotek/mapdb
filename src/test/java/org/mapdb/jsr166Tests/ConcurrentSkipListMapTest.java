@@ -6,19 +6,8 @@ package org.mapdb.jsr166Tests;/*
 
 import org.junit.Ignore;
 import org.junit.Test;
-import org.mapdb.SortedTableMap;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.NavigableSet;
-import java.util.NoSuchElementException;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
 
 
@@ -994,7 +983,7 @@ public abstract class ConcurrentSkipListMapTest extends JSR166Test {
      * Submaps of submaps subdivide correctly
      */
     @Test public void testRecursiveSubMaps() throws Exception {
-        int mapSize = expensiveTests ? 10000 : 100;
+        int mapSize = expensiveTests ? 6000 : 100;
         bs = new BitSet(mapSize);
         NavigableMap<Integer, Integer> map = populatedIntMap(mapSize);
 

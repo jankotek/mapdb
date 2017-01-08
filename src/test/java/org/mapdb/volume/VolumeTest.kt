@@ -13,7 +13,7 @@ class VolumeTest {
     companion object {
 
         internal val scale = org.mapdb.TT.testScale()
-        internal val sub = Math.pow(10.0, (2.0 + 4* scale)).toLong()
+        internal val sub = Math.pow(10.0, (2.0 + 3* scale)).toLong()
 
         internal val BYTE_ARRAY_FAB:Function1<String, Volume> = { file -> ByteArrayVol(CC.PAGE_SHIFT, 0L) }
 

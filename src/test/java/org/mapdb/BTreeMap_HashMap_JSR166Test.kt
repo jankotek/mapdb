@@ -28,20 +28,4 @@ class BTreeMap_HashMap_JSR166Test(
     }
 
 
-    override fun testGenericComparable() {
-        //ignored test, must be comparable
-    }
-
-    override fun testGenericComparable2() {
-        //ignored test, must be comparable
-    }
-
-    override fun testMixedComparable() {
-        //ignored test, must be comparable
-    }
-
-    override fun testComparableFamily() {
-        //ignored test, must be comparable
-    }
-
 }

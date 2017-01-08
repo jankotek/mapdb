@@ -6,19 +6,11 @@ package org.mapdb.jsr166Tests;/*
  * Pat Fisher, Mike Judd.
  */
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
-
 import org.junit.Test;
+
+import java.io.Serializable;
+import java.util.*;
+import java.util.concurrent.ConcurrentMap;
 
 public abstract class ConcurrentHashMapTest extends JSR166Test {
 
@@ -45,21 +37,6 @@ public abstract class ConcurrentHashMapTest extends JSR166Test {
     static int compare(int x, int y) {
         return (x < y) ? -1 : (x > y) ? 1 : 0;
     }
-
-    // classes for testing Comparable fallbacks
-    static class BI implements Comparable<BI>,Serializable {
-        private final int value;
-        BI(int value) { this.value = value; }
-        public int compareTo(BI other) {
-            return compare(value, other.value);
-        }
-        public boolean equals(Object x) {
-            return (x instanceof BI) && ((BI)x).value == value;
-        }
-        public int hashCode() { return 42; }
-    }
-    static class CI extends BI { CI(int value) { super(value); } }
-    static class DI extends BI { DI(int value) { super(value); } }
 
     static class BS implements Comparable<BS>, Serializable {
         private final String value;
@@ -98,105 +75,6 @@ public abstract class ConcurrentHashMapTest extends JSR166Test {
         public int hashCode() { return this.value.hashCode() & 1; }
         public boolean equals(final Object obj) {
             return (obj instanceof CollidingObject) && ((CollidingObject)obj).value.equals(value);
-        }
-    }
-
-    static class ComparableCollidingObject extends CollidingObject implements Comparable<ComparableCollidingObject>,Serializable {
-        ComparableCollidingObject(final String value) { super(value); }
-        public int compareTo(final ComparableCollidingObject o) {
-            return value.compareTo(o.value);
-        }
-    }
-
-    /**
-     * Inserted elements that are subclasses of the same Comparable
-     * class are found.
-     */
-    @Test public void testComparableFamily() {
-        int size = 500;         // makes measured test run time -> 60ms
-        ConcurrentMap<BI, Boolean> m =
-                makeGenericMap();
-        for (int i = 0; i < size; i++) {
-            assertTrue(m.put(new CI(i), true) == null);
-        }
-        for (int i = 0; i < size; i++) {
-            assertTrue(m.containsKey(new CI(i)));
-            assertTrue(m.containsKey(new DI(i)));
-        }
-    }
-
-    /**
-     * Elements of classes with erased generic type parameters based
-     * on Comparable can be inserted and found.
-     */
-    @Test public void testGenericComparable() {
-        int size = 120;         // makes measured test run time -> 60ms
-        ConcurrentMap<Object, Boolean> m =
-                makeGenericMap();
-        for (int i = 0; i < size; i++) {
-            BI bi = new BI(i);
-            BS bs = new BS(String.valueOf(i));
-            LexicographicList<BI> bis = new LexicographicList<BI>(bi);
-            LexicographicList<BS> bss = new LexicographicList<BS>(bs);
-            assertTrue(m.putIfAbsent(bis, true) == null);
-            assertTrue(m.containsKey(bis));
-            if (m.putIfAbsent(bss, true) == null)
-                assertTrue(m.containsKey(bss));
-            assertTrue(m.containsKey(bis));
-        }
-        for (int i = 0; i < size; i++) {
-            assertTrue(m.containsKey(Collections.singletonList(new BI(i))));
-        }
-    }
-
-    /**
-     * Elements of non-comparable classes equal to those of classes
-     * with erased generic type parameters based on Comparable can be
-     * inserted and found.
-     */
-    @Test public void testGenericComparable2() {
-        int size = 500;         // makes measured test run time -> 60ms
-        ConcurrentMap<Object, Boolean> m =
-                makeGenericMap();
-        for (int i = 0; i < size; i++) {
-            m.put(Collections.singletonList(new BI(i)), true);
-        }
-
-        for (int i = 0; i < size; i++) {
-            LexicographicList<BI> bis = new LexicographicList<BI>(new BI(i));
-            assertTrue(m.containsKey(bis));
-        }
-    }
-
-    /**
-     * Mixtures of instances of comparable and non-comparable classes
-     * can be inserted and found.
-     */
-    @Test public void testMixedComparable() {
-        int size = 1200;        // makes measured test run time -> 35ms
-        ConcurrentMap<Object, Object> map =
-                makeGenericMap();
-        Random rng = new Random();
-        for (int i = 0; i < size; i++) {
-            Object x;
-            switch (rng.nextInt(4)) {
-            case 0:
-                x = new CollidingObject(Integer.toString(i));
-                break;
-            default:
-                x = new ComparableCollidingObject(Integer.toString(i));
-            }
-            assertNull(map.put(x, x));
-        }
-        int count = 0;
-        for (Object k : map.keySet()) {
-            assertEquals(map.get(k), k);
-            ++count;
-        }
-        assertEquals(count, size);
-        assertEquals(map.size(), size);
-        for (Object k : map.keySet()) {
-            assertEquals(map.put(k, k), k);
         }
     }
 
