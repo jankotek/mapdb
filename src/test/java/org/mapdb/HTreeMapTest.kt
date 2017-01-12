@@ -1,17 +1,15 @@
 package org.mapdb
 
 import org.fest.reflect.core.Reflection
-import org.junit.Test
 import org.junit.Assert.*
+import org.junit.Test
 import org.mapdb.volume.SingleByteArrayVol
 import java.io.Closeable
 import java.io.Serializable
 import java.util.*
-import java.util.concurrent.ExecutorService
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.locks.ReadWriteLock
-import java.util.concurrent.locks.ReentrantReadWriteLock
 
 class HTreeMapTest{
 
@@ -415,21 +413,21 @@ class HTreeMapTest{
         assertEquals(0, collision)
         assertEquals(1000, size)
     }
-
-    @Test fun calculateCollisions2(){
-        val ser2 = object: Serializer<Long> by Serializer.LONG{
-            override fun hashCode(a: Long, seed: Int): Int {
-                return 0
-            }
-        }
-
-        val map = DBMaker.heapDB().make().hashMap("name", ser2, Serializer.LONG).createOrOpen()
-        for(i in 0L until 1000)
-            map[i] = i
-        val (collision, size) = map.calculateCollisionSize()
-        assertEquals(999, collision)
-        assertEquals(1000, size)
-    }
-
+//
+//    @Test fun calculateCollisions2(){
+//        val ser2 = object: Serializer<Long> by Serializer.LONG{
+//            override fun hashCode(a: Long, seed: Int): Int {
+//                return 0
+//            }
+//        }
+//
+//        val map = DBMaker.heapDB().make().hashMap("name", ser2, Serializer.LONG).createOrOpen()
+//        for(i in 0L until 1000)
+//            map[i] = i
+//        val (collision, size) = map.calculateCollisionSize()
+//        assertEquals(999, collision)
+//        assertEquals(1000, size)
+//    }
+//
 
 }
