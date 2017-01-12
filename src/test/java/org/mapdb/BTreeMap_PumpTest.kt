@@ -3,10 +3,8 @@ package org.mapdb
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
-import org.mapdb.serializer.GroupSerializer
 import java.io.IOException
 import java.util.*
-import kotlin.test.fail
 
 
 @RunWith(Parameterized::class)
@@ -45,31 +43,6 @@ class BTreeMap_PumpTest(
                     }
                     else -> throw AssertionError()
                 }
-                val keySer = if(otherComparator){
-                    object:GroupSerializer<Int> by Serializer.INTEGER{
-                        override fun valueArrayBinaryGet(input: DataInput2?, keysLen: Int, pos: Int): Int {
-                            fail()
-                        }
-
-                        override fun valueArrayBinarySearch(key: Int?, input: DataInput2?, keysLen: Int, comparator: Comparator<*>?): Int {
-                            fail()
-                        }
-
-                        override fun compare(first: Int?, second: Int?): Int {
-                            fail()
-                        }
-
-                        override fun valueArraySearch(keys: Any?, key: Int?): Int {
-                            fail()
-                        }
-
-                        override fun valueArraySearch(keys: Any?, key: Int?, comparator: Comparator<*>?): Int {
-                            fail()
-                        }
-                    }
-                }else Serializer.INTEGER
-
-                //TODO custom comparator
 
                 val m =
                         if(generic) db.treeMap("aa")
