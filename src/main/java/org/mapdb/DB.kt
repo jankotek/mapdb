@@ -1272,7 +1272,8 @@ open class DB(
                     valueSerializer = _valueSerializer,
                     //TODO add custom comparator, once its enabled
                     dirNodeSize = _maxNodeSize *3/4,
-                    leafNodeSize = _maxNodeSize *3/4
+                    leafNodeSize = _maxNodeSize *3/4,
+                    valueInline = _valueInline
             )
 
             return object: TreeMapSink<K,V>(){

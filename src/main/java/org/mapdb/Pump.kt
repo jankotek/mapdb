@@ -37,7 +37,8 @@ object Pump{
             comparator:Comparator<K> = keySerializer,
             leafNodeSize:Int = CC.BTREEMAP_MAX_NODE_SIZE*3/4,
             dirNodeSize:Int = CC.BTREEMAP_MAX_NODE_SIZE*3/4,
-            hasValues:Boolean=true
+            hasValues:Boolean=true,
+            valueInline:Boolean = true
     ): Sink<Pair<K,V>,Unit>{
 
         var prevKey:K? = null
@@ -58,7 +59,20 @@ object Pump{
             var leftEdgeLeaf = LEFT
             var nextLeafLink = 0L
 
-            val nodeSer = NodeSerializer(keySerializer, comparator, valueSerializer)
+            val nodeSer = NodeSerializer(keySerializer, comparator,
+                    if(valueInline)valueSerializer else Serializer.RECID)
+
+            fun nodeValues():Any {
+                return if(!hasValues) keys.size
+                    else if(valueInline){
+                        //values stored in node
+                        valueSerializer.valueArrayFromArray(values!!.toArray())
+                    } else {
+                        //each value in separate record
+                        values!!.map{store.put(it, valueSerializer)}.toLongArray()
+                    }
+            }
+
 
             override fun put(e: Pair<K, V>) {
                 if(prevKey!=null && comparator.compare(prevKey, e.first)>=0){
@@ -81,7 +95,8 @@ object Pump{
                         leftEdgeLeaf + LAST_KEY_DOUBLE,
                         link,
                         keySerializer.valueArrayFromArray(keys.toArray()),
-                        if(hasValues)valueSerializer.valueArrayFromArray(values!!.toArray()) else null
+                        nodeValues()
+
                 )
                 if(nextLeafLink==0L){
                     nextLeafLink = store.put(node, nodeSer)
@@ -156,8 +171,7 @@ object Pump{
                     leftEdgeLeaf + RIGHT,
                     0L,
                     keySerializer.valueArrayFromArray(keys.toArray()),
-                    if(hasValues)valueSerializer.valueArrayFromArray(values!!.toArray())
-                    else keys.size
+                    nodeValues()
                 )
                 if(nextLeafLink==0L){
                     nextLeafLink = store.put(endLeaf, nodeSer)
