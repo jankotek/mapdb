@@ -1,9 +1,9 @@
 package org.mapdb
 
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
-import java.util.*
 import org.mapdb.BTreeMapJava.*
 import org.mapdb.serializer.GroupSerializer
+import java.util.*
 
 /**
  * Data streaming
@@ -36,13 +36,10 @@ object Pump{
             valueSerializer:GroupSerializer<V>,
             comparator:Comparator<K> = keySerializer,
             leafNodeSize:Int = CC.BTREEMAP_MAX_NODE_SIZE*3/4,
-<<<<<<< HEAD
-            dirNodeSize:Int = CC.BTREEMAP_MAX_NODE_SIZE*3/4
-=======
+
             dirNodeSize:Int = CC.BTREEMAP_MAX_NODE_SIZE*3/4,
             hasValues:Boolean=true,
             valueInline:Boolean = true
->>>>>>> 05f771f... Fix data corruption in Data Pump, fix #794
     ): Sink<Pair<K,V>,Unit>{
 
         var prevKey:K? = null
@@ -99,12 +96,7 @@ object Pump{
                         leftEdgeLeaf + LAST_KEY_DOUBLE,
                         link,
                         keySerializer.valueArrayFromArray(keys.toArray()),
-<<<<<<< HEAD
-                        valueSerializer.valueArrayFromArray(values.toArray())
-=======
                         nodeValues()
-
->>>>>>> 05f771f... Fix data corruption in Data Pump, fix #794
                 )
                 if(nextLeafLink==0L){
                     nextLeafLink = store.put(node, nodeSer)
@@ -179,11 +171,7 @@ object Pump{
                     leftEdgeLeaf + RIGHT,
                     0L,
                     keySerializer.valueArrayFromArray(keys.toArray()),
-<<<<<<< HEAD
-                    valueSerializer.valueArrayFromArray(values.toArray())
-=======
                     nodeValues()
->>>>>>> 05f771f... Fix data corruption in Data Pump, fix #794
                 )
                 if(nextLeafLink==0L){
                     nextLeafLink = store.put(endLeaf, nodeSer)
