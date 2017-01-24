@@ -487,23 +487,28 @@ public abstract class Volume implements Closeable{
         }
         while(true) {
             try {
-                return channel.lock();
+                FileLock lock = channel.tryLock();
+                if(lock != null)
+                    return lock;
             } catch (OverlappingFileLockException e) {
-                if (fileLockWait > 0) {
-                    // wait until file becomes unlocked
-                    try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException e1) {
-                        throw new DBException.Interrupted(e1);
-                    }
-                    fileLockWait -= 100;
-                    continue; //timeout has not expired yet, try again
+                if (fileLockWait <= 0) {
+                    throw new DBException.FileLocked(file.toPath(), e);
                 }
-
-                throw new DBException.FileLocked(file.toPath(), e);
             } catch (IOException e) {
                 throw new DBException.VolumeIOError(e);
             }
+
+            if (fileLockWait <= 0) {
+                throw new DBException.FileLocked(file.toPath(), null);
+            }
+
+            // wait until file becomes unlocked
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e1) {
+                throw new DBException.Interrupted(e1);
+            }
+            fileLockWait -= 100;
         }
     }
 }
