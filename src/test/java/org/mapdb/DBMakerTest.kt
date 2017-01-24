@@ -1,15 +1,20 @@
 package org.mapdb
 
 import org.junit.Assert.*
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.ExpectedException
+import org.mapdb.StoreAccess.volume
+import org.mapdb.VolumeAccess.sliceShift
+import org.mapdb.volume.ByteArrayVol
 import org.mapdb.volume.FileChannelVol
 import org.mapdb.volume.MappedFileVol
 import org.mapdb.volume.RandomAccessFileVol
-import org.mapdb.StoreAccess.*
-import org.mapdb.VolumeAccess.*
-import org.mapdb.volume.ByteArrayVol
 
 class DBMakerTest{
+
+    @Rule @JvmField
+    val expectedException = ExpectedException.none()!!
 
     @Test fun sharded_htreemap_close(){
         val executor = TT.executor()
@@ -137,6 +142,48 @@ class DBMakerTest{
         f.delete()
     }
 
+    @Test(timeout=10000)
+    fun file_lock_wait_time_out_same_jvm() {
+        val f = TT.tempFile()
+
+        val db1 = DBMaker.fileDB(f)
+                .make()
+
+        try {
+            expectedException.expect(DBException.FileLocked::class.java)
+            DBMaker.fileDB(f)
+                    .fileLockWait(2000)
+                    .make()
+        } finally {
+            db1.close()
+            f.delete()
+        }
+    }
+
+    @Test(timeout=30000)
+    fun file_lock_wait_time_out_different_jvm() {
+        val f = TT.tempFile()
+        val process = TT.forkJvm(ForkedLockTestMain::class.java, f.absolutePath)
+
+        // Wait for the forked process to write to STDOUT, which happens after it
+        // has successfully opened and locked the database.
+        process.inputStream.read()
+
+        try {
+            expectedException.expect(DBException.FileLocked::class.java)
+            DBMaker.fileDB(f)
+                    .fileLockWait(2000)
+                    .make()
+        } finally {
+            if(!process.isAlive) {
+                fail(process.errorStream.reader().readText())
+            } else {
+                process.destroyForcibly()
+                f.delete()
+            }
+        }
+    }
+
     @Test fun file_lock_disable_RAF(){
         val f = TT.tempFile()
         val db1 = DBMaker.fileDB(f).make()
@@ -193,5 +240,21 @@ class DBMakerTest{
         val vol = ByteArrayVol()
         val db = DBMaker.volumeDB(vol, false).make()
         assertTrue(vol === (db.getStore() as StoreDirect).volume)
+    }
+
+    object ForkedLockTestMain {
+        @JvmStatic
+        fun main(args : Array<String>) {
+            if(args.size != 1) {
+                System.err.println("No database specified!")
+                System.exit(3)
+            }
+
+            val file = args[0]
+            val db1 = DBMaker.fileDB(file).make()
+            System.out.println("Locked database.")
+            Thread.sleep(60000)
+            db1.close()
+        }
     }
 }
