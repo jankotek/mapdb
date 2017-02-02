@@ -34,7 +34,7 @@
     </scm>
 
     <properties>
-        <kotlin.version>1.0.6</kotlin.version>
+        <kotlin.version>1.1.0-beta-17</kotlin.version>
 
         <java.target.version>1.8</java.target.version>
         <java.source.version>1.8</java.source.version>
@@ -286,6 +286,12 @@
         </plugins>
 
     </build>
+    <repositories>
+        <repository>
+            <id>kotlin-eap</id>
+            <url>https://dl.bintray.com/kotlin/kotlin-eap-1.1</url>
+        </repository>
+    </repositories>
 
     <parent>
         <groupId>org.sonatype.oss</groupId>

@@ -367,7 +367,7 @@ object DBMaker{
 
         /**
          * Enable FileChannel access. By default MapDB uses {@link java.io.RandomAccessFile}.
-         * whic is slower and more robust. but does not allow concurrent access (parallel read and writes). RAF is still thread-safe
+         * which is slower and more robust. but does not allow concurrent access (parallel read and writes). RAF is still thread-safe
          * but has global lock.
          * FileChannel does not have global lock, and is faster compared to RAF. However memory-mapped files are
          * probably best choice.
@@ -465,7 +465,7 @@ object DBMaker{
                                allocateIncrement = _allocateIncrement,
                                allocateStartSize = _allocateStartSize,
                                fileDeleteAfterClose = _fileDeleteAfterClose,
-                               fileDelteAfterOpen = _fileDeleteAfterOpen,
+                               fileDeleteAfterOpen = _fileDeleteAfterOpen,
                                concShift = concShift,
                                checksum = _checksumStoreEnable,
                                isThreadSafe = _isThreadSafe ,

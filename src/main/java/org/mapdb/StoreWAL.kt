@@ -49,7 +49,7 @@ class StoreWAL(
                 allocateIncrement: Long = CC.PAGE_SIZE,
                 allocateStartSize: Long = 0L,
                 fileDeleteAfterClose:Boolean = false,
-                fileDelteAfterOpen:Boolean = false,
+                fileDeleteAfterOpen:Boolean = false,
                 checksum:Boolean = false,
                 checksumHeader:Boolean = true,
                 checksumHeaderBypass:Boolean = false
@@ -62,7 +62,7 @@ class StoreWAL(
                 allocateIncrement = allocateIncrement,
                 allocateStartSize = allocateStartSize,
                 fileDeleteAfterClose = fileDeleteAfterClose,
-                fileDeleteAfterOpen = fileDelteAfterOpen,
+                fileDeleteAfterOpen = fileDeleteAfterOpen,
                 checksum = checksum,
                 checksumHeader = checksumHeader,
                 checksumHeaderBypass = checksumHeaderBypass

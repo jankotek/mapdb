@@ -869,10 +869,10 @@ class BTreeMap<K,V>(
         return put2(key, value, true)
     }
 
-    override fun remove(key: Any?, value: Any?): Boolean {
+    override fun remove(key: K?, value: V?): Boolean {
         if (key == null || value == null)
             throw NullPointerException()
-        return removeOrReplace(key as K, value as V, null) != null
+        return removeOrReplace(key, value, null) != null
     }
 
     override fun replace(key: K?, oldValue: V?, newValue: V?): Boolean {
@@ -958,7 +958,7 @@ class BTreeMap<K,V>(
         override fun remove(element: MutableMap.MutableEntry<K, V?>?): Boolean {
             if (element == null || element.key == null || element.value == null)
                 throw NullPointerException()
-            return this@BTreeMap.remove(element.key as Any, element.value)
+            return this@BTreeMap.remove(element.key, element.value)
         }
 
 
@@ -1757,8 +1757,7 @@ class BTreeMap<K,V>(
         return store.isClosed
     }
 
-
-    override fun forEach(action: BiConsumer<in K, in V>?) {
+    override fun forEach(action: BiConsumer<in K, in V>){
         if (action == null)
             throw NullPointerException()
         var node = getNode(leftEdges.first)
