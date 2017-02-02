@@ -5,9 +5,10 @@ import org.eclipse.collections.api.map.primitive.MutableLongLongMap
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import java.io.Closeable
 import java.security.SecureRandom
-
 import java.util.*
-import java.util.concurrent.*
+import java.util.concurrent.ConcurrentMap
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReadWriteLock
 import java.util.function.BiConsumer
 
@@ -395,7 +396,7 @@ class HTreeMap<K,V>(
                                     timestamp = if(expireUpdateTTL==-1L) 0L else System.currentTimeMillis()+expireUpdateTTL,
                                     value=oldNode.value, nodeRecid = nodeRecid )
 
-                            leaf = leaf.clone()
+                            leaf = leaf.copyOf()
                             leaf[i + 2] = expireId(nodeRecid, QUEUE_UPDATE)
                             store.update(leafRecid, leaf, leafSerializer)
                         }
@@ -404,7 +405,7 @@ class HTreeMap<K,V>(
                         val expireRecid = expireUpdateQueues[segment].put(
                                 if(expireUpdateTTL==-1L) 0L else System.currentTimeMillis()+expireUpdateTTL,
                                 leafRecid);
-                        leaf = leaf.clone()
+                        leaf = leaf.copyOf()
                         leaf[i + 2] = expireId(expireRecid, QUEUE_UPDATE)
                         store.update(leafRecid, leaf, leafSerializer)
                     }
@@ -415,7 +416,7 @@ class HTreeMap<K,V>(
                     store.update(leaf[i+1] as Long, value, valueSerializer)
                 }else{
                     //stored inside leaf, so clone leaf, swap and update
-                    leaf = leaf.clone();
+                    leaf = leaf.copyOf();
                     leaf[i+1] = value as Any;
                     store.update(leafRecid, leaf, leafSerializer)
                 }
@@ -670,7 +671,7 @@ class HTreeMap<K,V>(
                         timestamp = if(expireGetTTL==-1L) 0L else System.currentTimeMillis()+expireGetTTL,
                         value = oldNode.value, nodeRecid = nodeRecid)
                 //update queue id
-                leaf1 = leaf1.clone()
+                leaf1 = leaf1.copyOf()
                 leaf1[i + 2] = expireId(nodeRecid, QUEUE_GET)
                 store.update(leafRecid, leaf1, leafSerializer)
             }
@@ -679,7 +680,7 @@ class HTreeMap<K,V>(
             val expireRecid = expireGetQueues[segment].put(
                     if(expireGetTTL==-1L) 0L else System.currentTimeMillis()+expireGetTTL,
                     leafRecid);
-            leaf1 = leaf1.clone()
+            leaf1 = leaf1.copyOf()
             leaf1[i + 2] = expireId(expireRecid, QUEUE_GET)
             store.update(leafRecid, leaf1, leafSerializer)
 
@@ -753,7 +754,7 @@ class HTreeMap<K,V>(
         }
     }
 
-    override fun remove(key: Any?, value: Any?): Boolean {
+    override fun remove(key: K?, value: V?): Boolean {
         if(key == null || value==null)
             throw NullPointerException()
 
@@ -946,7 +947,7 @@ class HTreeMap<K,V>(
         }
 
         override fun remove(element: MutableMap.MutableEntry<K?, V?>): Boolean {
-            return this@HTreeMap.remove(element.key as Any?, element.value)
+            return this@HTreeMap.remove(element.key, element.value)
         }
 
 
