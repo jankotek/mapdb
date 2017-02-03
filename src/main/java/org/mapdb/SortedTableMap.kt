@@ -689,6 +689,10 @@ class SortedTableMap<K,V>(
         throw UnsupportedOperationException("read-only")
     }
 
+    override fun putOnly(key: K?, value: V?) {
+        throw UnsupportedOperationException("read-only")
+    }
+
     override fun putAll(from: Map<out K?, V?>) {
         throw UnsupportedOperationException("read-only")
     }

@@ -198,7 +198,7 @@ class BTreeMap<K,V>(
 
     private val hasBinaryStore = store is StoreBinary
 
-    protected val valueNodeSerializer = (if(valueInline) this.valueSerializer else Serializer.RECID) as GroupSerializer<Any>
+    protected val valueNodeSerializer = (if (valueInline) this.valueSerializer else Serializer.RECID) as GroupSerializer<Any>
     protected val nodeSerializer = NodeSerializer(this.keySerializer, this.comparator, this.valueNodeSerializer);
 
     protected val rootRecid: Long
@@ -232,7 +232,7 @@ class BTreeMap<K,V>(
             throw NullPointerException()
 
         return if (hasBinaryStore) getBinary(key)
-            else getNonBinary(key)
+                else getNonBinary(key)
     }
 
 
@@ -250,19 +250,19 @@ class BTreeMap<K,V>(
         return valueExpand(binaryGet.value)
     }
 
-    protected fun listenerNotify(key:K, oldValue:V?, newValue: V?, triggered:Boolean){
-        if(modificationListeners!=null)
-            for(l in modificationListeners)
+    protected fun listenerNotify(key: K, oldValue: V?, newValue: V?, triggered: Boolean) {
+        if (modificationListeners != null)
+            for (l in modificationListeners)
                 l.modify(key, oldValue, newValue, triggered)
     }
 
 
-    protected fun valueExpand(v:Any?):V? {
+    protected fun valueExpand(v: Any?): V? {
         return (
-                if(v==null) null
-                else if(valueInline) v
+                if (v == null) null
+                else if (valueInline) v
                 else store.get(v as Long, valueSerializer)
-               ) as V?
+          ) as V?
     }
 
 
@@ -289,7 +289,13 @@ class BTreeMap<K,V>(
     override fun put(key: K?, value: V?): V? {
         if (key == null || value == null)
             throw NullPointerException()
-        return put2(key, value, false)
+        return put2(key, value, false, false)
+    }
+
+    override fun putOnly(key: K?, value: V?){
+        if (key == null || value == null)
+            throw NullPointerException()
+        put2(key, value, false, modificationListeners==null || modificationListeners.isEmpty())
     }
 
     private fun isLinkValue(pos:Int, A:Node):Boolean{
@@ -298,7 +304,7 @@ class BTreeMap<K,V>(
         return (!A.isLastKeyDouble && pos >= valueNodeSerializer.valueArraySize(A.values))
     }
 
-    protected fun put2(key: K, value: V, onlyIfAbsent: Boolean): V? {
+    protected fun put2(key: K, value: V, onlyIfAbsent: Boolean, noValueExpand:Boolean): V? {
         if (key == null || value == null)
             throw NullPointerException()
 
@@ -352,7 +358,9 @@ class BTreeMap<K,V>(
                         pos = pos - 1 + A.intLeftEdge();
                         //key exist in node, just update
                         val oldValueRecid = valueNodeSerializer.valueArrayGet(A.values, pos)
-                        val oldValueExpand = valueExpand(oldValueRecid)
+                        val oldValueExpand =
+                                if(noValueExpand) null
+                                else valueExpand(oldValueRecid)
 
                         //update only if not exist, return
                         if (!onlyIfAbsent) {
@@ -866,7 +874,7 @@ class BTreeMap<K,V>(
     override fun putIfAbsent(key: K?, value: V?): V? {
         if (key == null || value == null)
             throw NullPointerException()
-        return put2(key, value, true)
+        return put2(key, value, true, false)
     }
 
     override fun remove(key: K?, value: V?): Boolean {

@@ -117,8 +117,11 @@ class HTreeMap<K,V>(
     protected val locks:Array<ReadWriteLock?> = Array(segmentCount, {Utils.newReadWriteLock(isThreadSafe)})
 
     /** true if Eviction is executed inside user thread, as part of get/put etc operations */
+    //TODO make protected
     val isForegroundEviction:Boolean = expireExecutor==null &&
             (expireCreateQueues!=null || expireUpdateQueues!=null || expireGetQueues!=null)
+
+    protected val modificationListenersEmpty = modificationListeners==null || modificationListeners.isEmpty()
 
     init{
         if(segmentCount!=stores.size)
@@ -304,6 +307,14 @@ class HTreeMap<K,V>(
     }
 
     override fun put(key: K?, value: V?): V? {
+        return put2(key, value, false)
+    }
+
+    override fun putOnly(key: K?, value: V?){
+        put2(key, value, true)
+    }
+
+    protected fun put2(key: K?, value: V?, noValueExpand:Boolean): V? {
         if (key == null || value == null)
             throw NullPointerException()
 
@@ -322,11 +333,11 @@ class HTreeMap<K,V>(
             if(isForegroundEviction)
                 expireEvictSegment(segment)
 
-            return putprotected(hash, key, value,false)
+            return putProtected(hash, key, value, false, noValueExpand)
         }
     }
 
-    protected fun putprotected(hash:Int, key:K, value:V, triggered:Boolean):V?{
+    protected fun putProtected(hash:Int, key:K, value:V, triggered:Boolean, noValueExpand:Boolean):V?{
         val segment = hashToSegment(hash)
         if(CC.ASSERT)
             Utils.assertWriteLock(locks[segment])
@@ -375,7 +386,9 @@ class HTreeMap<K,V>(
 
             if (keySerializer.equals(oldKey, key)) {
                 //match found, update existing value
-                val oldVal = valueUnwrap(segment, leaf[i + 1])
+                val oldVal =
+                        if(noValueExpand && modificationListenersEmpty) null
+                        else valueUnwrap(segment, leaf[i + 1])
 
                 if (expireUpdateQueues != null) {
                     //update expiration stuff
@@ -605,7 +618,7 @@ class HTreeMap<K,V>(
             if(ret==null && valueLoader !=null){
                 ret = valueLoader!!(key)
                 if(ret!=null)
-                    putprotected(hash, key, ret, true)
+                    putProtected(hash, key, ret, true, true)
             }
             return ret
         }
@@ -732,7 +745,7 @@ class HTreeMap<K,V>(
                 expireEvictSegment(segment)
 
             return getprotected(hash,key, updateQueue = false) ?:
-                    putprotected(hash, key, value,false)
+                    putProtected(hash, key, value,false, false)
         }
     }
 
@@ -749,7 +762,7 @@ class HTreeMap<K,V>(
 
             if (getprotected(hash, key, updateQueue = false) != null)
                 return false
-            putprotected(hash, key, value, false)
+            putProtected(hash, key, value, false, true)
             return true;
         }
     }
@@ -785,7 +798,7 @@ class HTreeMap<K,V>(
 
             val valueIn = getprotected(hash, key, updateQueue = false);
             if (valueIn != null && valueSerializer.equals(valueIn, oldValue)) {
-                putprotected(hash, key, newValue,false);
+                putProtected(hash, key, newValue, false, true);
                 return true;
             } else {
                 return false;
@@ -804,7 +817,7 @@ class HTreeMap<K,V>(
                 expireEvictSegment(segment)
 
             if (getprotected(hash, key,updateQueue = false)!=null) {
-                return putprotected(hash, key, value, false);
+                return putProtected(hash, key, value, false, false);
             } else {
                 return null;
             }

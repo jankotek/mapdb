@@ -1,7 +1,5 @@
 package org.mapdb
 
-import org.eclipse.collections.api.block.procedure.Procedure
-import java.util.EventListener
 import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.ConcurrentNavigableMap
 import java.util.function.BiConsumer
@@ -52,6 +50,12 @@ interface MapExtra<K, V> : ConcurrentMap<K, V> {
      */
     fun putIfAbsentBoolean(key: K?, value: V?): Boolean
 
+    /**
+     * Puts new value, but does not return old value. Might be faster since old value is not deserialized
+     *
+     * Old value will only be deserialized if modification listeners are installed, or values are inlined.
+     */
+    fun putOnly(key:K?, value:V?)
 
     fun isClosed(): Boolean
 
