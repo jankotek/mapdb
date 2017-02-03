@@ -102,7 +102,6 @@ public class ElsaIssues {
         File f = TT.tempFile();
 
         DB db = DBMaker.fileDB(f)
-                //TODO checksum was enabled here
                 .make();
 
         Map<Integer,AAA> map = db.treeMap("test", Integer.class, AAA.class).createOrOpen();

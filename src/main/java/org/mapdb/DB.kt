@@ -181,7 +181,7 @@ open class DB(
             IndexTreeList::class.java
     )
 
-    private val nameSer = object:ElsaSerializerBase.Ser<Any>(){
+    private val nameSer = object:ElsaSerializerBase.Serializer<Any>(){
         override fun serialize(out: DataOutput, value: Any, objectStack: ElsaStack?) {
             val name = getNameForObject(value)
                     ?: throw DBException.SerializationError("Could not serialize named object, it was not instantiated by this db")
@@ -190,7 +190,7 @@ open class DB(
         }
     }
 
-    private val nameDeser = object:ElsaSerializerBase.Deser<Any>(){
+    private val nameDeser = object:ElsaSerializerBase.Deserializer<Any>(){
         override fun deserialize(input: DataInput, objectStack: ElsaStack): Any? {
             val name = input.readUTF()
             return this@DB.get(name)
@@ -198,6 +198,7 @@ open class DB(
     }
 
     private val elsaSerializer:ElsaSerializerPojo = ElsaSerializerPojo(
+            classLoader,
             0,
             pojoSingletons(),
             //TODO add Tuples into default serializer
@@ -218,7 +219,8 @@ open class DB(
                 override fun getClassInfo(classId: Int): ElsaSerializerPojo.ClassInfo? {
                     return loadClassInfos()[classId]
                 }
-            } )
+            }
+            )
 
     protected fun  <K> serializerForClass(clazz: Class<K>): GroupSerializer<K> {
         return when(clazz){
@@ -1895,7 +1897,7 @@ open class DB(
             return //class is already present
         //add as last item to an array
         infos = Arrays.copyOf(infos, infos.size + 1)
-        infos[infos.size - 1] = ElsaSerializerPojo.makeClassInfo(clazz)
+        infos[infos.size - 1] = ElsaSerializerPojo.makeClassInfo(clazz, classLoader)
         //and save
         store2.update(CC.RECID_CLASS_INFOS, infos, classInfoSerializer)
     }
