@@ -34,7 +34,7 @@
     </scm>
 
     <properties>
-        <kotlin.version>1.1.0-beta-17</kotlin.version>
+        <kotlin.version>1.1.0-beta-38</kotlin.version>
 
         <java.target.version>1.8</java.target.version>
         <java.source.version>1.8</java.source.version>
@@ -43,7 +43,7 @@
         <ec.version>[8.0.0,8.20.0)</ec.version>
         <guava.version>[15.0,19.20)</guava.version>
 
-        <elsa.version>3.0.0-M6</elsa.version>
+        <elsa.version>3.0.0-M7</elsa.version>
 
         <testThreadCount>3</testThreadCount>
         <testArgLine></testArgLine>
@@ -55,7 +55,7 @@
     <dependencies>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-stdlib</artifactId>
+            <artifactId>kotlin-stdlib-jre8</artifactId>
             <version>${kotlin.version}</version>
         </dependency>
 
@@ -138,7 +138,6 @@
                 <groupId>org.jetbrains.kotlin</groupId>
                 <version>${kotlin.version}</version>
 
-                <configuration />
                 <executions>
                     <execution>
                         <id>compile</id>
@@ -155,6 +154,11 @@
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <target>${java.target.version}</target>
+                    <source>${java.source.version}</source>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
