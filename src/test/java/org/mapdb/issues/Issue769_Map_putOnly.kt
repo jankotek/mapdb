@@ -3,31 +3,25 @@ package org.mapdb.issues
 import org.junit.Test
 import org.mapdb.*
 
-class Issue769_Map_putOnly{
+class Issue769_Map_putOnly : Serializer<String>{
 
+    val ser = ArrayList<String>()
+    val deser = ArrayList<String>()
 
-    object valueSer: Serializer<String> {
-
-        val ser = ArrayList<String>()
-        val deser = ArrayList<String>()
-
-        override fun serialize(out: DataOutput2, value: String) {
-            ser += value
-            out.writeUTF(value)
-        }
-
-        override fun deserialize(input: DataInput2, available: Int): String {
-            val v = input.readUTF()
-            deser += v
-            return v
-        }
-
+    override fun serialize(out: DataOutput2, value: String) {
+        ser += value
+        out.writeUTF(value)
     }
 
+    override fun deserialize(input: DataInput2, available: Int): String {
+        val v = input.readUTF()
+        deser += v
+        return v
+    }
 
     @Test fun hashMap(){
         val m = DBMaker.memoryDB().make()
-                .hashMap("map", Serializer.INTEGER, valueSer)
+                .hashMap("map", Serializer.INTEGER, this)
                 .create()
 
         check(m)
@@ -35,7 +29,7 @@ class Issue769_Map_putOnly{
 
     @Test fun treeMap(){
         val m = DBMaker.memoryDB().make()
-                .treeMap("map", Serializer.INTEGER, valueSer)
+                .treeMap("map", Serializer.INTEGER, this)
                 .valuesOutsideNodesEnable()
                 .create()
 
@@ -44,12 +38,12 @@ class Issue769_Map_putOnly{
 
     private fun check(m: MapExtra<Int, String>) {
         m.put(1, "one")
-        valueSer.deser.clear()
-        valueSer.ser.clear()
+        deser.clear()
+        ser.clear()
         m.putOnly(1, "two")
 
-        assert(valueSer.ser == arrayListOf("two"))
-        assert(valueSer.deser.isEmpty())
+        assert(ser == arrayListOf("two"))
+        assert(deser.isEmpty())
     }
 
 }
