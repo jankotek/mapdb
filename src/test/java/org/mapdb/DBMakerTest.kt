@@ -4,6 +4,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import org.mapdb.StoreAccess.volume
 import org.mapdb.VolumeAccess.sliceShift
+import org.mapdb.elsa.Bean1
 import org.mapdb.volume.ByteArrayVol
 import org.mapdb.volume.FileChannelVol
 import org.mapdb.volume.MappedFileVol
@@ -193,5 +194,25 @@ class DBMakerTest{
         val vol = ByteArrayVol()
         val db = DBMaker.volumeDB(vol, false).make()
         assertTrue(vol === (db.store as StoreDirect).volume)
+    }
+
+
+    @Test fun classLoader(){
+        val classes = ArrayList<String>()
+        val cl = object: ClassLoader() {
+            override fun loadClass(name: String?): Class<*> {
+                classes+= name!!
+                return super.loadClass(name)
+            }
+        }
+
+        val db = DBMaker.memoryDB().classLoader(cl).make()
+        assertEquals(db.classLoader, cl )
+
+        val m = db.atomicVar("a").create()
+        m.set(Bean1("aa","bb"))
+        m.get()
+
+        assert(classes.contains(Bean1::class.java.name))
     }
 }

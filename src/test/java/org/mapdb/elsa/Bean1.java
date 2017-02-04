@@ -45,11 +45,11 @@ public class Bean1 implements Serializable {
             this.field2 = field2;
         }
 
-        Bean1(String field1, String field2) {
+        public Bean1(String field1, String field2) {
             this.field1 = field1;
             this.field2 = field2;
         }
 
-        Bean1() {
+        public Bean1() {
         }
     }
