@@ -155,7 +155,9 @@ object TT{
         return out.pos;
     }
 
-
+    fun <T : Any> forkJvm(clazz:Class<T>, vararg args : String): Process {
+        return JavaProcess.exec(clazz, args)
+    }
 
     fun fork(count:Int=1, body:(i:Int)->Unit){
         val finish = async(count=count, body=body)
