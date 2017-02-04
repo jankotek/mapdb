@@ -36,7 +36,7 @@ open class DBException(message: String?, cause: Throwable?) : RuntimeException(m
 
     class PointerChecksumBroken():DataCorruption("Broken bit parity")
 
-    class FileLocked(path: Path, exception: Exception):
+    class FileLocked(path: Path, exception: Exception?):
             DBException("File is already opened and is locked: "+path, exception)
 
 
