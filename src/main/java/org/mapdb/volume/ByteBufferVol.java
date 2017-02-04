@@ -7,7 +7,6 @@ import sun.misc.Cleaner;
 import sun.nio.ch.DirectBuffer;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.util.concurrent.locks.ReentrantLock;
@@ -344,7 +343,10 @@ abstract public class ByteBufferVol extends Volume {
             return true;
         }
         Object attachment = bb.attachment();
-        return attachment!=null && attachment instanceof DirectBuffer && unmap(b);
+        return attachment!=null &&
+                attachment instanceof DirectBuffer &&
+                attachment!=b &&
+                unmap((MappedByteBuffer) attachment);
 
     }
 
