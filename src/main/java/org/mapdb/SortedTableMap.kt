@@ -1661,7 +1661,7 @@ class SortedTableMap<K,V>(
                 val comp = if(loInclusive) -1 else 0
                 keysLoop@ while(true){
                     loadNextNode()
-                    val keys = nodeKeys!!
+                    val keys = nodeKeys ?: return
                     //iterate over node until bigger entry is found
                     var pos = 0
                     while(true){
@@ -1749,7 +1749,7 @@ class SortedTableMap<K,V>(
                 val comp = if(loInclusive) -1 else 0
                 keysLoop@ while(true){
                     loadNextNode()
-                    val keys = nodeKeys!!
+                    val keys = nodeKeys ?: return
                     //iterate over node until bigger entry is found
                     var pos = 0
                     while(true){
@@ -1839,7 +1839,7 @@ class SortedTableMap<K,V>(
                 val comp = if(loInclusive) -1 else 0
                 keysLoop@ while(true){
                     loadNextNode()
-                    val keys = nodeKeys!!
+                    val keys = nodeKeys ?: return
                     //iterate over node until bigger entry is found
                     var pos = 0
                     while(true){
