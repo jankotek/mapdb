@@ -4,7 +4,6 @@ import org.eclipse.collections.api.list.primitive.MutableLongList
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet
 import org.fest.reflect.core.Reflection
 import org.junit.Assert.*
-import org.junit.Ignore
 import org.junit.Test
 import org.mapdb.BTreeMapJava.*
 import org.mapdb.StoreAccess.calculateFreeSize
@@ -1347,10 +1346,14 @@ class BTreeMapTest {
     }
 
 
-    @Ignore //TODO BTreeMap serialization
     @Test @Throws(IOException::class, ClassNotFoundException::class)
     fun serialize_clone() {
-        val m = DBMaker.memoryDB().make().treeMap("map", Serializer.INTEGER, Serializer.INTEGER).create()
+        val m:MutableMap<Int,Int> = DBMaker
+                .memoryDB()
+                .make()
+                .treeMap("map", Serializer.INTEGER, Serializer.INTEGER)
+                .createOrOpen()
+
         for (i in 0..999) {
             m.put(i, i * 10)
         }
@@ -1361,10 +1364,9 @@ class BTreeMapTest {
         assertTrue(m.entries.containsAll(m2.entries))
     }
 
-    @Ignore //TODO BTreeMap Set serialization
     @Test @Throws(IOException::class, ClassNotFoundException::class)
     fun serialize_set_clone() {
-        val m = DBMaker.memoryDB().make().treeSet("map", Serializer.INTEGER).open()
+        val m = DBMaker.memoryDB().make().treeSet("map", Serializer.INTEGER).createOrOpen()
         for (i in 0..999) {
             m.add(i)
         }

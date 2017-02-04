@@ -26,7 +26,6 @@ public class DBBrokenTest {
      * @throws IOException
      */
     @Test
-    @Ignore //TODO index checksum
     public void canDeleteDBOnBrokenIndex() throws IOException {
         for (final File f : Arrays.asList(index, log)) {
             final FileOutputStream fos = new FileOutputStream(f);
@@ -37,9 +36,9 @@ public class DBBrokenTest {
         try {
             DBMaker.fileDB(index.getPath()).make();
             Assert.fail("Expected exception not thrown");
-        } catch (final DBException.WrongConfiguration e) {
+        } catch (final DBException.WrongFormat e) {
             // will fail!
-            Assert.assertTrue("Wrong message", e.getMessage().contains("This is not MapDB file"));
+            Assert.assertTrue("Wrong message", e.getMessage().equals("Wrong file header, not MapDB file"));
         }
 
         index.delete();
@@ -58,7 +57,6 @@ public class DBBrokenTest {
      * @throws IOException
      */
     @Test
-    @Ignore //TODO index checksum
     public void canDeleteDBOnBrokenLog() throws IOException {
         // init empty, but valid DB
         DBMaker.fileDB(index.getPath()).make().close();
@@ -73,7 +71,7 @@ public class DBBrokenTest {
         try {
             DBMaker.fileDB(index.getPath()).make();
             Assert.fail("Expected exception not thrown");
-        } catch (final DBException.WrongFormat e) {
+        } catch (final DBException.BrokenHeaderChecksum e) {
             // expected
         }
 

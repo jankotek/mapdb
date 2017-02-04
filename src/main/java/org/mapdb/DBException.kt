@@ -29,6 +29,8 @@ open class DBException(message: String?, cause: Throwable?) : RuntimeException(m
     open class DataCorruption(msg: String) : DBException(msg);
 
 
+    open class BrokenHeaderChecksum(msg: String) : DataCorruption(msg);
+
     class NewMapDBFormat(message:String =
                          "Store uses feature from newer version of MapDB, this MapDB version is old does not support new feature")
             :DBException(message){

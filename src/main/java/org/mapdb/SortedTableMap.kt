@@ -2,10 +2,13 @@ package org.mapdb
 
 import org.mapdb.serializer.GroupSerializer
 import org.mapdb.volume.Volume
+import java.io.ObjectStreamException
 import java.util.*
 import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.ConcurrentNavigableMap
+import java.util.concurrent.ConcurrentSkipListMap
 import java.util.function.BiConsumer
+import java.io.Serializable
 
 /**
  * Read only Sorted Table Map. It stores data in table and uses binary search to find records
@@ -17,7 +20,7 @@ class SortedTableMap<K,V>(
         val pageSize:Long,
         protected val volume: Volume,
         override val hasValues: Boolean = false
-): ConcurrentMap<K, V>, ConcurrentNavigableMap<K, V>, ConcurrentNavigableMapExtra<K,V> {
+): ConcurrentMap<K, V>, ConcurrentNavigableMap<K, V>, ConcurrentNavigableMapExtra<K,V>, Serializable{
 
     abstract class Sink<K, V> : Pump.Sink<Pair<K, V>, SortedTableMap<K, V>>() {
         fun put(key: K, value: V) {
@@ -2192,4 +2195,13 @@ class SortedTableMap<K,V>(
     }
 
 
+
+    @Throws(ObjectStreamException::class)
+    private fun writeReplace(): Any {
+        val ret = ConcurrentSkipListMap<Any?, Any?>()
+        forEach { k, v ->
+            ret.put(k, v)
+        }
+        return ret
+    }
 }

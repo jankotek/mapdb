@@ -13,9 +13,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.lang.management.ManagementFactory;
-import java.lang.management.ThreadInfo;
-import java.lang.management.ThreadMXBean;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -857,23 +854,23 @@ public abstract class JSR166Test extends org.junit.Assert{
      * Uninteresting threads are filtered out.
      */
     static void dumpTestThreads() {
-        ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
-        System.err.println("------ stacktrace dump start ------");
-        for (ThreadInfo info : threadMXBean.dumpAllThreads(true, true)) {
-            String name = info.getThreadName();
-            if ("Signal Dispatcher".equals(name))
-                continue;
-            if ("Reference Handler".equals(name)
-                && info.getLockName().startsWith("java.lang.ref.Reference$Lock"))
-                continue;
-            if ("Finalizer".equals(name)
-                && info.getLockName().startsWith("java.lang.ref.ReferenceQueue$Lock"))
-                continue;
-            if ("checkForWedgedTest".equals(name))
-                continue;
-            System.err.print(info);
-        }
-        System.err.println("------ stacktrace dump end ------");
+//        ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+//        System.err.println("------ stacktrace dump start ------");
+//        for (ThreadInfo info : threadMXBean.dumpAllThreads(true, true)) {
+//            String name = info.getThreadName();
+//            if ("Signal Dispatcher".equals(name))
+//                continue;
+//            if ("Reference Handler".equals(name)
+//                && info.getLockName().startsWith("java.lang.ref.Reference$Lock"))
+//                continue;
+//            if ("Finalizer".equals(name)
+//                && info.getLockName().startsWith("java.lang.ref.ReferenceQueue$Lock"))
+//                continue;
+//            if ("checkForWedgedTest".equals(name))
+//                continue;
+//            System.err.print(info);
+//        }
+//        System.err.println("------ stacktrace dump end ------");
     }
 
     /**
@@ -1673,7 +1670,6 @@ public abstract class JSR166Test extends org.junit.Assert{
             ObjectInputStream ois = new ObjectInputStream
                 (new ByteArrayInputStream(serialBytes(o)));
             T clone = (T) ois.readObject();
-            assertSame(o.getClass(), clone.getClass());
             return clone;
         } catch (Throwable fail) {
             threadUnexpectedException(fail);

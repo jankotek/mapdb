@@ -41,6 +41,8 @@ import java.util.*
 
 /**
  * Primitive Sorted Map<Long,Long.
+ *
+ * Is not thread safe!!!
  */
 public class IndexTreeLongLongMap(
     val store:Store,
