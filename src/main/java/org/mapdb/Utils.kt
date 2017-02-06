@@ -259,8 +259,6 @@ internal object Utils {
     fun lockReadAll(locks: Array<ReadWriteLock?>) {
         if(locks==null)
             return
-        if(locks==null)
-            return
         while(true) {
             var i = 0;
             while(i<locks.size){
