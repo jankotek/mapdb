@@ -27,9 +27,11 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *
  * @author 佐井
  * @since 2016-09-14 07:29
+ *
+ * //TODO migrate to Eclipse Collections, see https://github.com/eclipse/eclipse-collections/issues/196
  */
 @ThreadSafe
-public class ThreadSafeLongArrayList implements MutableLongList {
+class ThreadSafeLongArrayList implements MutableLongList {
 
 
     public ThreadSafeLongArrayList() {
