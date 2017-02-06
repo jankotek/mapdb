@@ -240,8 +240,29 @@ internal object Utils {
     fun lockReadAll(locks: Array<ReadWriteLock?>) {
         if(locks==null)
             return
-        for(lock in locks)
-            lock!!.readLock().lock()
+        if(locks==null)
+            return
+        while(true) {
+            var i = 0;
+            while(i<locks.size){
+                //try to lock all locks
+                val lock = locks[i++]?: continue
+
+                if(!lock.readLock().tryLock()){
+                    i--
+                    //could not lock, rollback all locks
+                    while(i>0){
+                        (locks[--i]?:continue).readLock().unlock()
+                    }
+
+                    Thread.sleep(0, 100*1000)
+                    //and try again to lock all
+                    i = 0
+                    continue
+                }
+            }
+            return //all locked fine
+        }
     }
 
     fun unlockReadAll(locks: Array<ReadWriteLock?>) {
@@ -255,9 +276,29 @@ internal object Utils {
     fun lockWriteAll(locks: Array<ReadWriteLock?>) {
         if(locks==null)
             return
-        for(lock in locks)
-            if(lock!=null)
-                lock.writeLock().lock()
+        while(true) {
+            var i = 0;
+            while(i<locks.size){
+                //try to lock all locks
+                val lock = locks[i++]?: continue
+
+                if(!lock.writeLock().tryLock()){
+                    i--
+                    //could not lock, rollback all locks
+                    while(i>0){
+                        (locks[--i]?:continue).writeLock().unlock()
+                    }
+
+                    Thread.sleep(0, 100*1000)
+                    //and try again to lock all
+                    i = 0
+                    continue
+                }
+
+
+            }
+            return //all locked fine
+        }
     }
 
     fun unlockWriteAll(locks: Array<ReadWriteLock?>) {
