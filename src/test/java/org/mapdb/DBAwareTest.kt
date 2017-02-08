@@ -8,7 +8,7 @@ import org.mapdb.serializer.GroupSerializerObjectArray
 
 class DBAwareTest{
 
-    object aware: GroupSerializerObjectArray<Any>(), DB.DBAware, DB.NamedRecordAware{
+    class Aware: GroupSerializerObjectArray<Any>(), DB.DBAware, DB.NamedRecordAware{
 
         override fun deserialize(input: DataInput2, available: Int): Any {
             throw UnsupportedOperationException("not implemented")
@@ -33,9 +33,12 @@ class DBAwareTest{
 
     }
 
+    val aware = Aware()
+
     val db = DBMaker.memoryDB().make()
 
     @Test fun dbAware_hashSet(){
+
         val c = db.hashSet("aaa", aware).createOrOpen()
         assertSame(db, aware.db)
         assertEquals("aaa", aware.name)
