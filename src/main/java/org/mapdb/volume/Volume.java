@@ -406,7 +406,7 @@ public abstract class Volume implements Closeable{
                 offset+=read;
             }
         } catch (IOException e) {
-            throw new IOError(e);
+            throw new DBException.VolumeIOException(e);
         }
     }
 
@@ -427,7 +427,7 @@ public abstract class Volume implements Closeable{
             try {
                 output.write(buf, 0, size);
             } catch (IOException e) {
-                throw new IOError(e);
+                throw new DBException.VolumeIOException(e);
             }
         }
     }
