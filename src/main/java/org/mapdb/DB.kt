@@ -152,7 +152,7 @@ open class DB(
 
     protected fun checkNotClosed(){
         if(closed.get())
-            throw IllegalAccessError("DB was closed")
+            throw IllegalStateException("DB was closed")
     }
 
     /** Already loaded named collections. Values are weakly referenced. We need singletons for locking */
@@ -363,7 +363,7 @@ open class DB(
                 Serializer.STRING_DELTA2, Serializer.STRING_INTERN, Serializer.STRING_ASCII, Serializer.STRING_NOSIZE,
                 Serializer.LONG, Serializer.LONG_PACKED, Serializer.LONG_DELTA, Serializer.INTEGER,
                 Serializer.INTEGER_PACKED, Serializer.INTEGER_DELTA, Serializer.BOOLEAN, Serializer.RECID,
-                Serializer.RECID_ARRAY, Serializer.ILLEGAL_ACCESS, Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY_DELTA,
+                Serializer.RECID_ARRAY, Serializer.SERIALIZER_UNSUPPORTED, Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY_DELTA,
                 Serializer.BYTE_ARRAY_DELTA2, Serializer.BYTE_ARRAY_NOSIZE, Serializer.CHAR_ARRAY, Serializer.INT_ARRAY,
                 Serializer.LONG_ARRAY, Serializer.DOUBLE_ARRAY, Serializer.JAVA, Serializer.ELSA, Serializer.UUID,
                 Serializer.BYTE, Serializer.FLOAT, Serializer.DOUBLE, Serializer.SHORT, Serializer.SHORT_ARRAY,

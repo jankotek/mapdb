@@ -145,7 +145,7 @@ class BTreeMap<K,V>(
             }
 
             override fun valueArrayFromArray(objects: Array<out Any>?): Int? {
-                throw IllegalAccessError()
+                throw UnsupportedOperationException()
             }
 
             override fun valueArrayGet(vals: Any?, pos: Int): Boolean? {
@@ -157,11 +157,11 @@ class BTreeMap<K,V>(
             }
 
             override fun valueArraySearch(keys: Any?, key: Boolean?): Int {
-                throw IllegalAccessError()
+                throw UnsupportedOperationException()
             }
 
             override fun valueArraySearch(keys: Any?, key: Boolean?, comparator: Comparator<*>?): Int {
-                throw IllegalAccessError()
+                throw UnsupportedOperationException()
             }
 
             override fun valueArraySerialize(out: DataOutput2?, vals: Any?) {
@@ -176,11 +176,11 @@ class BTreeMap<K,V>(
             }
 
             override fun deserialize(input: DataInput2, available: Int): Boolean? {
-                throw IllegalAccessError();
+                throw UnsupportedOperationException();
             }
 
             override fun serialize(out: DataOutput2, value: Boolean) {
-                throw IllegalAccessError();
+                throw UnsupportedOperationException();
             }
 
             override fun isTrusted(): Boolean {

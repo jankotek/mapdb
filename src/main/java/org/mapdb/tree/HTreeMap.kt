@@ -854,7 +854,7 @@ class HTreeMap<K,V>(
             2L -> expireUpdateQueues?.get(segment)
             3L -> expireGetQueues?.get(segment)
             else -> throw DBException.DataCorruption("wrong queue")
-        } ?: throw IllegalAccessError("no queue is set")
+        } ?: throw IllegalStateException("no queue is set")
 
     }
 

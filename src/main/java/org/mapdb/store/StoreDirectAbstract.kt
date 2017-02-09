@@ -57,7 +57,7 @@ abstract class StoreDirectAbstract(
 
     protected fun assertNotClosed(){
         if(closed.get())
-            throw IllegalAccessError("Store was closed");
+            throw IllegalStateException("Store was closed");
     }
 
 

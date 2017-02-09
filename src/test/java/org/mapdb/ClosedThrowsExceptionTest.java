@@ -9,7 +9,7 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 
 /*
- * check that `IllegalAccessError` is thrown after DB was closed
+ * check that `IllegalStateException` is thrown after DB was closed
  */
 public abstract class ClosedThrowsExceptionTest {
 
@@ -63,7 +63,7 @@ public abstract class ClosedThrowsExceptionTest {
 //        }
 //    }
 
-    @Test(expected = IllegalAccessError.class)
+    @Test(expected = IllegalStateException.class)
     public void closed_getHashMap(){
         db.hashMap("test").createOrOpen();
         db.close();
@@ -78,7 +78,7 @@ public abstract class ClosedThrowsExceptionTest {
     }
 
 
-    @Test(expected = IllegalAccessError.class)
+    @Test(expected = IllegalStateException.class)
     public void closed_put(){
         Map m = db.hashMap("test").create();
         db.close();
@@ -86,7 +86,7 @@ public abstract class ClosedThrowsExceptionTest {
     }
 
 
-    @Test(expected = IllegalAccessError.class)
+    @Test(expected = IllegalStateException.class)
     public void closed_remove(){
         Map m = db.hashMap("test").create();
         m.put("aa","bb");
@@ -102,7 +102,7 @@ public abstract class ClosedThrowsExceptionTest {
         db.close();
     }
 
-    @Test(expected = IllegalAccessError.class)
+    @Test(expected = IllegalStateException.class)
     public void closed_rollback(){
         Map m = db.hashMap("test").create();
         m.put("aa","bb");
@@ -110,7 +110,7 @@ public abstract class ClosedThrowsExceptionTest {
         db.rollback();
     }
 
-    @Test(expected = IllegalAccessError.class)
+    @Test(expected = IllegalStateException.class)
     public void closed_commit(){
         Map m = db.hashMap("test").create();
         m.put("aa","bb");
@@ -126,27 +126,27 @@ public abstract class ClosedThrowsExceptionTest {
         assertEquals(true,db.isClosed());
     }
 
-    @Test(expected = IllegalAccessError.class)
+    @Test(expected = IllegalStateException.class)
     public void closed_engine_get(){
         long recid = db.getStore().put("aa",Serializer.STRING);
         db.close();
         db.getStore().get(recid,Serializer.STRING);
     }
 
-    @Test(expected = IllegalAccessError.class)
+    @Test(expected = IllegalStateException.class)
     public void closed_engine_put(){
         db.close();
         long recid = db.getStore().put("aa",Serializer.STRING);
     }
 
-    @Test(expected = IllegalAccessError.class)
+    @Test(expected = IllegalStateException.class)
     public void closed_engine_update(){
         long recid = db.getStore().put("aa",Serializer.STRING);
         db.close();
         db.getStore().update(recid, "aax", Serializer.STRING);
     }
 
-    @Test(expected = IllegalAccessError.class)
+    @Test(expected = IllegalStateException.class)
     public void closed_engine_delete(){
         long recid = db.getStore().put("aa",Serializer.STRING);
         db.close();

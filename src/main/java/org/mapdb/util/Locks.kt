@@ -441,13 +441,13 @@ class SingleProtectionLock(val name:String): Lock {
 
     override fun unlock() {
         if(!locked)
-            throw IllegalAccessError(name+": Not locked")
+            throw IllegalStateException(name+": Not locked")
         locked = false
     }
 
     override fun lock() {
         if(!locked)
-            throw IllegalAccessError(name+": Already locked")
+            throw IllegalStateException(name+": Already locked")
         locked = true
     }
 
