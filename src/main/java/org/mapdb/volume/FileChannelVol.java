@@ -93,7 +93,7 @@ public final class FileChannelVol extends Volume {
         }catch(ClosedChannelException e){
             throw new DBException.VolumeClosed(e);
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
     }
 
@@ -128,7 +128,7 @@ public final class FileChannelVol extends Volume {
                 channel.write(ByteBuffer.allocate(1));
                 size = offset;
             } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
+                throw new DBException.VolumeIOException(e);
             }finally {
                 growLock.unlock();
             }
@@ -146,7 +146,7 @@ public final class FileChannelVol extends Volume {
         }catch(ClosedChannelException e){
             throw new DBException.VolumeClosed(e);
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }finally{
             growLock.unlock();
         }
@@ -168,7 +168,7 @@ public final class FileChannelVol extends Volume {
         }catch(ClosedChannelException e){
             throw new DBException.VolumeClosed(e);
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
     }
 
@@ -233,7 +233,7 @@ public final class FileChannelVol extends Volume {
         }catch(ClosedChannelException e){
             throw new DBException.VolumeClosed(e);
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
     }
 
@@ -289,7 +289,7 @@ public final class FileChannelVol extends Volume {
         }catch(ClosedChannelException e){
             throw new DBException.VolumeClosed(e);
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
     }
 
@@ -302,7 +302,7 @@ public final class FileChannelVol extends Volume {
         }catch(ClosedChannelException e){
             throw new DBException.VolumeClosed(e);
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
     }
 
@@ -322,7 +322,7 @@ public final class FileChannelVol extends Volume {
         try {
             return channel.size();
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
     }
 
@@ -357,7 +357,7 @@ public final class FileChannelVol extends Volume {
                 startOffset+=CLEAR.length;
             }
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
     }
 }

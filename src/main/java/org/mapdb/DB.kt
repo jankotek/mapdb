@@ -180,7 +180,7 @@ open class DB(
     private val nameSer = object:ElsaSerializerBase.Serializer<Any>(){
         override fun serialize(out: DataOutput, value: Any, objectStack: ElsaStack?) {
             val name = getNameForObject(value)
-                    ?: throw DBException.SerializationError("Could not serialize named object, it was not instantiated by this db")
+                    ?: throw DBException.SerializationException("Could not serialize named object, it was not instantiated by this db")
 
             out.writeUTF(name)
         }

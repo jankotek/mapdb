@@ -333,7 +333,7 @@ public abstract class Volume implements Closeable{
         try {
             getDataInput(inputOffset, (int) size).readFully(data);
         }catch(IOException e){
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
         target.putData(targetOffset,data,0, (int) size);
     }
@@ -495,7 +495,7 @@ public abstract class Volume implements Closeable{
                     throw new DBException.FileLocked(file.toPath(), e);
                 }
             } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
+                throw new DBException.VolumeIOException(e);
             }
 
             if (fileLockWait <= 0) {

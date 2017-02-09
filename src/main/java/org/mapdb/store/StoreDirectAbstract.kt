@@ -231,7 +231,7 @@ abstract class StoreDirectAbstract(
             //TODO assert number of bytes read
             //TODO wrap di, if untrusted serializer
         }catch(e: IOException){
-            throw DBException.SerializationError(e)
+            throw DBException.SerializationException(e)
         }
     }
 
@@ -244,7 +244,7 @@ abstract class StoreDirectAbstract(
             serializer.serialize(out, record);
             return out;
         }catch(e: IOException){
-            throw DBException.SerializationError(e)
+            throw DBException.SerializationException(e)
         }
     }
 

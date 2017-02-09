@@ -15,7 +15,7 @@ open class DBException(message: String?, cause: Throwable?) : RuntimeException(m
     constructor(message: String):this(message, null)
 
 
-    class OutOfMemory(e: Throwable) : VolumeIOError(
+    class OutOfMemory(e: Throwable) : VolumeIOException(
             if ("Direct buffer memory" == e.message)
                 "Out of Direct buffer memory. Increase it with JVM option '-XX:MaxDirectMemorySize=10G'"
             else
@@ -50,12 +50,12 @@ open class DBException(message: String?, cause: Throwable?) : RuntimeException(m
     open class VolumeClosedByInterrupt(e: Throwable?) : DBException("Thread was interrupted during IO, FileChannel closed in result", e){
     }
 
-    open class VolumeIOError(msg:String?, e: Throwable?) : DBException(msg, e){
+    open class VolumeIOException(msg:String?, e: Throwable?) : DBException(msg, e){
         constructor(e: IOException):this(null, e)
         constructor(msg: String):this(msg, null)
     }
 
-    open class VolumeEOF(msg:String?, e: IOException?) : VolumeIOError(msg, e){
+    open class VolumeEOF(msg:String?, e: IOException?) : VolumeIOException(msg, e){
         constructor(e: IOException):this(null, e)
         constructor(msg: String):this(msg,null)
     }
@@ -64,7 +64,7 @@ open class DBException(message: String?, cause: Throwable?) : RuntimeException(m
     class VolumeMaxSizeExceeded(length: Long, requestedLength: Long) :
             DBException("Could not expand store. Maximal store size: $length, new requested size: $requestedLength")
 
-    open class SerializationError(msg:String?, e: Throwable?) : DBException(msg, e){
+    open class SerializationException(msg:String?, e: Throwable?) : DBException(msg, e){
         constructor(e: Throwable):this(null, e)
         constructor(msg: String):this(msg, null)
     }

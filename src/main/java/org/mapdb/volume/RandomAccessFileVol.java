@@ -60,7 +60,7 @@ public final class RandomAccessFileVol extends Volume {
                 }
             }
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
     }
 
@@ -70,7 +70,7 @@ public final class RandomAccessFileVol extends Volume {
             if (raf.length() < offset)
                 raf.setLength(offset);
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
     }
 
@@ -79,7 +79,7 @@ public final class RandomAccessFileVol extends Volume {
         try {
             raf.setLength(size);
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
     }
 
@@ -93,7 +93,7 @@ public final class RandomAccessFileVol extends Volume {
             raf.seek(offset);
             raf.writeLong(value);
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
     }
 
@@ -108,7 +108,7 @@ public final class RandomAccessFileVol extends Volume {
             raf.seek(offset);
             raf.writeInt(value);
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
 
     }
@@ -123,7 +123,7 @@ public final class RandomAccessFileVol extends Volume {
             raf.seek(offset);
             raf.writeByte(value);
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
 
     }
@@ -138,7 +138,7 @@ public final class RandomAccessFileVol extends Volume {
             raf.seek(offset);
             raf.write(src, srcPos, srcSize);
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
     }
 
@@ -165,7 +165,7 @@ public final class RandomAccessFileVol extends Volume {
             raf.seek(offset);
             return raf.readLong();
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
     }
 
@@ -175,7 +175,7 @@ public final class RandomAccessFileVol extends Volume {
             raf.seek(offset);
             return raf.readInt();
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
 
     }
@@ -186,7 +186,7 @@ public final class RandomAccessFileVol extends Volume {
             raf.seek(offset);
             return raf.readByte();
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
     }
 
@@ -198,7 +198,7 @@ public final class RandomAccessFileVol extends Volume {
             raf.readFully(b);
             return new DataInput2.ByteArray(b);
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
     }
 
@@ -208,7 +208,7 @@ public final class RandomAccessFileVol extends Volume {
             raf.seek(offset);
             raf.readFully(bytes, bytesPos, size);
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
     }
 
@@ -223,7 +223,7 @@ public final class RandomAccessFileVol extends Volume {
             }
             raf.close();
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
     }
 
@@ -232,7 +232,7 @@ public final class RandomAccessFileVol extends Volume {
         try {
             raf.getFD().sync();
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
     }
 
@@ -251,7 +251,7 @@ public final class RandomAccessFileVol extends Volume {
         try {
             return raf.length();
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
     }
 
@@ -270,7 +270,7 @@ public final class RandomAccessFileVol extends Volume {
         try {
             clearRAF(raf, startOffset, endOffset);
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
     }
 
@@ -290,7 +290,7 @@ public final class RandomAccessFileVol extends Volume {
             raf.write(value >> 8);
             raf.write(value);
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
     }
 
@@ -302,7 +302,7 @@ public final class RandomAccessFileVol extends Volume {
                     raf.readUnsignedByte();
 
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
     }
 
@@ -318,7 +318,7 @@ public final class RandomAccessFileVol extends Volume {
                             (raf.readUnsignedByte() << 8) |
                             raf.readUnsignedByte();
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
     }
 
@@ -336,7 +336,7 @@ public final class RandomAccessFileVol extends Volume {
             raf.write((int) (value >>> 8));
             raf.write((int) (value));
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
 
     }
@@ -359,7 +359,7 @@ public final class RandomAccessFileVol extends Volume {
             raf.write((int) ((value & 0x7F)|0x80));
             return ret;
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
 
     }
@@ -381,7 +381,7 @@ public final class RandomAccessFileVol extends Volume {
 
             return (pos2 << 60) | ret;
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
 
     }
