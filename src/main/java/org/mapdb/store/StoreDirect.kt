@@ -484,7 +484,7 @@ class StoreDirect(
                 stackVal = stackVal and DataIO.PACK_LONG_RESULT_MASK
 
                 if (stackVal.ushr(48) != 0L)
-                    throw AssertionError()
+                    throw IllegalStateException()
 
                 parity1Get(stackVal) //assert parity
                 body(stackVal)
@@ -952,9 +952,9 @@ class StoreDirect(
 
         fun set(start: Long, end: Long, expectZeros: Boolean) {
             if (start > max)
-                throw AssertionError("start too high")
+                throw IllegalStateException("start too high")
             if (end > max)
-                throw AssertionError("end too high")
+                throw IllegalStateException("end too high")
 
             if (CC.ZEROS && expectZeros)
                 volume.assertZeroes(start, end)
@@ -964,7 +964,7 @@ class StoreDirect(
 
             for (index in start0 until end0) {
                 if (bit.get(index)) {
-                    throw AssertionError("already set $index - ${index % CC.PAGE_SIZE}")
+                    throw IllegalStateException("already set $index - ${index % CC.PAGE_SIZE}")
                 }
             }
 
@@ -1047,7 +1047,7 @@ class StoreDirect(
                         while (bit.get(index.toInt() + len).not()) {
                             len++;
                         }
-                        throw AssertionError("not set at $index, for length $len - ${index % CC.PAGE_SIZE} - $dataTail - $fileTail")
+                        throw IllegalStateException("not set at $index, for length $len - ${index % CC.PAGE_SIZE} - $dataTail - $fileTail")
                     }
                 }
             }

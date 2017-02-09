@@ -117,7 +117,7 @@ class StoreOnHeap(
                 freeRecidsSet.addAll(freeRecids)
                 for (recid in 1..maxRecid.get()) {
                     if (!freeRecidsSet.contains(recid) && !records.containsKey(recid))
-                        throw AssertionError("Recid not used " + recid);
+                        throw IllegalStateException("Recid not used " + recid);
                 }
             }
         }

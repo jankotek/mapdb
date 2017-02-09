@@ -58,7 +58,7 @@ public abstract class Volume implements Closeable{
                 return i;
             }
         }
-        throw new AssertionError("Could not find sliceShift");
+        throw new IllegalStateException("Could not find sliceShift");
     }
 
     static boolean isEmptyFile(String fileName) {

@@ -271,7 +271,7 @@ abstract class StoreDirectAbstract(
         // increment maximal recid
         val ret = maxRecid2+1;
         maxRecid = ret;
-        if(CC.ZEROS && volume.getLong(recidToOffset(ret))!=0L)
+        if(CC.ASSERT && CC.ZEROS && volume.getLong(recidToOffset(ret))!=0L)
             throw AssertionError();
         return ret;
     }

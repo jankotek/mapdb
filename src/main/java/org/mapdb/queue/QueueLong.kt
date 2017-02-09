@@ -275,30 +275,30 @@ class QueueLong(
         if(head==tail){
             //empty queue
             if(headPrev!=0L)
-                throw AssertionError("headPrev not 0")
+                throw IllegalStateException("headPrev not 0")
             return
         }
 
         var node = store.get(tail, Node.SERIALIZER)
-            ?: throw AssertionError("node not found")
+            ?: throw IllegalStateException("node not found")
         if(node.prevRecid!=0L)
-            throw AssertionError("prevRecid not 0")
+            throw IllegalStateException("prevRecid not 0")
         var prevRecid = tail;
 
         while(node.nextRecid!=head){
             val recid = node.nextRecid
             node = store.get(recid, Node.SERIALIZER)
-                ?: throw AssertionError("node not found")
+                ?: throw IllegalStateException("node not found")
             if(prevRecid!=node.prevRecid)
-                throw AssertionError("prev recid")
+                throw IllegalStateException("prev recid")
 
             prevRecid = recid
         }
 
         if(store.get(head, Node.SERIALIZER)!=null)
-            throw AssertionError("prealloc record")
+            throw IllegalStateException("prealloc record")
         if(prevRecid != headPrev)
-            throw AssertionError("wrong headPrevRecid")
+            throw IllegalStateException("wrong headPrevRecid")
 
     }
 

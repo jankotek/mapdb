@@ -1330,7 +1330,7 @@ open class DB(
                 override fun create(): DBConcurrentNavigableMap<K, V> {
                     consumer.create()
                     this@TreeMapMaker._rootRecidRecid = consumer.rootRecidRecid
-                            ?: throw AssertionError()
+                            ?: throw IllegalStateException()
                     this@TreeMapMaker._counterRecid =
                             if(_counterEnable) db.store.put(consumer.counter, Serializer.LONG_PACKED)
                             else 0L
@@ -1408,7 +1408,7 @@ open class DB(
                 override fun create(): DBNavigableSet<E> {
                     consumer.create()
                     this@TreeSetMaker._rootRecidRecid = consumer.rootRecidRecid
-                            ?: throw AssertionError()
+                            ?: throw IllegalStateException()
                     this@TreeSetMaker._counterRecid =
                             if(_counterEnable) db.store.put(consumer.counter, Serializer.LONG_PACKED)
                             else 0L
@@ -1933,7 +1933,7 @@ open class DB(
     override fun assertThreadSafe() {
         super.assertThreadSafe()
         if(store.isThreadSafe.not())
-            throw AssertionError()
+            throw IllegalStateException()
     }
 
     /**
