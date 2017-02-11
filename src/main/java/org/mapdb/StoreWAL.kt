@@ -185,7 +185,7 @@ class StoreWAL(
         assertNotClosed()
         Utils.lockWrite(locks[recidToSegment(recid)]) {
             //compare old value
-            val old = get(recid, serializer)
+            val old = getProtected(recid, serializer)
 
             if (old === null && expectedOldRecord !== null)
                 return false;
@@ -496,36 +496,44 @@ class StoreWAL(
     override fun <R> get(recid: Long, serializer: Serializer<R>): R? {
         val segment = recidToSegment(recid)
         Utils.lockRead(locks[segment]){
-            val indexVal = getIndexVal(recid)
-            val size = indexValToSize(indexVal)
-            if(size==NULL_RECORD_SIZE)
-                return null
-            if(size==DELETED_RECORD_SIZE)
-                throw DBException.GetVoid(recid)
-
-            if(indexValFlagLinked(indexVal)){
-                val ba = linkedRecordGet(indexVal, recid)
-                return deserialize(serializer, DataInput2.ByteArray(ba), ba.size.toLong())
-            }
-
-            val volOffset = indexValToOffset(indexVal)
-
-            if(size<6){
-                if(CC.ASSERT && size>5)
-                    throw DBException.DataCorruption("wrong size record header");
-                return serializer.deserializeFromLong(volOffset.ushr(8), size.toInt())
-            }
-
-            val walId = cacheRecords[segment].get(volOffset)
-            val di = if(walId!=0L){
-                    //try to get from WAL
-                    DataInput2.ByteArray(wal.walGetRecord(walId,recid))
-                }else {
-                    //not in WAL, load from volume
-                    volume.getDataInput(volOffset,size.toInt())
-                }
-            return deserialize(serializer, di, size)
+            return getProtected(recid, serializer)
         }
+    }
+
+    private fun <R> getProtected(recid: Long, serializer: Serializer<R>): R? {
+        //TODO assert read locked
+
+        val segment = recidToSegment(recid)
+
+        val indexVal = getIndexVal(recid)
+        val size = indexValToSize(indexVal)
+        if (size == NULL_RECORD_SIZE)
+            return null
+        if (size == DELETED_RECORD_SIZE)
+            throw DBException.GetVoid(recid)
+
+        if (indexValFlagLinked(indexVal)) {
+            val ba = linkedRecordGet(indexVal, recid)
+            return deserialize(serializer, DataInput2.ByteArray(ba), ba.size.toLong())
+        }
+
+        val volOffset = indexValToOffset(indexVal)
+
+        if (size < 6) {
+            if (CC.ASSERT && size > 5)
+                throw DBException.DataCorruption("wrong size record header");
+            return serializer.deserializeFromLong(volOffset.ushr(8), size.toInt())
+        }
+
+        val walId = cacheRecords[segment].get(volOffset)
+        val di = if (walId != 0L) {
+            //try to get from WAL
+            DataInput2.ByteArray(wal.walGetRecord(walId, recid))
+        } else {
+            //not in WAL, load from volume
+            volume.getDataInput(volOffset, size.toInt())
+        }
+        return deserialize(serializer, di, size)
     }
 
     override fun getAllRecids(): LongIterator {

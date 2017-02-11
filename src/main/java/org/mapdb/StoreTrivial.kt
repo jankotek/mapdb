@@ -1,6 +1,5 @@
 package org.mapdb
 
-import org.eclipse.collections.api.LongIterable
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.eclipse.collections.impl.stack.mutable.primitive.LongArrayStack
@@ -9,7 +8,8 @@ import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.nio.channels.FileLock
 import java.nio.channels.OverlappingFileLockException
-import java.nio.file.*
+import java.nio.file.Files
+import java.nio.file.StandardOpenOption
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.locks.ReadWriteLock
@@ -102,30 +102,36 @@ open class StoreTrivial(
 
     fun saveTo(outStream: OutputStream) {
         Utils.lockRead(lock) {
-            DataOutputStream(outStream).writeLong(fileHeaderCompose())
-            val recidIter = records.keySet().longIterator()
-            //ByteArray has no equal method, must compare one by one
-            while (recidIter.hasNext()) {
-                val recid = recidIter.next();
-                val bytes = records.get(recid)
-                DataIO.packLong(outStream, recid)
-                val sizeToWrite: Long =
-                        if (bytes === NULL_RECORD) {
-                            -1L
-                        } else {
-                            bytes.size.toLong()
-                        }
-                DataIO.packLong(outStream, sizeToWrite + 1L)
-
-                if (sizeToWrite >= 0)
-                    outStream.write(bytes)
-            }
-
-            //zero recid marks end
-            DataIO.packLong(outStream, 0L)
-
-            Utils.logDebug { "Saved ${records.size()} records" }
+            saveToProtected(outStream)
         }
+    }
+
+    protected fun saveToProtected(outStream: OutputStream) {
+        //TODO assert protected
+
+        DataOutputStream(outStream).writeLong(fileHeaderCompose())
+        val recidIter = records.keySet().longIterator()
+        //ByteArray has no equal method, must compare one by one
+        while (recidIter.hasNext()) {
+            val recid = recidIter.next();
+            val bytes = records.get(recid)
+            DataIO.packLong(outStream, recid)
+            val sizeToWrite: Long =
+                    if (bytes === NULL_RECORD) {
+                        -1L
+                    } else {
+                        bytes.size.toLong()
+                    }
+            DataIO.packLong(outStream, sizeToWrite + 1L)
+
+            if (sizeToWrite >= 0)
+                outStream.write(bytes)
+        }
+
+        //zero recid marks end
+        DataIO.packLong(outStream, 0L)
+
+        Utils.logDebug { "Saved ${records.size()} records" }
     }
 
     override fun preallocate(): Long {
@@ -421,7 +427,7 @@ class StoreTrivialTx(val file:File, isThreadSafe:Boolean=true, val deleteFilesAf
     }
 
     override fun commit() {
-        Utils.lockRead(lock) {
+        Utils.lockWrite(lock) {
             val prev = lastFileNum;
             val next = prev + 1;
 
@@ -430,7 +436,7 @@ class StoreTrivialTx(val file:File, isThreadSafe:Boolean=true, val deleteFilesAf
             //TODO provide File.newOutput... method protected by C marker
             //TODO write using output stream should call FD.sync() at end
             Files.newOutputStream(saveTo, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE).buffered().use {
-                saveTo(it)
+                saveToProtected(it)
             }
             //create commit marker
             Files.createFile(Utils.pathChangeSuffix(path, "." + next + COMMIT_MARKER_SUFFIX))

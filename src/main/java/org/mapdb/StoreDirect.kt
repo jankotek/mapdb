@@ -522,31 +522,37 @@ class StoreDirect(
         assertNotClosed()
 
         Utils.lockRead(locks[recidToSegment(recid)]) {
-            val indexVal = getIndexVal(recid);
-
-            if (indexValFlagLinked(indexVal)) {
-                val di = linkedRecordGet(indexVal)
-                return deserialize(serializer, DataInput2.ByteArray(di), di.size.toLong())
-            }
-
-            var size = indexValToSize(indexVal);
-            if (size == DELETED_RECORD_SIZE)
-                throw DBException.GetVoid(recid)
-
-            if (size == NULL_RECORD_SIZE)
-                return null;
-
-            val offset = indexValToOffset(indexVal);
-
-            if(size<6){
-                 if(CC.ASSERT && size>5)
-                    throw DBException.DataCorruption("wrong size record header");
-                return serializer.deserializeFromLong(offset.ushr(8), size.toInt())
-            }
-
-            val di = volume.getDataInput(offset, size.toInt())
-            return deserialize(serializer, di, size)
+            return getProtected(recid, serializer)
         }
+    }
+
+    protected fun <R> getProtected(recid: Long, serializer: Serializer<R>): R? {
+        //TODO assert read lock
+
+        val indexVal = getIndexVal(recid);
+
+        if (indexValFlagLinked(indexVal)) {
+            val di = linkedRecordGet(indexVal)
+            return deserialize(serializer, DataInput2.ByteArray(di), di.size.toLong())
+        }
+
+        var size = indexValToSize(indexVal);
+        if (size == DELETED_RECORD_SIZE)
+            throw DBException.GetVoid(recid)
+
+        if (size == NULL_RECORD_SIZE)
+            return null;
+
+        val offset = indexValToOffset(indexVal);
+
+        if (size < 6) {
+            if (CC.ASSERT && size > 5)
+                throw DBException.DataCorruption("wrong size record header");
+            return serializer.deserializeFromLong(offset.ushr(8), size.toInt())
+        }
+
+        val di = volume.getDataInput(offset, size.toInt())
+        return deserialize(serializer, di, size)
     }
 
 
@@ -704,7 +710,7 @@ class StoreDirect(
         assertNotClosed()
         Utils.lockWrite(locks[recidToSegment(recid)]) {
             //compare old value
-            val old = get(recid, serializer)
+            val old = getProtected(recid, serializer)
 
             if (old === null && expectedOldRecord !== null)
                 return false;
