@@ -776,7 +776,7 @@ class StoreDirect(
                         var data: ByteArray? = null;
                         var exist = true;
                         try {
-                            data = get(recid, Serializer.BYTE_ARRAY_NOSIZE)
+                            data = getProtected(recid, Serializer.BYTE_ARRAY_NOSIZE)
                             exist = true
                         } catch(e: Exception) {
                             //TODO better way to check for parity errors, EOF etc

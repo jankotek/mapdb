@@ -161,9 +161,10 @@ internal object Utils {
         }
     }
 
-    class SingleEntryReadWriteLock(
-            val lock:ReentrantReadWriteLock=ReentrantReadWriteLock()
-    ):ReadWriteLock by lock{
+    class SingleEntryReadWriteLock:ReadWriteLock{
+
+        //TODO private
+        val lock:ReentrantReadWriteLock=ReentrantReadWriteLock()
 
         private val readLockThreads = MapMaker().weakKeys().makeMap<Thread, Lock>()
 
