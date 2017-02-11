@@ -1,5 +1,6 @@
 package org.mapdb
 
+import com.google.common.collect.MapMaker
 import java.io.File
 import java.nio.file.Path
 import java.util.*
@@ -164,11 +165,35 @@ internal object Utils {
             val lock:ReentrantReadWriteLock=ReentrantReadWriteLock()
     ):ReadWriteLock by lock{
 
+        private val readLockThreads = MapMaker().weakKeys().makeMap<Thread, Lock>()
+
+        private fun ensureNotLocked() {
+            if (lock.isWriteLockedByCurrentThread)
+                throw IllegalMonitorStateException("can not lock, already locked for write by current thread")
+            if(readLockThreads.containsKey(Thread.currentThread()))
+                throw IllegalMonitorStateException("can not lock, already locked for read by current thread")
+        }
+
         val origWriteLock = lock.writeLock()
-        val newWriteLock = object: Lock by origWriteLock{
-            private fun ensureNotLocked() {
-                if (lock.isWriteLockedByCurrentThread)
-                    throw IllegalMonitorStateException("already locked by current thread")
+        val origReadLock = lock.readLock()
+
+        val newWriteLock = object: Lock{
+            override fun unlock() {
+                origWriteLock.unlock()
+            }
+
+            override fun tryLock(): Boolean {
+                ensureNotLocked()
+                return origWriteLock.tryLock()
+            }
+
+            override fun tryLock(time: Long, unit: TimeUnit?): Boolean {
+                ensureNotLocked()
+                return origWriteLock.tryLock(time, unit)
+            }
+
+            override fun newCondition(): Condition {
+                throw UnsupportedOperationException()
             }
 
             override fun lock() {
@@ -182,7 +207,48 @@ internal object Utils {
             }
         }
 
+        val newReadLock = object: Lock{
+
+            override fun tryLock(): Boolean {
+                ensureNotLocked()
+                val r =  origReadLock.tryLock()
+                if(r)
+                    readLockThreads.put(Thread.currentThread(), this)
+                return r
+            }
+
+            override fun tryLock(time: Long, unit: TimeUnit?): Boolean {
+                ensureNotLocked()
+                val r = origReadLock.tryLock(time, unit)
+                if(r)
+                    readLockThreads.put(Thread.currentThread(), this)
+                return r
+            }
+
+            override fun newCondition(): Condition {
+                throw UnsupportedOperationException()
+            }
+
+            override fun lock() {
+                ensureNotLocked()
+                readLockThreads.put(Thread.currentThread(), this)
+                origReadLock.lock()
+            }
+
+            override fun lockInterruptibly() {
+                ensureNotLocked()
+                readLockThreads.put(Thread.currentThread(), this)
+                origReadLock.lockInterruptibly()
+            }
+
+            override fun unlock() {
+                readLockThreads.remove(Thread.currentThread())
+                origReadLock.unlock()
+            }
+        }
+
         override fun writeLock() = newWriteLock
+        override fun readLock() = newReadLock
     }
 
     class SingleEntryLock(val lock:ReentrantLock = ReentrantLock()): Lock by lock{

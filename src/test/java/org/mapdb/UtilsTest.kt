@@ -6,11 +6,12 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.locks.ReadWriteLock
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
-
 class UtilsTest{
 
 
-    @Test fun single_entry_lock(){
+
+    @Test(timeout = 10000)
+    fun single_entry_lock(){
         val lock = Utils.singleEntryLock()
         lock.lock()
         lock.unlock()
@@ -25,21 +26,44 @@ class UtilsTest{
         }
     }
 
-    @Test fun single_entry_read_write_lock(){
-        val lock = Utils.SingleEntryReadWriteLock().writeLock()
-        lock.lock()
-        lock.unlock()
 
-        lock.lock()
+    @Test(timeout = 10000)
+    fun single_entry_read_write_lock(){
+        val lock = Utils.SingleEntryReadWriteLock()
+        lock.writeLock().lock()
+        lock.writeLock().unlock()
+
+        lock.writeLock().lock()
         assertFailsWith(IllegalMonitorStateException::class.java){
-            lock.lock()
+            lock.writeLock().lock()
         }
-        lock.unlock()
         assertFailsWith(IllegalMonitorStateException::class.java){
-            lock.unlock()
+            lock.readLock().lock()
+        }
+
+        lock.writeLock().unlock()
+        assertFailsWith(IllegalMonitorStateException::class.java){
+            lock.writeLock().unlock()
         }
     }
 
+    @Test(timeout = 10000)
+    fun single_entry_read_write_lock2(){
+        val lock = Utils.SingleEntryReadWriteLock()
+
+        lock.readLock().lock()
+        assertFailsWith(IllegalMonitorStateException::class.java){
+            lock.readLock().lock()
+        }
+        assertFailsWith(IllegalMonitorStateException::class.java){
+            lock.writeLock().lock()
+        }
+
+        lock.readLock().unlock()
+        assertFailsWith(IllegalMonitorStateException::class.java){
+            lock.readLock().unlock()
+        }
+    }
 
     @Test(timeout = 10000)
     fun lockWriteAll(){
