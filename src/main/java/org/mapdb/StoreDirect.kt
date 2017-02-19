@@ -121,7 +121,7 @@ class StoreDirect(
 
     override protected fun getIndexVal(recid:Long):Long{
         if(CC.PARANOID) //should be ASSERT, but this method is accessed way too often
-            Utils.assertReadLock(locks[recidToSegment(recid)])
+            locks?.checkReadLocked(recidToSegment(recid))
 
         try {
             val offset = recidToOffset(recid)
@@ -136,7 +136,7 @@ class StoreDirect(
 
     override protected fun setIndexVal(recid:Long, value:Long){
         if(CC.ASSERT)
-            Utils.assertWriteLock(locks[recidToSegment(recid)])
+            locks?.checkWriteLocked(recidToSegment(recid))
 
         val offset = recidToOffset(recid)
         volume.putLong(offset, parity1Set(value));
@@ -505,7 +505,7 @@ class StoreDirect(
             allocateRecid()
         }
 
-        Utils.lockWrite(locks[recidToSegment(recid)]) {
+        Utils.lockWrite(locks,recidToSegment(recid)) {
             if (CC.ASSERT) {
                 val oldVal = volume.getLong(recidToOffset(recid))
                 if(oldVal!=0L && indexValToSize(oldVal)!=DELETED_RECORD_SIZE)
@@ -521,7 +521,7 @@ class StoreDirect(
     override fun <R> get(recid: Long, serializer: Serializer<R>): R? {
         assertNotClosed()
 
-        Utils.lockRead(locks[recidToSegment(recid)]) {
+        Utils.lockRead(locks,recidToSegment(recid)) {
             return getProtected(recid, serializer)
         }
     }
@@ -560,7 +560,7 @@ class StoreDirect(
     override fun getBinaryLong(recid:Long, f: StoreBinaryGetLong): Long {
         assertNotClosed()
 
-        Utils.lockRead(locks[recidToSegment(recid)]) {
+        Utils.lockRead(locks, recidToSegment(recid)) {
             val indexVal = getIndexVal(recid);
 
             if (indexValFlagLinked(indexVal)) {
@@ -602,7 +602,7 @@ class StoreDirect(
                 allocateRecid()
             }
 
-            Utils.lockWrite(locks[recidToSegment(recid)]) {
+            Utils.lockWrite(locks, recidToSegment(recid)) {
                 if (di == null) {
                     setIndexVal(recid, indexValCompose(size = NULL_RECORD_SIZE, offset = 0, linked = 0, unused = 0, archive = 1))
                     return recid
@@ -639,14 +639,14 @@ class StoreDirect(
         assertNotClosed()
         val di = serialize(record, serializer);
 
-        Utils.lockWrite(locks[recidToSegment(recid)]) {
+        Utils.lockWrite(locks, recidToSegment(recid)) {
             updateProtected(recid, di)
         }
     }
 
     private fun updateProtected(recid: Long, di: DataOutput2?) {
         if (CC.ASSERT)
-            Utils.assertWriteLock(locks[recidToSegment(recid)])
+            locks?.checkWriteLocked(recidToSegment(recid))
 
         val oldIndexVal = getIndexVal(recid);
         val oldLinked = indexValFlagLinked(oldIndexVal);
@@ -708,7 +708,7 @@ class StoreDirect(
 
     override fun <R> compareAndSwap(recid: Long, expectedOldRecord: R?, newRecord: R?, serializer: Serializer<R>): Boolean {
         assertNotClosed()
-        Utils.lockWrite(locks[recidToSegment(recid)]) {
+        Utils.lockWrite(locks,recidToSegment(recid)) {
             //compare old value
             val old = getProtected(recid, serializer)
 
@@ -730,7 +730,7 @@ class StoreDirect(
     override fun <R> delete(recid: Long, serializer: Serializer<R>) {
         assertNotClosed()
 
-        Utils.lockWrite(locks[recidToSegment(recid)]) {
+        Utils.lockWrite(locks, recidToSegment(recid)) {
             val oldIndexVal = getIndexVal(recid);
             val oldSize = indexValToSize(oldIndexVal);
             if (oldSize == DELETED_RECORD_SIZE)
@@ -758,7 +758,7 @@ class StoreDirect(
 
     override fun compact() {
         Utils.lockWrite(compactionLock) {
-            Utils.lockWrite(locks) {
+            Utils.lockWriteAll(locks) {
                 Utils.lock(structuralLock) {
                     //TODO use file for compaction, if store is file based
                     val store2 = StoreDirect.make(isThreadSafe = false, concShift = 0)
@@ -866,7 +866,7 @@ class StoreDirect(
     }
 
     override fun close() {
-        Utils.lockWrite(locks){
+        Utils.lockWriteAll(locks){
             if(closed.compareAndSet(false,true).not())
                 return
 
@@ -888,7 +888,7 @@ class StoreDirect(
     override fun getAllRecids(): LongIterator {
         val ret = LongArrayList()
 
-        Utils.lockRead(locks){
+        Utils.lockReadAll(locks){
             val maxRecid = maxRecid
 
             for (recid in 1..maxRecid) {
@@ -908,113 +908,109 @@ class StoreDirect(
 
     override fun verify(){
 
-        locks.forEach { it?.readLock()?.lock() }
-        structuralLock?.lock()
-        try {
-            val bit = BitSet()
-            val max = fileTail
+        Utils.lockReadAll(locks){
+            Utils.lock(structuralLock){
+                val bit = BitSet()
+                val max = fileTail
 
-            fun set(start: Long, end: Long, expectZeros: Boolean) {
-                if (start > max)
-                    throw AssertionError("start too high")
-                if (end > max)
-                    throw AssertionError("end too high")
+                fun set(start: Long, end: Long, expectZeros: Boolean) {
+                    if (start > max)
+                        throw AssertionError("start too high")
+                    if (end > max)
+                        throw AssertionError("end too high")
 
-                if (CC.ZEROS && expectZeros)
-                    volume.assertZeroes(start, end)
+                    if (CC.ZEROS && expectZeros)
+                        volume.assertZeroes(start, end)
 
-                val start0 = start.toInt()
-                val end0 = end.toInt()
+                    val start0 = start.toInt()
+                    val end0 = end.toInt()
 
-                for (index in start0 until end0) {
-                    if (bit.get(index)) {
-                        throw AssertionError("already set $index - ${index % CC.PAGE_SIZE}")
+                    for (index in start0 until end0) {
+                        if (bit.get(index)) {
+                            throw AssertionError("already set $index - ${index % CC.PAGE_SIZE}")
+                        }
                     }
+
+                    bit.set(start0, end0)
                 }
 
-                bit.set(start0, end0)
-            }
+                set(0, HEAD_END, false)
 
-            set(0, HEAD_END, false)
+                if (dataTail % CC.PAGE_SIZE != 0L) {
+                    set(dataTail, roundUp(dataTail, CC.PAGE_SIZE), true)
+                }
 
-            if (dataTail % CC.PAGE_SIZE != 0L) {
-                set(dataTail, roundUp(dataTail, CC.PAGE_SIZE), true)
-            }
+                fun iterateOverIndexValues(indexPage: Long, end: Long) {
+                    for (indexOffset in indexPage + 16 until end step 8) {
+                        //TODO preallocated versus deleted recids
+                        set(indexOffset, indexOffset + 8, false)
+                        var indexVal = parity1Get(volume.getLong(indexOffset))
 
-            fun iterateOverIndexValues(indexPage:Long, end:Long){
-                for (indexOffset in indexPage + 16 until end step 8) {
-                    //TODO preallocated versus deleted recids
-                    set(indexOffset, indexOffset + 8, false)
-                    var indexVal = parity1Get(volume.getLong(indexOffset))
+                        if ((indexVal and MLINKED) == 0L && indexValToSize(indexVal) < 6)
+                            continue;
 
-                    if((indexVal and MLINKED)==0L && indexValToSize(indexVal)<6)
-                        continue;
-
-                    while (indexVal and MLINKED != 0L) {
-                        //iterate over linked
+                        while (indexVal and MLINKED != 0L) {
+                            //iterate over linked
+                            val offset = indexValToOffset(indexVal)
+                            val size = roundUp(indexValToSize(indexVal), 16)
+                            set(offset, offset + size, false)
+                            indexVal = parity3Get(volume.getLong(offset))
+                        }
                         val offset = indexValToOffset(indexVal)
                         val size = roundUp(indexValToSize(indexVal), 16)
-                        set(offset, offset + size, false)
-                        indexVal = parity3Get(volume.getLong(offset))
+                        if (size <= MAX_RECORD_SIZE)
+                            set(offset, offset + size, false)
                     }
-                    val offset = indexValToOffset(indexVal)
-                    val size = roundUp(indexValToSize(indexVal), 16)
-                    if (size <= MAX_RECORD_SIZE)
-                        set(offset, offset + size, false)
                 }
-            }
 
-            //analyze zero index page
-            val zeroIndexPageEnd = Math.min(CC.PAGE_SIZE, recidToOffset(maxRecid) + 8)
-            set(HEAD_END, HEAD_END+16,false)
-            iterateOverIndexValues(HEAD_END, zeroIndexPageEnd);
-            if(zeroIndexPageEnd<CC.PAGE_SIZE){
-                //expect zero at unused part
-                set(zeroIndexPageEnd, CC.PAGE_SIZE, true)
-            }
-
-            //iterate over index pages and mark their head
-            indexPages.forEach { indexPage ->
-                set(indexPage, indexPage + 16, false)
-                val end = Math.min(indexPage + CC.PAGE_SIZE, recidToOffset(maxRecid) + 8)
-                iterateOverIndexValues(indexPage, end)
-                //if last index page, expect zeroes for unused part
-                if (end < indexPage + CC.PAGE_SIZE) {
-                    set(end, indexPage + CC.PAGE_SIZE, true)
+                //analyze zero index page
+                val zeroIndexPageEnd = Math.min(CC.PAGE_SIZE, recidToOffset(maxRecid) + 8)
+                set(HEAD_END, HEAD_END + 16, false)
+                iterateOverIndexValues(HEAD_END, zeroIndexPageEnd);
+                if (zeroIndexPageEnd < CC.PAGE_SIZE) {
+                    //expect zero at unused part
+                    set(zeroIndexPageEnd, CC.PAGE_SIZE, true)
                 }
-            }
 
-            val setZeroes = { start:Long, end:Long ->
-                set(start, end , false)
-            }
-            longStackForEach(masterLinkOffset = RECID_LONG_STACK, setZeroes = setZeroes, body = { freeRecid ->
-                //deleted recids should be marked separately
-            })
+                //iterate over index pages and mark their head
+                indexPages.forEach { indexPage ->
+                    set(indexPage, indexPage + 16, false)
+                    val end = Math.min(indexPage + CC.PAGE_SIZE, recidToOffset(maxRecid) + 8)
+                    iterateOverIndexValues(indexPage, end)
+                    //if last index page, expect zeroes for unused part
+                    if (end < indexPage + CC.PAGE_SIZE) {
+                        set(end, indexPage + CC.PAGE_SIZE, true)
+                    }
+                }
 
-            //iterate over free data
-            for (size in 16..MAX_RECORD_SIZE step 16) {
-                val masterLinkOffset = longStackMasterLinkOffset(size)
-                longStackForEach(masterLinkOffset=masterLinkOffset, setZeroes = setZeroes, body= { freeOffset ->
-                    val freeOffset = parity1Get(freeOffset).shl(3)
-                    set(freeOffset, freeOffset + size, true)
+                val setZeroes = { start: Long, end: Long ->
+                    set(start, end, false)
+                }
+                longStackForEach(masterLinkOffset = RECID_LONG_STACK, setZeroes = setZeroes, body = { freeRecid ->
+                    //deleted recids should be marked separately
                 })
-            }
 
-            //ensure all data are set
-            for (index in 0 until max) {
-                if (bit.get(index.toInt()).not()) {
-                    var len = 0;
-                    while(bit.get(index.toInt()+len).not()){
-                        len++;
+                //iterate over free data
+                for (size in 16..MAX_RECORD_SIZE step 16) {
+                    val masterLinkOffset = longStackMasterLinkOffset(size)
+                    longStackForEach(masterLinkOffset = masterLinkOffset, setZeroes = setZeroes, body = { freeOffset ->
+                        val freeOffset = parity1Get(freeOffset).shl(3)
+                        set(freeOffset, freeOffset + size, true)
+                    })
+                }
+
+                //ensure all data are set
+                for (index in 0 until max) {
+                    if (bit.get(index.toInt()).not()) {
+                        var len = 0;
+                        while (bit.get(index.toInt() + len).not()) {
+                            len++;
+                        }
+                        throw AssertionError("not set at $index, for length $len - ${index % CC.PAGE_SIZE} - $dataTail - $fileTail")
                     }
-                    throw AssertionError("not set at $index, for length $len - ${index % CC.PAGE_SIZE} - $dataTail - $fileTail")
                 }
             }
-        }finally{
-            structuralLock?.unlock()
-            locks.reversedArray().forEach { it?.readLock()?.unlock() }
         }
-
     }
 
 

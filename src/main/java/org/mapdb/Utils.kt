@@ -9,7 +9,8 @@ import java.util.concurrent.locks.*
 import java.util.logging.Level
 import java.util.logging.Logger
 
-internal object Utils {
+
+object Utils {
 
     @JvmField val FAKE_LOCK:Lock = object  :Lock{
         override fun unlock() {}
@@ -107,6 +108,48 @@ internal object Utils {
         }
     }
 
+
+
+    inline fun <E> lockWriteAll(locks: SingleEntryReadWriteSegmentedLock?,f:()->E):E{
+        locks?.lockWriteAll()
+        try{
+            return f.invoke();
+        }finally{
+            locks?.unlockWriteAll()
+        }
+    }
+
+    inline fun <E> lockReadAll(locks: SingleEntryReadWriteSegmentedLock?,f:()->E):E{
+        locks?.lockReadAll()
+        try{
+            return f.invoke();
+        }finally{
+            locks?.unlockReadAll()
+        }
+    }
+
+
+
+
+    inline fun <E> lockWrite(locks: SingleEntryReadWriteSegmentedLock?, segment:Int, f:()->E):E{
+        locks?.writeLock(segment)
+        try{
+            return f.invoke();
+        }finally{
+            locks?.writeUnlock(segment)
+        }
+    }
+
+    inline fun <E> lockRead(locks: SingleEntryReadWriteSegmentedLock?, segment:Int, f:()->E):E{
+        locks?.readLock(segment)
+        try{
+            return f.invoke();
+        }finally{
+            locks?.readUnlock(segment)
+        }
+    }
+
+
     fun assertReadLock(lock: ReadWriteLock?) {
         if(CC.ASSERT && lock is ReentrantReadWriteLock && lock.readLockCount==0 && !lock.isWriteLockedByCurrentThread)
             throw AssertionError("not read locked");
@@ -180,9 +223,20 @@ internal object Utils {
                 throw IllegalMonitorStateException("not locked for write")
         }
 
+        /** checks if locked for read or locked for write, fails if not locked */
         fun checkReadLocked() {
             if(!lock.isWriteLockedByCurrentThread
                     && !readLockThreads.containsKey(Thread.currentThread()))
+                throw IllegalMonitorStateException("not locked for read")
+        }
+
+        /** checks if locked for read, but fails if not locked or locked for write */
+        fun checkReadLockedStrict() {
+            if(lock.isWriteLocked)
+                throw IllegalMonitorStateException("is write locked")
+            if(lock.readHoldCount!=1)
+                throw IllegalMonitorStateException("readHoldCount is wrong")
+            if(!readLockThreads.containsKey(Thread.currentThread()))
                 throw IllegalMonitorStateException("not locked for read")
         }
 
@@ -262,6 +316,7 @@ internal object Utils {
 
         override fun writeLock() = newWriteLock
         override fun readLock() = newReadLock
+        fun isWriteLockedByCurrentThread(): Boolean = lock.isWriteLockedByCurrentThread()
 
     }
 
@@ -292,6 +347,11 @@ internal object Utils {
         }
     }
 
+
+    fun newReadWriteSegmentedLock(threadSafe: Boolean, segmentCount:Int): SingleEntryReadWriteSegmentedLock? =
+            if(threadSafe) SingleEntryReadWriteSegmentedLock(segmentCount)
+            else null
+
     fun newReadWriteLock(threadSafe: Boolean): ReadWriteLock? {
         return if(CC.ASSERT){
             if(threadSafe) SingleEntryReadWriteLock()
@@ -318,97 +378,6 @@ internal object Utils {
     }
 
 
-    inline fun <E> lockWrite(locks: Array<ReadWriteLock?>,f:()->E):E{
-        lockWriteAll(locks)
-        try{
-            return f.invoke();
-        }finally{
-            unlockWriteAll(locks)
-        }
-    }
-
-    inline fun <E> lockRead(locks: Array<ReadWriteLock?>,f:()->E):E{
-       lockReadAll(locks)
-        try{
-            return f.invoke();
-        }finally{
-            unlockReadAll(locks)
-        }
-    }
-
-    fun lockReadAll(locks: Array<ReadWriteLock?>) {
-        if(locks==null)
-            return
-        while(true) {
-            var i = 0;
-            while(i<locks.size){
-                //try to lock all locks
-                val lock = locks[i++]?: continue
-
-                if(!lock.readLock().tryLock()){
-                    i--
-                    //could not lock, rollback all locks
-                    while(i>0){
-                        (locks[--i]?:continue).readLock().unlock()
-                    }
-
-                    Thread.sleep(0, 100*1000)
-                    //and try again to lock all
-                    i = 0
-                    continue
-                }
-            }
-            return //all locked fine
-        }
-    }
-
-    fun unlockReadAll(locks: Array<ReadWriteLock?>) {
-        if(locks==null)
-            return
-        //unlock in reverse order to prevent deadlock
-        for(i in locks.size-1 downTo 0)
-            locks[i]!!.readLock().unlock()
-    }
-
-    fun lockWriteAll(locks: Array<ReadWriteLock?>) {
-        if(locks==null)
-            return
-        while(true) {
-            var i = 0;
-            while(i<locks.size){
-                //try to lock all locks
-                val lock = locks[i++]?: continue
-
-                if(!lock.writeLock().tryLock()){
-                    i--
-                    //could not lock, rollback all locks
-                    while(i>0){
-                        (locks[--i]?:continue).writeLock().unlock()
-                    }
-
-                    Thread.sleep(0, 100*1000)
-                    //and try again to lock all
-                    i = 0
-                    continue
-                }
-
-
-            }
-            return //all locked fine
-        }
-    }
-
-    fun unlockWriteAll(locks: Array<ReadWriteLock?>) {
-        if(locks==null)
-            return
-        //unlock in reverse order to prevent deadlock
-        for(i in locks.size-1 downTo 0) {
-            val lock = locks[i]
-            if (lock != null)
-                lock.writeLock().unlock()
-        }
-    }
-
     fun identityCount(vals: Array<*>): Int {
         val a = IdentityHashMap<Any?, Any?>()
         vals.forEach { a.put(it, "") }
@@ -427,14 +396,14 @@ internal object Utils {
 
 
     class SingleEntryReadWriteSegmentedLock(
-            segmentCount:Int
+           val segmentCount:Int
     ){
 
         private val locks = Array(segmentCount, {SingleEntryReadWriteLock()})
 
-        inline fun s(segment:Int) = segment % locks.size
+        private inline fun s(segment:Int) = segment % locks.size
 
-        inline fun l(segment:Int) = locks[s(segment)]
+        private inline fun l(segment:Int) = locks[s(segment)]
 
         fun writeLock(segment:Int){
             for(lock in locks)
@@ -465,6 +434,96 @@ internal object Utils {
         fun checkWriteLocked(segment:Int){
             l(segment).checkWriteLocked()
         }
+
+        fun checkAllReadLocked() {
+            for(lock in locks)
+                lock.checkReadLocked()
+        }
+
+
+        fun checkAllReadLockedStrict() {
+            for(lock in locks)
+                lock.checkReadLockedStrict()
+        }
+
+
+
+        fun checkAllWriteLocked() {
+            for(lock in locks)
+                lock.checkWriteLocked()
+        }
+
+        fun lockReadAll() {
+            while(true) {
+                var i = 0;
+                while(i<locks.size){
+                    //try to lock all locks
+                    val lock = locks[i++]
+
+                    if(!lock.readLock().tryLock()){
+                        i--
+                        //could not lock, rollback all locks
+                        while(i>0){
+                            locks[--i].readLock().unlock()
+                        }
+
+                        Thread.sleep(0, 100*1000)
+                        //and try again to lock all
+                        i = 0
+                        continue
+                    }
+                }
+                return //all locked fine
+            }
+        }
+
+        fun unlockReadAll() {
+            for(lock in locks)
+                lock.checkReadLocked()
+
+            //unlock in reverse order to prevent deadlock
+            for(i in locks.size-1 downTo 0)
+                locks[i].readLock().unlock()
+        }
+
+        //TODO unify 'lockWriteAll' naming convention (order of words 'all' and 'lock')
+        fun lockWriteAll() {
+            while(true) {
+                var i = 0;
+                while(i<locks.size){
+                    //try to lock all locks
+                    val lock = locks[i++]
+
+                    if(!lock.writeLock().tryLock()){
+                        i--
+                        //could not lock, rollback all locks
+                        while(i>0){
+                            locks[--i].writeLock().unlock()
+                        }
+
+                        Thread.sleep(0, 100*1000)
+                        //and try again to lock all
+                        i = 0
+                        continue
+                    }
+                }
+                return //all locked fine
+            }
+        }
+
+        fun unlockWriteAll() {
+            for(lock in locks)
+                lock.checkWriteLocked()
+
+            //unlock in reverse order to prevent deadlock
+            for(i in locks.size-1 downTo 0) {
+                val lock = locks[i]
+                if (lock != null)
+                    lock.writeLock().unlock()
+            }
+        }
+
+        fun  isWriteLockedByCurrentThread(segment: Int): Boolean = l(segment).isWriteLockedByCurrentThread()
 
     }
 }

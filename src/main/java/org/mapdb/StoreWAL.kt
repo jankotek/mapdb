@@ -159,7 +159,7 @@ class StoreWAL(
     override fun getIndexVal(recid: Long): Long {
         val segment = recidToSegment(recid)
         if(CC.ASSERT)
-            Utils.assertReadLock(locks[segment])
+            locks?.checkReadLocked(segment)
 
         val indexOffset = recidToOffset(recid)
         var ret = cacheIndexVals[segment].get(indexOffset)
@@ -174,7 +174,7 @@ class StoreWAL(
     override fun setIndexVal(recid: Long, value: Long) {
         val segment = recidToSegment(recid)
         if(CC.ASSERT)
-            Utils.assertReadLock(locks[segment])
+            locks?.checkReadLocked(segment)
 
         val indexOffset = recidToOffset(recid)
         cacheIndexVals[segment].put(indexOffset, parity1Set(value))
@@ -183,7 +183,7 @@ class StoreWAL(
 
     override fun <R> compareAndSwap(recid: Long, expectedOldRecord: R?, newRecord: R?, serializer: Serializer<R>): Boolean {
         assertNotClosed()
-        Utils.lockWrite(locks[recidToSegment(recid)]) {
+        Utils.lockWrite(locks,recidToSegment(recid)) {
             //compare old value
             val old = getProtected(recid, serializer)
 
@@ -207,7 +207,7 @@ class StoreWAL(
         assertNotClosed()
         val segment = recidToSegment(recid)
 
-        Utils.lockWrite(locks[segment]) {
+        Utils.lockWrite(locks,segment) {
             val oldIndexVal = getIndexVal(recid);
             val oldSize = indexValToSize(oldIndexVal);
             if (oldSize == DELETED_RECORD_SIZE)
@@ -238,7 +238,7 @@ class StoreWAL(
         val recid = Utils.lock(structuralLock){
             allocateRecid()
         }
-        Utils.lockWrite(locks[recidToSegment(recid)]) {
+        Utils.lockWrite(locks,recidToSegment(recid)) {
 //            if (CC.ASSERT) {
 //                val oldVal = volume.getLong(recidToOffset(recid))
 //                if(oldVal!=0L && indexValToSize(oldVal)!=DELETED_RECORD_SIZE)
@@ -384,7 +384,7 @@ class StoreWAL(
         }
         val indexOffset = recidToOffset(recid)
         val segment = recidToSegment(recid)
-        Utils.lockWrite(locks[segment]) {
+        Utils.lockWrite(locks,segment) {
             if (di != null) {
                 if(di.pos==0) {
                     val indexVal = indexValCompose(size = 0, offset = 0L, archive = 1, linked = 0, unused = 0)
@@ -422,14 +422,14 @@ class StoreWAL(
         assertNotClosed()
         val di = serialize(record, serializer);
 
-        Utils.lockWrite(locks[recidToSegment(recid)]) {
+        Utils.lockWrite(locks,recidToSegment(recid)) {
             updateProtected(recid, di)
         }
     }
 
     private fun updateProtected(recid: Long, di: DataOutput2?){
         if(CC.ASSERT)
-            Utils.assertWriteLock(locks[recidToSegment(recid)])
+            locks?.checkWriteLocked(recidToSegment(recid))
 
         val oldIndexVal = getIndexVal(recid);
         val oldLinked = indexValFlagLinked(oldIndexVal);
@@ -495,7 +495,7 @@ class StoreWAL(
 
     override fun <R> get(recid: Long, serializer: Serializer<R>): R? {
         val segment = recidToSegment(recid)
-        Utils.lockRead(locks[segment]){
+        Utils.lockRead(locks,segment){
             return getProtected(recid, serializer)
         }
     }
@@ -539,7 +539,7 @@ class StoreWAL(
     override fun getAllRecids(): LongIterator {
         val ret = LongArrayList()
 
-        Utils.lockRead(locks){
+        Utils.lockReadAll(locks){
             val maxRecid = maxRecid
             for (recid in 1..maxRecid) {
                 try {
@@ -559,7 +559,7 @@ class StoreWAL(
 
     }
     override fun close() {
-        Utils.lockWrite(locks){
+        Utils.lockWriteAll(locks){
             if (closed.compareAndSet(false, true).not())
                 return
 
@@ -573,7 +573,7 @@ class StoreWAL(
     }
 
     override fun rollback() {
-        Utils.lockWrite(locks){
+        Utils.lockWriteAll(locks){
             realVolume.getData(0,headBytes, 0, headBytes.size)
             cacheIndexLinks.clear()
             cacheIndexVals.forEach { it.clear() }
@@ -587,7 +587,7 @@ class StoreWAL(
     }
 
     override fun commit() {
-        Utils.lockWrite(locks){
+        Utils.lockWriteAll(locks){
             DataIO.putInt(headBytes, 20, calculateHeaderChecksum())
             //write index page
             wal.walPutByteArray(0, headBytes, 0, headBytes.size)

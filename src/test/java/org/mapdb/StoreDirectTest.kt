@@ -231,7 +231,7 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
         assertEquals(0L, s.dataTail)
         assertEquals(1L * CC.PAGE_SIZE, s.volume.length())
         s.verify()
-        s.locks.forEach { it?.readLock()?.lock() }
+        s.locks!!.lockReadAll()
         assertEquals(
                 s.indexValCompose(size=NULL_RECORD_SIZE, offset=0L, linked=0, archive=1, unused=1),
                 s.getIndexVal(1L))

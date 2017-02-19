@@ -30,7 +30,7 @@ abstract class StoreDirectAbstract(
 
     protected val segmentCount = 1.shl(concShift)
     protected val segmentMask = 1L.shl(concShift)-1
-    protected val locks:Array<ReadWriteLock?> = Array(segmentCount, {Utils.newReadWriteLock(isThreadSafe)})
+    protected val locks = Utils.newReadWriteSegmentedLock(isThreadSafe, segmentCount)
     protected val structuralLock = Utils.newLock(isThreadSafe)
     protected val compactionLock = Utils.newReadWriteLock(isThreadSafe)
 

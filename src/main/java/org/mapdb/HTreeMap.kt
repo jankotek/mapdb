@@ -9,7 +9,6 @@ import java.util.*
 import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.locks.ReadWriteLock
 import java.util.function.BiConsumer
 
 /**
@@ -114,7 +113,7 @@ class HTreeMap<K,V>(
 
     private val storesUniqueCount = Utils.identityCount(stores)
 
-    protected val locks:Array<ReadWriteLock?> = Array(segmentCount, {Utils.newReadWriteLock(isThreadSafe)})
+    protected val locks = Utils.newReadWriteSegmentedLock(threadSafe = isThreadSafe, segmentCount=segmentCount)
 
     /** true if Eviction is executed inside user thread, as part of get/put etc operations */
     //TODO make protected
@@ -146,7 +145,7 @@ class HTreeMap<K,V>(
         if(expireExecutor!=null && (expireCreateQueues!=null || expireUpdateQueues!=null || expireGetQueues!=null)){
             for(segment in 0 until segmentCount){
                 expireExecutor.scheduleAtFixedRate(Utils.logExceptions({
-                    segmentWrite(segment){
+                    Utils.lockWrite(locks, segment){
                         expireEvictSegment(segment)
                     }
                 }),
@@ -272,25 +271,22 @@ class HTreeMap<K,V>(
     protected fun hashToSegment(hash:Int) = hash.ushr(levels*dirShift) and concMask
 
 
-    private inline fun <E> segmentWrite(segment:Int, body:()->E):E{
-        val lock = locks[segment]?.writeLock()
-        lock?.lock()
-        try {
-            return body()
-        }finally{
-            lock?.unlock()
-        }
-    }
 
     private inline fun <E> segmentRead(segment:Int, body:()->E):E{
-        val lock =  // if expireGetQueue is modified on get, we need write lock
-                if(expireGetQueues==null && valueLoader ==null) locks[segment]?.readLock()
-                else locks[segment]?.writeLock()
-        lock?.lock()
+        // if expireGetQueue is modified on get, we need write lock
+        val readLock = expireGetQueues==null && valueLoader ==null
+
+        if(readLock)
+            locks?.readLock(segment)
+        else
+            locks?.writeLock(segment)
         try {
             return body()
         }finally{
-            lock?.unlock()
+            if(readLock)
+                locks?.readUnlock(segment)
+            else
+                locks?.writeUnlock(segment)
         }
     }
 
@@ -299,7 +295,8 @@ class HTreeMap<K,V>(
         if(counterRecids==null)
             return
         if(CC.ASSERT)
-            Utils.assertWriteLock(locks[segment])
+            locks?.checkWriteLocked(segment)
+
         val recid = counterRecids[segment]
         val count = stores[segment].get(recid, Serializer.LONG_PACKED)
             ?: throw DBException.DataCorruption("counter not found")
@@ -329,7 +326,7 @@ class HTreeMap<K,V>(
         }
 
         val segment = hashToSegment(hash)
-        segmentWrite(segment) {->
+        Utils.lockWrite(locks, segment) {->
             if(isForegroundEviction)
                 expireEvictSegment(segment)
 
@@ -340,7 +337,7 @@ class HTreeMap<K,V>(
     protected fun putProtected(hash:Int, key:K, value:V, triggered:Boolean, noValueExpand:Boolean):V?{
         val segment = hashToSegment(hash)
         if(CC.ASSERT)
-            Utils.assertWriteLock(locks[segment])
+            locks?.checkWriteLocked(segment)
         if(CC.PARANOID && hash!= hash(key))
             throw AssertionError()
 
@@ -471,7 +468,7 @@ class HTreeMap<K,V>(
             throw NullPointerException()
         val hash = hash(key)
         val segment = hashToSegment(hash)
-        segmentWrite(segment) {->
+        Utils.lockWrite(locks, segment) {->
             if(isForegroundEviction)
                 expireEvictSegment(segment)
 
@@ -482,7 +479,7 @@ class HTreeMap<K,V>(
     protected fun removeprotected(hash:Int, key: K, evicted:Boolean): V? {
         val segment = hashToSegment(hash)
         if(CC.ASSERT)
-            Utils.assertWriteLock(locks[segment])
+            locks?.checkWriteLocked(segment)
         if(CC.PARANOID && hash!= hash(key))
             throw AssertionError()
 
@@ -560,7 +557,7 @@ class HTreeMap<K,V>(
         val notify = notifyListeners>0 &&  modificationListeners!=null && modificationListeners.isEmpty().not()
         val triggerExpiration = notifyListeners==2
         for(segment in 0 until segmentCount) {
-            Utils.lockWrite(locks[segment]) {
+            Utils.lockWrite(locks,segment) {
                 val indexTree = indexTrees[segment]
                 val store = stores[segment]
                 indexTree.forEachKeyValue { index, leafRecid ->
@@ -628,9 +625,9 @@ class HTreeMap<K,V>(
         val segment = hashToSegment(hash)
         if(CC.ASSERT) {
             if(updateQueue && expireGetQueues!=null)
-                Utils.assertWriteLock(locks[segment])
+                locks?.checkWriteLocked(segment)
             else
-                Utils.assertReadLock(locks[segment])
+                locks?.checkReadLocked(segment)
         }
         if(CC.PARANOID && hash!= hash(key))
             throw AssertionError()
@@ -664,7 +661,7 @@ class HTreeMap<K,V>(
 
     private fun getprotectedQueues(expireGetQueues: Array<QueueLong>, i: Int, leaf: Array<Any>, leafRecid: Long, segment: Int, store: Store): Array<Any> {
         if(CC.ASSERT)
-            Utils.assertWriteLock(locks[segment])
+            locks?.checkWriteLocked(segment)
 
         //update expiration stuff
         var leaf1 = leaf
@@ -703,7 +700,7 @@ class HTreeMap<K,V>(
 
     override fun isEmpty(): Boolean {
         for(segment in 0 until segmentCount) {
-            Utils.lockRead(locks[segment]) {
+            Utils.lockRead(locks, segment) {
                 if (!indexTrees[segment].isEmpty)
                     return false
             }
@@ -718,7 +715,7 @@ class HTreeMap<K,V>(
         var ret = 0L
         for(segment in 0 until segmentCount) {
 
-            Utils.lockRead(locks[segment]){
+            Utils.lockRead(locks, segment){
                 if(counterRecids!=null){
                     ret += stores[segment].get(counterRecids[segment], Serializer.LONG_PACKED)
                             ?: throw DBException.DataCorruption("counter not found")
@@ -740,7 +737,7 @@ class HTreeMap<K,V>(
 
         val hash = hash(key)
         val segment = hashToSegment(hash)
-        segmentWrite(segment) {
+        Utils.lockWrite(locks, segment) {
             if(isForegroundEviction)
                 expireEvictSegment(segment)
 
@@ -756,7 +753,7 @@ class HTreeMap<K,V>(
 
         val hash = hash(key)
         val segment = hashToSegment(hash)
-        segmentWrite(segment) {
+        Utils.lockWrite(locks, segment) {
             if(isForegroundEviction)
                 expireEvictSegment(segment)
 
@@ -773,7 +770,7 @@ class HTreeMap<K,V>(
 
         val hash = hash(key as K)
         val segment = hashToSegment(hash)
-        segmentWrite(segment) {
+        Utils.lockWrite(locks, segment) {
             if(isForegroundEviction)
                 expireEvictSegment(segment)
 
@@ -792,7 +789,7 @@ class HTreeMap<K,V>(
             throw NullPointerException()
         val hash = hash(key)
         val segment = hashToSegment(hash)
-        segmentWrite(segment) {
+        Utils.lockWrite(locks, segment) {
             if(isForegroundEviction)
                 expireEvictSegment(segment)
 
@@ -812,7 +809,7 @@ class HTreeMap<K,V>(
 
         val hash = hash(key)
         val segment = hashToSegment(hash)
-        segmentWrite(segment) {
+        Utils.lockWrite(locks, segment) {
             if(isForegroundEviction)
                 expireEvictSegment(segment)
 
@@ -851,7 +848,7 @@ class HTreeMap<K,V>(
     /** releases old stuff from queue */
     fun expireEvict(){
         for(segment in 0 until segmentCount) {
-            segmentWrite(segment){
+            Utils.lockWrite(locks, segment) {
                 expireEvictSegment(segment)
             }
         }
@@ -859,7 +856,7 @@ class HTreeMap<K,V>(
 
     protected fun expireEvictSegment(segment:Int){
         if(CC.ASSERT)
-            Utils.assertWriteLock(locks[segment])
+            locks?.checkWriteLocked(segment)
 
         val currTimestamp = System.currentTimeMillis()
         var numberToTake:Long =
@@ -912,7 +909,7 @@ class HTreeMap<K,V>(
 
     protected fun expireEvictEntry(segment:Int, leafRecid:Long, nodeRecid:Long){
         if(CC.ASSERT)
-            Utils.assertWriteLock(locks[segment])
+            locks?.checkWriteLocked(segment)
 
         val leaf = stores[segment].get(leafRecid, leafSerializer)
                 ?: throw DBException.DataCorruption("linked leaf not found")
@@ -1061,7 +1058,7 @@ class HTreeMap<K,V>(
             var lastKey:K? = null;
 
             private fun moveToNextLeaf(): Array<Any?>? {
-                Utils.lockRead(locks[segment]) {
+                Utils.lockRead(locks,segment) {
                     if (!leafRecidIter.hasNext()) {
                         return null
                     }
@@ -1208,7 +1205,7 @@ class HTreeMap<K,V>(
         if(valueInline)
             return wrappedValue as V
         if(CC.ASSERT)
-            Utils.assertReadLock(locks[segment])
+          locks?.checkReadLocked(segment)
         return stores[segment].get(wrappedValue as Long, valueSerializer)
                 ?: throw DBException.DataCorruption("linked value not found")
     }
@@ -1216,7 +1213,7 @@ class HTreeMap<K,V>(
 
     protected fun valueWrap(segment:Int, value:V):Any{
         if(CC.ASSERT)
-            Utils.assertWriteLock(locks[segment])
+            locks?.checkWriteLocked(segment)
 
         return if(valueInline) value as Any
         else return stores[segment].put(value, valueSerializer)
@@ -1355,7 +1352,7 @@ class HTreeMap<K,V>(
      * This will close not just this map, but also other collections in the same DB.
      */
     override fun close() {
-        Utils.lockWrite(locks){
+        Utils.lockWriteAll(locks){
             closeable?.close()
         }
     }
@@ -1373,7 +1370,7 @@ class HTreeMap<K,V>(
         var collision = 0L
         var size = 0L
 
-        for(segment in 0 until segmentCount) Utils.lockRead(locks[segment]){
+        for(segment in 0 until segmentCount) Utils.lockRead(locks, segment){
             indexTrees[segment].forEachValue { leafRecid ->
                 val leaf = leafGet(stores[segment], leafRecid)
                 size += leaf.size/3
