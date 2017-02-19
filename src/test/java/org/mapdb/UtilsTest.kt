@@ -65,6 +65,146 @@ class UtilsTest{
         }
     }
 
+
+    @Test(timeout = 10000)
+    fun single_entry_read_write_segment_lock(){
+        val lock = Utils.SingleEntryReadWriteSegmentedLock(16)
+        lock.writeLock(1)
+        lock.writeUnlock(1)
+
+        lock.writeLock(1)
+        assertFailsWith(IllegalMonitorStateException::class.java){
+            lock.writeLock(1)
+        }
+        assertFailsWith(IllegalMonitorStateException::class.java){
+            lock.readLock(1)
+        }
+
+        lock.writeUnlock(1)
+        assertFailsWith(IllegalMonitorStateException::class.java){
+            lock.writeUnlock(1)
+        }
+    }
+
+    @Test(timeout = 10000)
+    fun single_entry_read_write_segment_lock2(){
+        val lock = Utils.SingleEntryReadWriteSegmentedLock(16)
+
+        lock.readLock(1)
+        assertFailsWith(IllegalMonitorStateException::class.java){
+            lock.readLock(1)
+        }
+        assertFailsWith(IllegalMonitorStateException::class.java){
+            lock.writeLock(1)
+        }
+
+        lock.readUnlock(1)
+        assertFailsWith(IllegalMonitorStateException::class.java){
+            lock.readUnlock(1)
+        }
+    }
+
+
+    @Test(timeout = 10000)
+    fun single_entry_read_write_segment_lock3(){
+        val lock = Utils.SingleEntryReadWriteSegmentedLock(16)
+        lock.writeLock(1)
+
+        assertFailsWith(IllegalMonitorStateException::class.java){
+            lock.writeLock(2)
+        }
+
+        assertFailsWith(IllegalMonitorStateException::class.java){
+            lock.readLock(2)
+        }
+
+        assertFailsWith(IllegalMonitorStateException::class.java){
+            lock.writeLock(1)
+        }
+
+        assertFailsWith(IllegalMonitorStateException::class.java){
+            lock.readLock(1)
+        }
+
+        assertFailsWith(IllegalMonitorStateException::class.java){
+            lock.writeUnlock(2)
+        }
+
+        assertFailsWith(IllegalMonitorStateException::class.java){
+            lock.readUnlock(2)
+        }
+
+        assertFailsWith(IllegalMonitorStateException::class.java){
+            lock.readUnlock(1)
+        }
+
+        lock.checkWriteLocked(1)
+        lock.checkReadLocked(1)
+
+        assertFailsWith(IllegalMonitorStateException::class.java) {
+            lock.checkWriteLocked(2)
+        }
+        assertFailsWith(IllegalMonitorStateException::class.java) {
+            lock.checkReadLocked(2)
+        }
+
+        lock.writeUnlock(1)
+
+        lock.writeLock(1)
+
+    }
+
+
+    @Test(timeout = 10000)
+    fun single_entry_read_write_segment_lock4(){
+        val lock = Utils.SingleEntryReadWriteSegmentedLock(16)
+        lock.readLock(1)
+
+        assertFailsWith(IllegalMonitorStateException::class.java){
+            lock.readLock(2)
+        }
+
+        assertFailsWith(IllegalMonitorStateException::class.java){
+            lock.writeLock(2)
+        }
+
+        assertFailsWith(IllegalMonitorStateException::class.java){
+            lock.readLock(1)
+        }
+
+        assertFailsWith(IllegalMonitorStateException::class.java){
+            lock.writeLock(1)
+        }
+
+        assertFailsWith(IllegalMonitorStateException::class.java){
+            lock.readUnlock(2)
+        }
+
+        assertFailsWith(IllegalMonitorStateException::class.java){
+            lock.writeUnlock(2)
+        }
+
+        assertFailsWith(IllegalMonitorStateException::class.java){
+            lock.writeUnlock(1)
+        }
+        assertFailsWith(IllegalMonitorStateException::class.java) {
+            lock.checkWriteLocked(1)
+        }
+        lock.checkReadLocked(1)
+
+
+        assertFailsWith(IllegalMonitorStateException::class.java) {
+            lock.checkWriteLocked(2)
+        }
+        assertFailsWith(IllegalMonitorStateException::class.java) {
+            lock.checkReadLocked(2)
+        }
+        lock.readUnlock(1)
+
+    }
+
+
+
     @Test(timeout = 10000)
     fun lockWriteAll(){
         val locks = Array<ReadWriteLock?>(10, { ReentrantReadWriteLock() })
