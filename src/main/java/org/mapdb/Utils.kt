@@ -317,6 +317,7 @@ object Utils {
         override fun writeLock() = newWriteLock
         override fun readLock() = newReadLock
         fun isWriteLockedByCurrentThread(): Boolean = lock.isWriteLockedByCurrentThread()
+        fun isReadLockedByCurrentThread(): Boolean = readLockThreads.containsKey(Thread.currentThread())
 
     }
 
@@ -524,6 +525,7 @@ object Utils {
         }
 
         fun  isWriteLockedByCurrentThread(segment: Int): Boolean = l(segment).isWriteLockedByCurrentThread()
+        fun isReadLockedByCurrentThread(segment: Int): Boolean = l(segment).isReadLockedByCurrentThread()
 
     }
 }

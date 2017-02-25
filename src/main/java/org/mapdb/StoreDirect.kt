@@ -521,19 +521,58 @@ class StoreDirect(
     override fun <R> get(recid: Long, serializer: Serializer<R>): R? {
         assertNotClosed()
 
+        var di:DataInput2? = null
+        var size:Long = -1
+        var fromLong = Long.MIN_VALUE
+
         Utils.lockRead(locks,recidToSegment(recid)) {
-            return getProtected(recid, serializer)
+            val indexVal = getIndexVal(recid)
+
+            if (indexValFlagLinked(indexVal)) {
+                //linked record is always read into byte[]
+                val ba = linkedRecordGet(indexVal)
+                di = DataInput2.ByteArray(ba)
+                size = ba.size.toLong()
+            }else {
+                size = indexValToSize(indexVal);
+                if (size == DELETED_RECORD_SIZE)
+                    throw DBException.GetVoid(recid)
+
+                if (size == NULL_RECORD_SIZE)
+                    return null
+
+                val offset = indexValToOffset(indexVal)
+
+                if (size < 6) {
+                     fromLong = offset
+                }else if(serializer.isQuick){
+                    //serialize without making copy
+                    val di2 = volume.getDataInput(offset, size.toInt())
+                    return deserialize(serializer, di2, size, recid)
+                }else{
+                    //copy data into byte[]
+                    val b = ByteArray(size.toInt())
+                    volume.getData(offset, b, 0, size.toInt())
+                    di = DataInput2.ByteArray(b)
+                }
+            }
+        }
+
+        if(fromLong!=Long.MIN_VALUE) {
+            return serializer.deserializeFromLong(fromLong.ushr(8), size.toInt())
+        }else{
+            return deserialize(serializer, di!!, size, recid)
         }
     }
 
     protected fun <R> getProtected(recid: Long, serializer: Serializer<R>): R? {
-        //TODO assert read lock
+        locks?.checkReadLocked(recidToSegment(recid))
 
         val indexVal = getIndexVal(recid);
 
         if (indexValFlagLinked(indexVal)) {
             val di = linkedRecordGet(indexVal)
-            return deserialize(serializer, DataInput2.ByteArray(di), di.size.toLong())
+            return deserialize(serializer, DataInput2.ByteArray(di), di.size.toLong(), recid)
         }
 
         var size = indexValToSize(indexVal);
@@ -546,13 +585,11 @@ class StoreDirect(
         val offset = indexValToOffset(indexVal);
 
         if (size < 6) {
-            if (CC.ASSERT && size > 5)
-                throw DBException.DataCorruption("wrong size record header");
             return serializer.deserializeFromLong(offset.ushr(8), size.toInt())
         }
 
         val di = volume.getDataInput(offset, size.toInt())
-        return deserialize(serializer, di, size)
+        return deserialize(serializer, di, size, recid)
     }
 
 
@@ -594,7 +631,7 @@ class StoreDirect(
     override fun <R> put(record: R?, serializer: Serializer<R>): Long {
         assertNotClosed()
 
-        val di = serialize(record, serializer);
+        val di = serialize(record, serializer, -1);
 
         Utils.lockRead(compactionLock) {
 
@@ -637,7 +674,7 @@ class StoreDirect(
 
     override fun <R> update(recid: Long, record: R?, serializer: Serializer<R>) {
         assertNotClosed()
-        val di = serialize(record, serializer);
+        val di = serialize(record, serializer, recid);
 
         Utils.lockWrite(locks, recidToSegment(recid)) {
             updateProtected(recid, di)
@@ -720,7 +757,7 @@ class StoreDirect(
             if (old !== expectedOldRecord && !serializer.equals(old!!, expectedOldRecord!!))
                 return false
 
-            val di = serialize(newRecord, serializer);
+            val di = serialize(newRecord, serializer, recid);
 
             updateProtected(recid, di)
             return true;
@@ -908,31 +945,34 @@ class StoreDirect(
 
     override fun verify(){
 
+        /// TODO move this section back under lock, once Kotlin compiler issue is resolved in 1.1.2
+        val bit = BitSet()
+        val max = fileTail
+
+        fun set(start: Long, end: Long, expectZeros: Boolean) {
+            if (start > max)
+                throw AssertionError("start too high")
+            if (end > max)
+                throw AssertionError("end too high")
+
+            if (CC.ZEROS && expectZeros)
+                volume.assertZeroes(start, end)
+
+            val start0 = start.toInt()
+            val end0 = end.toInt()
+
+            for (index in start0 until end0) {
+                if (bit.get(index)) {
+                    throw AssertionError("already set $index - ${index % CC.PAGE_SIZE}")
+                }
+            }
+
+            bit.set(start0, end0)
+        }
+
         Utils.lockReadAll(locks){
             Utils.lock(structuralLock){
-                val bit = BitSet()
-                val max = fileTail
 
-                fun set(start: Long, end: Long, expectZeros: Boolean) {
-                    if (start > max)
-                        throw AssertionError("start too high")
-                    if (end > max)
-                        throw AssertionError("end too high")
-
-                    if (CC.ZEROS && expectZeros)
-                        volume.assertZeroes(start, end)
-
-                    val start0 = start.toInt()
-                    val end0 = end.toInt()
-
-                    for (index in start0 until end0) {
-                        if (bit.get(index)) {
-                            throw AssertionError("already set $index - ${index % CC.PAGE_SIZE}")
-                        }
-                    }
-
-                    bit.set(start0, end0)
-                }
 
                 set(0, HEAD_END, false)
 

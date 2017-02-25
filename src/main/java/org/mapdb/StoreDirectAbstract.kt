@@ -9,7 +9,6 @@ import org.mapdb.volume.Volume
 import org.mapdb.volume.VolumeFactory
 import java.io.IOException
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.locks.ReadWriteLock
 
 /**
  * Common utils for StoreDirect, StoreWAL and StoreCached
@@ -223,7 +222,9 @@ abstract class StoreDirectAbstract(
         return (recid and segmentMask).toInt()
     }
 
-    protected fun <R> deserialize(serializer: Serializer<R>, di: DataInput2, size: Long): R? {
+    protected fun <R> deserialize(serializer: Serializer<R>, di: DataInput2, size: Long, recid:Long): R? {
+        assert(serializer.isQuick() || di is DataInput2.ByteArray)
+        assert(serializer.isQuick() || locks==null || recid<0 || !locks.isReadLockedByCurrentThread(recidToSegment(recid)))
         try{
             val ret = serializer.deserialize(di, size.toInt());
             return ret
@@ -234,9 +235,10 @@ abstract class StoreDirectAbstract(
         }
     }
 
-    protected fun <R> serialize(record: R?, serializer:Serializer<R>):DataOutput2?{
+    protected fun <R> serialize(record: R?, serializer:Serializer<R>, recid:Long):DataOutput2?{
         if(record == null)
             return null;
+        assert(serializer.isQuick() || locks==null || recid<0 || !locks.isReadLockedByCurrentThread(recidToSegment(recid)))
         try {
             val out = DataOutput2()
             serializer.serialize(out, record);

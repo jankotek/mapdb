@@ -635,6 +635,16 @@ public interface Serializer<A /*extends Comparable<? super A>*/> extends Compara
         return deserialize(in2, out.pos);
     }
 
+    /**
+     * Return true if serializer only reads from stream, without doing anything else.
+     * If thats case, MapDB can make some optimalizations
+     *
+     * @return true if serializer is self contained, and does not call anything else
+     */
+    default boolean isQuick(){
+        return false;
+    }
+
 //
 // TODO code from 2.0, perhaps it will be useful, do performance benchmarks etc
 //    /**

@@ -195,7 +195,7 @@ class StoreWAL(
             if (old !== expectedOldRecord && !serializer.equals(old!!, expectedOldRecord!!))
                 return false
 
-            val di = serialize(newRecord, serializer);
+            val di = serialize(newRecord, serializer, recid)
 
             updateProtected(recid, di)
             return true;
@@ -376,7 +376,7 @@ class StoreWAL(
     }
 
     override fun <R> put(record: R?, serializer: Serializer<R>): Long {
-        val di = serialize(record, serializer)
+        val di = serialize(record, serializer, -1)
 
         assertNotClosed()
         val recid = Utils.lock(structuralLock){
@@ -420,7 +420,7 @@ class StoreWAL(
 
     override fun <R> update(recid: Long, record: R?, serializer: Serializer<R>) {
         assertNotClosed()
-        val di = serialize(record, serializer);
+        val di = serialize(record, serializer, recid)
 
         Utils.lockWrite(locks,recidToSegment(recid)) {
             updateProtected(recid, di)
@@ -495,15 +495,61 @@ class StoreWAL(
 
     override fun <R> get(recid: Long, serializer: Serializer<R>): R? {
         val segment = recidToSegment(recid)
+
+        var di:DataInput2? = null
+        var size:Long = -1
+        var fromLong = Long.MIN_VALUE
+
         Utils.lockRead(locks,segment){
-            return getProtected(recid, serializer)
+
+            val indexVal = getIndexVal(recid)
+            size = indexValToSize(indexVal)
+            if (size == NULL_RECORD_SIZE)
+                return null
+            if (size == DELETED_RECORD_SIZE)
+                throw DBException.GetVoid(recid)
+
+            if (indexValFlagLinked(indexVal)) {
+                val ba = linkedRecordGet(indexVal, recid)
+                di = DataInput2.ByteArray(ba)
+                size = ba.size.toLong()
+            }else {
+
+                val offset = indexValToOffset(indexVal)
+
+                if (size < 6) {
+                    fromLong = offset
+                } else {
+                    val walId = cacheRecords[segment].get(offset)
+                    if (walId != 0L) {
+                        //record found in WAL, get it from there
+                        di = DataInput2.ByteArray(wal.walGetRecord(walId, recid))
+
+                    //not in WAL, load from volume
+                    }else if(serializer.isQuick){
+                        //serialize without making copy
+                        val di2 = volume.getDataInput(offset, size.toInt())
+                        return deserialize(serializer, di2, size, recid)
+                    } else {
+                        //copy data into byte[]
+                        val b = ByteArray(size.toInt())
+                        volume.getData(offset, b, 0, size.toInt())
+                        di = DataInput2.ByteArray(b)
+                    }
+
+                }
+            }
+        }
+        if(fromLong!=Long.MIN_VALUE) {
+            return serializer.deserializeFromLong(fromLong.ushr(8), size.toInt())
+        }else{
+            return deserialize(serializer, di!!, size, recid)
         }
     }
 
     private fun <R> getProtected(recid: Long, serializer: Serializer<R>): R? {
-        //TODO assert read locked
-
         val segment = recidToSegment(recid)
+        locks?.checkReadLocked(segment)
 
         val indexVal = getIndexVal(recid)
         val size = indexValToSize(indexVal)
@@ -514,14 +560,12 @@ class StoreWAL(
 
         if (indexValFlagLinked(indexVal)) {
             val ba = linkedRecordGet(indexVal, recid)
-            return deserialize(serializer, DataInput2.ByteArray(ba), ba.size.toLong())
+            return deserialize(serializer, DataInput2.ByteArray(ba), ba.size.toLong(), recid)
         }
 
         val volOffset = indexValToOffset(indexVal)
 
         if (size < 6) {
-            if (CC.ASSERT && size > 5)
-                throw DBException.DataCorruption("wrong size record header");
             return serializer.deserializeFromLong(volOffset.ushr(8), size.toInt())
         }
 
@@ -533,7 +577,7 @@ class StoreWAL(
             //not in WAL, load from volume
             volume.getDataInput(volOffset, size.toInt())
         }
-        return deserialize(serializer, di, size)
+        return deserialize(serializer, di, size, recid)
     }
 
     override fun getAllRecids(): LongIterator {
