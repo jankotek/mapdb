@@ -175,6 +175,7 @@ object TT{
                     wait.await()
                     body(i)
                 }catch(e:Throwable){
+                    e.printStackTrace()
                     exception.set(e)
                 }
             }

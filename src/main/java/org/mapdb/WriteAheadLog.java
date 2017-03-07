@@ -855,7 +855,7 @@ public class WriteAheadLog {
         return (int) ((walPointer >>> (pointerOffsetBites+pointerFileBites))&pointerSizeMask);
     }
 
-    //TODO return DataInput
+    //TODO return DataInput, check callers after that, they expect byte[] to be used outside locks
     synchronized public byte[] walGetRecord(long walPointer, long expectedRecid) {
         long fileNum = walPointerToFileNum(walPointer);
         long dataOffset = (walPointerToOffset(walPointer));

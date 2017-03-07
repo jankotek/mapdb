@@ -9,15 +9,14 @@ import java.io.Serializable
 import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.locks.ReadWriteLock
 
 class HTreeMapTest{
 
     val HTreeMap<*,*>.leafSerializer: Serializer<Array<Any>>
         get() = Reflection.method("getLeafSerializer").`in`(this).invoke() as Serializer<Array<Any>>
 
-    val HTreeMap<*,*>.locks:  Array<ReadWriteLock?>
-        get() = Reflection.method("getLocks").`in`(this).invoke() as  Array<ReadWriteLock?>
+    val HTreeMap<*,*>.locks:  Utils.SingleEntryReadWriteSegmentedLock?
+        get() = Reflection.method("getLocks").`in`(this).invoke() as  Utils.SingleEntryReadWriteSegmentedLock?
 
 
     fun HTreeMap<*,*>.hashToSegment(h: Int): Int =
@@ -222,9 +221,9 @@ class HTreeMapTest{
         var seg:Int? = null
         m = db.hashMap("name", Serializer.STRING, Serializer.STRING)
             .modificationListener(MapModificationListener { key, oldVal, newVal, triggered ->
-                for (i in 0..m!!.locks!!.size - 1) {
+                for (i in 0..m!!.locks!!.segmentCount - 1) {
                     assertEquals(seg == i,
-                            (m!!.locks[i] as Utils.SingleEntryReadWriteLock).lock.isWriteLockedByCurrentThread)
+                            m!!.locks!!.isWriteLockedByCurrentThread(i))
                 }
                 counter.incrementAndGet()
             })
@@ -387,7 +386,7 @@ class HTreeMapTest{
                 .modificationListener(object : MapModificationListener<String,String> {
                     override fun modify(key: String, oldValue: String?, newValue: String?, triggered: Boolean) {
                         val segment = m!!.hashToSegment(m!!.hash(key))
-                        Utils.assertWriteLock(m!!.locks[segment])
+                        m!!.locks!!.checkWriteLocked(segment)
                         counter.incrementAndGet()
                     }
                 })

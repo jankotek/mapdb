@@ -2,9 +2,7 @@ package org.mapdb
 
 import org.junit.Test
 import org.mapdb.TT.assertFailsWith
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.locks.ReadWriteLock
-import java.util.concurrent.locks.ReentrantReadWriteLock
+import java.util.concurrent.CountDownLatch
 
 class UtilsTest{
 
@@ -207,58 +205,62 @@ class UtilsTest{
 
     @Test(timeout = 10000)
     fun lockWriteAll(){
-        val locks = Array<ReadWriteLock?>(10, { ReentrantReadWriteLock() })
+        val locks = Utils.SingleEntryReadWriteSegmentedLock(10)
 
-        var locked = AtomicBoolean(false)
-        val waitUntilFinish = TT.async {
-            locks[5]!!.writeLock().lock()
-            locked.set(true)
+        val locked = CountDownLatch(2)
+        val waitUntilFinish1 = TT.async {
+            locks.writeLock(5)
+            locked.countDown()
             Thread.sleep(500)
-            locks[3]!!.writeLock().lock()
-
-            locks[5]!!.writeLock().unlock()
-            locks[3]!!.writeLock().unlock()
-
+            locks.writeUnlock(5)
         }
 
-        while(!locked.get()){}
-        Utils.lockWriteAll(locks)
-
-        waitUntilFinish()
-
-        locks.forEach {
-            assert((it!! as ReentrantReadWriteLock).isWriteLockedByCurrentThread)
+        val waitUntilFinish2 = TT.async {
+            locks.writeLock(3)
+            locked.countDown()
+            Thread.sleep(500)
+            locks.writeUnlock(3)
         }
+
+        locked.await()
+        locks.lockWriteAll()
+        waitUntilFinish1()
+        waitUntilFinish2()
+
+        locks.checkAllWriteLocked()
     }
 
 
     @Test(timeout = 10000)
     fun lockReadAll(){
-        val locks = Array<ReadWriteLock?>(10, { ReentrantReadWriteLock() })
+        val locks = Utils.SingleEntryReadWriteSegmentedLock(10)
 
 
-        var locked = AtomicBoolean(false)
-        val waitUntilFinish = TT.async {
-            locks[5]!!.writeLock().lock()
-            locked.set(true)
+        val locked = CountDownLatch(2)
+        val waitUntilFinish1 = TT.async {
+            locks.writeLock(5)
+            locked.countDown()
             Thread.sleep(500)
-            locks[3]!!.writeLock().lock()
-
-            locks[5]!!.writeLock().unlock()
-            locks[3]!!.writeLock().unlock()
-
+            locks.writeUnlock(5)
         }
+
+        val waitUntilFinish2 = TT.async {
+            locks.writeLock(3)
+            locked.countDown()
+            Thread.sleep(500)
+            locks.writeUnlock(3)
+        }
+
+
 
         //wait until first lock is locked
-        while(!locked.get()){}
+        locked.await()
 
-        Utils.lockReadAll(locks)
+        locks.lockReadAll()
 
-        waitUntilFinish()
+        waitUntilFinish1()
+        waitUntilFinish2()
 
-        locks.forEach {
-            assert((it!! as ReentrantReadWriteLock).isWriteLocked.not())
-            assert((it!! as ReentrantReadWriteLock).readHoldCount==1)
-        }
+        locks.checkAllReadLockedStrict()
     }
 }

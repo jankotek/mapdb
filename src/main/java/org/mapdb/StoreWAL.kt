@@ -159,7 +159,7 @@ class StoreWAL(
     override fun getIndexVal(recid: Long): Long {
         val segment = recidToSegment(recid)
         if(CC.ASSERT)
-            Utils.assertReadLock(locks[segment])
+            locks?.checkReadLocked(segment)
 
         val indexOffset = recidToOffset(recid)
         var ret = cacheIndexVals[segment].get(indexOffset)
@@ -174,7 +174,7 @@ class StoreWAL(
     override fun setIndexVal(recid: Long, value: Long) {
         val segment = recidToSegment(recid)
         if(CC.ASSERT)
-            Utils.assertReadLock(locks[segment])
+            locks?.checkReadLocked(segment)
 
         val indexOffset = recidToOffset(recid)
         cacheIndexVals[segment].put(indexOffset, parity1Set(value))
@@ -183,7 +183,7 @@ class StoreWAL(
 
     override fun <R> compareAndSwap(recid: Long, expectedOldRecord: R?, newRecord: R?, serializer: Serializer<R>): Boolean {
         assertNotClosed()
-        Utils.lockWrite(locks[recidToSegment(recid)]) {
+        Utils.lockWrite(locks,recidToSegment(recid)) {
             //compare old value
             val old = getProtected(recid, serializer)
 
@@ -195,7 +195,7 @@ class StoreWAL(
             if (old !== expectedOldRecord && !serializer.equals(old!!, expectedOldRecord!!))
                 return false
 
-            val di = serialize(newRecord, serializer);
+            val di = serialize(newRecord, serializer, recid)
 
             updateProtected(recid, di)
             return true;
@@ -207,7 +207,7 @@ class StoreWAL(
         assertNotClosed()
         val segment = recidToSegment(recid)
 
-        Utils.lockWrite(locks[segment]) {
+        Utils.lockWrite(locks,segment) {
             val oldIndexVal = getIndexVal(recid);
             val oldSize = indexValToSize(oldIndexVal);
             if (oldSize == DELETED_RECORD_SIZE)
@@ -238,7 +238,7 @@ class StoreWAL(
         val recid = Utils.lock(structuralLock){
             allocateRecid()
         }
-        Utils.lockWrite(locks[recidToSegment(recid)]) {
+        Utils.lockWrite(locks,recidToSegment(recid)) {
 //            if (CC.ASSERT) {
 //                val oldVal = volume.getLong(recidToOffset(recid))
 //                if(oldVal!=0L && indexValToSize(oldVal)!=DELETED_RECORD_SIZE)
@@ -376,7 +376,7 @@ class StoreWAL(
     }
 
     override fun <R> put(record: R?, serializer: Serializer<R>): Long {
-        val di = serialize(record, serializer)
+        val di = serialize(record, serializer, -1)
 
         assertNotClosed()
         val recid = Utils.lock(structuralLock){
@@ -384,7 +384,7 @@ class StoreWAL(
         }
         val indexOffset = recidToOffset(recid)
         val segment = recidToSegment(recid)
-        Utils.lockWrite(locks[segment]) {
+        Utils.lockWrite(locks,segment) {
             if (di != null) {
                 if(di.pos==0) {
                     val indexVal = indexValCompose(size = 0, offset = 0L, archive = 1, linked = 0, unused = 0)
@@ -420,16 +420,16 @@ class StoreWAL(
 
     override fun <R> update(recid: Long, record: R?, serializer: Serializer<R>) {
         assertNotClosed()
-        val di = serialize(record, serializer);
+        val di = serialize(record, serializer, recid)
 
-        Utils.lockWrite(locks[recidToSegment(recid)]) {
+        Utils.lockWrite(locks,recidToSegment(recid)) {
             updateProtected(recid, di)
         }
     }
 
     private fun updateProtected(recid: Long, di: DataOutput2?){
         if(CC.ASSERT)
-            Utils.assertWriteLock(locks[recidToSegment(recid)])
+            locks?.checkWriteLocked(recidToSegment(recid))
 
         val oldIndexVal = getIndexVal(recid);
         val oldLinked = indexValFlagLinked(oldIndexVal);
@@ -495,15 +495,61 @@ class StoreWAL(
 
     override fun <R> get(recid: Long, serializer: Serializer<R>): R? {
         val segment = recidToSegment(recid)
-        Utils.lockRead(locks[segment]){
-            return getProtected(recid, serializer)
+
+        var di:DataInput2? = null
+        var size:Long = -1
+        var fromLong = Long.MIN_VALUE
+
+        Utils.lockRead(locks,segment){
+
+            val indexVal = getIndexVal(recid)
+            size = indexValToSize(indexVal)
+            if (size == NULL_RECORD_SIZE)
+                return null
+            if (size == DELETED_RECORD_SIZE)
+                throw DBException.GetVoid(recid)
+
+            if (indexValFlagLinked(indexVal)) {
+                val ba = linkedRecordGet(indexVal, recid)
+                di = DataInput2.ByteArray(ba)
+                size = ba.size.toLong()
+            }else {
+
+                val offset = indexValToOffset(indexVal)
+
+                if (size < 6) {
+                    fromLong = offset
+                } else {
+                    val walId = cacheRecords[segment].get(offset)
+                    if (walId != 0L) {
+                        //record found in WAL, get it from there
+                        di = DataInput2.ByteArray(wal.walGetRecord(walId, recid))
+
+                    //not in WAL, load from volume
+                    }else if(serializer.isQuick){
+                        //serialize without making copy
+                        val di2 = volume.getDataInput(offset, size.toInt())
+                        return deserialize(serializer, di2, size, recid)
+                    } else {
+                        //copy data into byte[]
+                        val b = ByteArray(size.toInt())
+                        volume.getData(offset, b, 0, size.toInt())
+                        di = DataInput2.ByteArray(b)
+                    }
+
+                }
+            }
+        }
+        if(fromLong!=Long.MIN_VALUE) {
+            return serializer.deserializeFromLong(fromLong.ushr(8), size.toInt())
+        }else{
+            return deserialize(serializer, di!!, size, recid)
         }
     }
 
     private fun <R> getProtected(recid: Long, serializer: Serializer<R>): R? {
-        //TODO assert read locked
-
         val segment = recidToSegment(recid)
+        locks?.checkReadLocked(segment)
 
         val indexVal = getIndexVal(recid)
         val size = indexValToSize(indexVal)
@@ -514,14 +560,12 @@ class StoreWAL(
 
         if (indexValFlagLinked(indexVal)) {
             val ba = linkedRecordGet(indexVal, recid)
-            return deserialize(serializer, DataInput2.ByteArray(ba), ba.size.toLong())
+            return deserialize(serializer, DataInput2.ByteArray(ba), ba.size.toLong(), recid)
         }
 
         val volOffset = indexValToOffset(indexVal)
 
         if (size < 6) {
-            if (CC.ASSERT && size > 5)
-                throw DBException.DataCorruption("wrong size record header");
             return serializer.deserializeFromLong(volOffset.ushr(8), size.toInt())
         }
 
@@ -533,13 +577,13 @@ class StoreWAL(
             //not in WAL, load from volume
             volume.getDataInput(volOffset, size.toInt())
         }
-        return deserialize(serializer, di, size)
+        return deserialize(serializer, di, size, recid)
     }
 
     override fun getAllRecids(): LongIterator {
         val ret = LongArrayList()
 
-        Utils.lockRead(locks){
+        Utils.lockReadAll(locks){
             val maxRecid = maxRecid
             for (recid in 1..maxRecid) {
                 try {
@@ -559,7 +603,7 @@ class StoreWAL(
 
     }
     override fun close() {
-        Utils.lockWrite(locks){
+        Utils.lockWriteAll(locks){
             if (closed.compareAndSet(false, true).not())
                 return
 
@@ -573,7 +617,7 @@ class StoreWAL(
     }
 
     override fun rollback() {
-        Utils.lockWrite(locks){
+        Utils.lockWriteAll(locks){
             realVolume.getData(0,headBytes, 0, headBytes.size)
             cacheIndexLinks.clear()
             cacheIndexVals.forEach { it.clear() }
@@ -587,7 +631,7 @@ class StoreWAL(
     }
 
     override fun commit() {
-        Utils.lockWrite(locks){
+        Utils.lockWriteAll(locks){
             DataIO.putInt(headBytes, 20, calculateHeaderChecksum())
             //write index page
             wal.walPutByteArray(0, headBytes, 0, headBytes.size)
