@@ -224,8 +224,7 @@ open class DB(
             )
 
     protected fun  <K> serializerForClass(clazz: Class<K>): Serializer<K> {
-        return when(clazz){
-
+        val v = when(clazz){
             Character.TYPE -> Serializer.CHAR
             Char::class.java -> Serializer.CHAR
             String::class.java -> Serializer.STRING
@@ -262,7 +261,10 @@ open class DB(
             Tuple6::class.java -> Tuple6Serializer<Any?,Any?,Any?,Any?,Any?,Any?>(defaultSerializer)
 
             else -> defaultSerializer
-        } as Serializer<K>
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        return v as Serializer<K>
     }
     /**
      * Default serializer used if collection does not specify specialized serializer.
@@ -314,7 +316,7 @@ open class DB(
 
             for(recid in 3L..CC.RECID_MAX_RESERVED){
                 val recid2 = store.put(null, Serializer.LONG_PACKED)
-                if(recid!==recid2){
+                if(recid!=recid2){
                     throw DBException.WrongConfiguration("Store does not support Reserved Recids: "+store.javaClass)
                 }
             }
@@ -457,11 +459,9 @@ open class DB(
         val clazz = nameCatalog.get(key)
                 ?: return null
 
-        val singleton = classSingletonRev.get(clazz)
-        if(singleton!=null)
-            return singleton as E
-
-        throw DBException.WrongConfiguration("Could not load object: "+clazz)
+        @Suppress("UNCHECKED_CAST")
+        val singleton = classSingletonRev.get(clazz) as E?
+        return singleton ?: throw DBException.WrongConfiguration("Could not load object: "+clazz)
     }
 
     fun nameCatalogParamsFor(name: String): Map<String,String> {
@@ -533,7 +533,7 @@ open class DB(
         Utils.lockWrite(lock) {
             checkNotClosed()
             val type = nameCatalogGet(name + Keys.type)
-            return when (type) {
+            val ret:Any? = when (type) {
                 "HashMap" -> hashMap(name).open()
                 "HashSet" -> hashSet(name).open()
                 "TreeMap" -> treeMap(name).open()
@@ -550,7 +550,9 @@ open class DB(
 
                 null -> null
                 else -> DBException.WrongConfiguration("Collection has unknown type: "+type)
-            } as E
+            }
+            @Suppress("UNCHECKED_CAST")
+            return ret as E
         }
     }
 
@@ -599,9 +601,7 @@ open class DB(
                 is MutableCollection<*> -> obj.clear()
                 is MutableMap<*, *> -> obj.clear()
                 is MutableLongValuesMap -> obj.clear()
-
-                null -> null
-                else -> DBException.WrongConfiguration("Collection has unknown class: " + obj.javaClass)
+else -> throw DBException.WrongConfiguration("Collection has unknown class: " + obj.javaClass)
             }
 
             //remove all parameters
@@ -654,11 +654,13 @@ open class DB(
             db:DB,
             name:String,
             protected val hasValues:Boolean=true,
-            protected val _storeFactory:(segment:Int)->Store = {i-> db.store}
+            protected val _storeFactory:(segment:Int)->Store = {_-> db.store}
     ):Maker<MAP>(db,name, if(hasValues) "HashMap" else "HashSet"){
         override fun awareItems() = arrayOf(_keySerializer, _valueSerializer, _valueLoader)
 
+        @Suppress("UNCHECKED_CAST")
         protected var _keySerializer:Serializer<K> = db.defaultSerializer as Serializer<K>
+        @Suppress("UNCHECKED_CAST")
         protected var _valueSerializer:Serializer<V> = db.defaultSerializer as Serializer<V>
         protected var _valueInline = false
 
@@ -698,7 +700,7 @@ open class DB(
                     if (!triggered && newVal == null && oldVal != null) {
                         //removal, also remove from overflow map
                         val oldVal2 = expireOverflow.remove(key)
-                        if (oldVal2 != null && _valueSerializer.equals(oldVal as V, oldVal2 as V)) {
+                        if (oldVal2 != null && _valueSerializer.equals(oldVal, oldVal2)) {
                             Utils.LOG.warning { "Key also removed from overflow Map, but value in overflow Map differs" }
                         }
                     } else if (triggered && newVal == null) {

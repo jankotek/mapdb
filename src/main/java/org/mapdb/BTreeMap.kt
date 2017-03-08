@@ -87,8 +87,11 @@ class BTreeMap<K,V>(
 
     companion object {
         fun <K, V> make(
+                @Suppress("UNCHECKED_CAST")
                 keySerializer: GroupSerializer<K> = Serializer.ELSA as GroupSerializer<K>,
+                @Suppress("UNCHECKED_CAST")
                 valueSerializer: GroupSerializer<V> = Serializer.ELSA as GroupSerializer<V>,
+
                 store: Store = StoreTrivial(),
                 valueInline: Boolean = true,
                 //insert recid of new empty node
@@ -198,7 +201,12 @@ class BTreeMap<K,V>(
 
     private val hasBinaryStore = store is StoreBinary
 
-    protected val valueNodeSerializer = (if (valueInline) this.valueSerializer else Serializer.RECID) as GroupSerializer<Any>
+    protected val valueNodeSerializer:GroupSerializer<Any> = {
+        val s = if (valueInline) this.valueSerializer else Serializer.RECID
+        @Suppress("UNCHECKED_CAST")
+        s as GroupSerializer<Any>
+    }()
+
     protected val nodeSerializer = NodeSerializer(this.keySerializer, this.comparator, this.valueNodeSerializer);
 
     protected val rootRecid: Long
@@ -241,7 +249,7 @@ class BTreeMap<K,V>(
 
         var current = rootRecid
 
-        val binaryGet = BinaryGet<K, Any>(keySerializer, valueNodeSerializer, comparator, key)
+        val binaryGet = BinaryGet(keySerializer, valueNodeSerializer, comparator, key)
 
         do {
             current = binary.getBinaryLong(current, binaryGet)
@@ -258,11 +266,14 @@ class BTreeMap<K,V>(
 
 
     protected fun valueExpand(v: Any?): V? {
-        return (
-                if (v == null) null
-                else if (valueInline) v
-                else store.get(v as Long, valueSerializer)
-          ) as V?
+        return if (v == null){
+            null
+        }else if (valueInline){
+            @Suppress("UNCHECKED_CAST")
+            v as V?
+        }else{
+            store.get(v as Long, valueSerializer)
+        }
     }
 
 
@@ -300,8 +311,8 @@ class BTreeMap<K,V>(
 
     private fun isLinkValue(pos:Int, A:Node):Boolean{
         // TODO this needs more investigation, what if lastKeyIsDouble and search jumped there?
-        val pos = pos - 1 + A.intLeftEdge();
-        return (!A.isLastKeyDouble && pos >= valueNodeSerializer.valueArraySize(A.values))
+        val pos2 = pos - 1 + A.intLeftEdge();
+        return (!A.isLastKeyDouble && pos2 >= valueNodeSerializer.valueArraySize(A.values))
     }
 
     protected fun put2(key: K, value: V, onlyIfAbsent: Boolean, noValueExpand:Boolean): V? {
@@ -309,7 +320,7 @@ class BTreeMap<K,V>(
             throw NullPointerException()
 
         try {
-            var v = key!!
+            var v = key
             var completed = false
             val stack = LongArrayStack()
             val rootRecid = rootRecid
@@ -382,7 +393,7 @@ class BTreeMap<K,V>(
                         if(A.isLastKeyDouble)
                             throw AssertionError()
                         val flags = A.flags + BTreeMapJava.LAST_KEY_DOUBLE
-                        val value2 =
+                        val value2:Any? =
                                 if(valueInline) value
                                 else store.put(value, valueSerializer)
                         pos = pos - 1 + A.intLeftEdge()
@@ -525,13 +536,12 @@ class BTreeMap<K,V>(
 
             //current node is locked, and its highest value is higher/equal to key
             val pos = keySerializer.valueArraySearch(A.keys, v, comparator)
-            var oldValueRecid:Any? = null
             var oldValueExpanded:V? = null
             val keysSize = keySerializer.valueArraySize(A.keys);
             if (pos >= 1 - A.intLeftEdge() && pos < keysSize - 1 + A.intRightEdge() + A.intLastKeyTwice()) {
                 val valuePos = pos - 1 + A.intLeftEdge();
                 //key exist in node, just update
-                oldValueRecid = valueNodeSerializer.valueArrayGet(A.values, valuePos)
+                val oldValueRecid = valueNodeSerializer.valueArrayGet(A.values, valuePos)
                 oldValueExpanded = valueExpand(oldValueRecid)
                 if(oldValueExpanded == null) {
                     // this should not happen, since node is already locked
@@ -539,7 +549,7 @@ class BTreeMap<K,V>(
                 }
                 var keys = A.keys
                 var flags = A.flags.toInt()
-                if (expectedOldValue == null || (oldValueExpanded!=null && valueSerializer.equals(expectedOldValue!!, oldValueExpanded))) {
+                if (expectedOldValue == null || (oldValueExpanded!=null && valueSerializer.equals(expectedOldValue, oldValueExpanded))) {
                     val values =
                             if (replaceWithValue == null) {
                                 //remove
@@ -646,7 +656,7 @@ class BTreeMap<K,V>(
         val valuesInsertPos =
             if(valueNodeSerializer.valueArraySize(a.values)==0) 0
             else insertPos - 1 + a.intLeftEdge();
-        val valueToInsert =
+        val valueToInsert:Any? =
             if(valueInline) value
             else store.put(value, valueSerializer)
 
@@ -992,7 +1002,10 @@ class BTreeMap<K,V>(
     }
 
     override val keys: NavigableSet<K?> =
-            KeySet<K>(this as ConcurrentNavigableMap2<K, Any>, this.hasValues)
+            KeySet<K>(
+                    @Suppress("UNCHECKED_CAST")
+                    (this as ConcurrentNavigableMap2<K, Any>),
+                    this.hasValues)
 
 
 
@@ -1028,7 +1041,7 @@ class BTreeMap<K,V>(
         protected var lastReturnedKey: K? = null
 
         init{
-            advanceFrom(m.leftEdges.first!!)
+            advanceFrom(m.leftEdges.first)
         }
 
 
@@ -1082,7 +1095,7 @@ class BTreeMap<K,V>(
 
         init {
             if(lo==null)
-                advanceFrom(m.leftEdges.first!!)
+                advanceFrom(m.leftEdges.first)
             else
                 advanceFromLo()
         }
@@ -1546,7 +1559,7 @@ class BTreeMap<K,V>(
                 if(node.isEmpty(m.keySerializer))
                     continue
 
-                var pos=-1;
+                var pos:Int;
                 val maxPos = m.keySerializer.valueArraySize(node.keys) - 2 + node.intLastKeyTwice() + node.intRightEdge()
                 if(key==null) {
                     pos = maxPos
@@ -1701,14 +1714,15 @@ class BTreeMap<K,V>(
             override fun equals(other: Any?): Boolean {
                 if (other !is Map.Entry<*, *>)
                     return false
-                val okey = other.key ?: return false
-                val ovalue = other.value ?: return false
-                try {
-                    return comparator.compare(key, okey as K)==0
-                            && valueSerializer.equals(this.value!!, ovalue as V)
-                } catch(e: ClassCastException) {
-                    return false
-                }
+                @Suppress("UNCHECKED_CAST")
+                val okey =  other.key as K?
+                @Suppress("UNCHECKED_CAST")
+                val ovalue = other.value as V?
+
+                return okey!=null
+                        && ovalue!=null
+                        && comparator.compare(key,  okey)==0
+                        && valueSerializer.equals(this.value, ovalue)
             }
 
             override fun toString(): String {
@@ -1730,10 +1744,10 @@ class BTreeMap<K,V>(
         if (other === this)
             return true
 
-        if (other !is java.util.Map<*, *>)
+        if (other !is Map<*, *>)
             return false
 
-        if (other.size() != size)
+        if (other.size != size)
             return false
 
         try {
@@ -1766,8 +1780,6 @@ class BTreeMap<K,V>(
     }
 
     override fun forEach(action: BiConsumer<in K, in V>){
-        if (action == null)
-            throw NullPointerException()
         var node = getNode(leftEdges.first)
         while (true) {
             val limit = keySerializer.valueArraySize(node.keys) - 1 + node.intRightEdge() + node.intLastKeyTwice()
@@ -1785,8 +1797,6 @@ class BTreeMap<K,V>(
     }
 
     override fun forEachKey(procedure: (K) -> Unit) {
-        if (procedure == null)
-            throw NullPointerException()
         var node = getNode(leftEdges.first)
         while (true) {
 
@@ -1803,8 +1813,6 @@ class BTreeMap<K,V>(
     }
 
     override fun forEachValue(procedure: (V) -> Unit) {
-        if (procedure == null)
-            throw NullPointerException()
         var node = getNode(leftEdges.first)
         while (true) {
             val limit = keySerializer.valueArraySize(node.keys) - 1 + node.intRightEdge() + node.intLastKeyTwice()
@@ -2004,9 +2012,9 @@ class BTreeMap<K,V>(
 
             //check if is last key
             if(pos< keySerializer.valueArraySize(A.keys)-1+A.intLastKeyTwice()+A.intRightEdge()){
-                val key = keySerializer.valueArrayGet(A.keys, pos)
+                val key2 = keySerializer.valueArrayGet(A.keys, pos)
                 val value = valueExpand(leafGet(A, pos, keySerializer, valueNodeSerializer))
-                return AbstractMap.SimpleImmutableEntry(key, value as V)
+                return AbstractMap.SimpleImmutableEntry(key2, value as V)
             }
 
             if(A.isRightEdge){
@@ -2040,16 +2048,16 @@ class BTreeMap<K,V>(
 
             if(pos>=1-node.intLeftEdge()){
                 //node was found
-                val key = keySerializer.valueArrayGet(node.keys, pos)
+                val key2 = keySerializer.valueArrayGet(node.keys, pos)
                 val value = valueExpand(valueNodeSerializer.valueArrayGet(node.values, pos - 1 + node.intLeftEdge()))
-                return AbstractMap.SimpleImmutableEntry(key, value)
+                return AbstractMap.SimpleImmutableEntry(key2, value)
             }
 
             if(inclusive && pos == 1-node.intLeftEdge()){
                 pos = 1-node.intLeftEdge()
-                val key = keySerializer.valueArrayGet(node.keys, pos)
+                val key2 = keySerializer.valueArrayGet(node.keys, pos)
                 val value = valueExpand(valueNodeSerializer.valueArrayGet(node.values, pos-1+node.intLeftEdge()))
-                return AbstractMap.SimpleImmutableEntry(key, value)
+                return AbstractMap.SimpleImmutableEntry(key2, value)
             }
 
             if(pos<0){
@@ -2060,9 +2068,9 @@ class BTreeMap<K,V>(
                 if(pos<1-node.intLeftEdge())
                     continue
 
-                val key = keySerializer.valueArrayGet(node.keys, pos)
+                val key2 = keySerializer.valueArrayGet(node.keys, pos)
                 val value = valueExpand(valueNodeSerializer.valueArrayGet(node.values, pos - 1 + node.intLeftEdge()))
-                return AbstractMap.SimpleImmutableEntry(key, value)
+                return AbstractMap.SimpleImmutableEntry(key2, value)
             }
         }
         return null

@@ -1,7 +1,7 @@
 package org.mapdb
 
-import org.junit.Test
 import org.junit.Assert.*
+import org.junit.Test
 import java.util.*
 import java.util.concurrent.LinkedBlockingQueue
 
@@ -377,11 +377,11 @@ class QueueLongTest {
 
     @Test fun takeUntil() {
         val recid1 = q.put(1L, 11L)
-        val recid2 = q.put(2L, 22L)
-        val recid3 = q.put(3L, 33L)
+        q.put(2L, 22L)
+        q.put(3L, 33L)
 
         assertEquals(4 + 3, q.store.getAllRecids().asSequence().count())
-        q.takeUntil(QueueLongTakeUntil { nodeRecid, node ->
+        q.takeUntil(QueueLongTakeUntil { nodeRecid, _ ->
             q.verify()
             nodeRecid == recid1
         })
@@ -402,10 +402,10 @@ class QueueLongTest {
 
     @Test fun takeUntil2() {
         val recid1 = q.put(1L, 11L)
-        val recid2 = q.put(2L, 22L)
+        q.put(2L, 22L)
 
         assertEquals(4 + 2, q.store.getAllRecids().asSequence().count())
-        q.takeUntil(QueueLongTakeUntil { nodeRecid, node ->
+        q.takeUntil(QueueLongTakeUntil { nodeRecid, _ ->
             q.verify()
             nodeRecid == recid1
         })
@@ -426,7 +426,7 @@ class QueueLongTest {
         val recid2 = q.put(2L, 22L)
         val recid3 = q.put(3L, 33L)
         assertEquals(4 + 3, q.store.getAllRecids().asSequence().count())
-        q.takeUntil(QueueLongTakeUntil { nodeRecid, node ->
+        q.takeUntil(QueueLongTakeUntil { nodeRecid, _ ->
             assertTrue(nodeRecid in setOf(recid1, recid2, recid3))
             q.verify()
             true
@@ -438,9 +438,9 @@ class QueueLongTest {
     }
 
     @Test fun clear() {
-        val recid1 = q.put(1L, 11L)
-        val recid2 = q.put(2L, 22L)
-        val recid3 = q.put(3L, 33L)
+        q.put(1L, 11L)
+        q.put(2L, 22L)
+        q.put(3L, 33L)
         assertEquals(3, q.size())
         assertEquals(4 + 3, q.store.getAllRecids().asSequence().count())
         q.verify()
@@ -452,18 +452,18 @@ class QueueLongTest {
 
     @Test fun size() {
         assertEquals(0, q.size())
-        val recid1 = q.put(1L, 11L)
-        val recid2 = q.put(2L, 22L)
-        val recid3 = q.put(3L, 33L)
+        q.put(1L, 11L)
+        q.put(2L, 22L)
+        q.put(3L, 33L)
         assertEquals(3, q.size())
         q.verify()
     }
 
     @Test fun valuesArray() {
         assertEquals(0, q.size())
-        val recid1 = q.put(1L, 11L)
-        val recid2 = q.put(2L, 22L)
-        val recid3 = q.put(3L, 33L)
+        q.put(1L, 11L)
+        q.put(2L, 22L)
+        q.put(3L, 33L)
         assertArrayEquals(longArrayOf(11L, 22L, 33L), q.valuesArray())
     }
 }

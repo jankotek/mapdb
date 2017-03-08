@@ -208,37 +208,55 @@ class DBMakerTest{
     @Test fun file_lock_disable_RAF(){
         val f = TT.tempFile()
         val db1 = DBMaker.fileDB(f).make()
-        DBMaker.fileDB(f).fileLockDisable().make()
+        val db2 = DBMaker.fileDB(f).fileLockDisable().make()
+
+        db2.close()
+        db1.close()
     }
 
     @Test fun file_lock_disable_RAF2(){
         val f = TT.tempFile()
         val db1 = DBMaker.fileDB(f).transactionEnable().make()
-        DBMaker.fileDB(f).fileLockDisable().transactionEnable().make()
+        val db2 =DBMaker.fileDB(f).fileLockDisable().transactionEnable().make()
+
+        db2.close()
+        db1.close()
     }
 
     @Test fun file_lock_disable_Channel(){
         val f = TT.tempFile()
         val db1 = DBMaker.fileDB(f).make()
-        DBMaker.fileDB(f).fileLockDisable().make()
+        val db2 = DBMaker.fileDB(f).fileLockDisable().make()
+
+        db2.close()
+        db1.close()
     }
 
     @Test fun file_lock_disable_Channel2(){
         val f = TT.tempFile()
         val db1 = DBMaker.fileDB(f).fileChannelEnable().transactionEnable().make()
-        DBMaker.fileDB(f).fileChannelEnable().fileLockDisable().transactionEnable().make()
+        val db2 = DBMaker.fileDB(f).fileChannelEnable().fileLockDisable().transactionEnable().make()
+
+        db2.close()
+        db1.close()
     }
 
     @Test fun file_lock_disable_mmap(){
         val f = TT.tempFile()
         val db1 = DBMaker.fileDB(f).fileMmapEnable().make()
-        DBMaker.fileDB(f).fileLockDisable().make()
+        val db2 = DBMaker.fileDB(f).fileLockDisable().make()
+
+        db2.close()
+        db1.close()
     }
 
     @Test fun file_lock_disable_mmap2(){
         val f = TT.tempFile()
         val db1 = DBMaker.fileDB(f).transactionEnable().make()
-        DBMaker.fileDB(f).fileLockDisable().fileMmapEnable().transactionEnable().make()
+        val db2 = DBMaker.fileDB(f).fileLockDisable().fileMmapEnable().transactionEnable().make()
+
+        db2.close()
+        db1.close()
     }
 
     @Test fun fileIncrement(){

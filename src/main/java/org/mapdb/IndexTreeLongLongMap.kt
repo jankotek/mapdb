@@ -108,7 +108,7 @@ public class IndexTreeLongLongMap(
 
     override fun containsValue(value: Long): Boolean {
         //TODO perf
-        return treeFold(rootRecid, store, levels, false, TreeTraverseCallback { k, v, b: Boolean ->
+        return treeFold(rootRecid, store, levels, false, { _, v, b: Boolean ->
             b || v == value
         })
     }
@@ -120,9 +120,8 @@ public class IndexTreeLongLongMap(
 
     override fun <V : Any?> collect(function: LongToObjectFunction<out V>): MutableBag<V>? {
         val ret = HashBag<V>()
-        forEachKeyValue { k, v ->
-            val v = function.valueOf(v);
-            ret.add(v)
+        forEachValue {
+            ret.add(function.valueOf(it))
         }
         return ret
     }
@@ -179,7 +178,7 @@ public class IndexTreeLongLongMap(
 
     override fun reject(predicate: LongPredicate): MutableLongBag? {
         val ret = LongHashBag()
-        forEachKeyValue { k, v ->
+        forEachValue { v ->
             if (!predicate.accept(v))
                 ret.add(v)
         }
@@ -188,7 +187,7 @@ public class IndexTreeLongLongMap(
 
     override fun select(predicate: LongPredicate): MutableLongBag? {
         val ret = LongHashBag()
-        forEachKeyValue { k, v ->
+        forEachValue { v ->
             if (predicate.accept(v))
                 ret.add(v)
         }
@@ -200,7 +199,7 @@ public class IndexTreeLongLongMap(
             appendable.append(start)
 
             var first = true;
-            forEachKeyValue { k, l ->
+            forEachValue { l ->
                 if (!first) {
                     appendable.append(separator)
                 }
@@ -219,28 +218,28 @@ public class IndexTreeLongLongMap(
 
     override fun size(): Int {
         return Utils.roundDownToIntMAXVAL(
-                treeFold(rootRecid, store, levels, 0L) { k, v, b: Long ->
+                treeFold(rootRecid, store, levels, 0L) { _, _, b: Long ->
                     b + 1
                 })
     }
 
 
     override fun allSatisfy(predicate: LongPredicate): Boolean {
-        return treeFold(rootRecid, store, levels, true) { k, v, b: Boolean ->
+        return treeFold(rootRecid, store, levels, true) { _, v, b: Boolean ->
             b && predicate.accept(v)
         }
     }
 
     override fun anySatisfy(predicate: LongPredicate): Boolean {
         //TODO PERF this traverses entire collection, terminate iteration when firt found
-        return treeFold(rootRecid, store, levels, false) { k, v, b: Boolean ->
+        return treeFold(rootRecid, store, levels, false) { _, v, b: Boolean ->
             b || predicate.accept(v)
         }
     }
 
     override fun count(predicate: LongPredicate): Int {
         return Utils.roundDownToIntMAXVAL(
-                treeFold(rootRecid, store, levels, 0L) { k, v, b: Long ->
+                treeFold(rootRecid, store, levels, 0L) { _, v, b: Long ->
                     if (predicate.accept(v))
                         b + 1
                     else
@@ -270,7 +269,7 @@ public class IndexTreeLongLongMap(
     }
 
     override fun max(): Long {
-        val ret = treeFold<Long?>(rootRecid, store, levels, null) { k, v, b: Long? ->
+        val ret = treeFold<Long?>(rootRecid, store, levels, null) { _, v, b: Long? ->
             if (b == null)
                 v
             else
@@ -281,7 +280,7 @@ public class IndexTreeLongLongMap(
     }
 
     override fun min(): Long {
-        val ret = treeFold<Long?>(rootRecid, store, levels, null) { k, v, b: Long? ->
+        val ret = treeFold<Long?>(rootRecid, store, levels, null) { _, v, b: Long? ->
             if (b == null)
                 v
             else
@@ -292,7 +291,7 @@ public class IndexTreeLongLongMap(
     }
 
     override fun noneSatisfy(predicate: LongPredicate): Boolean {
-        return treeFold(rootRecid, store, levels, true) { k, v, b: Boolean ->
+        return treeFold(rootRecid, store, levels, true) { _, v, b: Boolean ->
             if (!b)
                 false
             else {
@@ -304,7 +303,7 @@ public class IndexTreeLongLongMap(
     }
 
     override fun sum(): Long {
-        return treeFold(rootRecid, store, levels, 0) { k, v, b: Long ->
+        return treeFold(rootRecid, store, levels, 0) { _, v, b: Long ->
             b + v
         }
     }
@@ -440,13 +439,13 @@ public class IndexTreeLongLongMap(
     }
 
     override fun forEachKey(procedure: LongProcedure) {
-        treeFold(rootRecid, store, levels, Unit, { k, v, Unit ->
+        treeFold(rootRecid, store, levels, Unit, { k, _, _ ->
             procedure.value(k)
         })
     }
 
     override fun forEachKeyValue(procedure: LongLongProcedure) {
-        treeFold(rootRecid, store, levels, Unit, { k, v, Unit ->
+        treeFold(rootRecid, store, levels, Unit, { k, v, _ ->
             procedure.value(k, v)
         })
     }
@@ -463,7 +462,7 @@ public class IndexTreeLongLongMap(
 
 
     override fun forEachValue(procedure: LongProcedure) {
-        treeFold(rootRecid, store, levels, Unit, { k, v, Unit ->
+        treeFold(rootRecid, store, levels, Unit, { _, v, _ ->
             procedure.value(v)
         })
     }
@@ -728,7 +727,7 @@ public class IndexTreeLongLongMap(
                 override fun remove(value: Long): Boolean {
                     var removed = false;
                     forEachKeyValue { k, v ->
-                        if(value===v){
+                        if(value==v){
                             removeKey(k)
                             removed = true
                         }
@@ -782,7 +781,7 @@ public class IndexTreeLongLongMap(
 }
 
 
-internal abstract open class AbstractMutableLongCollection :
+internal abstract class AbstractMutableLongCollection :
         AbstractLongIterable(),
         MutableLongCollection {
 
@@ -904,14 +903,14 @@ internal abstract open class AbstractMutableLongCollection :
     }
 
 
-    override fun equals(obj: Any?): Boolean {
-        if (this === obj) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) {
             return true
         }
-        if (obj !is LongSet) {
+        if (other !is LongSet) {
             return false
         }
-        return this.size() == obj.size() && this.containsAll(obj)
+        return this.size() == other.size() && this.containsAll(other)
     }
 
 
