@@ -601,7 +601,7 @@ open class DB(
                 is MutableCollection<*> -> obj.clear()
                 is MutableMap<*, *> -> obj.clear()
                 is MutableLongValuesMap -> obj.clear()
-else -> throw DBException.WrongConfiguration("Collection has unknown class: " + obj.javaClass)
+                else -> throw DBException.WrongConfiguration("Collection has unknown class: " + obj.javaClass)
             }
 
             //remove all parameters
@@ -829,7 +829,13 @@ else -> throw DBException.WrongConfiguration("Collection has unknown class: " + 
                     closeable = db,
                     hasValues = hasValues
             )
-            return (if(hasValues)ret else ret.keys) as MAP
+
+            if(hasValues)
+                @Suppress("UNCHECKED_CAST")
+                return ret as MAP
+            else
+                @Suppress("UNCHECKED_CAST")
+                return ret.keys as MAP
         }
 
         override fun open2(catalog: SortedMap<String, String>): MAP {
@@ -839,10 +845,13 @@ else -> throw DBException.WrongConfiguration("Collection has unknown class: " + 
             _keySerializer =
                     db.nameCatalogGetClass(catalog, name + if(hasValues)Keys.keySerializer else Keys.serializer)
                             ?: _keySerializer
-            _valueSerializer = if(!hasValues) BTreeMap.NO_VAL_SERIALIZER as Serializer<V>
-            else {
-                db.nameCatalogGetClass(catalog, name + Keys.valueSerializer)?: _valueSerializer
-            }
+            _valueSerializer =
+                    if(!hasValues){
+                        @Suppress("UNCHECKED_CAST")
+                        BTreeMap.NO_VAL_SERIALIZER as Serializer<V>
+                    }else {
+                        db.nameCatalogGetClass(catalog, name + Keys.valueSerializer)?: _valueSerializer
+                    }
             _valueInline = if(hasValues) catalog[name + Keys.valueInline]!!.toBoolean() else true
 
             val hashSeed = catalog[name + Keys.hashSeed]!!.toInt()
@@ -917,7 +926,14 @@ else -> throw DBException.WrongConfiguration("Collection has unknown class: " + 
                     closeable = db,
                     hasValues = hasValues
             )
-            return (if(hasValues)ret else ret.keys) as MAP
+
+
+            if(hasValues)
+                @Suppress("UNCHECKED_CAST")
+                return ret as MAP
+            else
+                @Suppress("UNCHECKED_CAST")
+                return ret.keys as MAP
         }
 
     }
@@ -926,16 +942,20 @@ else -> throw DBException.WrongConfiguration("Collection has unknown class: " + 
     class HashMapMaker<K,V>(
         db:DB,
         name:String,
-        storeFactory:(segment:Int)->Store = {i-> db.store}
+        storeFactory:(segment:Int)->Store = {_-> db.store}
     ):HTreeMapMaker<K,V,HTreeMap<K,V>>(db,name,true,storeFactory){
 
         fun <A> keySerializer(keySerializer:Serializer<A>):HashMapMaker<A,V>{
+            @Suppress("UNCHECKED_CAST")
             _keySerializer = keySerializer as Serializer<K>
+            @Suppress("UNCHECKED_CAST")
             return this as HashMapMaker<A, V>
         }
 
         fun <A> valueSerializer(valueSerializer:Serializer<A>):HashMapMaker<K,A>{
+            @Suppress("UNCHECKED_CAST")
             _valueSerializer = valueSerializer as Serializer<V>
+            @Suppress("UNCHECKED_CAST")
             return this as HashMapMaker<K, A>
         }
 
@@ -1055,9 +1075,7 @@ else -> throw DBException.WrongConfiguration("Collection has unknown class: " + 
 
 
         fun modificationListener(listener:MapModificationListener<K,V>):HashMapMaker<K,V>{
-            if(_modListeners==null)
-                _modListeners = ArrayList()
-            _modListeners?.add(listener)
+            _modListeners.add(listener)
             return this;
         }
 
@@ -1105,10 +1123,10 @@ else -> throw DBException.WrongConfiguration("Collection has unknown class: " + 
              protected val hasValues:Boolean
          ) :Maker<MAP>(db,name, if(hasValues)"TreeMap" else "TreeSet"){
 
-        override fun awareItems() = arrayOf(_keySerializer, _valueSerializer, _valueLoader)
+         override fun awareItems() = arrayOf(_keySerializer, _valueSerializer, _valueLoader)
 
-
-        protected var _keySerializer:GroupSerializer<K> = db.defaultSerializer as GroupSerializer<K>
+         @Suppress("UNCHECKED_CAST")
+         protected var _keySerializer:GroupSerializer<K> = db.defaultSerializer as GroupSerializer<K>
          protected var _valueSerializer:GroupSerializer<V> =
                  GroupSerializerWrapper.wrap(if(hasValues) db.defaultSerializer else BTreeMap.NO_VAL_SERIALIZER)
 
@@ -1155,7 +1173,12 @@ else -> throw DBException.WrongConfiguration("Collection has unknown class: " + 
                      modificationListeners = if(_modListeners==null) null else _modListeners!!.toTypedArray()
              )
 
-             return (if(hasValues) ret else ret.keys) as MAP
+             if(hasValues)
+                 @Suppress("UNCHECKED_CAST")
+                 return ret as MAP
+             else
+                 @Suppress("UNCHECKED_CAST")
+                 return ret.keys as MAP
          }
 
          override fun open2(catalog: SortedMap<String, String>): MAP {
@@ -1167,6 +1190,7 @@ else -> throw DBException.WrongConfiguration("Collection has unknown class: " + 
                              ?: _keySerializer
              _valueSerializer =
                      if(!hasValues) {
+                         @Suppress("UNCHECKED_CAST")
                          BTreeMap.NO_VAL_SERIALIZER as GroupSerializer<V>
                      }else {
                          db.nameCatalogGetClass(catalog, name + Keys.valueSerializer) ?: _valueSerializer
@@ -1198,7 +1222,12 @@ else -> throw DBException.WrongConfiguration("Collection has unknown class: " + 
                      valueInline = _valueInline,
                      modificationListeners = if(_modListeners==null)null else _modListeners!!.toTypedArray()
              )
-             return (if(hasValues) ret else ret.keys) as MAP
+             if(hasValues)
+                 @Suppress("UNCHECKED_CAST")
+                 return ret as MAP
+             else
+                 @Suppress("UNCHECKED_CAST")
+                 return ret.keys as MAP
          }
 
      }
@@ -1210,6 +1239,7 @@ else -> throw DBException.WrongConfiguration("Collection has unknown class: " + 
 
         fun <A> keySerializer(keySerializer:Serializer<A>):TreeMapMaker<A,V>{
             _keySerializer = GroupSerializerWrapper.wrap(keySerializer)
+            @Suppress("UNCHECKED_CAST")
             return this as TreeMapMaker<A, V>
         }
 
@@ -1217,6 +1247,7 @@ else -> throw DBException.WrongConfiguration("Collection has unknown class: " + 
             if(!hasValues)
                 throw DBException.WrongConfiguration("Set, no vals")
             _valueSerializer = GroupSerializerWrapper.wrap(valueSerializer)
+            @Suppress("UNCHECKED_CAST")
             return this as TreeMapMaker<K, A>
         }
 //
@@ -1314,6 +1345,7 @@ else -> throw DBException.WrongConfiguration("Collection has unknown class: " + 
 
         fun <A> serializer(serializer:Serializer<A>):TreeSetMaker<A>{
             this._keySerializer = GroupSerializerWrapper.wrap(serializer)
+            @Suppress("UNCHECKED_CAST")
             return this as TreeSetMaker<A>
         }
 
@@ -1401,16 +1433,19 @@ else -> throw DBException.WrongConfiguration("Collection has unknown class: " + 
     class HashSetMaker<E>(
             db:DB,
             name:String,
-            storeFactory:(segment:Int)->Store = {i-> db.store}
+            storeFactory:(segment:Int)->Store = {_-> db.store}
     ) :HTreeMapMaker<E, Void, HTreeMap.KeySet<E>>(db,name, false, storeFactory){
 
         init{
+            @Suppress("UNCHECKED_CAST")
             _valueSerializer = BTreeMap.NO_VAL_SERIALIZER as Serializer<Void>
             _valueInline =true
         }
 
         fun <A> serializer(serializer:Serializer<A>):HashSetMaker<A>{
+            @Suppress("UNCHECKED_CAST")
             _keySerializer = serializer as Serializer<E>
+            @Suppress("UNCHECKED_CAST")
             return this as HashSetMaker<A>
         }
 
@@ -1560,8 +1595,10 @@ else -> throw DBException.WrongConfiguration("Collection has unknown class: " + 
                 }
 
                 val ref = db.namesInstanciated.getIfPresent(name)
-                if(ref!=null)
+                if(ref!=null) {
+                    @Suppress("UNCHECKED_CAST")
                     return ref as E;
+                }
 
                 if(typeFromDb!=null) {
                     val ret = open2(catalog)
@@ -1697,6 +1734,7 @@ else -> throw DBException.WrongConfiguration("Collection has unknown class: " + 
 
     class AtomicVarMaker<E>(db:DB,
                             name:String,
+                            @Suppress("UNCHECKED_CAST")
                             protected val serializer:Serializer<E> = db.defaultSerializer as Serializer<E>,
                             protected val value:E? = null):Maker<Atomic.Var<E>>(db,name, "AtomicVar"){
 
@@ -1907,7 +1945,7 @@ else -> throw DBException.WrongConfiguration("Collection has unknown class: " + 
 
     private fun nameCatalogVerifyTree():Map<String, Map<String, CatVal>> {
 
-        val all = {s:String->null}
+        val all = {_:String->null}
         val recid = {s:String->
             try{
                 val l = s.toLong()

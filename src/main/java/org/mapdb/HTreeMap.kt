@@ -51,7 +51,9 @@ class HTreeMap<K,V>(
     companion object{
         /** constructor with default values */
         fun <K,V> make(
+                @Suppress("UNCHECKED_CAST")
                 keySerializer:Serializer<K> = Serializer.ELSA as Serializer<K>,
+                @Suppress("UNCHECKED_CAST")
                 valueSerializer:Serializer<V> = Serializer.ELSA as Serializer<V>,
                 valueInline:Boolean = false,
                 concShift: Int = CC.HTREEMAP_CONC_SHIFT,
@@ -165,7 +167,9 @@ class HTreeMap<K,V>(
         override fun serialize(out: DataOutput2, value: kotlin.Array<Any>) {
             out.packInt(value.size)
             for(i in 0 until value.size step 3) {
+                @Suppress("UNCHECKED_CAST")
                 keySerializer.serialize(out, value[i+0] as K)
+                @Suppress("UNCHECKED_CAST")
                 valueSerializer.serialize(out, value[i+1] as V)
                 out.packLong(value[i+2] as Long)
             }
@@ -179,6 +183,7 @@ class HTreeMap<K,V>(
                 ret[i++] = valueSerializer.deserialize(input, -1)
                 ret[i++] = input.unpackLong()
             }
+            @Suppress("UNCHECKED_CAST")
             return ret as Array<Any>;
         }
 
@@ -191,6 +196,7 @@ class HTreeMap<K,V>(
         override fun serialize(out: DataOutput2, value: kotlin.Array<Any>) {
             out.packInt(value.size)
             for(i in 0 until value.size step 3) {
+                @Suppress("UNCHECKED_CAST")
                 keySerializer.serialize(out, value[i+0] as K)
                 out.packLong(value[i+2] as Long)
             }
@@ -204,6 +210,7 @@ class HTreeMap<K,V>(
                 ret[i++] = true
                 ret[i++] = input.unpackLong()
             }
+            @Suppress("UNCHECKED_CAST")
             return ret as Array<Any>;
         }
 
@@ -218,6 +225,7 @@ class HTreeMap<K,V>(
         override fun serialize(out: DataOutput2, value: Array<Any>) {
             out.packInt(value.size)
             for(i in 0 until value.size step 3) {
+                @Suppress("UNCHECKED_CAST")
                 keySerializer.serialize(out, value[i+0] as K)
                 out.packLong(value[i+1] as Long)
                 out.packLong(value[i+2] as Long)
@@ -232,6 +240,7 @@ class HTreeMap<K,V>(
                 ret[i++] = input.unpackLong()
                 ret[i++] = input.unpackLong() //expiration timestamp
             }
+            @Suppress("UNCHECKED_CAST")
             return ret as Array<Any>;
         }
 
@@ -379,6 +388,7 @@ class HTreeMap<K,V>(
 
         //check existing keys in leaf
         for (i in 0 until leaf.size step 3) {
+            @Suppress("UNCHECKED_CAST")
             val oldKey = leaf[i] as K
 
             if (keySerializer.equals(oldKey, key)) {
@@ -495,6 +505,7 @@ class HTreeMap<K,V>(
 
         //check existing keys in leaf
         for (i in 0 until leaf.size step 3) {
+            @Suppress("UNCHECKED_CAST")
             val oldKey = leaf[i] as K
 
             if (keySerializer.equals(oldKey, key)) {
@@ -560,7 +571,7 @@ class HTreeMap<K,V>(
             Utils.lockWrite(locks,segment) {
                 val indexTree = indexTrees[segment]
                 val store = stores[segment]
-                indexTree.forEachKeyValue { index, leafRecid ->
+                indexTree.forEachKeyValue { _, leafRecid ->
                     val leaf = leafGet(store, leafRecid)
 
                     store.delete(leafRecid, leafSerializer);
@@ -568,7 +579,11 @@ class HTreeMap<K,V>(
                         val key = leaf[i]
                         val wrappedValue = leaf[i + 1]
                         if (notify)
-                            listenerNotify(key as K, valueUnwrap(segment, wrappedValue), null, triggerExpiration)
+                            listenerNotify(
+                                    @Suppress("UNCHECKED_CAST") (key as K),
+                                    valueUnwrap(segment, wrappedValue),
+                                    null,
+                                    triggerExpiration)
                         if (!valueInline)
                             store.delete(wrappedValue as Long, valueSerializer)
                     }
@@ -644,6 +659,7 @@ class HTreeMap<K,V>(
         var leaf = leafGet(store, leafRecid)
 
         for (i in 0 until leaf.size step 3) {
+            @Suppress("UNCHECKED_CAST")
             val oldKey = leaf[i] as K
 
             if (keySerializer.equals(oldKey, key)) {
@@ -720,7 +736,7 @@ class HTreeMap<K,V>(
                     ret += stores[segment].get(counterRecids[segment], Serializer.LONG_PACKED)
                             ?: throw DBException.DataCorruption("counter not found")
                 }else {
-                    indexTrees[segment].forEachKeyValue { index, leafRecid ->
+                    indexTrees[segment].forEachKeyValue { _, leafRecid ->
                         val leaf = leafGet(stores[segment], leafRecid)
                         ret += leaf.size / 3
                     }
@@ -768,14 +784,14 @@ class HTreeMap<K,V>(
         if(key == null || value==null)
             throw NullPointerException()
 
-        val hash = hash(key as K)
+        val hash = hash(key)
         val segment = hashToSegment(hash)
         Utils.lockWrite(locks, segment) {
             if(isForegroundEviction)
                 expireEvictSegment(segment)
 
             val oldValue = getprotected(hash, key, updateQueue = false)
-            if (oldValue != null && valueSerializer.equals(oldValue, value as V)) {
+            if (oldValue != null && valueSerializer.equals(oldValue, value)) {
                 removeprotected(hash, key, evicted = false)
                 return true;
             } else {
@@ -918,6 +934,7 @@ class HTreeMap<K,V>(
             if(nodeRecid != expireNodeRecidFor(leaf[leafIndex+2] as Long))
                 continue
             //remove from this leaf
+            @Suppress("UNCHECKED_CAST")
             val key = leaf[leafIndex] as K
             val hash = hash(key);
             if(CC.ASSERT && segment!=hashToSegment(hash))
@@ -950,7 +967,10 @@ class HTreeMap<K,V>(
         override fun iterator(): MutableIterator<MutableMap.MutableEntry<K?, V?>> {
             val iters = (0 until segmentCount).map{segment->
                 htreeIterator(segment) { key, wrappedValue ->
-                    htreeEntry(key as K, valueUnwrap(segment, wrappedValue))
+                    @Suppress("UNCHECKED_CAST")
+                    htreeEntry(
+                            key as K,
+                            valueUnwrap(segment, wrappedValue))
                 }
             }
             return Iterators.concat(iters.iterator())
@@ -982,7 +1002,8 @@ class HTreeMap<K,V>(
 
         override fun iterator(): MutableIterator<K?> {
             val iters = (0 until map.segmentCount).map{segment->
-                map.htreeIterator(segment) {key, wrappedValue ->
+                map.htreeIterator(segment) {key, _ ->
+                    @Suppress("UNCHECKED_CAST")
                     key as K
                 }
             }
@@ -1012,7 +1033,7 @@ class HTreeMap<K,V>(
         }
     }
 
-    override val keys: KeySet<K> = KeySet(this as HTreeMap<K,Any?>)
+    override val keys: KeySet<K> = KeySet(@Suppress("UNCHECKED_CAST") (this as HTreeMap<K,Any?>))
 
 
 
@@ -1032,7 +1053,7 @@ class HTreeMap<K,V>(
 
         override fun iterator(): MutableIterator<V?> {
             val iters = (0 until segmentCount).map{segment->
-                htreeIterator(segment) {keyWrapped, valueWrapped ->
+                htreeIterator(segment) {_, valueWrapped ->
                     valueUnwrap(segment, valueWrapped)
                 }
             }
@@ -1069,6 +1090,7 @@ class HTreeMap<K,V>(
                         ret[i] = loadNext(leaf[i], leaf[i + 1])
 
                         //TODO PERF key is deserialized twice, modify iterators...
+                        @Suppress("UNCHECKED_CAST")
                         ret[i + 1] = leaf[i] as K
                     }
                     return ret
@@ -1084,6 +1106,7 @@ class HTreeMap<K,V>(
                 val leafArray = leafArray
                         ?: throw NoSuchElementException();
                 val ret = leafArray[leafPos++]
+                @Suppress("UNCHECKED_CAST")
                 lastKey = leafArray[leafPos++] as K?
                 val expireRecid = leafArray[leafPos++]
 
@@ -1159,10 +1182,10 @@ class HTreeMap<K,V>(
         if (other === this)
             return true
 
-        if (other !is java.util.Map<*, *>)
+        if (other !is Map<*, *>)
             return false
 
-        if (other.size() != size)
+        if (other.size != size)
             return false
 
         try {
@@ -1203,6 +1226,7 @@ class HTreeMap<K,V>(
 
     protected fun valueUnwrap(segment:Int, wrappedValue:Any):V{
         if(valueInline)
+            @Suppress("UNCHECKED_CAST")
             return wrappedValue as V
         if(CC.ASSERT)
           locks?.checkReadLocked(segment)
@@ -1220,13 +1244,13 @@ class HTreeMap<K,V>(
     }
 
     override fun forEach(action: BiConsumer<in K, in V>) {
-        action!!
         for(segment in 0 until segmentCount){
             segmentRead(segment){
                 val store = stores[segment]
                 indexTrees[segment].forEachValue { leafRecid ->
                     val leaf = leafGet(store, leafRecid)
                     for(i in 0 until leaf.size step 3){
+                        @Suppress("UNCHECKED_CAST")
                         val key = leaf[i] as K
                         val value = valueUnwrap(segment, leaf[i+1])
                         action.accept(key, value)
@@ -1243,6 +1267,7 @@ class HTreeMap<K,V>(
                 indexTrees[segment].forEachValue { leafRecid ->
                     val leaf = leafGet(store, leafRecid)
                     for(i in 0 until leaf.size step 3){
+                        @Suppress("UNCHECKED_CAST")
                         val key = leaf[i] as K
                         action(key)
                     }

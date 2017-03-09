@@ -42,7 +42,7 @@ object DBMaker{
         val file = File.createTempFile("mapdb","temp")
         file.delete()
         file.deleteOnExit()
-        return fileDB(file).deleteFilesAfterClose()
+        return fileDB(file).fileDeleteAfterClose()
     }
 
     @JvmStatic fun fileDB(file:String): Maker {
@@ -91,7 +91,7 @@ object DBMaker{
 
     @JvmStatic fun memoryShardedHashSet(concurrency:Int): DB.HashSetMaker<Any?> {
         val db = DB(store = StoreOnHeap(), storeOpened = false, isThreadSafe = true)
-        return DB.HashSetMaker<Any?>(db,"map",storeFactory = { i ->
+        return DB.HashSetMaker<Any?>(db,"map",storeFactory = {
                 StoreDirect.make(isThreadSafe = false)
             })
             .layout(concurrency = concurrency, dirSize = 1.shl(CC.HTREEMAP_DIR_SHIFT), levels = CC.HTREEMAP_LEVELS)
@@ -99,7 +99,7 @@ object DBMaker{
 
     @JvmStatic fun heapShardedHashSet(concurrency:Int): DB.HashSetMaker<Any?> {
         val db = DB(store = StoreOnHeap(), storeOpened = false, isThreadSafe = true)
-        return DB.HashSetMaker<Any?>(db,"map",storeFactory = { i ->
+        return DB.HashSetMaker<Any?>(db,"map",storeFactory = {
                 StoreOnHeap(isThreadSafe = false)
             })
             .layout(concurrency = concurrency, dirSize = 1.shl(CC.HTREEMAP_DIR_SHIFT), levels = CC.HTREEMAP_LEVELS)
@@ -107,7 +107,7 @@ object DBMaker{
 
     @JvmStatic fun memoryShardedHashMap(concurrency:Int): DB.HashMapMaker<*,*> {
         val db = DB(store = StoreOnHeap(), storeOpened = false, isThreadSafe = true)
-        return DB.HashMapMaker<Any,Any>(db,"map",storeFactory = { i ->
+        return DB.HashMapMaker<Any,Any>(db,"map",storeFactory = {
                 StoreDirect.make(isThreadSafe = false)
             })
             .layout(concurrency = concurrency, dirSize = 1.shl(CC.HTREEMAP_DIR_SHIFT), levels = CC.HTREEMAP_LEVELS)
@@ -115,7 +115,7 @@ object DBMaker{
 
     @JvmStatic fun heapShardedHashMap(concurrency:Int): DB.HashMapMaker<*,*> {
         val db = DB(store = StoreOnHeap(), storeOpened = false, isThreadSafe = true)
-        return DB.HashMapMaker<Any,Any>(db,"map",storeFactory = { i ->
+        return DB.HashMapMaker<Any,Any>(db,"map",storeFactory = {
                 StoreOnHeap(isThreadSafe = false)
             })
             .layout(concurrency = concurrency, dirSize = 1.shl(CC.HTREEMAP_DIR_SHIFT), levels = CC.HTREEMAP_LEVELS)
@@ -453,7 +453,7 @@ object DBMaker{
                 }else {
                     storeOpened = volfab!!.exists(file)
                     if (_transactionEnable.not() || _readOnly) {
-                       StoreDirect.make(file = file, volumeFactory = volfab!!,
+                       StoreDirect.make(file = file, volumeFactory = volfab,
                                fileLockWait = _fileLockWait,
                                allocateIncrement = _allocateIncrement,
                                allocateStartSize = _allocateStartSize,
@@ -467,7 +467,7 @@ object DBMaker{
                     } else {
                         if(_checksumStoreEnable)
                             throw DBException.WrongConfiguration("Checksum is not supported with transaction enabled.")
-                       StoreWAL.make(file = file, volumeFactory = volfab!!,
+                       StoreWAL.make(file = file, volumeFactory = volfab,
                                fileLockWait = _fileLockWait,
                                allocateIncrement = _allocateIncrement,
                                allocateStartSize = _allocateStartSize,
