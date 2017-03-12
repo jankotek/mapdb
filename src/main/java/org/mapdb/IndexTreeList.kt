@@ -2,7 +2,6 @@ package org.mapdb
 
 import org.eclipse.collections.api.map.primitive.MutableLongLongMap
 import java.util.*
-import java.util.concurrent.locks.ReadWriteLock
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
 /**
@@ -72,11 +71,11 @@ class IndexTreeList<E> (
             }
             //move down rest of the list
             for (i in index + 1 until size) {
-                val recid = map.get(i.toLong())
-                if (recid == 0L)
+                val recid2 = map.get(i.toLong())
+                if (recid2 == 0L)
                     continue;
                 map.remove(i.toLong())
-                map.put((i - 1).toLong(), recid)
+                map.put((i - 1).toLong(), recid2)
             }
             size--
             return ret;

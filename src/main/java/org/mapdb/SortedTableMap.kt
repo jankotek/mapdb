@@ -3,12 +3,12 @@ package org.mapdb
 import org.mapdb.serializer.GroupSerializer
 import org.mapdb.volume.Volume
 import java.io.ObjectStreamException
+import java.io.Serializable
 import java.util.*
 import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.ConcurrentNavigableMap
 import java.util.concurrent.ConcurrentSkipListMap
 import java.util.function.BiConsumer
-import java.io.Serializable
 
 /**
  * Read only Sorted Table Map. It stores data in table and uses binary search to find records
@@ -509,6 +509,7 @@ class SortedTableMap<K,V>(
                 if(nodeKeys.size==nodePos){
                     loadNextNode()
                 }
+                @Suppress("UNCHECKED_CAST")
                 return ret as K
             }
 
@@ -551,6 +552,7 @@ class SortedTableMap<K,V>(
                 val nodeKeys = nodeKeys
                         ?: throw NoSuchElementException()
 
+                @Suppress("UNCHECKED_CAST")
                 val ret =AbstractMap.SimpleImmutableEntry(nodeKeys[nodePos] as K, nodeVals!![nodePos] as V)
                 nodePos++
                 if(nodeKeys.size==nodePos){
@@ -598,7 +600,7 @@ class SortedTableMap<K,V>(
             override fun next(): V {
                 val nodeVals = nodeVals
                         ?: throw NoSuchElementException()
-
+                @Suppress("UNCHECKED_CAST")
                 val ret = nodeVals[nodePos] as V
                 nodePos++
                 if(nodeVals.size==nodePos){
@@ -647,6 +649,7 @@ class SortedTableMap<K,V>(
 
     }
 
+    @Suppress("UNCHECKED_CAST")
     override val keys: NavigableSet<K> = BTreeMapJava.KeySet<K>(this as ConcurrentNavigableMapExtra<K, Any>, true)
 
     override fun navigableKeySet(): NavigableSet<K>? {
@@ -724,10 +727,10 @@ class SortedTableMap<K,V>(
         if (other === this)
             return true
 
-        if (other !is java.util.Map<*, *>)
+        if (other !is Map<*, *>)
             return false
 
-        if (other.size() != size)
+        if (other.size != size)
             return false
 
         try {
@@ -819,6 +822,7 @@ class SortedTableMap<K,V>(
     override fun lastEntry(): MutableMap.MutableEntry<K, V>? {
         if(isEmpty())
             return null
+        @Suppress("UNCHECKED_CAST")
         return descendingEntryIterator().next() as  MutableMap.MutableEntry<K, V>
     }
 
@@ -929,6 +933,7 @@ class SortedTableMap<K,V>(
                 val nodeKeys = nodeKeys
                         ?: throw NoSuchElementException()
 
+                @Suppress("UNCHECKED_CAST")
                 val ret =AbstractMap.SimpleImmutableEntry(nodeKeys[nodePos] as K, nodeVals!![nodePos] as V)
                 nodePos--
                 if(nodePos==-1){
@@ -1120,6 +1125,7 @@ class SortedTableMap<K,V>(
                 val nodeKeys = nodeKeys
                         ?: throw NoSuchElementException()
 
+                @Suppress("UNCHECKED_CAST")
                 val ret = AbstractMap.SimpleImmutableEntry<K,V>(nodeKeys[nodePos] as K, nodeVals!![nodePos] as V)
                 nodePos--
                 if(nodePos==-1){
@@ -1130,13 +1136,12 @@ class SortedTableMap<K,V>(
             }
 
             fun checkLoBound(){
-                val lo = lo
-                        ?:return
-                val nodeKeys = nodeKeys
-                        ?:return
+                val lo2 = lo ?:return
+                val nodeKeys = nodeKeys ?:return
 
+                @Suppress("UNCHECKED_CAST")
                 val nextKey = nodeKeys[nodePos] as K
-                if(keySerializer.compare(nextKey, lo)<loComp){
+                if(keySerializer.compare(nextKey, lo2)<loComp){
                     //high bound is lower, than key, cancel next node
                     this.nodeKeys = null
                     this.nodePos = -1
@@ -1188,6 +1193,7 @@ class SortedTableMap<K,V>(
                 if(nodePos==-1){
                     loadNextNode()
                 }
+                @Suppress("UNCHECKED_CAST")
                 return ret as K
             }
 
@@ -1343,6 +1349,7 @@ class SortedTableMap<K,V>(
                         ?: throw NoSuchElementException()
 
                 //val ret = AbstractMap.SimpleImmutableEntry<K,V>(nodeKeys[nodePos] as K, nodeVals!![nodePos] as V)
+                @Suppress("UNCHECKED_CAST")
                 val ret = nodeKeys[nodePos] as K
                 nodePos--
                 if(nodePos==-1){
@@ -1353,13 +1360,14 @@ class SortedTableMap<K,V>(
             }
 
             fun checkLoBound(){
-                val lo = lo
+                val lo2 = lo
                         ?:return
                 val nodeKeys = nodeKeys
                         ?:return
 
+                @Suppress("UNCHECKED_CAST")
                 val nextKey = nodeKeys[nodePos] as K
-                if(keySerializer.compare(nextKey, lo)<loComp){
+                if(keySerializer.compare(nextKey, lo2)<loComp){
                     //high bound is lower, than key, cancel next node
                     this.nodeKeys = null
                     this.nodePos = -1
@@ -1406,6 +1414,7 @@ class SortedTableMap<K,V>(
                 val nodeVals = nodeVals
                         ?: throw NoSuchElementException()
 
+                @Suppress("UNCHECKED_CAST")
                 val ret = nodeVals[nodePos] as V
                 nodePos--
                 if(nodePos==-1){
@@ -1597,6 +1606,7 @@ class SortedTableMap<K,V>(
                 val nodeVals = nodeVals
                         ?: throw NoSuchElementException()
 
+                @Suppress("UNCHECKED_CAST")
                 val ret = nodeVals[nodePos] as V
                 nodePos--
                 if(nodePos==-1){
@@ -1607,13 +1617,14 @@ class SortedTableMap<K,V>(
             }
 
             fun checkLoBound(){
-                val lo = lo
+                val lo2 = lo
                         ?:return
                 val nodeKeys = nodeKeys
                         ?:return
 
+                @Suppress("UNCHECKED_CAST")
                 val nextKey = nodeKeys[nodePos] as K
-                if(keySerializer.compare(nextKey, lo)<loComp){
+                if(keySerializer.compare(nextKey, lo2)<loComp){
                     //high bound is lower, than key, cancel next node
                     this.nodeKeys = null
                     this.nodePos = -1
@@ -1669,6 +1680,7 @@ class SortedTableMap<K,V>(
                             //move to next node
                             continue@keysLoop
                         }
+                        @Suppress("UNCHECKED_CAST")
                         if(keySerializer.compare(keys[pos] as K, lo)>comp){
                             //end iteration
                             nodePos = pos
@@ -1690,6 +1702,7 @@ class SortedTableMap<K,V>(
                 val nodeVals = nodeVals
                         ?: throw NoSuchElementException()
 
+                @Suppress("UNCHECKED_CAST")
                 val ret = AbstractMap.SimpleImmutableEntry<K,V>(nodeKeys[nodePos] as K, nodeVals[nodePos] as V)
                 nodePos++
                 if(nodeVals.size==nodePos){
@@ -1701,13 +1714,14 @@ class SortedTableMap<K,V>(
 
 
             fun checkHiBound(){
-                val hi = hi
+                val hi2 = hi
                         ?:return
                 val nodeKeys = nodeKeys
                         ?:return
 
+                @Suppress("UNCHECKED_CAST")
                 val nextKey = nodeKeys[nodePos] as K
-                if(keySerializer.compare(hi, nextKey)<hiComp){
+                if(keySerializer.compare(hi2, nextKey)<hiComp){
                     //high bound is lower, than key, cancel next node
                     this.nodeKeys = null
                     this.nodePos = -1
@@ -1757,6 +1771,7 @@ class SortedTableMap<K,V>(
                             //move to next node
                             continue@keysLoop
                         }
+                        @Suppress("UNCHECKED_CAST")
                         if(keySerializer.compare(keys[pos] as K, lo)>comp){
                             //end iteration
                             nodePos = pos
@@ -1781,18 +1796,20 @@ class SortedTableMap<K,V>(
                     loadNextNode()
                 }
                 checkHiBound()
+                @Suppress("UNCHECKED_CAST")
                 return ret as K
             }
 
 
             fun checkHiBound(){
-                val hi = hi
+                val hi2 = hi
                         ?:return
                 val nodeKeys = nodeKeys
                         ?:return
 
+                @Suppress("UNCHECKED_CAST")
                 val nextKey = nodeKeys[nodePos] as K
-                if(keySerializer.compare(hi, nextKey)<hiComp){
+                if(keySerializer.compare(hi2, nextKey)<hiComp){
                     //high bound is lower, than key, cancel next node
                     this.nodeKeys = null
                     this.nodePos = -1
@@ -1847,6 +1864,7 @@ class SortedTableMap<K,V>(
                             //move to next node
                             continue@keysLoop
                         }
+                        @Suppress("UNCHECKED_CAST")
                         if(keySerializer.compare(keys[pos] as K, lo)>comp){
                             //end iteration
                             nodePos = pos
@@ -1873,18 +1891,20 @@ class SortedTableMap<K,V>(
                     loadNextNode()
                 }
                 checkHiBound()
+                @Suppress("UNCHECKED_CAST")
                 return ret as V
             }
 
 
             fun checkHiBound(){
-                val hi = hi
+                val hi2 = hi
                         ?:return
                 val nodeKeys = nodeKeys
                         ?:return
 
+                @Suppress("UNCHECKED_CAST")
                 val nextKey = nodeKeys[nodePos] as K
-                if(keySerializer.compare(hi, nextKey)<hiComp){
+                if(keySerializer.compare(hi2, nextKey)<hiComp){
                     //high bound is lower, than key, cancel next node
                     this.nodeKeys = null
                     this.nodePos = -1

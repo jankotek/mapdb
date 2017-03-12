@@ -88,7 +88,7 @@ public class IndexTreeLongLongMap(
             treeRemove(dirShift, rootRecid, store, levels, key, null)
     }
 
-    private inline fun assertKey(key: Long) {
+    private fun assertKey(key: Long) {
         if (key < 0)
             throw IllegalArgumentException("negative key")
         //TODO assert max size based on levels

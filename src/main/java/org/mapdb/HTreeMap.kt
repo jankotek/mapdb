@@ -1114,9 +1114,8 @@ class HTreeMap<K,V>(
                     this.leafArray = moveToNextLeaf()
                     this.leafPos = 0;
                 }
-                this
-
-                return ret as E;
+                @Suppress("UNCHECKED_CAST")
+                return ret as E
             }
 
             override fun remove() {
@@ -1153,11 +1152,15 @@ class HTreeMap<K,V>(
             override fun equals(other: Any?): Boolean {
                 if (other !is Map.Entry<*, *>)
                     return false
-                val okey = other.key ?: return false
-                val ovalue = other.value ?: return false
+                @Suppress("UNCHECKED_CAST")
+                val okey = other.key as K?
+                @Suppress("UNCHECKED_CAST")
+                val ovalue = other.value as V?
                 try{
-                    return keySerializer.equals(key, okey as K)
-                            && valueSerializer.equals(this.value!!, ovalue as V)
+
+                    return okey!=null && ovalue!=null
+                            && keySerializer.equals(key, okey)
+                            && valueSerializer.equals(this.value!!, ovalue)
                 }catch(e:ClassCastException) {
                     return false
                 }
@@ -1260,7 +1263,7 @@ class HTreeMap<K,V>(
         }
     }
 
-    override fun forEachKey(action:  (K)->Unit) {
+    override fun forEachKey(procedure:  (K)->Unit) {
         for(segment in 0 until segmentCount){
             segmentRead(segment){
                 val store = stores[segment]
@@ -1269,7 +1272,7 @@ class HTreeMap<K,V>(
                     for(i in 0 until leaf.size step 3){
                         @Suppress("UNCHECKED_CAST")
                         val key = leaf[i] as K
-                        action(key)
+                        procedure(key)
                     }
                 }
             }
@@ -1277,7 +1280,7 @@ class HTreeMap<K,V>(
 
     }
 
-    override fun forEachValue(action:  (V)->Unit) {
+    override fun forEachValue(procedure:  (V)->Unit) {
         for(segment in 0 until segmentCount){
             segmentRead(segment){
                 val store = stores[segment]
@@ -1285,7 +1288,7 @@ class HTreeMap<K,V>(
                     val leaf = leafGet(store, leafRecid)
                     for(i in 0 until leaf.size step 3){
                         val value = valueUnwrap(segment, leaf[i+1])
-                        action(value)
+                        procedure(value)
                     }
                 }
             }

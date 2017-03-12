@@ -798,20 +798,20 @@ class BTreeMap<K,V>(
 
             if (knownNodes.contains(leftRecid).not())
                 throw AssertionError()
-            var node = getNode(leftRecid)
+            var node2 = getNode(leftRecid)
             if (!knownNodes.remove(leftRecid))
                 throw AssertionError()
 
-            while (node.isRightEdge.not()) {
+            while (node2.isRightEdge.not()) {
                 //TODO enable once links are traced
                 //                if(!knownNodes.remove(node.link))
                 //                    throw AssertionError()
 
-                val next = getNode(node.link)
-                if (comparator.compare(node.highKey(keySerializer) as K, keySerializer.valueArrayGet(next.keys, 0)) != 0)
-                    throw AssertionError(node.link)
+                val next = getNode(node2.link)
+                if (comparator.compare(node2.highKey(keySerializer) as K, keySerializer.valueArrayGet(next.keys, 0)) != 0)
+                    throw AssertionError(node2.link)
 
-                node = next
+                node2 = next
             }
         }
         //TODO enable once links are traced
