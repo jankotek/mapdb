@@ -1,11 +1,11 @@
 package org.mapdb.crash
 
-import org.mapdb.*
+import org.mapdb.DataIO
+import org.mapdb.TT
 import java.io.DataInputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
-import java.nio.file.Paths
 
 /**
  * Tests crash resistance by manually unplugging the drive.
@@ -53,7 +53,7 @@ fun main(args : Array<String>) {
     val ins = DataInputStream(FileInputStream(file))
     try{
         while(true){
-            a = ins.readLong()
+            ins.readLong()
         }
     }catch(e:Exception){
     }
