@@ -20,8 +20,8 @@ class DBAwareTest{
 
         var db:DB? = null
 
-        override fun callbackDB(db_: DB) {
-            db = db_
+        override fun callbackDB(db: DB) {
+            this.db = db
         }
 
         var name:String? = null

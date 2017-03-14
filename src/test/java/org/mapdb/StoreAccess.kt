@@ -1,3 +1,5 @@
+@file:Suppress("CAST_NEVER_SUCCEEDS")
+
 package org.mapdb.StoreAccess
 
 import org.eclipse.collections.api.list.primitive.MutableLongList

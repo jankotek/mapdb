@@ -15,9 +15,9 @@ class VolumeTest {
         internal val scale = org.mapdb.TT.testScale()
         internal val sub = Math.pow(10.0, (2.0 + 3* scale)).toLong()
 
-        internal val BYTE_ARRAY_FAB:Function1<String, Volume> = { file -> ByteArrayVol(CC.PAGE_SHIFT, 0L) }
+        internal val BYTE_ARRAY_FAB:Function1<String, Volume> = { ByteArrayVol(CC.PAGE_SHIFT, 0L) }
 
-        internal val MEMORY_VOL_FAB:Function1<String, Volume> = { file -> ByteBufferMemoryVol(false, CC.PAGE_SHIFT, false, 0L) }
+        internal val MEMORY_VOL_FAB:Function1<String, Volume> = { ByteBufferMemoryVol(false, CC.PAGE_SHIFT, false, 0L) }
 
         val VOL_FABS: Array<Function1<String, Volume>> =
                 if(org.mapdb.TT.shortTest())
@@ -26,15 +26,15 @@ class VolumeTest {
                     arrayOf(
                             BYTE_ARRAY_FAB,
                             MEMORY_VOL_FAB,
-                        {file -> SingleByteArrayVol(4e7.toInt()) },
-                        {file -> ByteBufferMemoryVol(true, CC.PAGE_SHIFT, false, 0L) },
-                        {file ->  Volume.UNSAFE_VOL_FACTORY.makeVolume(null, false, -1L, CC.PAGE_SHIFT, 0, false)},
+                        { SingleByteArrayVol(4e7.toInt()) },
+                        { ByteBufferMemoryVol(true, CC.PAGE_SHIFT, false, 0L) },
+                        { Volume.UNSAFE_VOL_FACTORY.makeVolume(null, false, -1L, CC.PAGE_SHIFT, 0, false)},
                         {file -> FileChannelVol(File(file), false, 0L, CC.PAGE_SHIFT, 0L) },
                         {file -> RandomAccessFileVol(File(file), false, 0L, 0L) },
                         {file -> MappedFileVol(File(file), false, 0L, CC.PAGE_SHIFT, false, 0L, false) },
                         {file -> MappedFileVolSingle(File(file), false, 0L, 4e7.toLong(), false) },
-                        {file -> ByteBufferMemoryVolSingle(false, 4e7.toLong(), false) },
-                        {file -> UnsafeVolume(0, CC.PAGE_SHIFT, 0) }
+                        { ByteBufferMemoryVolSingle(false, 4e7.toLong(), false) },
+                        { UnsafeVolume(0, CC.PAGE_SHIFT, 0) }
                     )
     }
 
@@ -176,7 +176,7 @@ class VolumeTest {
         assertTrue(v.fileLocked)
 
         try {
-            val v2 = RandomAccessFileVol(f, false, 0L, 0L)
+            RandomAccessFileVol(f, false, 0L, 0L)
             fail()
         } catch (l: DBException.FileLocked) {
             //ignored

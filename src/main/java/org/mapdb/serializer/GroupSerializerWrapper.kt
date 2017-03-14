@@ -25,6 +25,7 @@ data class GroupSerializerWrapper<A>(val ser: Serializer<A>):GroupSerializerObje
 
     companion object {
 
+        @Suppress("UNCHECKED_CAST")
         fun <V> wrap(serializer: Serializer<out Any?>): GroupSerializer<V> {
             return if (serializer is GroupSerializer) {
                 serializer as GroupSerializer<V>

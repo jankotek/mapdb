@@ -1,11 +1,9 @@
 package org.mapdb
 
-import org.eclipse.collections.api.LongIterable
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.eclipse.collections.impl.stack.mutable.primitive.LongArrayStack
 import java.util.concurrent.atomic.AtomicLong
-import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
 /**
@@ -36,6 +34,7 @@ class StoreOnHeap(
         if(null == r)
             throw DBException.GetVoid(recid)
 
+        @Suppress("UNCHECKED_CAST")
         return r as R
     }
 
@@ -57,6 +56,7 @@ class StoreOnHeap(
     override fun <R> put(record: R?, serializer: Serializer<R>): Long {
         Utils.lockWrite(lock) {
             val recid = preallocate();
+            @Suppress("UNCHECKED_CAST")
             update(recid, record ?: NULL_RECORD as R?, serializer);
             return recid
         }

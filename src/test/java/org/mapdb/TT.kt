@@ -38,11 +38,11 @@ object TT{
 
     @JvmStatic fun randomString(size: Int, seed: Int=Random().nextInt()): String {
         val chars = "0123456789abcdefghijklmnopqrstuvwxyz !@#$%^&*()_+=-{}[]:\",./<>?|\\".toCharArray()
-        var seed = seed
+        var seed2 = seed
         val b = StringBuilder(size)
         for (i in 0..size - 1) {
-            b.append(chars[Math.abs(seed) % chars.size])
-            seed = 31 * seed + DataIO.intHash(seed)
+            b.append(chars[Math.abs(seed2) % chars.size])
+            seed2 = 31 * seed2 + DataIO.intHash(seed2)
         }
         return b.toString()
     }
@@ -133,6 +133,7 @@ object TT{
     /* clone value using serialization */
     @JvmStatic fun <E> clone(value: E, serializer: Serializer<*>, out:DataOutput2 = DataOutput2()): E {
         out.pos = 0
+        @Suppress("UNCHECKED_CAST")
         (serializer as Serializer<E>).serialize(out, value)
         val in2 = DataInput2.ByteArray(out.copyBytes())
         return serializer.deserialize(in2, out.pos)
@@ -146,11 +147,13 @@ object TT{
         out2.flush()
 
         val in2 = ByteArrayInputStream(out.toByteArray())
+        @Suppress("UNCHECKED_CAST")
         return ObjectInputStream(in2).readObject() as E
     }
 
     @JvmStatic fun <E> serializedSize(value: E, serializer: Serializer<*>, out:DataOutput2 = DataOutput2()): Int {
         out.pos = 0
+        @Suppress("UNCHECKED_CAST")
         (serializer as Serializer<E>).serialize(out, value)
         return out.pos;
     }

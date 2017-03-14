@@ -293,14 +293,14 @@ abstract class StoreDirectAbstract(
         val reusedDataOffset = if(recursive) 0L else
             longStackTake(longStackMasterLinkOffset(size.toLong()), recursive)
         if(reusedDataOffset!=0L){
-            val reusedDataOffset = parity1Get(reusedDataOffset).shl(3)
+            val reusedDataOffset2 = parity1Get(reusedDataOffset).shl(3)
             if(CC.ZEROS)
-                volume.assertZeroes(reusedDataOffset, reusedDataOffset+size)
-            if(CC.ASSERT && reusedDataOffset%16!=0L)
+                volume.assertZeroes(reusedDataOffset2, reusedDataOffset2+size)
+            if(CC.ASSERT && reusedDataOffset2%16!=0L)
                 throw DBException.DataCorruption("wrong offset")
 
             freeSizeIncrement(-size.toLong())
-            return reusedDataOffset
+            return reusedDataOffset2
         }
 
         val dataTail2 = dataTail;
@@ -364,8 +364,8 @@ abstract class StoreDirectAbstract(
         freeSizeIncrement(size)
 
         //offset is multiple of 16, 4 bits are unnecessary, save 3 bits, use 1 bit for parity
-        val offset = parity1Set(offset.ushr(3))
-        longStackPut(longStackMasterLinkOffset(size), offset, recursive);
+        val offset2 = parity1Set(offset.ushr(3))
+        longStackPut(longStackMasterLinkOffset(size), offset2, recursive);
     }
 
     protected fun releaseRecid(recid:Long){

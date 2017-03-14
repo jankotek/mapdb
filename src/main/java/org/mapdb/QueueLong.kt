@@ -107,7 +107,7 @@ class QueueLong(
             store.update(prevRecid, prevNode.copy(nextRecid=nodeRecid),Node.SERIALIZER)
         }
         val tail2 = tail;
-        if(tail2===head2){
+        if(tail2==head2){
             //update tail
             tail = nodeRecid
         }
@@ -246,7 +246,7 @@ class QueueLong(
     }
 
     fun clear(){
-        takeUntil(QueueLongTakeUntil { l, p -> true })
+        takeUntil(QueueLongTakeUntil { _, _ -> true })
     }
 
     fun size():Long{

@@ -82,27 +82,27 @@ class ScheduledExecutorServiceWrapper
 
         val endTime = if(timeout<0) Long.MAX_VALUE else System.currentTimeMillis()+unit.toMillis(timeout);
 
-        val tasks =  tasks.map{submit(it)}.toMutableList()
+        val ts =  tasks.map{submit(it)}.toMutableList()
         //wait until at least one task is running or timeout
-        while(tasks.find { t-> !t.isCancelled && !t.isDone}!=null){
+        while(ts.find { t-> !t.isCancelled && !t.isDone}!=null){
             Thread.sleep(1)
             if(System.currentTimeMillis()>endTime){
                 //cancel not completed task
-                tasks.filter{t-> !t.isCancelled && !t.isDone }.forEach { it.cancel(false) }
+                ts.filter{t-> !t.isCancelled && !t.isDone }.forEach { it.cancel(false) }
             }
         }
-        return tasks
+        return ts
     }
 
     override fun <T : Any?> invokeAny(tasks: MutableCollection<out Callable<T>>): T {
         if(tasks.isEmpty())
             throw IllegalArgumentException()
 
-        val tasks =  tasks.map{submit(it)}.toMutableList()
+        val ts =  tasks.map{submit(it)}.toMutableList()
 
         //wait until at least one task finishes
         while(true){
-            tasks.filter { it.isDone }.forEach { return it.get() }
+            ts.filter { it.isDone }.forEach { return it.get() }
             Thread.sleep(1)
         }
     }
@@ -111,11 +111,11 @@ class ScheduledExecutorServiceWrapper
         if(tasks.isEmpty())
             throw IllegalArgumentException()
 
-        val tasks =  tasks.map{submit(it)}.toMutableList()
+        val ts =  tasks.map{submit(it)}.toMutableList()
         val endTime = System.currentTimeMillis()+unit.toMillis(timeout)
 
         while(true){
-            tasks.filter { it.isDone }.forEach { return it.get() }
+            ts.filter { it.isDone }.forEach { return it.get() }
             if(System.currentTimeMillis()>endTime)
                 throw TimeoutException()
             Thread.sleep(1)

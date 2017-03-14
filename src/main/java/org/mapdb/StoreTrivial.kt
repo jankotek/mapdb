@@ -172,7 +172,7 @@ open class StoreTrivial(
     override fun <R> update(recid: Long, record: R?, serializer: Serializer<R>) {
         val bytes = toByteArray(record, serializer)
         Utils.lockWrite(lock) {
-            val old = records.get(recid)
+            records.get(recid)
                     ?: throw DBException.GetVoid(recid);
 
             records.put(recid, bytes)
@@ -203,7 +203,7 @@ open class StoreTrivial(
 
     override fun <R> delete(recid: Long, serializer: Serializer<R>) {
         Utils.lockWrite(lock) {
-            val old = records.get(recid)
+            records.get(recid)
                     ?: throw DBException.GetVoid(recid);
 
             records.remove(recid)
@@ -451,7 +451,7 @@ class StoreTrivialTx(val file:File, isThreadSafe:Boolean=true, val deleteFilesAf
 
     override fun rollback() {
         Utils.lockWrite(lock) {
-            if(lastFileNum===-1L){
+            if(lastFileNum==-1L){
                 //no commit was made yet, revert to empty state
                 clearInternal()
                 return

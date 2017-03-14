@@ -1,3 +1,5 @@
+@file:Suppress("CAST_NEVER_SUCCEEDS")
+
 package org.mapdb
 
 import org.eclipse.collections.api.list.primitive.MutableLongList
@@ -16,7 +18,7 @@ import java.util.concurrent.ConcurrentSkipListSet
 import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.atomic.AtomicInteger
 
-
+@Suppress("UNCHECKED_CAST")
 class BTreeMapTest {
 
     val keyser = Serializer.ELSA
@@ -835,7 +837,7 @@ class BTreeMapTest {
                 assertFalse(iter.hasNext())
                 return
             }
-            var key2 = expectedLowKey as Int;
+            var key2 = expectedLowKey as Int
             assertTrue(iter.hasNext())
             assertEquals(expectedLowKey, (iter.next().keys as Array<Any>)[0])
 
@@ -889,7 +891,7 @@ class BTreeMapTest {
         val map = BTreeMap.make<Int, Int>()
         var counter = 0
 
-        TT.fork(20, { a->
+        TT.fork(20, { _->
             map.lock(10L)
             val c = counter
             Thread.sleep(100)
@@ -968,7 +970,7 @@ class BTreeMapTest {
             while (i < 10000) {
                 val s = i - i % 3
                 val e = m.floorEntry(i)
-                assertEquals(s, if (e != null) e!!.key else null)
+                assertEquals(s, if (e != null) e.key else null)
                 i += 1
             }
         }
@@ -981,7 +983,7 @@ class BTreeMapTest {
             var s: Int? = i - i % 3
             if (s == i) s -= 3
             val e = m.lowerEntry(i)
-            assertEquals(s, if (e != null) e!!.key else null)
+            assertEquals(s, if (e != null) e.key else null)
             i += 1
         }
         assertEquals(9999, m.lowerEntry(100000).key)
@@ -1264,7 +1266,7 @@ class BTreeMapTest {
             }
 
             db.close()
-            db = DBMaker.fileDB(f).deleteFilesAfterClose().fileMmapEnableIfSupported().make()
+            db = DBMaker.fileDB(f).fileDeleteAfterClose().fileMmapEnableIfSupported().make()
             m = db.treeMap("map", Serializer.INTEGER, Serializer.INTEGER).open()
 
             for (j in 0..max - 1) {
@@ -1305,7 +1307,7 @@ class BTreeMapTest {
 
         for (i in 0..99) {
             val b2 = TT.randomByteArray(10000)
-            assertTrue((id2entry as java.util.Map<Long, ByteArray>).replace(11L, b, b2))
+            assertTrue((id2entry as MutableMap<Long, ByteArray>).replace(11L, b, b2))
             b = b2
         }
         assertEquals(size, store.getTotalSize() - store.calculateFreeSize())
@@ -1317,7 +1319,7 @@ class BTreeMapTest {
 
 
     @Test fun setLong() {
-        val k = DBMaker.heapDB().make().treeSet("test").create() as BTreeMapJava.KeySet<Int>
+        val k = DBMaker.heapDB().make().treeSet("test").create() as KeySet<Int>
         k.add(11)
         assertEquals(1, k.sizeLong())
     }
@@ -1325,7 +1327,7 @@ class BTreeMapTest {
 
     @Test(expected = NullPointerException::class)
     fun testNullKeyInsertion() {
-        val map = DBMaker.memoryDB().make().treeMap("map").create() as MutableMap<Any?,Any?>
+        val map = DBMaker.memoryDB().make().treeMap("map").create()
         map.put(null, "NULL VALUE")
         fail("A NullPointerException should have been thrown since the inserted key was null")
     }

@@ -1,3 +1,5 @@
+@file:Suppress("CAST_NEVER_SUCCEEDS")
+
 package org.mapdb
 
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList

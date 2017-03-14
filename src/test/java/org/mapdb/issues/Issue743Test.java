@@ -3,7 +3,7 @@ package org.mapdb.issues;
 import org.junit.Test;
 import org.mapdb.*;
 
-import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertEquals;
 
 public class Issue743Test {
 

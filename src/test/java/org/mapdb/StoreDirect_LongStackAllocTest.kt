@@ -81,9 +81,9 @@ class StoreDirect_LongStackAllocTest(
                 periodRecid = store.put(ba,Serializer.BYTE_ARRAY_NOSIZE)
             }
 
-            var size = r.nextInt(1600)
+            var size2 = r.nextInt(1600)
             if(r.nextInt(1000)<1000*data.largeSizeProbability)
-                size = ((size + data.largeSizePlus) * data.largeSizeMultiple).toInt()
+                size2 = ((size2 + data.largeSizePlus) * data.largeSizeMultiple).toInt()
 
             if(recids.isEmpty.not() && r.nextInt(1000)<1000*data.updateProb){
                 //do update
@@ -95,12 +95,12 @@ class StoreDirect_LongStackAllocTest(
                 assertEquals(sizeOld, old.size)
                 TT.assertAllZero(old)
 
-                store.update(recid, ByteArray(size), Serializer.BYTE_ARRAY_NOSIZE)
-                recids.put(recid, size)
+                store.update(recid, ByteArray(size2), Serializer.BYTE_ARRAY_NOSIZE)
+                recids.put(recid, size2)
             }else{
                 //do insert instead
-                val recid = store.put(ByteArray(size), Serializer.BYTE_ARRAY_NOSIZE)
-                recids.put(recid, size)
+                val recid = store.put(ByteArray(size2), Serializer.BYTE_ARRAY_NOSIZE)
+                recids.put(recid, size2)
             }
 
             if(ba!=null){

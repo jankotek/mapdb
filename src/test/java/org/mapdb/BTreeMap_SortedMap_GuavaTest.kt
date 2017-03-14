@@ -32,7 +32,8 @@ class BTreeMap_SortedMap_GuavaTest(val mapMaker:(generic:Boolean)-> ConcurrentMa
 
     override fun getValueNotInPopulatedMap(): String = "-120"
 
-    open override fun makeEmptyMap(): NavigableMap<Int?, String?> {
+    override fun makeEmptyMap(): NavigableMap<Int?, String?> {
+        @Suppress("UNCHECKED_CAST")
         return mapMaker(false) as NavigableMap<Int?, String?>
     }
 

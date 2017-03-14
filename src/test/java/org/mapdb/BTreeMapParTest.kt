@@ -1,12 +1,7 @@
 package org.mapdb
 
-import org.junit.Test
-
-import java.util.concurrent.Callable
-import java.util.concurrent.ConcurrentMap
-import java.util.concurrent.atomic.AtomicLong
-
 import org.junit.Assert.assertEquals
+import org.junit.Test
 
 class BTreeMapParTest {
 
@@ -24,9 +19,6 @@ class BTreeMapParTest {
 
         val m = DBMaker.memoryDB().make().treeMap("test").valueSerializer(Serializer.LONG).keySerializer(Serializer.LONG).createOrOpen()
 
-        val t = System.currentTimeMillis()
-        val counter = AtomicLong()
-
         TT.fork(threadNum, {core->
                 var n: Long = core.toLong()
                 while (n < max) {
@@ -34,8 +26,6 @@ class BTreeMapParTest {
                     n += threadNum.toLong()
                 }
        })
-
-        //        System.out.printf("  Threads %d, time %,d\n",threadNum,System.currentTimeMillis()-t);
 
 
         assertEquals(max.toLong(), m.size.toLong())

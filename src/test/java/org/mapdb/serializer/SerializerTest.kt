@@ -1,3 +1,5 @@
+@file:Suppress("UNCHECKED_CAST")
+
 package org.mapdb.serializer
 
 import org.junit.Assert.*
@@ -142,9 +144,9 @@ abstract class GroupSerializerTest<E>:SerializerTest<E>(){
 
     }
 
-    open protected fun randomArray() = Array<Any>(max.toInt(), { i -> randomValue() as Any })
+    open protected fun randomArray() = Array<Any>(max.toInt(), { randomValue() as Any })
 
-    open protected fun randomValueArray() = serializer2.valueArrayFromArray(Array<Any>(arraySize.toInt(), { i -> randomValue() as Any }))
+    open protected fun randomValueArray() = serializer2.valueArrayFromArray(Array<Any>(arraySize.toInt(), { randomValue() as Any }))
 
     fun cloneValueArray(vals:Any?):Any?{
         val out = dataOutput;
@@ -673,14 +675,14 @@ class Serializer_JAVA: GroupSerializerTest<Any>(){
             return this.value.hashCode() and 1
         }
 
-        override fun equals(obj: Any?): Boolean {
-            return obj is CollidingObject && obj.value == value
+        override fun equals(other: Any?): Boolean {
+            return other is CollidingObject && other.value == value
         }
     }
 
     internal class ComparableCollidingObject(value: String) : CollidingObject(value), Comparable<ComparableCollidingObject>, Serializable {
-        override fun compareTo(o: ComparableCollidingObject): Int {
-            return value.compareTo(o.value)
+        override fun compareTo(other: ComparableCollidingObject): Int {
+            return value.compareTo(other.value)
         }
     }
 
@@ -692,13 +694,13 @@ class Serializer_JAVA: GroupSerializerTest<Any>(){
     @Test fun clone2(){
         val v = TT.clone(CollidingObject("111"), Serializer.JAVA)
         assertTrue(v is CollidingObject)
-        assertSerEquals("111", (v as CollidingObject).value)
+        assertSerEquals("111", v.value)
     }
 
     @Test fun clone3(){
         val v = TT.clone(ComparableCollidingObject("111"), Serializer.JAVA)
         assertTrue(v is ComparableCollidingObject)
-        assertSerEquals("111", (v as ComparableCollidingObject).value)
+        assertSerEquals("111", v.value)
 
     }
 
@@ -717,14 +719,14 @@ class Serializer_ELSA: GroupSerializerTest<Any>(){
             return this.value.hashCode() and 1
         }
 
-        override fun equals(obj: Any?): Boolean {
-            return obj is CollidingObject && obj.value == value
+        override fun equals(other: Any?): Boolean {
+            return other is CollidingObject && other.value == value
         }
     }
 
     internal class ComparableCollidingObject(value: String) : CollidingObject(value), Comparable<ComparableCollidingObject>, Serializable {
-        override fun compareTo(o: ComparableCollidingObject): Int {
-            return value.compareTo(o.value)
+        override fun compareTo(other: ComparableCollidingObject): Int {
+            return value.compareTo(other.value)
         }
     }
 
@@ -736,13 +738,13 @@ class Serializer_ELSA: GroupSerializerTest<Any>(){
     @Test fun clone2(){
         val v = TT.clone(CollidingObject("111"), Serializer.ELSA)
         assertTrue(v is CollidingObject)
-        assertSerEquals("111", (v as CollidingObject).value)
+        assertSerEquals("111", v.value)
     }
 
     @Test fun clone3(){
         val v = TT.clone(ComparableCollidingObject("111"), Serializer.ELSA)
         assertTrue(v is ComparableCollidingObject)
-        assertSerEquals("111", (v as ComparableCollidingObject).value)
+        assertSerEquals("111", v.value)
 
     }
 
@@ -752,7 +754,7 @@ class Serializer_ELSA: GroupSerializerTest<Any>(){
 
 class Serializer_DB_default: GroupSerializerTest<Any?>(){
     override fun randomValue() = TT.randomString(11)
-    override val serializer = DBMaker.memoryDB().make().defaultSerializer as Serializer<Any?>
+    override val serializer = DBMaker.memoryDB().make().defaultSerializer
 
     @Test override fun trusted(){
     }

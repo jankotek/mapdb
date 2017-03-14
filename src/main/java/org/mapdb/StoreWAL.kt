@@ -819,7 +819,6 @@ class StoreWAL(
         val dataTail = dataTail
         val remainderSize = roundUp(dataTail, CC.PAGE_SIZE) - dataTail
         if(newChunkSize==-1L) {
-            val dataTail = dataTail
             if (dataTail == 0L) {
                 // will have to allocate new data page, plenty of size
                 newChunkSize = LONG_STACK_PREF_SIZE
@@ -913,8 +912,8 @@ class StoreWAL(
             //TODO in this case baPrev might be unmodified. Use some sort of flag to indicate modified fields
             val baPrev = longStackLoadChunk(prevChunkOffset)
             //yes previous page exists, return its size, decreased by start
-            val pos = parity4Get(getLong(baPrev,0)).ushr(48)
-            longStackFindEnd(prevChunkOffset, pos)
+            val pos2 = parity4Get(getLong(baPrev,0)).ushr(48)
+            longStackFindEnd(prevChunkOffset, pos2)
         }else{
             0L
         }

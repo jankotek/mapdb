@@ -1,3 +1,5 @@
+@file:Suppress("CAST_NEVER_SUCCEEDS")
+
 package org.mapdb
 
 import org.fest.reflect.core.Reflection
@@ -34,6 +36,7 @@ class HTreeMapTest{
 
 
     @Test fun hashAssertion(){
+        @Suppress("UNCHECKED_CAST")
         val map = HTreeMap.make<ByteArray,Int>(keySerializer = Serializer.ELSA as Serializer<ByteArray>)
 
         try {
@@ -207,7 +210,7 @@ class HTreeMapTest{
 
         i = 0
         while (i < 1e5){
-            assertEquals(i, m.get(intArrayOf(i!!, i, i)))
+            assertEquals(i, m.get(intArrayOf(i, i, i)))
             i++
         }
 
@@ -220,7 +223,7 @@ class HTreeMapTest{
         var m:HTreeMap<String,String>? = null
         var seg:Int? = null
         m = db.hashMap("name", Serializer.STRING, Serializer.STRING)
-            .modificationListener(MapModificationListener { key, oldVal, newVal, triggered ->
+            .modificationListener(MapModificationListener { _, _, _, _ ->
                 for (i in 0..m!!.locks!!.segmentCount - 1) {
                     assertEquals(seg == i,
                             m!!.locks!!.isWriteLockedByCurrentThread(i))
@@ -229,7 +232,7 @@ class HTreeMapTest{
             })
             .create()
 
-        seg = m!!.hashToSegment(m!!.hash("aa"))
+        seg = m.hashToSegment(m.hash("aa"))
 
         m.put("aa", "aa")
         m.put("aa", "bb")
@@ -335,8 +338,8 @@ class HTreeMapTest{
 
     class AA(internal val vv: Int) : Serializable {
 
-        override fun equals(obj: Any?): Boolean {
-            return obj is AA && obj.vv == vv
+        override fun equals(other: Any?): Boolean {
+            return other is AA && other.vv == vv
         }
     }
 

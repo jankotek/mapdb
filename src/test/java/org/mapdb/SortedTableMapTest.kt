@@ -1,20 +1,19 @@
 package org.mapdb
 
 import org.fest.reflect.core.Reflection
-import org.junit.Test
 import org.junit.Assert.*
-import org.mapdb.volume.ByteArrayVol
-import org.mapdb.volume.MappedFileVol
-import java.math.BigInteger
-import java.util.*
+import org.junit.Test
 import org.mapdb.TT.assertFailsWith
+import org.mapdb.volume.ByteArrayVol
 import org.mapdb.volume.RandomAccessFileVol
 import java.io.RandomAccessFile
+import java.math.BigInteger
+import java.util.*
 
 class SortedTableMapTest{
 
     val SortedTableMap<*,*>.pageKeys:  Any
-        get() = Reflection.method("getPageKeys").`in`(this).invoke() as Any
+        get() = Reflection.method("getPageKeys").`in`(this).invoke()
 
 
     @Test fun import0(){
@@ -50,7 +49,7 @@ class SortedTableMapTest{
                 volume = volume
         )
         consumer.put(1,1)
-        val map = consumer.create()
+        consumer.create()
         assertEquals(CC.FILE_HEADER, volume.getUnsignedByte(0).toLong())
         assertEquals(CC.FILE_TYPE_SORTED_SINGLE, volume.getUnsignedByte(1).toLong())
     }

@@ -16,6 +16,7 @@ class HTreeMap_JSR166Test(
     }
 
     override fun makeMap(): ConcurrentMap<Int?, String?>? {
+        @Suppress("UNCHECKED_CAST")
         return mapMaker(false) as ConcurrentMap<Int?, String?>
     }
 

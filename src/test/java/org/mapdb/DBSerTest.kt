@@ -1,3 +1,5 @@
+@file:Suppress("CAST_NEVER_SUCCEEDS")
+
 package org.mapdb
 
 import org.fest.reflect.core.Reflection
@@ -24,12 +26,14 @@ class DBSerTest{
         var atom = db.atomicInteger("atom").create()
         atom.set(1111)
 
+        @Suppress("UNCHECKED_CAST")
         var map = db.hashMap("map").create() as MutableMap<Any,Any>
         map.put(11, atom)
         db.close()
 
         db = DBMaker.fileDB(f).make()
 
+        @Suppress("UNCHECKED_CAST")
         map = db.hashMap("map").open() as MutableMap<Any,Any>
         val o = map[11]
         assertTrue(o is Atomic.Integer && o.get()==1111)

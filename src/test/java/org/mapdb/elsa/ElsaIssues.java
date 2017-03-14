@@ -211,7 +211,7 @@ public class ElsaIssues {
 
         db.close();
 
-        db = DBMaker.fileDB(f).deleteFilesAfterClose().make();
+        db = DBMaker.fileDB(f).fileDeleteAfterClose().make();
         set = db.hashSet("testSerializerPojo").open();
         set.add(new test_pojo_reload_TestClass("test2"));
         db.commit();

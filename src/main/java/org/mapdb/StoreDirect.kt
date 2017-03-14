@@ -345,7 +345,6 @@ class StoreDirect(
         val dataTail = dataTail
         val remainderSize = roundUp(dataTail, CC.PAGE_SIZE) - dataTail
         if(newChunkSize==-1L) {
-            val dataTail = dataTail
             if (dataTail == 0L) {
                 // will have to allocate new data page, plenty of size
                 newChunkSize = LONG_STACK_PREF_SIZE
@@ -432,8 +431,8 @@ class StoreDirect(
         //does previous page exists?
         val masterLinkPos:Long = if (prevChunkOffset != 0L) {
             //yes previous page exists, return its size, decreased by start
-            val pos = parity4Get(volume.getLong(prevChunkOffset)).ushr(48)
-            longStackFindEnd(prevChunkOffset, pos)
+            val pos2 = parity4Get(volume.getLong(prevChunkOffset)).ushr(48)
+            longStackFindEnd(prevChunkOffset, pos2)
         }else{
             0L
         }
@@ -811,7 +810,7 @@ class StoreDirect(
                     val maxRecid = maxRecid
                     for (recid in 1..maxRecid) {
                         var data: ByteArray? = null;
-                        var exist = true;
+                        var exist:Boolean;
                         try {
                             data = getProtected(recid, Serializer.BYTE_ARRAY_NOSIZE)
                             exist = true
@@ -1026,7 +1025,7 @@ class StoreDirect(
                 val setZeroes = { start: Long, end: Long ->
                     set(start, end, false)
                 }
-                longStackForEach(masterLinkOffset = RECID_LONG_STACK, setZeroes = setZeroes, body = { freeRecid ->
+                longStackForEach(masterLinkOffset = RECID_LONG_STACK, setZeroes = setZeroes, body = { _ ->
                     //deleted recids should be marked separately
                 })
 
@@ -1034,8 +1033,8 @@ class StoreDirect(
                 for (size in 16..MAX_RECORD_SIZE step 16) {
                     val masterLinkOffset = longStackMasterLinkOffset(size)
                     longStackForEach(masterLinkOffset = masterLinkOffset, setZeroes = setZeroes, body = { freeOffset ->
-                        val freeOffset = parity1Get(freeOffset).shl(3)
-                        set(freeOffset, freeOffset + size, true)
+                        val freeOffset2 = parity1Get(freeOffset).shl(3)
+                        set(freeOffset2, freeOffset2 + size, true)
                     })
                 }
 
@@ -1090,10 +1089,10 @@ class StoreDirect(
         for (size in 16..MAX_RECORD_SIZE step 16) {
             val masterLinkOffset = longStackMasterLinkOffset(size)
             longStackForEach(masterLinkOffset, { v ->
-                val v = parity1Get(v).shl(3)
-                if(CC.ASSERT && v==0L)
+                val v2 = parity1Get(v).shl(3)
+                if(CC.ASSERT && v2==0L)
                     throw AssertionError()
-                if(CC.ASSERT && v>fileTail)
+                if(CC.ASSERT && v2>fileTail)
                     throw AssertionError()
 
                 ret1 += size

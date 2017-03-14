@@ -1,8 +1,11 @@
+@file:Suppress("CAST_NEVER_SUCCEEDS")
+
 package org.mapdb
 
 import org.fest.reflect.core.Reflection
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Test
-import org.junit.Assert.*
 
 class PumpTest{
 

@@ -95,7 +95,7 @@ class StoreDirectTest:StoreDirectAbstractTest(){
         assertEquals(s.getFreeSize(), s.calculateFreeSize())
     }
 
-    @Test open fun no_head_checksum(){
+    @Test fun no_head_checksum(){
         var store = StoreDirect.make(checksumHeader = false)
         assertEquals(0, store.volume.getInt(16)) //features
         assertEquals(0, store.volume.getInt(20)) //checksum

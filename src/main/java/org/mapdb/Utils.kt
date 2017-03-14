@@ -402,9 +402,9 @@ object Utils {
 
         private val locks = Array(segmentCount, {SingleEntryReadWriteLock()})
 
-        private inline fun s(segment:Int) = segment % locks.size
+        private fun s(segment:Int) = segment % locks.size
 
-        private inline fun l(segment:Int) = locks[s(segment)]
+        private fun l(segment:Int) = locks[s(segment)]
 
         fun writeLock(segment:Int){
             for(lock in locks)
@@ -518,9 +518,7 @@ object Utils {
 
             //unlock in reverse order to prevent deadlock
             for(i in locks.size-1 downTo 0) {
-                val lock = locks[i]
-                if (lock != null)
-                    lock.writeLock().unlock()
+                locks[i].writeLock().unlock()
             }
         }
 

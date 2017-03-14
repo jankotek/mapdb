@@ -2,9 +2,7 @@ package org.mapdb
 
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
-import org.mapdb.jsr166Tests.ConcurrentHashMapTest
 import org.mapdb.jsr166Tests.ConcurrentSkipListMapTest
-import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.ConcurrentNavigableMap
 
 @RunWith(Parameterized::class)
@@ -18,6 +16,7 @@ class BTreeMap_ConcurrentSkipListMapTest_JSR166Test(
     }
 
     override fun emptyIntMap(): ConcurrentNavigableMap<Int, Int>? {
+        @Suppress("UNCHECKED_CAST")
         return mapMaker(null) as ConcurrentNavigableMap<Int, Int>
     }
 

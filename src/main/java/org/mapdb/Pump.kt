@@ -128,10 +128,10 @@ object Pump{
                         return
 
                     //save dir node
-                    val link = store.preallocate()
+                    val link2 = store.preallocate()
                     val dirNode = Node(
                             dir.leftEdge + DIR,
-                            link,
+                            link2,
                             keySerializer.valueArrayFromArray(dir.keys.toArray()),
                             dir.child.toArray()
                     )
@@ -143,16 +143,16 @@ object Pump{
                     }
 
                     //prepare empty node
-                    val lastKey = dir.keys.last()
+                    val lastKey2 = dir.keys.last()
 
-                    keyFromLowerLevel = lastKey
+                    keyFromLowerLevel = lastKey2
                     childFromLowerLevel = dir.nextDirLink
 
                     dir.keys.clear()
-                    dir.keys.add(lastKey)
+                    dir.keys.add(lastKey2)
                     dir.child.clear()
                     dir.leftEdge = 0
-                    dir.nextDirLink = link
+                    dir.nextDirLink = link2
                 }
 
                 //dir stack overflowed, so add new entry on top

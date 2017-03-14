@@ -1,12 +1,12 @@
 package org.mapdb
 
 import org.fest.reflect.core.Reflection
+import org.junit.Assert.*
 import org.junit.Test
+import org.mapdb.volume.RandomAccessFileVol
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
-import org.junit.Assert.*
-import org.mapdb.volume.RandomAccessFileVol
 import java.util.concurrent.locks.ReadWriteLock
 
 class StoreTrivialTest : StoreReopenTest() {
@@ -73,7 +73,7 @@ class StoreTrivialTest : StoreReopenTest() {
         val m2 = File(file.toString()+".2"+StoreTrivialTx.COMMIT_MARKER_SUFFIX)
 
 
-        val recid = s.put(1L, Serializer.LONG);
+        s.put(1L, Serializer.LONG);
 
         assertTrue(!f0.exists())
         assertTrue(!m0.exists())
