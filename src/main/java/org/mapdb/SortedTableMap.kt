@@ -90,9 +90,12 @@ class SortedTableMap<K,V>(
                 valueSerializer: GroupSerializer<V>
         ): SortedTableMap<K, V> {
             val pageSize = volume.getLong(PAGE_SIZE_OFFSET)
-            if (pageSize <= 0 || pageSize > CC.PAGE_SIZE)
+            if (pageSize <= 0)
                 throw DBException.DataCorruption("Wrong page size: " + pageSize)
-            return SortedTableMap<K, V>(
+            val volSliceSize = volume.sliceSize()
+            if(volSliceSize>0 && volSliceSize<pageSize)
+                throw DBException.WrongConfiguration("Slice Size of underlying Volume is too small.")
+            return SortedTableMap(
                     keySerializer = keySerializer,
                     valueSerializer = valueSerializer,
                     volume = volume,
@@ -107,6 +110,9 @@ class SortedTableMap<K,V>(
                 pageSize: Long = CC.PAGE_SIZE,
                 nodeSize: Int = CC.BTREEMAP_MAX_NODE_SIZE
         ): Sink<K, V> {
+            val volSliceSize = volume.sliceSize()
+            if(volSliceSize>0 && volSliceSize<pageSize)
+                throw DBException.WrongConfiguration("Slice Size of underlying Volume is too small.")
 
             return object : Sink<K, V>() {
 
@@ -144,7 +150,7 @@ class SortedTableMap<K,V>(
                     volume.putLong(0L, CC.FILE_HEADER.shl(7 * 8) + CC.FILE_TYPE_SORTED_SINGLE.shl(6 * 8))
                     volume.putLong(SIZE_OFFSET, counter)
                     volume.putLong(PAGE_COUNT_OFFSET, (fileTail - pageSize) / pageSize)
-                    volume.putLong(PAGE_SIZE_OFFSET, pageSize.toLong())
+                    volume.putLong(PAGE_SIZE_OFFSET, pageSize)
                     volume.sync()
                     return SortedTableMap(
                             keySerializer = keySerializer,
@@ -258,7 +264,7 @@ class SortedTableMap<K,V>(
     /** first key at beginning of each page */
     protected val pageKeys = {
         val keys = ArrayList<K>()
-        for (i in 0..pageCount * pageSize step pageSize.toLong()) {
+        for (i in 0..pageCount * pageSize step pageSize) {
             val ii: Long = if (i == 0L) start.toLong() else i
             val offset = i + volume.getInt(ii + 4)
             val size = (i + volume.getInt(ii + 8) - offset).toInt()
