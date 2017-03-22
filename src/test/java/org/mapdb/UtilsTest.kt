@@ -46,7 +46,7 @@ class UtilsTest{
         val locks = Array<ReadWriteLock?>(10, { ReentrantReadWriteLock() })
 
         var locked = AtomicBoolean(false)
-        val waitUntilFinish = TT.async {
+        val waitUntilFinish = TT.async2 {
             locks[5]!!.writeLock().lock()
             locked.set(true)
             Thread.sleep(500)
@@ -74,7 +74,7 @@ class UtilsTest{
 
 
         var locked = AtomicBoolean(false)
-        val waitUntilFinish = TT.async {
+        val waitUntilFinish = TT.async2 {
             locks[5]!!.writeLock().lock()
             locked.set(true)
             Thread.sleep(500)

@@ -1,11 +1,10 @@
 package org.mapdb
 
-import org.junit.Test
 import org.junit.Assert.*
+import org.junit.Test
 import java.io.*
 import java.util.*
 import java.util.concurrent.*
-
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -161,12 +160,12 @@ object TT{
     }
 
     fun fork(count:Int=1, body:(i:Int)->Unit){
-        val finish = async(count=count, body=body)
+        val finish = async2(count=count, body=body)
         finish()
     }
 
 
-    fun async(count:Int=1, body:(i:Int)->Unit):()->Unit{
+    fun async2(count:Int=1, body:(i:Int)->Unit):()->Unit{
         val exec = executor(count)
         val wait = CountDownLatch(1)
         val exception = AtomicReference<Throwable>()
