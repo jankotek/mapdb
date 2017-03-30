@@ -1,15 +1,14 @@
 package org.mapdb.volume
 
-import org.mapdb.*
-import org.junit.Assert.*
 import org.junit.Test
+import org.mapdb.TT
 
 class FileLockTest{
 
     @Test fun lock_disable(){
         val f = TT.tempFile()
-        val c = FileChannelVol.FACTORY.makeVolume(f.path, false)
-        val c2 = FileChannelVol.FACTORY.makeVolume(f.path, false, -1)
+        FileChannelVol.FACTORY.makeVolume(f.path, false)
+        FileChannelVol.FACTORY.makeVolume(f.path, false, -1)
         f.delete()
     }
 

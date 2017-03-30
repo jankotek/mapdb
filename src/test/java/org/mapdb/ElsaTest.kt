@@ -31,6 +31,7 @@ class ElsaTestExternalizable: Externalizable {
 class ElsaTest{
     fun size(serializer: Serializer<*>, value:Any):Int{
         val out = DataOutput2()
+        @Suppress("UNCHECKED_CAST")
         (serializer as Serializer<Any?>).serialize(out, value)
         return out.pos
     }

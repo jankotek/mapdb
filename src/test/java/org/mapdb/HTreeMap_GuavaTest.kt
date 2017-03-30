@@ -104,6 +104,7 @@ class HTreeMap_GuavaTest(val mapMaker:(generic:Boolean)-> ConcurrentMap<Any?, An
     override fun getSecondValueNotInPopulatedMap(): String = "-121"
 
     override fun makeEmptyMap(): ConcurrentMap<Int?, String?> {
+        @Suppress("UNCHECKED_CAST")
         return mapMaker(false) as ConcurrentMap<Int?, String?>
     }
 

@@ -837,14 +837,14 @@ class BTreeMapTest {
                 assertFalse(iter.hasNext())
                 return
             }
-            var key2 = expectedLowKey as Int
+            var key2:Int = expectedLowKey
             assertTrue(iter.hasNext())
             assertEquals(expectedLowKey, (iter.next().keys as Array<Any>)[0])
 
             while(iter.hasNext()){
                 val node = iter.next()
                 val lowKey = (node.keys as Array<Any>)[0] as Int
-                if(key2<=lowKey)
+                if(key2 <= lowKey)
                     throw AssertionError()
                 key2 = lowKey
             }

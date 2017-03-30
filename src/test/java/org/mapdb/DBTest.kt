@@ -909,6 +909,7 @@ class DBTest{
         db.close()
 
         db = DB(store =StoreDirect.make(file=f.path), storeOpened = true, isThreadSafe = false)
+        @Suppress("UNCHECKED_CAST")
         list = db.indexTreeList("aa").open() as IndexTreeList<Int>
 
         for(i in 1 .. 1000)
@@ -1032,7 +1033,7 @@ class DBTest{
 
     @Test fun delete_files_after_close(){
         val dir = TT.tempDir()
-        val db = DBMaker.fileDB(dir.path+"/aa").deleteFilesAfterClose().make()
+        val db = DBMaker.fileDB(dir.path+"/aa").fileDeleteAfterClose().make()
         db.atomicBoolean("name").create()
         db.commit()
         assertNotEquals(0, dir.listFiles().size)
@@ -1042,9 +1043,9 @@ class DBTest{
 
     @Test fun already_exist(){
         val db = DBMaker.memoryDB().make()
-        val hashmap = db.hashMap("map").create();
+        db.hashMap("map").create();
         TT.assertFailsWith(DBException.WrongConfiguration::class.java) {
-            val treemap = db.treeMap("map").create();
+            db.treeMap("map").create();
         }
     }
 
@@ -1177,7 +1178,7 @@ class DBTest{
         f.delete()
     }
 
-    class NonSerializableSerializer(i:Int) : Serializer<String>{
+    class NonSerializableSerializer() : Serializer<String>{
         override fun deserialize(input: DataInput2, available: Int): String? {
             return input.readUTF()
         }
@@ -1189,7 +1190,7 @@ class DBTest{
     }
 
     @Test fun non_serializable_optional_serializer(){
-        val ser = NonSerializableSerializer(0)
+        val ser = NonSerializableSerializer()
         TT.assertFailsWith(NotSerializableException::class.java) {
             TT.clone(ser, Serializer.ELSA)
         }

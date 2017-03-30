@@ -7,7 +7,7 @@ import java.io.File
  * Test case with temporary dir,
  * dir is deleted after tests finishes
  */
-open abstract class TestWithTempDir{
+abstract class TestWithTempDir{
 
     private var tempDirCreated = false
 

@@ -73,7 +73,7 @@ class BTreeMap_PumpTest(
 
                 val m =
                         if(generic) db.treeMap("aa")
-                        else db.treeMap("aa", Serializer.INTEGER, Serializer.STRING)
+                        else db.treeMap("aa", keySer, Serializer.STRING)
 
                 if(small) m.maxNodeSize(6)
                 if(!valueInline) m.valuesOutsideNodesEnable()
