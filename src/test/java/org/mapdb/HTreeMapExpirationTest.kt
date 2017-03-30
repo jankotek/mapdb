@@ -220,7 +220,7 @@ class HTreeMapExpirationTest {
             assertTrue(size < 1100)
             if (i > 10000)
                 assertTrue(size > 900)
-            map.forEachKey { assertTrue(it!! > i - 1100) }
+            map.forEachKey { assertTrue(it > i - 1100) }
         }
     }
 
@@ -242,13 +242,8 @@ class HTreeMapExpirationTest {
                 .expireStoreSize(1024*1024*400)
                 .create()
 
-        val store = db.store as StoreDirect
         val max = 1000000
         for(i in 0L .. max){
-//            if(i%1000==0L)
-//                println("aa $i - ${map.size} - ${(i * 1024) / 1e7} - ${store.fileTail / 1e7} - ${store.getFreeSize() / 1e7} - ${
-//                Utils.lock(store.structuralLock) {store.calculateFreeSize() / 1e7}} ")
-
             map.put(i, ByteArray(1024))
         }
         assertTrue(map.size < max)
