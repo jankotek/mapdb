@@ -14,7 +14,6 @@ import java.util.function.BiConsumer
 /**
  * Concurrent HashMap which uses IndexTree for hash table
  */
-//TODO there are many casts, catch ClassCastException and return false/null
 class HTreeMap<K,V>(
         override val keySerializer:Serializer<K>,
         override val valueSerializer:Serializer<V>,
@@ -118,8 +117,7 @@ class HTreeMap<K,V>(
     protected val locks = Utils.newReadWriteSegmentedLock(threadSafe = isThreadSafe, segmentCount=segmentCount)
 
     /** true if Eviction is executed inside user thread, as part of get/put etc operations */
-    //TODO make protected
-    val isForegroundEviction:Boolean = expireExecutor==null &&
+    protected val isForegroundEviction:Boolean = expireExecutor==null &&
             (expireCreateQueues!=null || expireUpdateQueues!=null || expireGetQueues!=null)
 
     protected val modificationListenersEmpty = modificationListeners==null || modificationListeners.isEmpty()
@@ -184,7 +182,7 @@ class HTreeMap<K,V>(
                 ret[i++] = input.unpackLong()
             }
             @Suppress("UNCHECKED_CAST")
-            return ret as Array<Any>;
+            return ret as Array<Any>
         }
 
         override fun isTrusted(): Boolean {
@@ -966,7 +964,7 @@ class HTreeMap<K,V>(
 
         override fun iterator(): MutableIterator<MutableMap.MutableEntry<K?, V?>> {
             val iters = (0 until segmentCount).map{segment->
-                htreeIterator(segment) { key, wrappedValue ->
+                htreeSegmentIterator(segment) { key, wrappedValue ->
                     @Suppress("UNCHECKED_CAST")
                     htreeEntry(
                             key as K,
@@ -1002,7 +1000,7 @@ class HTreeMap<K,V>(
 
         override fun iterator(): MutableIterator<K?> {
             val iters = (0 until map.segmentCount).map{segment->
-                map.htreeIterator(segment) {key, _ ->
+                map.htreeSegmentIterator(segment) { key, _ ->
                     @Suppress("UNCHECKED_CAST")
                     key as K
                 }
@@ -1035,8 +1033,6 @@ class HTreeMap<K,V>(
 
     override val keys: KeySet<K> = KeySet(@Suppress("UNCHECKED_CAST") (this as HTreeMap<K,Any?>))
 
-
-
     override val values: MutableCollection<V?> = object : AbstractCollection<V>(){
 
         override fun clear() {
@@ -1050,33 +1046,39 @@ class HTreeMap<K,V>(
         override val size: Int
             get() = this@HTreeMap.size
 
-
         override fun iterator(): MutableIterator<V?> {
             val iters = (0 until segmentCount).map{segment->
-                htreeIterator(segment) {_, valueWrapped ->
+                htreeSegmentIterator(segment) { _, valueWrapped ->
                     valueUnwrap(segment, valueWrapped)
                 }
             }
             return Iterators.concat(iters.iterator())
         }
-
     }
 
-
-    protected fun <E> htreeIterator(segment:Int,  loadNext:(wrappedKey:Any, wrappedValue:Any)->E ):MutableIterator<E>{
+    /** iterator over data in single method */
+    protected fun <E> htreeSegmentIterator(segment:Int, loadNext:(wrappedKey:Any, wrappedValue:Any)->E ):MutableIterator<E>{
         return object : MutableIterator<E>{
 
-            //TODO locking
+            /** marker to indicate that leafArray has expired and nextLeaf needs to be loaded*/
+            val loadNextLeafPreinit:Array<Any?> = arrayOf(null)
 
-            val store = stores[segment];
+            val store = stores[segment]
 
             val leafRecidIter = indexTrees[segment].values().longIterator()
             var leafPos = 0
 
-            //TODO load lazily
-            var leafArray:Array<Any?>? = moveToNextLeaf();
+            /** array of key-values in current leaf node. Null indicates end of iterator, `=== loadNextLead` loads next leaf */
+            var leafArray:Array<Any?>? = loadNextLeafPreinit
 
-            var lastKey:K? = null;
+            /** usef for remove() */
+            var lastKey:K? = null
+
+            private fun checkNextLeaf(){
+                if(leafPos == 0 && leafArray === loadNextLeafPreinit){
+                    leafArray = moveToNextLeaf()
+                }
+            }
 
             private fun moveToNextLeaf(): Array<Any?>? {
                 Utils.lockRead(locks,segment) {
@@ -1085,11 +1087,9 @@ class HTreeMap<K,V>(
                     }
                     val leafRecid = leafRecidIter.next()
                     val leaf = leafGet(store, leafRecid)
-                    val ret = Array<Any?>(leaf.size, { null });
+                    val ret = Array<Any?>(leaf.size, { null })
                     for (i in 0 until ret.size step 3) {
                         ret[i] = loadNext(leaf[i], leaf[i + 1])
-
-                        //TODO PERF key is deserialized twice, modify iterators...
                         @Suppress("UNCHECKED_CAST")
                         ret[i + 1] = leaf[i] as K
                     }
@@ -1099,10 +1099,12 @@ class HTreeMap<K,V>(
 
 
             override fun hasNext(): Boolean {
-                return leafArray!=null;
+                checkNextLeaf()
+                return leafArray!=null
             }
 
             override fun next(): E {
+                checkNextLeaf()
                 val leafArray = leafArray
                         ?: throw NoSuchElementException();
                 val ret = leafArray[leafPos++]
@@ -1111,7 +1113,7 @@ class HTreeMap<K,V>(
                 val expireRecid = leafArray[leafPos++]
 
                 if(leafPos==leafArray.size){
-                    this.leafArray = moveToNextLeaf()
+                    this.leafArray = loadNextLeafPreinit
                     this.leafPos = 0;
                 }
                 @Suppress("UNCHECKED_CAST")
@@ -1121,9 +1123,8 @@ class HTreeMap<K,V>(
             override fun remove() {
                 remove(lastKey
                         ?:throw IllegalStateException())
-                lastKey = null;
+                lastKey = null
             }
-
         }
     }
 
@@ -1295,9 +1296,7 @@ class HTreeMap<K,V>(
         }
     }
 
-
     override fun verify(){
-
         val expireEnabled = expireCreateQueues!=null || expireUpdateQueues!=null || expireGetQueues!=null
 
         for(segment in 0 until segmentCount) {
@@ -1409,7 +1408,7 @@ class HTreeMap<K,V>(
         return Pair(collision, size)
     }
 
-    protected fun leafGet(store:Store, leafRecid:Long):Array<Any>{
+    private fun leafGet(store:Store, leafRecid:Long):Array<Any>{
         val leaf = store.get(leafRecid, leafSerializer)
                 ?: throw DBException.DataCorruption("linked leaf not found")
         if(CC.ASSERT && leaf.size%3!=0)

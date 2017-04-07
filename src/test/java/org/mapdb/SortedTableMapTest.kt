@@ -228,8 +228,8 @@ class SortedTableMapTest{
         raf.writeByte(1)
         raf.close()
         TT.assertFailsWith(DBException.NewMapDBFormat::class.java) {
-            val vol = RandomAccessFileVol.FACTORY.makeVolume(f.path, false)
-            val s =  SortedTableMap.open(vol, Serializer.LONG, Serializer.LONG)
+            val vol2 = RandomAccessFileVol.FACTORY.makeVolume(f.path, false)
+            SortedTableMap.open(vol2, Serializer.LONG, Serializer.LONG)
         }
         f.delete()
     }

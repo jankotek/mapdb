@@ -1,11 +1,16 @@
 package org.mapdb
 
+import org.fest.reflect.core.Reflection
 import org.junit.Assert.*
 import org.junit.Test
 import org.mapdb.volume.SingleByteArrayVol
 import java.util.*
 
 class HTreeMapExpirationTest {
+
+
+    val HTreeMap<*,*>.isForegroundEviction: Boolean
+        get() = Reflection.field("isForegroundEviction").ofType(Boolean::class.java).`in`(this).get()
 
 
     @Test(timeout = 10000)

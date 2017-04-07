@@ -34,6 +34,7 @@ import java.util.*;
  *
  * @author Jan Kotek
  */
+//TODO annotate static serializers as non nullable
 public interface Serializer<A /*extends Comparable<? super A>*/> extends Comparator<A> {
 
     /**

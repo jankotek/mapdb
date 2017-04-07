@@ -11,6 +11,7 @@ import java.io.Serializable
 import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.collections.HashSet
 
 class HTreeMapTest{
 
@@ -247,34 +248,33 @@ class HTreeMapTest{
         assertEquals(8, counter.get().toLong())
     }
 
-// TODO HashSet not implemented yet
-//    @Test
-//    fun test_iterate_and_remove() {
-//        val max = 1e5.toLong()
-//
-//        val m = DBMaker.memoryDB().make().hashSet("test")
-//
-//        for (i in 0..max - 1) {
-//            m.add(i)
-//        }
-//
-//
-//        val control = HashSet()
-//        val iter = m.iterator()
-//
-//        for (i in 0..max / 2 - 1) {
-//            assertTrue(iter.hasNext())
-//            control.add(iter.next())
-//        }
-//
-//        m.clear()
-//
-//        while (iter.hasNext()) {
-//            control.add(iter.next())
-//        }
-//
-//    }
-//
+    @Test
+    fun test_iterate_and_remove() {
+        val max = 1e5.toInt()
+
+        val m = DBMaker.memoryDB().make().hashSet("test", Serializer.INTEGER).create()
+
+        for (i in 0..max - 1) {
+            m.add(i)
+        }
+
+
+        val control = HashSet<Int?>()
+        val iter = m.iterator()
+
+        for (i in 0..max / 2 - 1) {
+            assertTrue(iter.hasNext())
+            control.add(iter.next())
+        }
+
+        m.clear()
+
+        while (iter.hasNext()) {
+            control.add(iter.next())
+        }
+
+    }
+
     /*
         Hi jan,
 
@@ -416,22 +416,55 @@ class HTreeMapTest{
         assertEquals(1000, size)
     }
 
-//  TODO this code causes Kotlin compiler to crash. Reenable once issue is solved https://youtrack.jetbrains.com/issue/KT-14025
-//
-//    @Test fun calculateCollisions2(){
-//        val ser2 = object: Serializer<Long> by Serializer.LONG{
-//            override fun hashCode(a: Long, seed: Int): Int {
-//                return 0
-//            }
-//        }
-//
-//        val map = DBMaker.heapDB().make().hashMap("name", ser2, Serializer.LONG).createOrOpen()
-//        for(i in 0L until 1000)
-//            map[i] = i
-//        val (collision, size) = map.calculateCollisionSize()
-//        assertEquals(999, collision)
-//        assertEquals(1000, size)
-//    }
-//
+    @Test fun calculateCollisions2(){
+        val ser2 = object: Serializer<Long> by Serializer.LONG{
+            override fun hashCode(a: Long, seed: Int): Int {
+                return 0
+            }
+        }
+
+        val map = DBMaker.heapDB().make().hashMap("name", ser2, Serializer.LONG).createOrOpen()
+        for(i in 0L until 1000)
+            map[i] = i
+        val (collision, size) = map.calculateCollisionSize()
+        assertEquals(999, collision)
+        assertEquals(1000, size)
+    }
+
+    @Test fun key_iterator_does_not_deserialize_external_values(){
+        var keyDeserCount = 0
+        var stopValDeser = false
+
+        val keyser = object: Serializer<Int> by Serializer.INTEGER{
+            override fun deserialize(input: DataInput2, available: Int): Int {
+                keyDeserCount++
+                return input.readInt()
+            }
+        }
+
+
+        val valser = object: Serializer<Int> by Serializer.INTEGER{
+            override fun deserialize(input: DataInput2, available: Int): Int {
+                assert(!stopValDeser)
+                return input.readInt()
+            }
+        }
+
+        val map = DBMaker
+                .memoryDB()
+                .make()
+                .hashMap("test",keyser, valser)
+                .create()
+        for(i in 0 until 10000) {
+            map.put(i, i)
+        }
+
+        keyDeserCount=0
+        stopValDeser = true
+        for(k in map.keys){
+        }
+        assertEquals(10000, keyDeserCount )
+    }
+
 
 }
