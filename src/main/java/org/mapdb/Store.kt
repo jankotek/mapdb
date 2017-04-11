@@ -10,6 +10,17 @@ interface StoreImmutable {
 
     fun getAllRecids(): LongIterator
 
+    fun getAllRecidsSize():Long {
+        val iter = getAllRecids()
+        var c:Long = 0L
+        while(iter.hasNext()){
+            iter.nextLong()
+            c++
+        }
+        return c
+    }
+
+
     fun getAllFiles(): Iterable<String>
 }
 /**

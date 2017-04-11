@@ -135,6 +135,12 @@ class StoreOnHeap(
         }
     }
 
+    override fun getAllRecidsSize(): Long {
+        Utils.lockRead(lock){
+            return records.size().toLong()
+        }
+    }
+
     override fun verify() {
     }
 
@@ -146,6 +152,7 @@ class StoreOnHeap(
     override fun getAllFiles(): Iterable<String> {
         return arrayListOf()
     }
+
 
 }
 
