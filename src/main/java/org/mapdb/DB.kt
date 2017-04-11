@@ -839,6 +839,9 @@ open class DB(
         }
 
         override fun open2(catalog: SortedMap<String, String>): MAP {
+            //TODO open2() methods should use `poisoned` local values, to make sure that all values are initialized from Name Catalog, not from default values. See stupid typo in #819
+            _concShift = catalog[name + Keys.concShift]!!.toInt()
+
             val segmentCount = 1.shl(_concShift)
             val stores = Array(segmentCount, _storeFactory)
 
@@ -861,7 +864,6 @@ open class DB(
                     if ("" == counterRecidsStr) null
                     else counterRecidsStr.split(",").map { it.toLong() }.toLongArray()
 
-            _concShift = catalog[name + Keys.concShift]!!.toInt()
             _dirShift = catalog[name + Keys.dirShift]!!.toInt()
             _levels = catalog[name + Keys.levels]!!.toInt()
             _removeCollapsesIndexTree = catalog[name + Keys.removeCollapsesIndexTree]!!.toBoolean()
