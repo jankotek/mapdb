@@ -953,8 +953,7 @@ class HTreeMap<K,V>(
     override val entries: MutableSet<MutableMap.MutableEntry<K?, V?>> = object : AbstractSet<MutableMap.MutableEntry<K?, V?>>() {
 
         override fun add(element: MutableMap.MutableEntry<K?, V?>): Boolean {
-            this@HTreeMap.put(element.key, element.value)
-            return true
+            return null!=this@HTreeMap.put(element.key, element.value)
         }
 
 
