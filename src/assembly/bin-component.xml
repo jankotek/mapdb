@@ -1,0 +1,20 @@
+<component>
+  <dependencySets>
+    <dependencySet>
+      <outputDirectory>lib</outputDirectory>
+      <unpack>false</unpack>
+      <scope>runtime</scope>
+    </dependencySet>
+  </dependencySets>
+
+  <!--<fileSets>
+    <fileSet>
+      <directory>src/main/resources</directory>
+      <outputDirectory>etc</outputDirectory>
+      <includes>
+        <include>log4j.properties</include>
+      </includes>
+    </fileSet>
+  </fileSets>
+  -->
+</component>
