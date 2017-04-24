@@ -381,7 +381,7 @@ class BTreeMap<K,V>(
                         val values = valueNodeSerializer.valueArrayPut(A.values, pos, value2)
                         A = Node(flags, A.link, A.keys, values)
                         store.update(current, A, nodeSerializer)
-
+                        counterIncrement(1)
                         listenerNotify(key, null, value, false)
                         unlock(current)
                         return null
