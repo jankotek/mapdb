@@ -400,7 +400,7 @@ class BTreeMap<K,V>(
                         val values = valueNodeSerializer.valueArrayPut(A.values, pos, value2)
                         A = Node(flags, A.link, A.keys, values)
                         store.update(current, A, nodeSerializer)
-
+                        counterIncrement(1)
                         listenerNotify(key, null, value, false)
                         unlock(current)
                         return null
@@ -872,6 +872,7 @@ class BTreeMap<K,V>(
     override fun putAll(from: Map<out K?, V?>) {
         for (e in from.entries) {
             put(e.key, e.value)
+            println(""+size + " - "+Arrays.toString(e.key as Array<Any>))
         }
     }
 
