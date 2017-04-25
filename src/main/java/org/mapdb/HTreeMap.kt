@@ -480,11 +480,11 @@ class HTreeMap<K,V>(
             if(isForegroundEviction)
                 expireEvictSegment(segment)
 
-            return removeprotected(hash, key, false)
+            return removeProtected(hash, key, false, false) as V?
         }
     }
 
-    protected fun removeprotected(hash:Int, key: K, evicted:Boolean): V? {
+    protected fun removeProtected(hash:Int, key: K, evicted:Boolean, retTrue:Boolean): Any? {
         val segment = hashToSegment(hash)
         if(CC.ASSERT)
             locks?.checkWriteLocked(segment)
@@ -513,7 +513,9 @@ class HTreeMap<K,V>(
                     queue.remove(expireNodeRecidFor(leaf[i + 2] as Long), removeNode = true)
                 }
 
-                val oldVal = valueUnwrap(segment, leaf[i + 1])
+                val oldVal =
+                        if(retTrue && modificationListenersEmpty) true
+                        else valueUnwrap(segment, leaf[i + 1])
 
                 //remove from leaf and from store
                 if (leaf.size == 3) {
@@ -530,7 +532,8 @@ class HTreeMap<K,V>(
                 if(!valueInline)
                     store.delete(leaf[i+1] as Long, valueSerializer)
                 counter(segment,-1)
-                listenerNotify(key, oldVal, null, evicted)
+                if(!modificationListenersEmpty)
+                    listenerNotify(key, oldVal as V?, null, evicted)
                 return oldVal
             }
         }
@@ -790,10 +793,10 @@ class HTreeMap<K,V>(
 
             val oldValue = getprotected(hash, key, updateQueue = false)
             if (oldValue != null && valueSerializer.equals(oldValue, value)) {
-                removeprotected(hash, key, evicted = false)
-                return true;
+                removeProtected(hash, key, evicted = false, retTrue = false)
+                return true
             } else {
-                return false;
+                return false
             }
         }
     }
@@ -937,7 +940,7 @@ class HTreeMap<K,V>(
             val hash = hash(key);
             if(CC.ASSERT && segment!=hashToSegment(hash))
                 throw AssertionError()
-            val old = removeprotected(hash = hash, key = key, evicted = true)
+            val old = removeProtected(hash = hash, key = key, evicted = true, retTrue = false)
             //TODO PERF if leaf has two or more items, delete directly from leaf
             if(CC.ASSERT && old==null)
                 throw AssertionError()
@@ -1025,8 +1028,17 @@ class HTreeMap<K,V>(
             return map.isEmpty()
         }
 
-        override fun remove(element: K): Boolean {
-            return map.remove(element)!=null
+        override fun remove(key: K): Boolean {
+            if(key == null)
+                throw NullPointerException()
+            val hash = map.hash(key)
+            val segment = map.hashToSegment(hash)
+            Utils.lockWrite(map.locks, segment) {->
+                if(map.isForegroundEviction)
+                    map.expireEvictSegment(segment)
+
+                return map.removeProtected(hash, key, false, retTrue = true) !=null
+            }
         }
     }
 
