@@ -713,6 +713,10 @@ class SortedTableMap<K,V>(
         throw UnsupportedOperationException("read-only")
     }
 
+    override fun removeBoolean(key: K?): Boolean {
+        throw UnsupportedOperationException("read-only")
+    }
+
     override fun putIfAbsent(key: K?, value: V?): V? {
         throw UnsupportedOperationException("read-only")
     }

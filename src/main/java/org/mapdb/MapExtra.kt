@@ -69,6 +69,12 @@ interface MapExtra<K, V> : ConcurrentMap<K, V> {
 
     val valueSerializer:Serializer<V>
 
+
+    /** Deletes key-value entry, returns true if the key was deleted, false if key was not present in map.
+     *  This method does not deserialize value if no modification listeners are installed.
+     */
+    fun removeBoolean(key: K?): Boolean
+
 }
 
 

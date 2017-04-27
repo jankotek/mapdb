@@ -1,6 +1,5 @@
 package org.mapdb.issues
 
-import org.junit.Ignore
 import org.junit.Test
 import org.mapdb.*
 import java.util.*
@@ -30,7 +29,6 @@ class Issue357_Map_keySet_remove : Serializer<String>{
         check(m)
     }
 
-    @Ignore
     @Test fun treeMap(){
         val m = DBMaker.memoryDB().make()
                 .treeMap("map", Serializer.INTEGER, this)
@@ -45,7 +43,30 @@ class Issue357_Map_keySet_remove : Serializer<String>{
         deser.clear()
         ser.clear()
         m.keys.remove(1)
+        assert(ser.isEmpty())
+        assert(deser.isEmpty())
 
+        m.put(2, "two")
+        deser.clear()
+        ser.clear()
+        m.removeBoolean(1)
+        assert(ser.isEmpty())
+        assert(deser.isEmpty())
+
+
+        m.put(3, "three")
+        deser.clear()
+        ser.clear()
+        m.putOnly(3, "tri")
+        assert(ser.size==1)
+        assert(deser.isEmpty())
+
+
+        deser.clear()
+        ser.clear()
+        val iter = m.keys.iterator()
+        iter.next()
+        iter.remove()
         assert(ser.isEmpty())
         assert(deser.isEmpty())
     }

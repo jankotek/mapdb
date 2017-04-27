@@ -201,6 +201,8 @@ class BTreeMap<K,V>(
 
     private val hasBinaryStore = store is StoreBinary
 
+    private val modificationListenersEmpty = modificationListeners == null || modificationListeners.isEmpty()
+
     protected val valueNodeSerializer:GroupSerializer<Any> = {
         val s = if (valueInline) this.valueSerializer else Serializer.RECID
         @Suppress("UNCHECKED_CAST")
@@ -300,7 +302,7 @@ class BTreeMap<K,V>(
     override fun put(key: K?, value: V?): V? {
         if (key == null || value == null)
             throw NullPointerException()
-        return put2(key, value, false, false)
+        return put2(key, value, false, false) as V?
     }
 
     override fun putOnly(key: K?, value: V?){
@@ -315,7 +317,7 @@ class BTreeMap<K,V>(
         return (!A.isLastKeyDouble && pos2 >= valueNodeSerializer.valueArraySize(A.values))
     }
 
-    protected fun put2(key: K, value: V, onlyIfAbsent: Boolean, noValueExpand:Boolean): V? {
+    protected fun put2(key: K, value: V, onlyIfAbsent: Boolean, noRetVal:Boolean): Any? {
         if (key == null || value == null)
             throw NullPointerException()
 
@@ -370,7 +372,7 @@ class BTreeMap<K,V>(
                         //key exist in node, just update
                         val oldValueRecid = valueNodeSerializer.valueArrayGet(A.values, pos)
                         val oldValueExpand =
-                                if(noValueExpand) null
+                                if(noRetVal && modificationListenersEmpty && oldValueRecid!=null) true
                                 else valueExpand(oldValueRecid)
 
                         //update only if not exist, return
@@ -384,7 +386,8 @@ class BTreeMap<K,V>(
                                 //update external value
                                 store.update(oldValueRecid as Long, value, valueSerializer)
                             }
-                            listenerNotify(key, oldValueExpand, value, false)
+                            if(!modificationListenersEmpty)
+                                listenerNotify(key, oldValueExpand as V?, value, false)
                         }
                         unlock(current)
                         return oldValueExpand
@@ -499,10 +502,10 @@ class BTreeMap<K,V>(
         if (key == null)
             throw NullPointerException()
 
-        return removeOrReplace(key, null, null)
+        return removeOrReplace(key, null, null, false) as V?
     }
 
-    protected fun removeOrReplace(key: K, expectedOldValue: V?, replaceWithValue: V?): V? {
+    protected fun removeOrReplace(key: K, expectedOldValue: V?, replaceWithValue: V?, noRetVal:Boolean): Any? {
         if (key == null)
             throw NullPointerException()
 
@@ -536,20 +539,23 @@ class BTreeMap<K,V>(
 
             //current node is locked, and its highest value is higher/equal to key
             val pos = keySerializer.valueArraySearch(A.keys, v, comparator)
-            var oldValueExpanded:V? = null
+            var oldValueExpanded:Any? = null
             val keysSize = keySerializer.valueArraySize(A.keys);
             if (pos >= 1 - A.intLeftEdge() && pos < keysSize - 1 + A.intRightEdge() + A.intLastKeyTwice()) {
                 val valuePos = pos - 1 + A.intLeftEdge();
                 //key exist in node, just update
                 val oldValueRecid = valueNodeSerializer.valueArrayGet(A.values, valuePos)
-                oldValueExpanded = valueExpand(oldValueRecid)
+                oldValueExpanded =
+                        if(noRetVal && modificationListenersEmpty && oldValueRecid!=null && expectedOldValue==null) true
+                        else valueExpand(oldValueRecid)
+
                 if(oldValueExpanded == null) {
                     // this should not happen, since node is already locked
                     throw AssertionError()
                 }
                 var keys = A.keys
                 var flags = A.flags.toInt()
-                if (expectedOldValue == null || (oldValueExpanded!=null && valueSerializer.equals(expectedOldValue, oldValueExpanded))) {
+                if (expectedOldValue == null || (oldValueExpanded!=null && valueSerializer.equals(expectedOldValue, oldValueExpanded as V?))) {
                     val values =
                             if (replaceWithValue == null) {
                                 //remove
@@ -576,7 +582,8 @@ class BTreeMap<K,V>(
                         A = Node(flags, A.link, keys, values)
                         store.update(current, A, nodeSerializer)
                     }
-                    listenerNotify(key, oldValueExpanded, replaceWithValue, false)
+                    if(!modificationListenersEmpty)
+                        listenerNotify(key, oldValueExpanded as V?, replaceWithValue, false)
                 }else{
                     //was not updated, so do not return anything
                     oldValueExpanded = null
@@ -884,25 +891,32 @@ class BTreeMap<K,V>(
     override fun putIfAbsent(key: K?, value: V?): V? {
         if (key == null || value == null)
             throw NullPointerException()
-        return put2(key, value, true, false)
+        return put2(key, value, true, false) as V?
     }
 
     override fun remove(key: K?, value: V?): Boolean {
         if (key == null || value == null)
             throw NullPointerException()
-        return removeOrReplace(key, value, null) != null
+        return removeOrReplace(key, value, null, false) != null
     }
+
+    override fun removeBoolean(key: K?): Boolean {
+        if (key == null)
+            throw NullPointerException()
+        return removeOrReplace(key, null, null, true) != null
+    }
+
 
     override fun replace(key: K?, oldValue: V?, newValue: V?): Boolean {
         if (key == null || oldValue == null || newValue == null)
             throw NullPointerException()
-        return removeOrReplace(key, oldValue, newValue) != null
+        return removeOrReplace(key, oldValue, newValue, false) != null
     }
 
     override fun replace(key: K?, value: V?): V? {
         if (key == null || value == null)
             throw NullPointerException()
-        return removeOrReplace(key, null, value)
+        return removeOrReplace(key, null, value, false) as V?
     }
 
 
@@ -1047,7 +1061,7 @@ class BTreeMap<K,V>(
         fun hasNext():Boolean = currentLeaf!=null
 
         fun remove() {
-            m.remove(lastReturnedKey ?: throw IllegalStateException())
+            m.removeBoolean(lastReturnedKey ?: throw IllegalStateException())
             this.lastReturnedKey = null
         }
 

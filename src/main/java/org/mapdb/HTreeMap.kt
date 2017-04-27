@@ -801,6 +801,19 @@ class HTreeMap<K,V>(
         }
     }
 
+    override fun removeBoolean(key: K?): Boolean {
+        if(key == null)
+            throw NullPointerException()
+        val hash = hash(key)
+        val segment = hashToSegment(hash)
+        Utils.lockWrite(locks, segment) {->
+            if(isForegroundEviction)
+                expireEvictSegment(segment)
+
+            return removeProtected(hash, key, false, retTrue = true) !=null
+        }
+    }
+
     override fun replace(key: K?, oldValue: V?, newValue: V?): Boolean {
         if(key == null || oldValue==null || newValue==null)
             throw NullPointerException()
@@ -1029,16 +1042,7 @@ class HTreeMap<K,V>(
         }
 
         override fun remove(key: K): Boolean {
-            if(key == null)
-                throw NullPointerException()
-            val hash = map.hash(key)
-            val segment = map.hashToSegment(hash)
-            Utils.lockWrite(map.locks, segment) {->
-                if(map.isForegroundEviction)
-                    map.expireEvictSegment(segment)
-
-                return map.removeProtected(hash, key, false, retTrue = true) !=null
-            }
+            return map.removeBoolean(key)
         }
     }
 
@@ -1132,7 +1136,7 @@ class HTreeMap<K,V>(
             }
 
             override fun remove() {
-                remove(lastKey
+                removeBoolean(lastKey
                         ?:throw IllegalStateException())
                 lastKey = null
             }

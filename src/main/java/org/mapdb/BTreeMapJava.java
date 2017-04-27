@@ -418,7 +418,11 @@ public class BTreeMapJava {
         @Override
         public boolean contains(Object o) { return m.containsKey(o); }
         @Override
-        public boolean remove(Object o) { return m.remove(o) != null; }
+        public boolean remove(Object o) {
+            if(m instanceof MapExtra)
+                return ((MapExtra) m).removeBoolean(o);
+            return m.remove(o) != null;
+        }
         @Override
         public void clear() { m.clear(); }
         @Override
@@ -1084,8 +1088,13 @@ public class BTreeMapJava {
     }
 
     public interface ConcurrentNavigableMap2<K,V> extends ConcurrentNavigableMap<K,V>{
+
+        /** returns first key in map or null, does not throw `NoSuchElementException` as `firstKey()` does */
         K firstKey2();
+
+        /** returns last key in map or null, does not throw `NoSuchElementException` as `lastKey()` does */
         K lastKey2();
+
     }
 
     static protected  class DescendingMap<K,V> extends AbstractMap<K,V> implements  ConcurrentNavigableMap2<K,V> {
