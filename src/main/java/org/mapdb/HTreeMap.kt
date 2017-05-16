@@ -1061,7 +1061,7 @@ class HTreeMap<K,V>(
         override val size: Int
             get() = this@HTreeMap.size
 
-        override fun iterator(): MutableIterator<V?> {
+        override fun iterator(): MutableIterator<V> {
             val iters = (0 until segmentCount).map{segment->
                 htreeSegmentIterator(segment) { _, valueWrapped ->
                     valueUnwrap(segment, valueWrapped)
