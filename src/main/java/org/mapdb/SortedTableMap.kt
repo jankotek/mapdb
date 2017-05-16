@@ -20,7 +20,7 @@ class SortedTableMap<K,V>(
         val pageSize:Long,
         protected val volume: Volume,
         override val hasValues: Boolean = false
-): ConcurrentMap<K, V>, ConcurrentNavigableMap<K, V>, ConcurrentNavigableMapExtra<K,V>, Serializable{
+): ConcurrentMap<K, V>, ConcurrentNavigableMap<K, V>, ConcurrentNavigableMapExtra<K,V>, MutableMap<K,V>, Serializable{
 
     abstract class Sink<K, V> : Pump.Sink<Pair<K, V>, SortedTableMap<K, V>>() {
         fun put(key: K, value: V) {
@@ -280,11 +280,11 @@ class SortedTableMap<K,V>(
         this.keySerializer.valueArrayFromArray(keys.toArray())
     }()
 
-    override fun containsKey(key: K?): Boolean {
+    override fun containsKey(key: K): Boolean {
         return get(key) != null
     }
 
-    override fun containsValue(value: V?): Boolean {
+    override fun containsValue(value: V): Boolean {
         if (value == null)
             throw NullPointerException()
         val iter = valueIterator()
@@ -297,7 +297,7 @@ class SortedTableMap<K,V>(
     }
 
 
-    override fun get(key: K?): V? {
+    override fun get(key: K): V? {
         if (key == null)
             throw NullPointerException()
 
@@ -656,7 +656,7 @@ class SortedTableMap<K,V>(
     }
 
     @Suppress("UNCHECKED_CAST")
-    override val keys: NavigableSet<K> = BTreeMapJava.KeySet<K>(this as ConcurrentNavigableMapExtra<K, Any>, true)
+    override val keys: NavigableSet<K> = BTreeMapJava.KeySet<K>(this as ConcurrentNavigableMapExtra<K, Any>, true, keySerializer)
 
     override fun navigableKeySet(): NavigableSet<K>? {
         return keys
@@ -697,27 +697,27 @@ class SortedTableMap<K,V>(
         throw UnsupportedOperationException("read-only")
     }
 
-    override fun put(key: K?, value: V?): V? {
+    override fun put(key: K, value: V): V? {
         throw UnsupportedOperationException("read-only")
     }
 
-    override fun putOnly(key: K?, value: V?) {
+    override fun putOnly(key: K, value: V) {
         throw UnsupportedOperationException("read-only")
     }
 
-    override fun putAll(from: Map<out K?, V?>) {
+    override fun putAll(from: Map<out K, V>) {
         throw UnsupportedOperationException("read-only")
     }
 
-    override fun remove(key: K?): V? {
+    override fun remove(key: K): V? {
         throw UnsupportedOperationException("read-only")
     }
 
-    override fun removeBoolean(key: K?): Boolean {
+    override fun removeBoolean(key: K): Boolean {
         throw UnsupportedOperationException("read-only")
     }
 
-    override fun putIfAbsent(key: K?, value: V?): V? {
+    override fun putIfAbsent(key: K, value: V): V? {
         throw UnsupportedOperationException("read-only")
     }
 
@@ -725,11 +725,11 @@ class SortedTableMap<K,V>(
         throw UnsupportedOperationException("read-only")
     }
 
-    override fun replace(key: K?, oldValue: V?, newValue: V?): Boolean {
+    override fun replace(key: K, oldValue: V, newValue: V): Boolean {
         throw UnsupportedOperationException("read-only")
     }
 
-    override fun replace(key: K?, value: V?): V? {
+    override fun replace(key: K, value: V): V? {
         throw UnsupportedOperationException("read-only")
     }
 
@@ -833,7 +833,7 @@ class SortedTableMap<K,V>(
         if(isEmpty())
             return null
         @Suppress("UNCHECKED_CAST")
-        return descendingEntryIterator().next() as  MutableMap.MutableEntry<K, V>
+        return descendingEntryIterator().next()
     }
 
     override fun lowerEntry(key: K?): MutableMap.MutableEntry<K, V>? {
@@ -908,10 +908,10 @@ class SortedTableMap<K,V>(
      * iterators
      */
 
-    override fun descendingEntryIterator(): MutableIterator<MutableMap.MutableEntry<K, V?>> {
+    override fun descendingEntryIterator(): MutableIterator<MutableMap.MutableEntry<K, V>> {
         if(isEmpty())
             return Collections.emptyIterator()
-        return object:MutableIterator<MutableMap.MutableEntry<K,V?>>{
+        return object:MutableIterator<MutableMap.MutableEntry<K,V>>{
 
             val nodeIter = descendingNodeIterator()
             var nodePos = -1
@@ -939,7 +939,7 @@ class SortedTableMap<K,V>(
                 return nodeKeys!=null;
             }
 
-            override fun next(): MutableMap.MutableEntry<K,V?> {
+            override fun next(): MutableMap.MutableEntry<K,V> {
                 val nodeKeys = nodeKeys
                         ?: throw NoSuchElementException()
 
@@ -958,12 +958,12 @@ class SortedTableMap<K,V>(
         }
     }
 
-    override fun descendingEntryIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<MutableMap.MutableEntry<K, V?>> {
+    override fun descendingEntryIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<MutableMap.MutableEntry<K, V>> {
         if(isEmpty())
             return Collections.emptyIterator()
 
         //TODO simplify descending iterator
-        return object:MutableIterator<MutableMap.MutableEntry<K, V?>>{
+        return object:MutableIterator<MutableMap.MutableEntry<K, V>>{
 
             var page:Long = pageSize.toLong()*pageCount
             var pageWithHead = if(page==0L) start.toLong() else page
@@ -1131,7 +1131,7 @@ class SortedTableMap<K,V>(
                 return nodeVals!=null;
             }
 
-            override fun next(): MutableMap.MutableEntry<K, V?> {
+            override fun next(): MutableMap.MutableEntry<K, V> {
                 val nodeKeys = nodeKeys
                         ?: throw NoSuchElementException()
 
@@ -1648,10 +1648,10 @@ class SortedTableMap<K,V>(
             }
         }    }
 
-    override fun entryIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<MutableMap.MutableEntry<K, V?>> {
+    override fun entryIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<MutableMap.MutableEntry<K, V>> {
         if(isEmpty())
             return Collections.emptyIterator()
-        return object:MutableIterator<MutableMap.MutableEntry<K, V?>>{
+        return object:MutableIterator<MutableMap.MutableEntry<K, V>>{
 
             val nodeIter = if(lo==null) nodeIterator() else nodeIterator(lo)
             var nodePos = 0
@@ -1706,7 +1706,7 @@ class SortedTableMap<K,V>(
                 return nodeKeys!=null;
             }
 
-            override fun next(): MutableMap.MutableEntry<K, V?> {
+            override fun next(): MutableMap.MutableEntry<K, V> {
                 val nodeKeys = nodeKeys
                         ?: throw NoSuchElementException()
                 val nodeVals = nodeVals
@@ -2220,7 +2220,7 @@ class SortedTableMap<K,V>(
         volume.close()
     }
 
-    override fun putIfAbsentBoolean(key: K?, value: V?): Boolean {
+    override fun putIfAbsentBoolean(key: K, value: V): Boolean {
         throw UnsupportedOperationException("read-only")
     }
 

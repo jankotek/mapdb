@@ -1,0 +1,90 @@
+package org.mapdb
+
+import org.junit.Assert.assertEquals
+import org.junit.Test
+import org.mapdb.serializer.SerializerByteArray
+import org.mapdb.serializer.SerializerIntArray
+import java.util.*
+
+/**
+ * test if map keyset, values and entrySet correctly use Serializer.hashcode and Serializer.equals
+ */
+
+class MapSubcolsTest{
+
+    var keyEqCount = 0
+    var keyHashCount = 0
+
+    val keyser = object: SerializerByteArray() {
+        override fun equals(first: ByteArray?, second: ByteArray?): Boolean {
+            keyEqCount++
+            return super.equals(first, second)
+        }
+
+        override fun hashCode(o: ByteArray, seed: Int): Int {
+            keyHashCount++
+            return super.hashCode(o, seed)
+        }
+    }
+
+
+    var valEqCount = 0
+    var valHashCount = 0
+
+    val valser = object: SerializerIntArray(){
+        override fun equals(first: IntArray?, second: IntArray?): Boolean {
+            valEqCount++
+            return super.equals(first, second)
+        }
+
+        override fun hashCode(o: IntArray, seed: Int): Int {
+            valHashCount++
+            return super.hashCode(o, seed)
+        }
+    }
+
+
+    fun clear(){
+        keyEqCount = 0
+        keyHashCount = 0
+        valEqCount = 0
+        valHashCount = 0
+    }
+
+    fun check(ke:Int, kh:Int, ve:Int, vh:Int){
+        assertEquals(ke, keyEqCount)
+        assertEquals(kh, keyHashCount)
+        assertEquals(ve, valEqCount)
+        assertEquals(vh, valHashCount)
+    }
+
+    fun test(map:MutableMap<ByteArray, IntArray>){
+        map.put(byteArrayOf(1), intArrayOf(4))
+        map.put(byteArrayOf(2), intArrayOf(5))
+        map.put(byteArrayOf(3), intArrayOf(6))
+
+        val keys = TreeSet<ByteArray>(keyser)
+        val vals = ArrayList<IntArray>()
+
+        assert(map.keys.equals(keys))
+        check(3,0,0,0)
+        assert(map.values.equals(vals))
+        check(0,0,3,0)
+
+        clear()
+
+
+    }
+
+
+    @Test fun hashMap(){
+        test(DBMaker.memoryDB().make().hashMap("aa", keyser, valser).create())
+    }
+
+
+    @Test fun treeMap(){
+        val m = DBMaker.memoryDB().make().treeMap("aa", keyser, valser).create()
+        assert(m.keySerializer == m.comparator)
+        test(m)
+    }
+}

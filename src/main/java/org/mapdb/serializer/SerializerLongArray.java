@@ -41,8 +41,8 @@ public class SerializerLongArray extends GroupSerializerObjectArray<long[]> {
     }
 
     @Override
-    public int hashCode(long[] bytes, int seed) {
-        for (long element : bytes) {
+    public int hashCode(long[] a, int seed) {
+        for (long element : a) {
             int elementHash = (int) (element ^ (element >>> 32));
             seed = (-1640531527) * seed + elementHash;
         }

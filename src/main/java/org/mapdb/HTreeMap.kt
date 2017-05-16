@@ -44,7 +44,7 @@ class HTreeMap<K,V>(
 
         //TODO queue is probably sequentially unsafe
 
-) : ConcurrentMap<K,V>, ConcurrencyAware, MapExtra<K,V>, Verifiable, Closeable{
+) : ConcurrentMap<K,V>, ConcurrencyAware, MapExtra<K,V>, MutableMap<K,V>, Verifiable, Closeable{
 
 
     companion object{
@@ -310,11 +310,11 @@ class HTreeMap<K,V>(
         stores[segment].update(recid, count+ammount, Serializer.LONG_PACKED)
     }
 
-    override fun put(key: K?, value: V?): V? {
+    override fun put(key: K, value: V): V? {
         return put2(key, value, false)
     }
 
-    override fun putOnly(key: K?, value: V?){
+    override fun putOnly(key: K, value: V){
         put2(key, value, true)
     }
 
@@ -465,13 +465,13 @@ class HTreeMap<K,V>(
 
     }
 
-    override fun putAll(from: Map<out K?, V?>) {
+    override fun putAll(from: Map<out K, V>) {
         for(e in from.entries){
             put(e.key, e.value)
         }
     }
 
-    override fun remove(key: K?): V? {
+    override fun remove(key: K): V? {
         if(key == null)
             throw NullPointerException()
         val hash = hash(key)
@@ -601,7 +601,7 @@ class HTreeMap<K,V>(
     }
 
 
-    override fun containsKey(key: K?): Boolean {
+    override fun containsKey(key: K): Boolean {
         if (key == null)
             throw NullPointerException()
 
@@ -612,13 +612,13 @@ class HTreeMap<K,V>(
         }
     }
 
-    override fun containsValue(value: V?): Boolean {
+    override fun containsValue(value: V): Boolean {
         if(value==null)
             throw NullPointerException();
         return values.contains(value)
     }
 
-    override fun get(key: K?): V? {
+    override fun get(key: K): V? {
         if (key == null)
             throw NullPointerException()
 
@@ -748,7 +748,7 @@ class HTreeMap<K,V>(
         return ret;
     }
 
-    override fun putIfAbsent(key: K?, value: V?): V? {
+    override fun putIfAbsent(key: K, value: V): V? {
         if(key == null || value==null)
             throw NullPointerException()
 
@@ -764,7 +764,7 @@ class HTreeMap<K,V>(
     }
 
 
-    override fun putIfAbsentBoolean(key: K?, value: V?): Boolean {
+    override fun putIfAbsentBoolean(key: K, value: V): Boolean {
         if(key == null || value==null)
             throw NullPointerException()
 
@@ -781,7 +781,7 @@ class HTreeMap<K,V>(
         }
     }
 
-    override fun remove(key: K?, value: V?): Boolean {
+    override fun remove(key: K, value: V): Boolean {
         if(key == null || value==null)
             throw NullPointerException()
 
@@ -801,7 +801,7 @@ class HTreeMap<K,V>(
         }
     }
 
-    override fun removeBoolean(key: K?): Boolean {
+    override fun removeBoolean(key: K): Boolean {
         if(key == null)
             throw NullPointerException()
         val hash = hash(key)
@@ -814,7 +814,7 @@ class HTreeMap<K,V>(
         }
     }
 
-    override fun replace(key: K?, oldValue: V?, newValue: V?): Boolean {
+    override fun replace(key: K, oldValue: V, newValue: V): Boolean {
         if(key == null || oldValue==null || newValue==null)
             throw NullPointerException()
         val hash = hash(key)
@@ -833,7 +833,7 @@ class HTreeMap<K,V>(
         }
     }
 
-    override fun replace(key: K?, value: V?): V? {
+    override fun replace(key: K, value: V): V? {
         if(key == null || value==null)
             throw NullPointerException()
 
@@ -966,9 +966,9 @@ class HTreeMap<K,V>(
 
     //TODO retailAll etc should use serializers for comparasions, remove AbstractSet and AbstractCollection completely
     //TODO PERF replace iterator with forEach, much faster indexTree traversal
-    override val entries: MutableSet<MutableMap.MutableEntry<K?, V?>> = object : AbstractSet<MutableMap.MutableEntry<K?, V?>>() {
+    override val entries: MutableSet<MutableMap.MutableEntry<K, V>> = object : AbstractSet<MutableMap.MutableEntry<K, V>>() {
 
-        override fun add(element: MutableMap.MutableEntry<K?, V?>): Boolean {
+        override fun add(element: MutableMap.MutableEntry<K, V>): Boolean {
             return null!=this@HTreeMap.put(element.key, element.value)
         }
 
@@ -977,7 +977,7 @@ class HTreeMap<K,V>(
             this@HTreeMap.clear()
         }
 
-        override fun iterator(): MutableIterator<MutableMap.MutableEntry<K?, V?>> {
+        override fun iterator(): MutableIterator<MutableMap.MutableEntry<K, V>> {
             val iters = (0 until segmentCount).map{segment->
                 htreeSegmentIterator(segment) { key, wrappedValue ->
                     @Suppress("UNCHECKED_CAST")
@@ -989,12 +989,12 @@ class HTreeMap<K,V>(
             return Iterators.concat(iters.iterator())
         }
 
-        override fun remove(element: MutableMap.MutableEntry<K?, V?>): Boolean {
+        override fun remove(element: MutableMap.MutableEntry<K, V>): Boolean {
             return this@HTreeMap.remove(element.key, element.value)
         }
 
 
-        override fun contains(element: MutableMap.MutableEntry<K?, V?>): Boolean {
+        override fun contains(element: MutableMap.MutableEntry<K, V>): Boolean {
             val v = this@HTreeMap.get(element.key)
                     ?: return false
             val value = element.value
@@ -1048,7 +1048,7 @@ class HTreeMap<K,V>(
 
     override val keys: KeySet<K> = KeySet(@Suppress("UNCHECKED_CAST") (this as HTreeMap<K,Any?>))
 
-    override val values: MutableCollection<V?> = object : AbstractCollection<V>(){
+    override val values: MutableCollection<V> = object : AbstractCollection<V>(){
 
         override fun clear() {
             this@HTreeMap.clear()
@@ -1144,14 +1144,14 @@ class HTreeMap<K,V>(
     }
 
 
-    protected fun htreeEntry(key:K, valueOrig:V) : MutableMap.MutableEntry<K?,V?>{
+    protected fun htreeEntry(key:K, valueOrig:V) : MutableMap.MutableEntry<K,V>{
 
-        return object : MutableMap.MutableEntry<K?,V?>{
-            override val key: K?
+        return object : MutableMap.MutableEntry<K,V>{
+            override val key: K
                 get() = key
 
-            override val value: V?
-                get() = valueCached ?: this@HTreeMap.get(key)
+            override val value: V
+                get() = valueCached ?: (this@HTreeMap.get(key)  ?: throw IllegalStateException("value in entry is null"))
 
             /** cached value, if null get value from map */
             private var valueCached:V? = valueOrig;
@@ -1159,9 +1159,9 @@ class HTreeMap<K,V>(
             override fun hashCode(): Int {
                 return keySerializer.hashCode(this.key!!, hashSeed) xor valueSerializer.hashCode(this.value!!, hashSeed)
             }
-            override fun setValue(newValue: V?): V? {
+            override fun setValue(newValue: V): V {
                 valueCached = null;
-                return put(key,newValue)
+                return put(key,newValue) ?: throw IllegalStateException("value in entry is null")
             }
 
 

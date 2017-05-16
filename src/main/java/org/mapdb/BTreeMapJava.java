@@ -399,9 +399,12 @@ public class BTreeMapJava {
 
         protected final ConcurrentNavigableMap2<E,Object> m;
         private final boolean hasValues;
-        KeySet(ConcurrentNavigableMap2<E,Object> map, boolean hasValues) {
+        private final Serializer<E> serializer;
+
+        KeySet(ConcurrentNavigableMap2<E, Object> map, boolean hasValues, Serializer<E> serializer) {
             m = map;
             this.hasValues = hasValues;
+            this.serializer = serializer;
         }
         @Override
         public int size() { return m.size(); }
@@ -484,6 +487,12 @@ public class BTreeMapJava {
                 return false;
             }
         }
+
+        @Override
+        public int hashCode() {
+            return Utils.iterableHashCode(serializer, this);
+        }
+
         @Override
         public Object[] toArray()     { return toList(this).toArray();  }
         @Override
@@ -498,15 +507,15 @@ public class BTreeMapJava {
                                       E toElement,
                                       boolean toInclusive) {
             return new KeySet<E>((ConcurrentNavigableMap2)m.subMap(fromElement, fromInclusive,
-                    toElement,   toInclusive),hasValues);
+                    toElement,   toInclusive),hasValues, serializer);
         }
         @Override
         public NavigableSet<E> headSet(E toElement, boolean inclusive) {
-            return new KeySet<E>((ConcurrentNavigableMap2)m.headMap(toElement, inclusive),hasValues);
+            return new KeySet<E>((ConcurrentNavigableMap2)m.headMap(toElement, inclusive),hasValues, serializer);
         }
         @Override
         public NavigableSet<E> tailSet(E fromElement, boolean inclusive) {
-            return new KeySet<E>((ConcurrentNavigableMap2)m.tailMap(fromElement, inclusive),hasValues);
+            return new KeySet<E>((ConcurrentNavigableMap2)m.tailMap(fromElement, inclusive),hasValues, serializer);
         }
         @Override
         public NavigableSet<E> subSet(E fromElement, E toElement) {
@@ -522,7 +531,7 @@ public class BTreeMapJava {
         }
         @Override
         public NavigableSet<E> descendingSet() {
-            return new KeySet((ConcurrentNavigableMap2)m.descendingMap(),hasValues);
+            return new KeySet((ConcurrentNavigableMap2)m.descendingMap(),hasValues, serializer);
         }
 
         @Override
@@ -1013,7 +1022,7 @@ public class BTreeMapJava {
 
         @Override
         public NavigableSet<K> navigableKeySet() {
-            return new KeySet<K>((ConcurrentNavigableMap2<K,Object>) this,m.getHasValues());
+            return new KeySet<K>((ConcurrentNavigableMap2<K,Object>) this,m.getHasValues(), m.getKeySerializer());
         }
 
 
@@ -1056,7 +1065,7 @@ public class BTreeMapJava {
 
         @Override
         public NavigableSet<K> keySet() {
-            return new KeySet<K>((ConcurrentNavigableMap2<K,Object>) this, m.getHasValues());
+            return new KeySet<K>((ConcurrentNavigableMap2<K,Object>) this, m.getHasValues(), m.getKeySerializer());
         }
 
         @Override
@@ -1461,7 +1470,7 @@ public class BTreeMapJava {
 
         @Override
         public NavigableSet<K> navigableKeySet() {
-            return new KeySet<K>((ConcurrentNavigableMap2<K,Object>) this,m.getHasValues());
+            return new KeySet<K>((ConcurrentNavigableMap2<K,Object>) this,m.getHasValues(), m.getKeySerializer());
         }
 
 
@@ -1504,12 +1513,12 @@ public class BTreeMapJava {
 
         @Override
         public NavigableSet<K> keySet() {
-            return new KeySet<K>((ConcurrentNavigableMap2<K,Object>) this, m.getHasValues());
+            return new KeySet<K>((ConcurrentNavigableMap2<K,Object>) this, m.getHasValues(), m.getKeySerializer());
         }
 
         @Override
         public NavigableSet<K> descendingKeySet() {
-            return new KeySet<K>((ConcurrentNavigableMap2<K,Object>) descendingMap(), m.getHasValues());
+            return new KeySet<K>((ConcurrentNavigableMap2<K,Object>) descendingMap(), m.getHasValues(), m.getKeySerializer());
         }
 
 

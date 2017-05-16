@@ -48,14 +48,14 @@ interface MapExtra<K, V> : ConcurrentMap<K, V> {
      * TODO link to JCache standard
      * TODO credits for javadoc
      */
-    fun putIfAbsentBoolean(key: K?, value: V?): Boolean
+    fun putIfAbsentBoolean(key: K, value: V): Boolean
 
     /**
      * Puts new value, but does not return old value. Might be faster since old value is not deserialized
      *
      * Old value will only be deserialized if modification listeners are installed, or values are inlined.
      */
-    fun putOnly(key:K?, value:V?)
+    fun putOnly(key:K, value:V)
 
     fun isClosed(): Boolean
 
@@ -73,7 +73,7 @@ interface MapExtra<K, V> : ConcurrentMap<K, V> {
     /** Deletes key-value entry, returns true if the key was deleted, false if key was not present in map.
      *  This method does not deserialize value if no modification listeners are installed.
      */
-    fun removeBoolean(key: K?): Boolean
+    fun removeBoolean(key: K): Boolean
 
 }
 
@@ -96,17 +96,17 @@ interface ConcurrentNavigableMapExtra<K, V> : ConcurrentNavigableMap<K, V>, MapE
 
     fun valueIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<V?>
 
-    fun entryIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<MutableMap.MutableEntry<K, V?>>
+    fun entryIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<MutableMap.MutableEntry<K, V>>
 
     fun descendingKeyIterator(): MutableIterator<K>
 
     fun descendingKeyIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<K>
 
-    fun descendingValueIterator(): MutableIterator<V?>
+    fun descendingValueIterator(): MutableIterator<V>
 
     fun descendingValueIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<V?>
 
-    fun descendingEntryIterator(): MutableIterator<MutableMap.MutableEntry<K, V?>>
+    fun descendingEntryIterator(): MutableIterator<MutableMap.MutableEntry<K, V>>
 
-    fun descendingEntryIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<MutableMap.MutableEntry<K, V?>>
+    fun descendingEntryIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<MutableMap.MutableEntry<K, V>>
 }
