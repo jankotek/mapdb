@@ -69,11 +69,14 @@ class BTreeMap_PumpTest(
                     }
                 }else Serializer.INTEGER
 
-                //TODO custom comparator
-
                 val m =
                         if(generic) db.treeMap("aa")
                         else db.treeMap("aa", keySer, Serializer.STRING)
+
+
+                val comparator = Serializer.INTEGER
+
+                m.comparator(comparator)
 
                 if(small) m.maxNodeSize(6)
                 if(!valueInline) m.valuesOutsideNodesEnable()

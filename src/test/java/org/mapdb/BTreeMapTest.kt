@@ -1394,4 +1394,36 @@ class BTreeMapTest {
         assertEquals(null, map.store.get(valueRecid, map.valueSerializer))
     }
 
+
+    @Test fun treemap_comparator(){
+        val comparator = Serializer.INTEGER.reversed()
+
+        val map = DBMaker.memoryDB().make()
+                .treeMap("aa",Serializer.INTEGER, Serializer.INTEGER)
+                .comparator(comparator)
+                .create()
+        assert(comparator === map.comparator())
+
+        for(i in 0 until 100)
+            map.put(i, i)
+
+        assertEquals(99, map.firstKey())
+    }
+
+
+
+    @Test fun  treeset_comparator(){
+        val comparator = Serializer.INTEGER.reversed()
+
+        val set = DBMaker.memoryDB().make()
+                .treeSet("aa",Serializer.INTEGER)
+                .comparator(comparator)
+                .create()
+        assert(comparator === set.comparator())
+
+        for(i in 0 until 100)
+            set.add(i)
+
+        assertEquals(99, set.iterator().next())
+    }
 }

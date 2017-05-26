@@ -17,7 +17,7 @@ import java.util.concurrent.locks.ReadWriteLock
 
 /**
  * Store which serializes its content into primitive `Map<Long,byte[]>`.
- * It optionally persist its content into file, in this case it supports rollback and durability.
+ * It optionally persist its content into file, in that case it supports rollback and durability.
  */
 open class StoreTrivial(
         override val isThreadSafe:Boolean=true

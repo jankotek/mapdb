@@ -6,6 +6,7 @@ import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.fest.reflect.core.Reflection
 import org.junit.Assert.*
+import org.junit.Ignore
 import org.junit.Test
 import org.mapdb.elsa.ElsaSerializerPojo
 import org.mapdb.serializer.GroupSerializerObjectArray
@@ -1370,5 +1371,24 @@ class DBTest{
             db.atomicBoolean("aa").open()
         }
     }
+
+    @Test @Ignore
+    fun reversed_comparator_restored(){
+        val f = TT.tempFile()
+
+        var db = DBMaker.fileDB(f).make()
+        val comp = Serializer.INTEGER.reversed()
+        var set = db.treeSet("aa",Serializer.INTEGER).comparator(comp).createOrOpen()
+        assert(comp === set.comparator())
+        db.close()
+
+        db = DBMaker.fileDB(f).make()
+        set = db.treeSet("aa").createOrOpen() as NavigableSet<Int>
+        assert(comp === set.comparator())
+
+
+        f.delete()
+    }
+
 
 }

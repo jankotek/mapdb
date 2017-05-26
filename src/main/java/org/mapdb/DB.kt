@@ -112,6 +112,8 @@ open class DB(
         val valueSerializer = "#valueSerializer"
         val serializer = "#serializer"
 
+        val comparator = "#comparator"
+
         val valueInline = "#valueInline"
 
         val counterRecids = "#counterRecids"
@@ -1140,15 +1142,20 @@ open class DB(
          protected var _rootRecidRecid:Long? = null
          protected var _counterRecid:Long? = null
          protected var _valueInline:Boolean = true
+         protected var _comparator:Comparator<K>? = null
 
 
          override fun create2(catalog: SortedMap<String, String>): MAP {
              db.nameCatalogPutClass(catalog, name +
                      (if(hasValues)Keys.keySerializer else Keys.serializer), _keySerializer)
+
              if(hasValues) {
                  db.nameCatalogPutClass(catalog, name + Keys.valueSerializer, _valueSerializer)
                  catalog[name + Keys.valueInline] = _valueInline.toString()
              }
+
+             if(_comparator!=null)
+                 db.nameCatalogPutClass(catalog, name + Keys.comparator, _comparator!!)
 
              val rootRecidRecid2 = _rootRecidRecid
                      ?: BTreeMap.putEmptyRoot(db.store, _keySerializer , _valueSerializer)
@@ -1167,7 +1174,7 @@ open class DB(
                      rootRecidRecid = rootRecidRecid2,
                      store = db.store,
                      maxNodeSize = _maxNodeSize,
-                     comparator = _keySerializer, //TODO custom comparator
+                     comparator = _comparator?:_keySerializer,
                      isThreadSafe = db.isThreadSafe,
                      counterRecid = counterRecid2,
                      hasValues = hasValues,
@@ -1198,6 +1205,9 @@ open class DB(
                          db.nameCatalogGetClass(catalog, name + Keys.valueSerializer) ?: _valueSerializer
                      }
 
+             val comparator:Comparator<K> =
+                     db.nameCatalogGetClass(catalog, name + Keys.comparator) ?: (_comparator ?:_keySerializer)
+
              val counterRecid2 = catalog[name + Keys.counterRecid]!!.toLong()
              _maxNodeSize = catalog[name + Keys.maxNodeSize]!!.toInt()
 
@@ -1217,7 +1227,7 @@ open class DB(
                      rootRecidRecid = rootRecidRecid2,
                      store = db.store,
                      maxNodeSize = _maxNodeSize,
-                     comparator = _keySerializer, //TODO custom comparator
+                     comparator = comparator,
                      isThreadSafe = db.isThreadSafe,
                      counterRecid = counterRecid2,
                      hasValues = hasValues,
@@ -1232,7 +1242,7 @@ open class DB(
                  return ret.keys as MAP
          }
 
-     }
+    }
 
     class TreeMapMaker<K,V>(
             db:DB,
@@ -1282,6 +1292,12 @@ open class DB(
             return this;
         }
 
+
+        fun <A> comparator(comparator: Comparator<A>):TreeMapMaker<A,V> {
+            _comparator = comparator as Comparator<K>
+            return this as TreeMapMaker<A,V>
+        }
+
         fun createFrom(iterator:Iterator<Pair<K,V>>):BTreeMap<K,V>{
             val consumer = createFromSink()
             while(iterator.hasNext()){
@@ -1306,7 +1322,7 @@ open class DB(
                     store = db.store,
                     keySerializer = _keySerializer,
                     valueSerializer = _valueSerializer,
-                    //TODO add custom comparator, once its enabled
+                    comparator = _comparator?:_keySerializer,
                     dirNodeSize = _maxNodeSize *3/4,
                     leafNodeSize = _maxNodeSize *3/4,
                     valueInline = _valueInline
@@ -1337,6 +1353,7 @@ open class DB(
 
         override fun open() = make2(false)
 
+
     }
 
     class TreeSetMaker<E>(
@@ -1361,6 +1378,12 @@ open class DB(
             return this;
         }
 
+
+        fun comparator(comparator: Comparator<E>):TreeSetMaker<E> {
+            _comparator = comparator
+            return this
+        }
+
         fun createFrom(source:Iterable<E>):NavigableSet<E> = createFrom(source.iterator())
 
         fun createFrom(iterator:Iterator<E>):NavigableSet<E>{
@@ -1377,7 +1400,7 @@ open class DB(
                     store = db.store,
                     keySerializer = _keySerializer,
                     valueSerializer = _valueSerializer,
-                    //TODO add custom comparator, once its enabled
+                    comparator = _comparator?:_keySerializer,
                     dirNodeSize = _maxNodeSize *3/4,
                     leafNodeSize = _maxNodeSize *3/4,
                     hasValues = false
