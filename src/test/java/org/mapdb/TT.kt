@@ -289,6 +289,6 @@ class TTTest{
 
     @Test fun tempFileName_textets(){
         val f = TT.tempFile()
-        assertTrue(f.name,f.name.startsWith("mapdbTest_org.mapdb.TTTest#tempFileName_textets:"))
+        assertTrue(f.name,f.name.startsWith("mapdbTest_org.mapdb.TTTest-tempFileName_textets-"))
     }
 }
