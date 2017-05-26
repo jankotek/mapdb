@@ -53,21 +53,18 @@ object TT{
      * Create temporary file in temp folder. All associated db files will be deleted on JVM exit.
      */
     @JvmStatic fun tempFile(): File {
-        try {
-            val stackTrace = Thread.currentThread().stackTrace;
-            val elem = stackTrace[2];
-            val prefix = "mapdbTest_"+elem.className+"-"+elem.methodName+"-"+elem.lineNumber+"_"
-            while(true){
-                val file = File(tempDir+File.separator+prefix+System.currentTimeMillis()+"_"+Math.random());
-                if(file.exists().not()) {
-                    file.deleteOnExit()
-                    return file
-                }
-            }
-        } catch (e: IOException) {
-            throw IOError(e)
-        }
+        fun sanitize(name:String) = java.lang.String(name).replaceAll("[^a-zA-Z_\\.]+","")
 
+        val stackTrace = Thread.currentThread().stackTrace;
+        val elem = stackTrace[2];
+        val prefix = "mapdbTest_"+sanitize(elem.className)+"-"+sanitize(elem.methodName)+"-"+elem.lineNumber+"_"
+        while(true){
+            val file = File(tempDir+File.separator+prefix+System.currentTimeMillis()+"_"+Math.random());
+            if(file.exists().not()) {
+                file.deleteOnExit()
+                return file
+            }
+        }
     }
 
     @JvmStatic fun tempDir(): File {
