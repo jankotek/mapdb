@@ -53,7 +53,7 @@ object TT{
      * Create temporary file in temp folder. All associated db files will be deleted on JVM exit.
      */
     @JvmStatic fun tempFile(): File {
-        fun sanitize(name:String) = java.lang.String(name).replaceAll("[^a-zA-Z_\\.]+","")
+        fun sanitize(name:String) = java.lang.String(name).replaceAll("[^a-zA-Z0-9_\\.]+","")
 
         val stackTrace = Thread.currentThread().stackTrace;
         val elem = stackTrace[2];
