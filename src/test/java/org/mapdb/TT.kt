@@ -56,9 +56,9 @@ object TT{
         try {
             val stackTrace = Thread.currentThread().stackTrace;
             val elem = stackTrace[2];
-            val prefix = "mapdbTest_"+elem.className+"#"+elem.methodName+":"+elem.lineNumber+"_"
+            val prefix = "mapdbTest_"+elem.className+"-"+elem.methodName+"-"+elem.lineNumber+"_"
             while(true){
-                val file = File(tempDir+"/"+prefix+System.currentTimeMillis()+"_"+Math.random());
+                val file = File(tempDir+File.separator+prefix+System.currentTimeMillis()+"_"+Math.random());
                 if(file.exists().not()) {
                     file.deleteOnExit()
                     return file
