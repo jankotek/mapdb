@@ -9,11 +9,14 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class Issues760_compact_thread_safe {
 
+    @org.junit.Ignore
     @Test fun compactShouldBeThreadSafe1() = compactShouldBeThreadSafe(false,false)
     @Test fun compactShouldBeThreadSafeWhenUsedByDB1() = compactShouldBeThreadSafeWhenUsedByDB(false,false)
 
 
+    @org.junit.Ignore
     @Test fun compactShouldBeThreadSafe2() = compactShouldBeThreadSafe(false,true)
+    @org.junit.Ignore
     @Test fun compactShouldBeThreadSafeWhenUsedByDB2() = compactShouldBeThreadSafeWhenUsedByDB(false,true)
 
 

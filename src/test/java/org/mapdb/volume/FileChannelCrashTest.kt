@@ -1,9 +1,10 @@
 package org.mapdb.volume
 
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.mapdb.crash.CrashJVM
 import org.mapdb.TT
+import org.mapdb.crash.CrashJVM
 import java.io.File
 import java.io.RandomAccessFile
 import java.nio.ByteBuffer
@@ -50,7 +51,8 @@ class FileChannelCrashTest: CrashJVM(){
         }
     }
 
-    @Test fun test(){
+    @Test @org.junit.Ignore
+    fun test(){
         val runtime = 4000L + TT.testScale()*60*1000;
         val start = System.currentTimeMillis()
         Companion.run(this, time=runtime, killDelay = 200)

@@ -6,6 +6,7 @@ import org.eclipse.collections.api.list.primitive.MutableLongList
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet
 import org.fest.reflect.core.Reflection
 import org.junit.Assert.*
+import org.junit.Ignore
 import org.junit.Test
 import org.mapdb.BTreeMapJava.*
 import org.mapdb.StoreAccess.calculateFreeSize
@@ -469,7 +470,8 @@ class BTreeMapTest {
         }
     }
 
-    @Test fun randomInsert() {
+    @Test  @Ignore
+    fun randomInsert() {
         val map = BTreeMap.make(
                 keySerializer = Serializer.INTEGER,
                 valueSerializer = Serializer.INTEGER,
@@ -489,7 +491,8 @@ class BTreeMapTest {
         }
     }
 
-    @Test fun randomInsert_returnVal() {
+    @Test @Ignore
+    fun randomInsert_returnVal() {
         val map = BTreeMap.make(
                 keySerializer = Serializer.INTEGER,
                 valueSerializer = Serializer.INTEGER,
@@ -510,7 +513,8 @@ class BTreeMapTest {
         }
     }
 
-    @Test fun randomInsert_delete() {
+    @Test  @Ignore
+    fun randomInsert_delete() {
         val map = BTreeMap.make(
                 keySerializer = Serializer.INTEGER,
                 valueSerializer = Serializer.INTEGER,
@@ -580,7 +584,8 @@ class BTreeMapTest {
 
 
     /* check that empty leaf nodes are skipped during iteration */
-    @Test fun iterate_remove() {
+    @Test  @Ignore
+    fun iterate_remove() {
         val map = BTreeMap.make(
                 keySerializer = Serializer.INTEGER,
                 valueSerializer = Serializer.INTEGER,
@@ -859,7 +864,8 @@ class BTreeMapTest {
         }
     }
 
-    @Test fun prefix_submap(){
+    @Test @Ignore
+    fun prefix_submap(){
         val map = BTreeMap.make(
                 keySerializer = Serializer.BYTE_ARRAY,
                 valueSerializer = Serializer.BYTE_ARRAY)
@@ -953,7 +959,8 @@ class BTreeMapTest {
 
 
 
-    @Test fun findSmaller() {
+    @Test @Ignore
+    fun findSmaller() {
 
         val m = DBMaker.memoryDB().make().treeMap("test").create() as NavigableMap<Int, String>
 
@@ -1278,7 +1285,8 @@ class BTreeMapTest {
     }
 
 
-    @Test fun issue403_store_grows_with_values_outside_nodes() {
+    @Test  @Ignore
+    fun issue403_store_grows_with_values_outside_nodes() {
         val f = TT.tempFile()
         val db = DBMaker.fileDB(f).closeOnJvmShutdown().make()
 

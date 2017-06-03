@@ -6,6 +6,7 @@ import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 import java.util.*
 import org.junit.Assert.*
+import org.junit.Ignore
 
 
 /**
@@ -64,7 +65,8 @@ class StoreDirect_LongStackAllocTest(
         }
     }
 
-    @Test fun run(){
+    @Test @Ignore
+    fun run(){
         val size = 200000
         val r = Random(data.randomSeed)
 

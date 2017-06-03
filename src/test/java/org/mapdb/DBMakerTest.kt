@@ -1,6 +1,7 @@
 package org.mapdb
 
 import org.junit.Assert.*
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExpectedException
@@ -117,7 +118,7 @@ class DBMakerTest{
         assertTrue(((db.store) as StoreDirect).checksum)
     }
 
-    @Test(timeout=10000)
+    @Test(timeout=10000)  @Ignore
     fun file_lock_wait(){
         val f = TT.tempFile()
         val db1 = DBMaker.fileDB(f).make()
@@ -132,6 +133,7 @@ class DBMakerTest{
 
 
     @Test(timeout=10000)
+    @Ignore
     fun file_lock_wait2(){
         val f = TT.tempFile()
         val db1 = DBMaker.fileDB(f).make()
@@ -144,7 +146,7 @@ class DBMakerTest{
         f.delete()
     }
 
-    @Test(timeout=10000)
+    @Test(timeout=10000)  @Ignore
     fun file_lock_wait_time_out_same_jvm() {
         val f = TT.tempFile()
 
@@ -162,7 +164,7 @@ class DBMakerTest{
         }
     }
 
-    @Test(timeout=10000)
+    @Test(timeout=10000)  @Ignore
     fun file_lock_wait_time_out() {
         val f = TT.tempFile()
         val db1 = DBMaker.fileDB(f).make()
@@ -181,7 +183,7 @@ class DBMakerTest{
         f.delete()
     }
 
-    @Test(timeout=30000)
+    @Test(timeout=30000)  @Ignore
     fun file_lock_wait_time_out_different_jvm() {
         val f = TT.tempFile()
         val process = TT.forkJvm(ForkedLockTestMain::class.java, f.absolutePath)

@@ -13,6 +13,7 @@ import java.util.Map;
 public class Issue_815 extends TestWithTempDir{
 
     @Test
+    @org.junit.Ignore
     public void sliceSize_reopen(){
         String file = tempFile().getPath();
         Volume volume = MappedFileVol.FACTORY.makeVolume(file, false,0L,22,0,false);

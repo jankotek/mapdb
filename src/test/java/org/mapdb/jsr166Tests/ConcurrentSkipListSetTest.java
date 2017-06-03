@@ -4,19 +4,7 @@ package org.mapdb.jsr166Tests;/*
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.NavigableSet;
-import java.util.NoSuchElementException;
-import java.util.Random;
-import java.util.Set;
-import java.util.SortedSet;
-
-import junit.framework.Test;
-import junit.framework.TestSuite;
+import java.util.*;
 
 public abstract class ConcurrentSkipListSetTest extends JSR166TestCase {
    
@@ -597,7 +585,7 @@ public abstract class ConcurrentSkipListSetTest extends JSR166TestCase {
      * Subsets of subsets subdivide correctly
      */
     public void testRecursiveSubSets() throws Exception {
-        int setSize = expensiveTests ? 1000 : 100;
+        int setSize = expensiveTests ? 1000 : 50;
         Class cl = NavigableSet.class;
 
         NavigableSet<Integer> set = emptySet();

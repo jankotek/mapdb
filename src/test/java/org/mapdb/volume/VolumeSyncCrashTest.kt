@@ -1,16 +1,13 @@
 package org.mapdb.volume
 
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
-import org.junit.Ignore
+import org.junit.Assert.assertEquals
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.Parameterized
-import java.io.File
-import java.util.*
-import org.junit.Assert.*
 import org.mapdb.DataIO
 import org.mapdb.crash.CrashJVM
 import org.mapdb.volume.*
+import java.io.File
+import java.util.*
 
 /**
  * Checks if [Volume.sync()] really flushes disk cache, it should survive JVM crash...
@@ -77,6 +74,7 @@ abstract class VolumeSyncCrashTest(val volfab: VolumeFactory) : CrashJVM(){
     }
 
     @Test
+    @org.junit.Ignore
     fun run(){
         CrashJVM.Companion.run(this, time = org.mapdb.TT.testRuntime(10))
     }

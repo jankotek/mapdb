@@ -4,6 +4,7 @@ package org.mapdb
 
 import org.fest.reflect.core.Reflection
 import org.junit.Assert.*
+import org.junit.Ignore
 import org.junit.Test
 import org.mapdb.volume.SingleByteArrayVol
 import java.io.Closeable
@@ -197,7 +198,8 @@ class HTreeMapTest{
     }
 
 
-    @Test fun hasher() {
+    @Test @Ignore
+    fun hasher() {
         val m = DBMaker.memoryDB().make()
                 .hashMap("test", Serializer.INT_ARRAY, Serializer.INTEGER).create()
 
@@ -247,7 +249,7 @@ class HTreeMapTest{
         assertEquals(8, counter.get().toLong())
     }
 
-    @Test
+    @Test @Ignore
     fun test_iterate_and_remove() {
         val max = 1e5.toInt()
 
@@ -356,7 +358,8 @@ class HTreeMapTest{
         }
     }
 
-    @Test fun continous_expiration(){
+    @Test @Ignore
+    fun continous_expiration(){
         val size = 128 * 1024*1024
         val volume = SingleByteArrayVol(size)
         val db = DBMaker.volumeDB(volume, false).make()
@@ -430,7 +433,9 @@ class HTreeMapTest{
         assertEquals(1000, size)
     }
 
-    @Test fun key_iterator_does_not_deserialize_external_values(){
+    @Test
+    @org.junit.Ignore
+    fun key_iterator_does_not_deserialize_external_values(){
         var keyDeserCount = 0
         var stopValDeser = false
 

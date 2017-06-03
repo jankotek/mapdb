@@ -1,6 +1,7 @@
 package org.mapdb.tuple;
 
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
@@ -129,7 +130,8 @@ public class TupleTest {
     }
 
 
-    @Test public void t5_compare(){
+    @Test @Ignore
+    public void t5_compare(){
 
 
         for(int a1=0;a1<vals.length;a1++){
@@ -168,7 +170,8 @@ public class TupleTest {
     }
 
 
-    @Test public void t6_compare(){
+    @Test @org.junit.Ignore
+    public void t6_compare(){
 
 
         for(int a1=0;a1<vals.length;a1++){

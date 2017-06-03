@@ -306,7 +306,8 @@ class DBTest{
     }
 
 
-    @Test fun executors_hashMap(){
+    @Test @Ignore
+    fun executors_hashMap(){
         val db = DBMaker.heapDB().make()
         assertEquals(0, db.executors.size)
         val exec = Executors.newSingleThreadScheduledExecutor()
@@ -713,7 +714,8 @@ class DBTest{
     }
 
 
-    @Test fun executors_hashSet(){
+    @Test @Ignore
+    fun executors_hashSet(){
         val db = DBMaker.heapDB().make()
         assertEquals(0, db.executors.size)
         val exec = Executors.newSingleThreadScheduledExecutor()
@@ -863,7 +865,8 @@ class DBTest{
     }
 
 
-    @Test fun indexTreeLongLongMap_reopen(){
+    @Test @Ignore
+    fun indexTreeLongLongMap_reopen(){
         val f = TT.tempFile()
 
         var db = DB(store =StoreDirect.make(file=f.path), storeOpened = false, isThreadSafe = false)
@@ -899,7 +902,8 @@ class DBTest{
     }
 
 
-    @Test fun indexTreeList_reopen(){
+    @Test @Ignore
+    fun indexTreeList_reopen(){
         val f = TT.tempFile()
 
         var db = DB(store =StoreDirect.make(file=f.path), storeOpened = false, isThreadSafe = false)
@@ -983,7 +987,7 @@ class DBTest{
     }
 
 
-    @Test
+    @Test @Ignore
     fun testReopenExistingFile() {
         //TODO test more configurations
         val file = TT.tempFile()
@@ -1246,7 +1250,8 @@ class DBTest{
         assertEquals(1e6.toLong(), size)
     }
 
-    @Test fun deleteFilesAfterOpen(){
+    @Test @Ignore
+    fun deleteFilesAfterOpen(){
         fun test(fab:(f: String)->DB){
             val dir = TT.tempDir()
             assertTrue(dir.listFiles().isEmpty())
@@ -1279,7 +1284,8 @@ class DBTest{
 
 
 
-    @Test fun deleteFilesAfterClose(){
+    @Test @Ignore
+    fun deleteFilesAfterClose(){
         fun test(fab:(f: String)->DB){
             val dir = TT.tempDir()
             assertTrue(dir.listFiles().isEmpty())
@@ -1313,7 +1319,8 @@ class DBTest{
 
 
 
-    @Test fun allFiles(){
+    @Test @Ignore
+    fun allFiles(){
         fun test(fab:(f: String)->DB){
             val dir = TT.tempDir()
             assertTrue(dir.listFiles().isEmpty())

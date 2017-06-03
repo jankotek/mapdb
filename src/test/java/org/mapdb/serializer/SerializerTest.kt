@@ -90,7 +90,9 @@ abstract class GroupSerializerTest<E>:SerializerTest<E>(){
 
 
 
-    @Test open fun valueArrayBinarySearch(){
+    @Test
+    @org.junit.Ignore
+    open fun valueArrayBinarySearch(){
         var v = ArrayList<E>()
         for (i in 0..max) {
             v.add(randomValue())
@@ -127,7 +129,8 @@ abstract class GroupSerializerTest<E>:SerializerTest<E>(){
         }
     }
 
-    @Test open fun valueArrayGet(){
+    @Test @org.junit.Ignore
+    open fun valueArrayGet(){
         var v = randomArray()
         val keys = serializer2.valueArrayFromArray(v)
         val out = DataOutput2()

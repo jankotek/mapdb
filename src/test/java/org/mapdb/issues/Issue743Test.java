@@ -9,6 +9,7 @@ public class Issue743Test {
 
 
     @Test
+    @org.junit.Ignore
     public void testAfterClear_Integer(){
         DB db = DBMaker.memoryDB()
                 .closeOnJvmShutdown()

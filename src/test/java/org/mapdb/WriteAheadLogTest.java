@@ -1,5 +1,6 @@
 package org.mapdb;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mapdb.volume.Volume;
 
@@ -324,6 +325,7 @@ public class WriteAheadLogTest {
     }
 
     @Test
+    @Ignore
     public void overflow_byte_array() {
         File f = TT.tempFile();
         f.delete();
@@ -344,6 +346,7 @@ public class WriteAheadLogTest {
     }
 
     @Test
+    @Ignore
     public void overflow_record() {
         File f = TT.tempFile();
         f.delete();

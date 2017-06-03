@@ -1,10 +1,9 @@
 package org.mapdb
 
+import org.junit.Assert.assertEquals
 import org.junit.Test
-import org.junit.Assert.*
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
-import java.io.IOException
 import java.util.concurrent.ConcurrentMap
 
 /**
@@ -20,7 +19,9 @@ class HTreeMapConcTest(val mapMaker:(generic:Boolean)-> ConcurrentMap<Any?, Any?
             return HTreeMap_GuavaTest.params()
         }
     }
-    @Test fun basicTest(){
+    @Test
+    @org.junit.Ignore
+    fun basicTest(){
         val map = mapMaker(false);
         var max = 10000;
         if(map is HTreeMap && map.keySerializer == Serializer.INTEGER)

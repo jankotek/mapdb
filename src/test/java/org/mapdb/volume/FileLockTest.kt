@@ -14,6 +14,7 @@ class FileLockTest{
 
 
     @Test(timeout=10000L)
+    @org.junit.Ignore
     fun lock_wait(){
         val f = TT.tempFile()
         val c = FileChannelVol.FACTORY.makeVolume(f.path, false)

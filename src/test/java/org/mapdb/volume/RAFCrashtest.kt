@@ -56,6 +56,7 @@ class RAFCrashtest: CrashJVM(){
 
 
     @Test
+    @org.junit.Ignore
     fun run() {
         run(this, time = TT.testRuntime(10))
     }

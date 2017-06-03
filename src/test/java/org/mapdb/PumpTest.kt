@@ -5,6 +5,7 @@ package org.mapdb
 import org.fest.reflect.core.Reflection
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Ignore
 import org.junit.Test
 
 class PumpTest{
@@ -34,7 +35,9 @@ class PumpTest{
     }
 
 
-    @Test fun mega(){
+    @Test
+    @Ignore
+    fun mega(){
         check((1..1000000).map{Pair(it, it*2)})
     }
 

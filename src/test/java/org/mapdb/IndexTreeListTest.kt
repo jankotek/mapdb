@@ -2,6 +2,7 @@ package org.mapdb
 
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap
 import org.junit.Assert.*
+import org.junit.Ignore
 import org.junit.Test
 
 import org.mapdb.IndexTreeListJava.*;
@@ -130,7 +131,8 @@ class IndexTreeListTest{
     }
 
 
-    @Test fun treeRandom(){
+    @Test @Ignore
+    fun treeRandom(){
         val levels = 3;
         val maxIndex = 1.shl(dirShift*levels)
         val ref = LongLongHashMap()

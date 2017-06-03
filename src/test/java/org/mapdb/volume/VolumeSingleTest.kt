@@ -2,6 +2,7 @@ package org.mapdb.volume
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Ignore
 import org.junit.Test
 import org.mapdb.*
 import java.io.ByteArrayInputStream
@@ -168,7 +169,9 @@ class VolumeSingleTest(val fab: Function1<String, Volume>) {
         }
     }
 
-    @Test fun parallel_growth(){
+    @Test
+    @org.junit.Ignore
+    fun parallel_growth(){
         val f = TT.tempFile()
         val vol = fab.invoke(f.path)
         val max = 40000000
@@ -188,7 +191,9 @@ class VolumeSingleTest(val fab: Function1<String, Volume>) {
     }
 
 
-    @Test fun copyFromDb(){
+    @Test
+    @Ignore
+    fun copyFromDb(){
         val volMem = ByteArrayVol()
         val db = DBMaker.volumeDB(volMem, false).make()
         val s = db.treeSet("aa",Serializer.STRING).createOrOpen()

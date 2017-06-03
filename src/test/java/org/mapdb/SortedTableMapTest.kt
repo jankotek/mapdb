@@ -2,6 +2,7 @@ package org.mapdb
 
 import org.fest.reflect.core.Reflection
 import org.junit.Assert.*
+import org.junit.Ignore
 import org.junit.Test
 import org.mapdb.TT.assertFailsWith
 import org.mapdb.volume.ByteArrayVol
@@ -36,7 +37,8 @@ class SortedTableMapTest{
         test(1000)
     }
 
-    @Test fun importMega(){
+    @Test @Ignore
+    fun importMega(){
         test(1000000)
     }
 
@@ -150,7 +152,8 @@ class SortedTableMapTest{
     }
 
 
-    @Test fun entry_iterator_values_issue685(){
+    @Test @Ignore
+    fun entry_iterator_values_issue685(){
         val consumer = SortedTableMap.createFromSink(
                 keySerializer = Serializer.INTEGER,
                 valueSerializer = Serializer.INTEGER,
