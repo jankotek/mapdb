@@ -1,9 +1,13 @@
-package org.mapdb
+package org.mapdb.flat
 
 import org.fest.reflect.core.Reflection
 import org.junit.Assert.*
 import org.junit.Ignore
 import org.junit.Test
+import org.mapdb.CC
+import org.mapdb.DBException
+import org.mapdb.Serializer
+import org.mapdb.TT
 import org.mapdb.TT.assertFailsWith
 import org.mapdb.util.DataIO
 import org.mapdb.volume.ByteArrayVol

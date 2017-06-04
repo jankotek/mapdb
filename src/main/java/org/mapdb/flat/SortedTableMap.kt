@@ -1,5 +1,6 @@
-package org.mapdb
+package org.mapdb.flat
 
+import org.mapdb.*
 import org.mapdb.serializer.GroupSerializer
 import org.mapdb.tree.BTreeMapJava
 import org.mapdb.util.DataIO

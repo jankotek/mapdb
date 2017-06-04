@@ -1,5 +1,7 @@
-package org.mapdb
+package org.mapdb.flat
 
+import org.mapdb.CC
+import org.mapdb.Serializer
 import org.mapdb.tree.jsr166Tests.ConcurrentSkipListSubMapTest
 import org.mapdb.tree.jsr166Tests.JSR166Test
 import java.util.concurrent.ConcurrentNavigableMap

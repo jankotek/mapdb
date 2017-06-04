@@ -1,5 +1,6 @@
-package org.mapdb
+package org.mapdb.flat
 
+import org.mapdb.*
 import org.mapdb.tree.guavaTests.ConcurrentMapInterfaceTest
 import java.util.concurrent.ConcurrentMap
 

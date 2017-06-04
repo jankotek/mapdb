@@ -3,12 +3,8 @@ package org.mapdb.issues;
 import org.junit.Test;
 import org.mapdb.CC;
 import org.mapdb.Serializer;
-import org.mapdb.SortedTableMap;
-import org.mapdb.TT;
-import org.mapdb.volume.MappedFileVol;
-import org.mapdb.volume.Volume;
+import org.mapdb.flat.SortedTableMap;
 
-import java.io.File;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;

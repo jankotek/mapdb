@@ -3,7 +3,7 @@ package org.mapdb.issues;
 
 import org.junit.Test;
 import org.mapdb.Serializer;
-import org.mapdb.SortedTableMap;
+import org.mapdb.flat.SortedTableMap;
 import org.mapdb.TestWithTempDir;
 import org.mapdb.volume.MappedFileVol;
 import org.mapdb.volume.Volume;
