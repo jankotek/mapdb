@@ -17,6 +17,7 @@ package org.mapdb;
 
 import org.jetbrains.annotations.NotNull;
 import org.mapdb.serializer.*;
+import org.mapdb.util.DataIO;
 
 import java.io.*;
 import java.math.BigDecimal;

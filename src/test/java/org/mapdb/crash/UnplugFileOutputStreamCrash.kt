@@ -1,6 +1,6 @@
 package org.mapdb.crash
 
-import org.mapdb.DataIO
+import org.mapdb.util.DataIO
 import org.mapdb.TT
 import java.io.DataInputStream
 import java.io.File

@@ -3,6 +3,8 @@ package org.mapdb
 import com.google.common.collect.Iterators
 import org.eclipse.collections.api.map.primitive.MutableLongLongMap
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
+import org.mapdb.util.DataIO
+import org.mapdb.util.Utils
 import java.io.Closeable
 import java.security.SecureRandom
 import java.util.*

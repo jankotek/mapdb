@@ -6,9 +6,10 @@ import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.junit.Assert.*
 import org.junit.Ignore
 import org.junit.Test
-import org.mapdb.DataIO.*
+import org.mapdb.util.DataIO.*
 import org.mapdb.StoreAccess.*
 import org.mapdb.StoreDirectJava.*
+import org.mapdb.util.DataIO
 import org.mapdb.volume.*
 import java.io.File
 import java.io.RandomAccessFile

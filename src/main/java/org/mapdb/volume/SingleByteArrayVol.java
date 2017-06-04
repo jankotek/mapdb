@@ -3,7 +3,7 @@ package org.mapdb.volume;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.mapdb.DBException;
-import org.mapdb.DataIO;
+import org.mapdb.util.DataIO;
 import org.mapdb.DataInput2;
 
 import java.io.File;

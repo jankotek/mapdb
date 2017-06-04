@@ -4,7 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.mapdb.CC;
 import org.mapdb.DBException;
-import org.mapdb.DataIO;
+import org.mapdb.util.DataIO;
 
 import java.io.File;
 import java.nio.ByteBuffer;

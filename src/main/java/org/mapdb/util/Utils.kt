@@ -1,6 +1,7 @@
-package org.mapdb
+package org.mapdb.util
 
 import com.google.common.collect.MapMaker
+import org.mapdb.*
 import java.io.File
 import java.nio.file.Path
 import java.util.*
@@ -12,7 +13,7 @@ import java.util.logging.Logger
 
 object Utils {
 
-    @JvmField val FAKE_LOCK:Lock = object  :Lock{
+    @JvmField val FAKE_LOCK: Lock = object  : Lock {
         override fun unlock() {}
 
         override fun lockInterruptibly() {}
@@ -29,7 +30,7 @@ object Utils {
     }
 
     /** Thread unsafe lock, which wraps some code and ensures no double entry into section */
-    class SingleProtectionLock(val name:String):Lock{
+    class SingleProtectionLock(val name:String): Lock {
 
         @Volatile var locked:Boolean = false;
 
@@ -86,7 +87,7 @@ object Utils {
             LOG.log(Level.INFO,msg.invoke())
     }
 
-    inline fun <E> lockWrite(lock:ReadWriteLock?,f:()->E):E{
+    inline fun <E> lockWrite(lock: ReadWriteLock?, f:()->E):E{
         if(lock!=null)
             lock.writeLock().lock()
         try{
@@ -97,7 +98,7 @@ object Utils {
         }
     }
 
-    inline fun <E> lockRead(lock:ReadWriteLock?,f:()->E):E{
+    inline fun <E> lockRead(lock: ReadWriteLock?, f:()->E):E{
         if(lock!=null)
             lock.readLock().lock()
         try{
@@ -110,7 +111,7 @@ object Utils {
 
 
 
-    inline fun <E> lockWriteAll(locks: SingleEntryReadWriteSegmentedLock?,f:()->E):E{
+    inline fun <E> lockWriteAll(locks: SingleEntryReadWriteSegmentedLock?, f:()->E):E{
         locks?.lockWriteAll()
         try{
             return f.invoke();
@@ -119,7 +120,7 @@ object Utils {
         }
     }
 
-    inline fun <E> lockReadAll(locks: SingleEntryReadWriteSegmentedLock?,f:()->E):E{
+    inline fun <E> lockReadAll(locks: SingleEntryReadWriteSegmentedLock?, f:()->E):E{
         locks?.lockReadAll()
         try{
             return f.invoke();
@@ -181,9 +182,9 @@ object Utils {
     }
 
 
-    fun singleEntryLock():Lock{
+    fun singleEntryLock(): Lock {
         val lock = ReentrantLock()
-        return object:Lock by lock{
+        return object: Lock by lock{
 
             private fun ensureNotLocked() {
                 if (lock.isHeldByCurrentThread)
@@ -204,10 +205,10 @@ object Utils {
         }
     }
 
-    class SingleEntryReadWriteLock:ReadWriteLock{
+    class SingleEntryReadWriteLock: ReadWriteLock {
 
         //TODO private
-        val lock:ReentrantReadWriteLock=ReentrantReadWriteLock()
+        val lock: ReentrantReadWriteLock = ReentrantReadWriteLock()
 
         private val readLockThreads = MapMaker().weakKeys().makeMap<Thread, Lock>()
 
@@ -244,7 +245,7 @@ object Utils {
         private val origWriteLock = lock.writeLock()
         private val origReadLock = lock.readLock()
 
-        private val newWriteLock = object: Lock{
+        private val newWriteLock = object: Lock {
             override fun unlock() {
                 origWriteLock.unlock()
             }
@@ -274,7 +275,7 @@ object Utils {
             }
         }
 
-        private val newReadLock = object: Lock{
+        private val newReadLock = object: Lock {
 
             override fun tryLock(): Boolean {
                 checkNotLocked()
@@ -321,7 +322,7 @@ object Utils {
 
     }
 
-    class SingleEntryLock(val lock:ReentrantLock = ReentrantLock()): Lock by lock{
+    class SingleEntryLock(val lock: ReentrantLock = ReentrantLock()): Lock by lock{
         override fun lock() {
             if(lock.isHeldByCurrentThread)
                 throw IllegalMonitorStateException("already locked by current thread")
@@ -371,7 +372,7 @@ object Utils {
 
     }
 
-    @JvmStatic fun <E> clone(value: E, serializer: Serializer<E>, out:DataOutput2 = DataOutput2()): E {
+    @JvmStatic fun <E> clone(value: E, serializer: Serializer<E>, out: DataOutput2 = DataOutput2()): E {
         out.pos = 0
         serializer.serialize(out, value)
         val in2 = DataInput2.ByteArray(out.copyBytes())
@@ -400,7 +401,7 @@ object Utils {
            val segmentCount:Int
     ){
 
-        private val locks = Array(segmentCount, {SingleEntryReadWriteLock()})
+        private val locks = Array(segmentCount, { SingleEntryReadWriteLock() })
 
         private fun s(segment:Int) = segment % locks.size
 

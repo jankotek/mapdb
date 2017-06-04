@@ -1,4 +1,9 @@
-package org.mapdb;
+package org.mapdb.util;
+
+import org.mapdb.CC;
+import org.mapdb.DBException;
+import org.mapdb.DataInput2;
+import org.mapdb.DataOutput2;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -573,7 +578,7 @@ public final class DataIO {
 
 
     /** return true if operating system is Windows*/
-    static boolean isWindows(){
+    public static boolean isWindows(){
         String os = System.getProperty("os.name");
         return os!=null && os.toLowerCase().startsWith("windows");
     }
@@ -584,7 +589,7 @@ public final class DataIO {
      * so for 32bit JVM this function returns false.
      *
      */
-    static boolean JVMSupportsLargeMappedFiles() {
+    public static boolean JVMSupportsLargeMappedFiles() {
         String arch = System.getProperty("os.arch");
         if(arch==null || !arch.contains("64")) {
             return false;

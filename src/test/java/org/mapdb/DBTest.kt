@@ -10,6 +10,8 @@ import org.junit.Ignore
 import org.junit.Test
 import org.mapdb.elsa.ElsaSerializerPojo
 import org.mapdb.serializer.GroupSerializerObjectArray
+import org.mapdb.util.DataIO
+import org.mapdb.util.Utils
 import java.io.NotSerializableException
 import java.io.Serializable
 import java.math.BigDecimal

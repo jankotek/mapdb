@@ -1,7 +1,7 @@
 package org.mapdb.serializer;
 
 import org.jetbrains.annotations.NotNull;
-import org.mapdb.DataIO;
+import org.mapdb.util.DataIO;
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
 

@@ -2,6 +2,7 @@ package org.mapdb
 
 import org.junit.Assert.*
 import org.junit.Test
+import org.mapdb.util.DataIO
 import java.io.*
 import java.util.*
 import java.util.concurrent.*

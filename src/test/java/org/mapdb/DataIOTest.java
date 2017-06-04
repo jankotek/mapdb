@@ -1,6 +1,7 @@
 package org.mapdb;
 
 import org.junit.Test;
+import org.mapdb.util.DataIO;
 import org.mapdb.volume.SingleByteArrayVol;
 import org.mapdb.volume.Volume;
 
@@ -10,7 +11,7 @@ import java.util.Arrays;
 import java.util.Random;
 
 import static org.junit.Assert.*;
-import static org.mapdb.DataIO.*;
+import static org.mapdb.util.DataIO.*;
 
 public class DataIOTest {
 

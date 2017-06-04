@@ -5,7 +5,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mapdb.CC
-import org.mapdb.DataIO
+import org.mapdb.util.DataIO
 import org.mapdb.TT
 import org.mapdb.crash.CrashJVM
 import java.io.File

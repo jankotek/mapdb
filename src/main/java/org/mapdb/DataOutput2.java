@@ -1,5 +1,7 @@
 package org.mapdb;
 
+import org.mapdb.util.DataIO;
+
 import java.io.DataOutput;
 import java.io.IOException;
 import java.io.OutputStream;

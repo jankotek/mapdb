@@ -6,6 +6,7 @@ import org.fest.reflect.core.Reflection
 import org.junit.Assert.*
 import org.junit.Ignore
 import org.junit.Test
+import org.mapdb.util.Utils
 import org.mapdb.volume.SingleByteArrayVol
 import java.io.Closeable
 import java.io.Serializable

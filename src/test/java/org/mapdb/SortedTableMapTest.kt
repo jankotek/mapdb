@@ -5,6 +5,7 @@ import org.junit.Assert.*
 import org.junit.Ignore
 import org.junit.Test
 import org.mapdb.TT.assertFailsWith
+import org.mapdb.util.DataIO
 import org.mapdb.volume.ByteArrayVol
 import org.mapdb.volume.RandomAccessFileVol
 import java.io.RandomAccessFile

@@ -11,6 +11,8 @@ import org.mapdb.serializer.GroupSerializer
 import org.mapdb.serializer.GroupSerializerObjectArray
 import org.mapdb.serializer.GroupSerializerWrapper
 import org.mapdb.tuple.*
+import org.mapdb.util.DataIO
+import org.mapdb.util.Utils
 import java.io.Closeable
 import java.io.DataInput
 import java.io.DataOutput

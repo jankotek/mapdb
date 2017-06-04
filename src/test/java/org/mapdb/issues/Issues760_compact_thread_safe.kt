@@ -3,6 +3,7 @@ package org.mapdb.issues
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.mapdb.*
+import org.mapdb.util.DataIO
 import org.mapdb.volume.RandomAccessFileVol
 import java.util.concurrent.atomic.AtomicBoolean
 

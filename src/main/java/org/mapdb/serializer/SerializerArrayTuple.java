@@ -2,6 +2,7 @@ package org.mapdb.serializer;
 
 import org.jetbrains.annotations.NotNull;
 import org.mapdb.*;
+import org.mapdb.util.DataIO;
 
 import java.io.IOException;
 import java.util.Arrays;

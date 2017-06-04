@@ -5,6 +5,7 @@ package org.mapdb.serializer
 import org.junit.Assert.*
 import org.junit.Test
 import org.mapdb.*
+import org.mapdb.util.DataIO
 import java.io.Serializable
 import java.math.BigDecimal
 import java.math.BigInteger

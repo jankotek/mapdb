@@ -2,7 +2,7 @@ package org.mapdb.crash
 
 import org.junit.Test
 import org.junit.Assert.*
-import org.mapdb.DataIO
+import org.mapdb.util.DataIO
 import org.mapdb.TT
 import java.io.*
 import java.util.*

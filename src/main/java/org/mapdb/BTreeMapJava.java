@@ -3,6 +3,8 @@ package org.mapdb;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.mapdb.serializer.GroupSerializer;
+import org.mapdb.util.DataIO;
+import org.mapdb.util.Utils;
 
 import java.io.Closeable;
 import java.io.IOException;

@@ -2,6 +2,7 @@ package org.mapdb;
 
 import org.junit.Ignore;
 import org.junit.Test;
+import org.mapdb.util.DataIO;
 import org.mapdb.volume.Volume;
 
 import java.io.File;

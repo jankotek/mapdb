@@ -8,6 +8,7 @@ import org.junit.rules.ExpectedException
 import org.mapdb.StoreAccess.volume
 import org.mapdb.VolumeAccess.sliceShift
 import org.mapdb.elsa.Bean1
+import org.mapdb.util.DataIO
 import org.mapdb.volume.ByteArrayVol
 import org.mapdb.volume.FileChannelVol
 import org.mapdb.volume.MappedFileVol

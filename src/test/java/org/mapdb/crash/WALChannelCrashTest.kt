@@ -6,7 +6,7 @@ import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.nio.file.StandardOpenOption
 import org.junit.Assert.*
-import org.mapdb.DataIO
+import org.mapdb.util.DataIO
 import org.mapdb.TT
 
 

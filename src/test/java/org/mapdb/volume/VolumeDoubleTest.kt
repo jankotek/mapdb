@@ -1,7 +1,7 @@
 package org.mapdb.volume
 
 import org.junit.Assert
-import org.mapdb.DataIO
+import org.mapdb.util.DataIO
 import java.io.IOException
 import java.util.*
 

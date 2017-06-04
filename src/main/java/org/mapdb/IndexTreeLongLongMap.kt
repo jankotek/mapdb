@@ -36,6 +36,8 @@ import org.eclipse.collections.impl.set.mutable.primitive.UnmodifiableLongSet
 import org.eclipse.collections.impl.tuple.primitive.PrimitiveTuples
 import org.eclipse.collections.impl.utility.internal.primitive.LongIterableIterate
 import org.mapdb.IndexTreeListJava.*
+import org.mapdb.util.DataIO
+import org.mapdb.util.Utils
 import java.io.IOException
 import java.util.*
 

@@ -3,6 +3,7 @@ package org.mapdb
 import org.fest.reflect.core.Reflection
 import org.junit.Assert.*
 import org.junit.Test
+import org.mapdb.util.Utils
 import org.mapdb.volume.RandomAccessFileVol
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream

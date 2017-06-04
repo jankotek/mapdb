@@ -2,9 +2,12 @@ package org.mapdb
 
 import org.eclipse.collections.api.list.primitive.MutableLongList
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
-import org.mapdb.DataIO.parity1Get
-import org.mapdb.DataIO.parity1Set
+import org.mapdb.util.DataIO.parity1Get
+import org.mapdb.util.DataIO.parity1Set
 import org.mapdb.StoreDirectJava.RECID_LONG_STACK
+import org.mapdb.util.DataIO
+import org.mapdb.util.ThreadSafeLongArrayList
+import org.mapdb.util.Utils
 import org.mapdb.volume.Volume
 import org.mapdb.volume.VolumeFactory
 import java.io.IOException

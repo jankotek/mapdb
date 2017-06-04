@@ -1,6 +1,7 @@
 package org.mapdb;
 
 import org.jetbrains.annotations.NotNull;
+import org.mapdb.util.DataIO;
 import org.mapdb.volume.Volume;
 import org.mapdb.volume.VolumeFactory;
 

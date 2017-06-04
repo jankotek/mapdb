@@ -3,9 +3,8 @@ package org.mapdb.volume
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import org.mapdb.DataIO
+import org.mapdb.util.DataIO
 import org.mapdb.crash.CrashJVM
-import org.mapdb.volume.*
 import java.io.File
 import java.util.*
 

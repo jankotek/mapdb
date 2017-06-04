@@ -4,7 +4,7 @@ import org.junit.After
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import org.mapdb.DataIO
+import org.mapdb.util.DataIO
 import org.mapdb.TT
 import org.mapdb.TT.assertFailsWith
 import java.io.ByteArrayOutputStream

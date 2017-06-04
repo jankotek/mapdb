@@ -1,4 +1,4 @@
-package org.mapdb;
+package org.mapdb.util;
 
 import net.jcip.annotations.ThreadSafe;
 import org.eclipse.collections.api.LazyLongIterable;
@@ -31,7 +31,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * //TODO migrate to Eclipse Collections, see https://github.com/eclipse/eclipse-collections/issues/196
  */
 @ThreadSafe
-class ThreadSafeLongArrayList implements MutableLongList {
+@Deprecated
+public class ThreadSafeLongArrayList implements MutableLongList {
 
 
     public ThreadSafeLongArrayList() {

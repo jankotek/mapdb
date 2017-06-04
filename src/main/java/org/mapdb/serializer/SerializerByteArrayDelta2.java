@@ -2,11 +2,10 @@ package org.mapdb.serializer;
 
 import org.jetbrains.annotations.NotNull;
 import static org.mapdb.serializer.SerializerStringDelta2.ByteArrayKeys;
-import org.mapdb.DataIO;
+import org.mapdb.util.DataIO;
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
 import org.mapdb.Serializer;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.IOException;
 import java.util.Arrays;

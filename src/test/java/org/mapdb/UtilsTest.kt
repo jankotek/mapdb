@@ -3,6 +3,7 @@ package org.mapdb
 import org.junit.Ignore
 import org.junit.Test
 import org.mapdb.TT.assertFailsWith
+import org.mapdb.util.Utils
 import java.util.concurrent.CountDownLatch
 
 class UtilsTest{
