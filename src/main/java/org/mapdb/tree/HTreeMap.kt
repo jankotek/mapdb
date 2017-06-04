@@ -1,13 +1,16 @@
 package org.mapdb.tree
 
-import org.mapdb.store.*
 import com.google.common.collect.Iterators
 import org.eclipse.collections.api.map.primitive.MutableLongLongMap
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
-import org.mapdb.util.*
 import org.mapdb.*
 import org.mapdb.queue.QueueLong
 import org.mapdb.queue.QueueLongTakeUntil
+import org.mapdb.store.StoreDirect
+import org.mapdb.store.StoreOnHeap
+import org.mapdb.store.StoreTrivial
+import org.mapdb.util.DataIO
+import org.mapdb.util.Utils
 import java.io.Closeable
 import java.security.SecureRandom
 import java.util.*
@@ -49,7 +52,7 @@ class HTreeMap<K,V>(
 
         //TODO queue is probably sequentially unsafe
 
-) : ConcurrentMap<K,V>, ConcurrencyAware, MapExtra<K,V>, MutableMap<K,V>, Verifiable, Closeable{
+) : ConcurrentMap<K,V>, ConcurrencyAware, DBConcurrentMap<K,V>, MutableMap<K,V>, Verifiable, Closeable{
 
 
     companion object{
@@ -557,7 +560,7 @@ class HTreeMap<K,V>(
     }
 
     /** Removes all entries from this Map, but does not notify modification listeners */
-    //TODO move this to MapExtra interface, add to BTreeMap
+    //TODO move this to DBConcurrentMap interface, add to BTreeMap
     fun clearWithoutNotification(){
         clear(notifyListeners = 0)
     }
@@ -1016,7 +1019,22 @@ class HTreeMap<K,V>(
 
     }
 
-    class KeySet<K>(val map:HTreeMap<K,Any?>): AbstractSet<K>(){
+    class KeySet<K>(val map:HTreeMap<K,Any?>): AbstractSet<K>(), DBSet<K>{
+
+        override fun verify() {
+            map.verify()
+        }
+
+        override fun close() {
+            map.close()
+        }
+
+        override val isThreadSafe: Boolean
+            get() = map.isThreadSafe
+
+        override fun spliterator(): Spliterator<K> {
+            return super<AbstractSet>.spliterator()
+        }
 
         override fun iterator(): MutableIterator<K?> {
             val iters = (0 until map.segmentCount).map{segment->
@@ -1405,7 +1423,7 @@ class HTreeMap<K,V>(
     }
 
     override fun assertThreadSafe() {
-        super.assertThreadSafe()
+        ConcurrencyAware@this.assertThreadSafe()
         for(s in stores)
             s.assertThreadSafe()
     }
@@ -1437,4 +1455,6 @@ class HTreeMap<K,V>(
             throw AssertionError()
         return leaf
     }
+
+
 }

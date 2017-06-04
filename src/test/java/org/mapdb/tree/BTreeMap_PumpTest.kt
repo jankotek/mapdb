@@ -99,7 +99,7 @@ class BTreeMap_PumpTest(
         (0 until limit).forEach {
             sink.put(it, it.toString())
         }
-        val map = sink.create()
+        val map = sink.create() as BTreeMap
 
         (0 until limit).forEach {
             assert(it.toString()==map[it])

@@ -1,6 +1,8 @@
 package org.mapdb
 
 import org.mapdb.tree.BTreeMapJava
+import java.io.Closeable
+import java.util.*
 import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.ConcurrentNavigableMap
 import java.util.function.BiConsumer
@@ -8,7 +10,10 @@ import java.util.function.BiConsumer
 /**
  * Extra methods for Map interface
  */
-interface MapExtra<K, V> : ConcurrentMap<K, V> {
+interface DBConcurrentMap<K, V> : ConcurrentMap<K, V>,
+    Closeable,
+    Verifiable,
+    ConcurrencyAware{
 
 
 
@@ -79,7 +84,15 @@ interface MapExtra<K, V> : ConcurrentMap<K, V> {
 }
 
 
-interface ConcurrentNavigableMapExtra<K, V> : ConcurrentNavigableMap<K, V>, MapExtra<K, V>, BTreeMapJava.ConcurrentNavigableMap2<K,V> {
+interface DBConcurrentNavigableMap<K, V> : ConcurrentNavigableMap<K, V>,
+        DBConcurrentMap<K, V>,
+
+        //TODO remote this interface from public signature
+        BTreeMapJava.ConcurrentNavigableMap2<K,V>,
+        Closeable,
+        Verifiable,
+        ConcurrencyAware{
+
 
     val hasValues:Boolean
 
@@ -110,4 +123,21 @@ interface ConcurrentNavigableMapExtra<K, V> : ConcurrentNavigableMap<K, V>, MapE
     fun descendingEntryIterator(): MutableIterator<MutableMap.MutableEntry<K, V>>
 
     fun descendingEntryIterator(lo: K?, loInclusive: Boolean, hi: K?, hiInclusive: Boolean): MutableIterator<MutableMap.MutableEntry<K, V>>
+}
+
+interface DBSet<E> : java.util.Set<E>,
+        Closeable,
+        Verifiable,
+        ConcurrencyAware {
+
+
+}
+
+interface DBNavigableSet<E> : DBSet<E>, java.util.NavigableSet<E>{
+
+    override fun spliterator(): Spliterator<E> {
+        return NavigableSet@this.spliterator()
+    }
+
+
 }

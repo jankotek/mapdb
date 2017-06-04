@@ -951,7 +951,7 @@ open class DB(
         db:DB,
         name:String,
         storeFactory:(segment:Int)->Store = {_-> db.store}
-    ):HTreeMapMaker<K,V,HTreeMap<K,V>>(db,name,true,storeFactory){
+    ):HTreeMapMaker<K,V,DBConcurrentMap<K,V>>(db,name,true,storeFactory){
 
         fun <A> keySerializer(keySerializer:Serializer<A>):HashMapMaker<A,V>{
             @Suppress("UNCHECKED_CAST")
@@ -1110,7 +1110,7 @@ open class DB(
 
 
 
-    abstract class TreeMapSink<K,V>:Pump.Sink<Pair<K,V>, BTreeMap<K,V>>(){
+    abstract class TreeMapSink<K,V>:Pump.Sink<Pair<K,V>, DBConcurrentNavigableMap<K,V>>(){
 
         fun put(key:K, value:V) {
             put(Pair(key, value))
@@ -1123,7 +1123,7 @@ open class DB(
         }
     }
 
-    abstract class TreeSetSink<E>:Pump.Sink<E, NavigableSet<E>>(){}
+    abstract class TreeSetSink<E>:Pump.Sink<E, DBNavigableSet<E>>(){}
 
     abstract class BTreeMapMaker<K,V,MAP>(
              db:DB,
@@ -1251,7 +1251,7 @@ open class DB(
     class TreeMapMaker<K,V>(
             db:DB,
             name:String
-    ):BTreeMapMaker<K,V,BTreeMap<K,V>>(db,name,hasValues=true){
+    ):BTreeMapMaker<K,V,DBConcurrentNavigableMap<K,V>>(db,name,hasValues=true){
 
         fun <A> keySerializer(keySerializer:Serializer<A>):TreeMapMaker<A,V>{
             _keySerializer = GroupSerializerWrapper.wrap(keySerializer)
@@ -1302,7 +1302,7 @@ open class DB(
             return this as TreeMapMaker<A,V>
         }
 
-        fun createFrom(iterator:Iterator<Pair<K,V>>):BTreeMap<K,V>{
+        fun createFrom(iterator:Iterator<Pair<K,V>>):DBConcurrentNavigableMap<K,V>{
             val consumer = createFromSink()
             while(iterator.hasNext()){
                 consumer.put(iterator.next())
@@ -1310,9 +1310,9 @@ open class DB(
             return consumer.create()
         }
 
-        fun createFrom(source:Iterable<Pair<K,V>>):BTreeMap<K,V> = createFrom(source.iterator())
+        fun createFrom(source:Iterable<Pair<K,V>>):DBConcurrentNavigableMap<K,V> = createFrom(source.iterator())
 
-        fun createFrom(source:SortedMap<K,V>):BTreeMap<K,V>{
+        fun createFrom(source:SortedMap<K,V>):DBConcurrentNavigableMap<K,V>{
             val consumer = createFromSink()
             for(e in source){
                 consumer.put(e.key, e.value)
@@ -1338,7 +1338,7 @@ open class DB(
                     consumer.put(e)
                 }
 
-                override fun create(): BTreeMap<K, V> {
+                override fun create(): DBConcurrentNavigableMap<K, V> {
                     consumer.create()
                     this@TreeMapMaker._rootRecidRecid = consumer.rootRecidRecid
                             ?: throw AssertionError()
@@ -1363,7 +1363,7 @@ open class DB(
     class TreeSetMaker<E>(
             db:DB,
             name:String
-    ) :BTreeMapMaker<E, Boolean, NavigableSet<E>>(db,name,hasValues=false){
+    ) :BTreeMapMaker<E, Boolean, DBNavigableSet<E>>(db,name,hasValues=false){
 
 
         fun <A> serializer(serializer:Serializer<A>):TreeSetMaker<A>{
@@ -1416,7 +1416,7 @@ open class DB(
                     consumer.put(Pair(e, true))
                 }
 
-                override fun create(): NavigableSet<E> {
+                override fun create(): DBNavigableSet<E> {
                     consumer.create()
                     this@TreeSetMaker._rootRecidRecid = consumer.rootRecidRecid
                             ?: throw AssertionError()
@@ -1463,7 +1463,7 @@ open class DB(
             db:DB,
             name:String,
             storeFactory:(segment:Int)->Store = {_-> db.store}
-    ) :HTreeMapMaker<E, Void, HTreeMap.KeySet<E>>(db,name, false, storeFactory){
+    ) :HTreeMapMaker<E, Void, DBSet<E>>(db,name, false, storeFactory){
 
         init{
             @Suppress("UNCHECKED_CAST")

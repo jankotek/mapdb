@@ -4,11 +4,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.mapdb.*;
 import org.mapdb.serializer.GroupSerializer;
-import org.mapdb.StoreBinaryGetLong;
 import org.mapdb.util.DataIO;
 import org.mapdb.util.Utils;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
@@ -398,8 +396,7 @@ public class BTreeMapJava {
 
     public static final class KeySet<E>
             extends AbstractSet<E>
-            implements NavigableSet<E>,
-            Closeable, Serializable {
+            implements DBNavigableSet<E>,Serializable {
 
         protected final ConcurrentNavigableMap2<E,Object> m;
         private final boolean hasValues;
@@ -426,8 +423,8 @@ public class BTreeMapJava {
         public boolean contains(Object o) { return m.containsKey(o); }
         @Override
         public boolean remove(Object o) {
-            if(m instanceof MapExtra)
-                return ((MapExtra) m).removeBoolean(o);
+            if(m instanceof DBConcurrentMap)
+                return ((DBConcurrentMap) m).removeBoolean(o);
             return m.remove(o) != null;
         }
         @Override
@@ -469,8 +466,8 @@ public class BTreeMapJava {
 
         @Override
         public Iterator<E> iterator() {
-            if (m instanceof ConcurrentNavigableMapExtra)
-                return ((ConcurrentNavigableMapExtra<E,Object>)m).keyIterator();
+            if (m instanceof DBConcurrentNavigableMap)
+                return ((DBConcurrentNavigableMap<E,Object>)m).keyIterator();
             else if(m instanceof SubMap)
                 return ((BTreeMapJava.SubMap<E,Object>)m).keyIterator();
             else
@@ -559,6 +556,29 @@ public class BTreeMapJava {
             }
             return ret;
         }
+
+        @Override
+        public boolean isThreadSafe() {
+            return ((ConcurrencyAware)m).isThreadSafe();
+        }
+
+        @Override
+        public void verify() {
+
+        }
+
+        @NotNull
+        @Override
+        public Spliterator<E> spliterator() {
+            return super.spliterator();
+        }
+
+        @Override
+        public void assertThreadSafe() {
+            //TODO this seems like kotlin compiler bug
+            if(!isThreadSafe())
+                throw new AssertionError("not thread safe");
+        }
     }
 
     static final class EntrySet<K1,V1> extends AbstractSet<Map.Entry<K1,V1>> {
@@ -637,7 +657,7 @@ public class BTreeMapJava {
 
     public static class SubMap<K,V> extends AbstractMap<K,V> implements  ConcurrentNavigableMap2<K,V> {
 
-        protected final ConcurrentNavigableMapExtra<K,V> m;
+        protected final DBConcurrentNavigableMap<K,V> m;
 
         protected final K lo;
         protected final boolean loInclusive;
@@ -645,7 +665,7 @@ public class BTreeMapJava {
         protected final K hi;
         protected final boolean hiInclusive;
 
-        public SubMap(ConcurrentNavigableMapExtra<K,V> m, K lo, boolean loInclusive, K hi, boolean hiInclusive) {
+        public SubMap(DBConcurrentNavigableMap<K,V> m, K lo, boolean loInclusive, K hi, boolean hiInclusive) {
             this.m = m;
             this.lo = lo;
             this.loInclusive = loInclusive;
@@ -1112,7 +1132,7 @@ public class BTreeMapJava {
 
     public static class DescendingMap<K,V> extends AbstractMap<K,V> implements  ConcurrentNavigableMap2<K,V> {
 
-        protected final ConcurrentNavigableMapExtra<K,V> m;
+        protected final DBConcurrentNavigableMap<K,V> m;
 
         protected final K lo;
         protected final boolean loInclusive;
@@ -1120,7 +1140,7 @@ public class BTreeMapJava {
         protected final K hi;
         protected final boolean hiInclusive;
 
-        public DescendingMap(ConcurrentNavigableMapExtra<K,V> m, K lo, boolean loInclusive, K hi, boolean hiInclusive) {
+        public DescendingMap(DBConcurrentNavigableMap<K,V> m, K lo, boolean loInclusive, K hi, boolean hiInclusive) {
             this.m = m;
             this.lo = lo;
             this.loInclusive = loInclusive;

@@ -5,6 +5,6 @@ package org.mapdb
  */
 interface Verifiable{
 
-    fun verify();
+    fun verify()
 
 }

@@ -67,13 +67,13 @@ public class BTreeMapExtendTest extends TestCase {
     Object objArray[] = new Object[1000];
 
     protected BTreeMap newBTreeMap() {
-        return DBMaker.memoryDB().make().treeMap("Test", Serializer.STRING, Serializer.INTEGER).create();
+        return (BTreeMap) DBMaker.memoryDB().make().treeMap("Test", Serializer.STRING, Serializer.INTEGER).create();
     }
 
 
     public static class Outside extends BTreeMapExtendTest{
         @Override protected BTreeMap newBTreeMap() {
-            return DBMaker.memoryDB().make()
+            return (BTreeMap) DBMaker.memoryDB().make()
                     .treeMap("Test", Serializer.STRING, Serializer.INTEGER)
                     //TODO enable this once external values are supported
                     // .valuesOutsideNodesEnable()

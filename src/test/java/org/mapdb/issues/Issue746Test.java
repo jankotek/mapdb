@@ -28,7 +28,7 @@ public class Issue746Test {
                 .closeOnJvmShutdown()
                 .transactionEnable()
                 .make();
-        HTreeMap map = db
+        HTreeMap map = (HTreeMap) db
                 .hashMap("map")
                 .keySerializer(Serializer.STRING)
                 .valueSerializer(Serializer.JAVA)

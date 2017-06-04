@@ -8,7 +8,7 @@ import java.util.*
 
 abstract class MapExtraTest{
 
-    abstract fun makeMap(): MapExtra<Int?, String?>
+    abstract fun makeMap(): DBConcurrentMap<Int?, String?>
 
     val map = makeMap()
 
@@ -54,7 +54,7 @@ abstract class MapExtraTest{
     }
 
     class HTreeMapExtraTest:MapExtraTest(){
-        override fun makeMap(): MapExtra<Int?, String?>  = HTreeMap.make(
+        override fun makeMap(): DBConcurrentMap<Int?, String?>  = HTreeMap.make(
                 keySerializer = Serializer.INTEGER, valueSerializer = Serializer.STRING)
 
     }

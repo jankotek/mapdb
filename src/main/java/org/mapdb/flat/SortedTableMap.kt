@@ -23,7 +23,8 @@ class SortedTableMap<K,V>(
         val pageSize:Long,
         protected val volume: Volume,
         override val hasValues: Boolean = false
-): ConcurrentMap<K, V>, ConcurrentNavigableMap<K, V>, ConcurrentNavigableMapExtra<K,V>, MutableMap<K,V>, Serializable{
+): ConcurrentMap<K, V>, ConcurrentNavigableMap<K, V>, DBConcurrentNavigableMap<K,V>,  BTreeMapJava.ConcurrentNavigableMap2<K,V>,
+        MutableMap<K,V>, Serializable{
 
     abstract class Sink<K, V> : Pump.Sink<Pair<K, V>, SortedTableMap<K, V>>() {
         fun put(key: K, value: V) {
@@ -249,6 +250,8 @@ class SortedTableMap<K,V>(
 
         private val start = 64;
     }
+
+    override val isThreadSafe = true
 
     val comparator = keySerializer
 
@@ -659,7 +662,7 @@ class SortedTableMap<K,V>(
     }
 
     @Suppress("UNCHECKED_CAST")
-    override val keys: NavigableSet<K> = BTreeMapJava.KeySet<K>(this as ConcurrentNavigableMapExtra<K, Any>, true, keySerializer)
+    override val keys: NavigableSet<K> = BTreeMapJava.KeySet<K>(this as DBConcurrentNavigableMap<K, Any>, true, keySerializer)
 
     override fun navigableKeySet(): NavigableSet<K>? {
         return keys
@@ -2219,7 +2222,7 @@ class SortedTableMap<K,V>(
         return volume.isClosed
     }
 
-    fun close(){
+    override fun close(){
         volume.close()
     }
 
@@ -2236,5 +2239,11 @@ class SortedTableMap<K,V>(
             ret.put(k, v)
         }
         return ret
+    }
+
+    override fun verify(){
+        //TODO verification
+        var count:Long = keys.fold(0L, {acc, e-> acc+1})
+        assert(sizeLong == count)
     }
 }

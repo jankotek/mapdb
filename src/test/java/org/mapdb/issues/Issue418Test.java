@@ -2,8 +2,8 @@ package org.mapdb.issues;
 
 import org.junit.Test;
 import org.mapdb.DB;
+import org.mapdb.DBConcurrentMap;
 import org.mapdb.DBMaker;
-import org.mapdb.tree.HTreeMap;
 import org.mapdb.TT;
 
 import java.io.File;
@@ -17,7 +17,7 @@ public class Issue418Test {
 
         for (int o = 0; o < 2; o++) {
             final DB db = DBMaker.fileDB(tmp).make();
-            final HTreeMap map = db.hashMap("foo").expireMaxSize(100).createOrOpen();
+            final DBConcurrentMap map = db.hashMap("foo").expireMaxSize(100).createOrOpen();
 
 
             for (int i = 0; i < TT.testScale()*10000; i++)

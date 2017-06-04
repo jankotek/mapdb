@@ -1,10 +1,12 @@
 package org.mapdb.tree
 
-import org.mapdb.*
 import org.fest.reflect.core.Reflection
 import org.junit.Assert.*
 import org.junit.Ignore
 import org.junit.Test
+import org.mapdb.DBMaker
+import org.mapdb.Serializer
+import org.mapdb.TT
 import org.mapdb.volume.SingleByteArrayVol
 import java.util.*
 
@@ -206,7 +208,7 @@ class HTreeMapExpirationTest {
                 .hashMap("aa", Serializer.INTEGER, Serializer.INTEGER)
                 .expireAfterCreate()
                 .expireMaxSize(1000)
-                .create()
+                .create() as HTreeMap
 
         maxSizeTest(map)
     }
@@ -218,7 +220,7 @@ class HTreeMapExpirationTest {
                 .expireAfterCreate()
                 .expireMaxSize(1000)
                 .layout(0, 1.shl(4),4)
-                .create()
+                .create() as HTreeMap
 
         maxSizeTest(map)
     }
@@ -277,7 +279,7 @@ class HTreeMapExpirationTest {
                 .layout(0, 8,4)
                 .expireAfterUpdate(5000)
                 .expireStoreSize(1024*1024*20)
-                .create()
+                .create() as HTreeMap
 
         //fill over rim
         val keyCount = 30*1024
@@ -316,7 +318,7 @@ class HTreeMapExpirationTest {
                 .layout(0, 8,4)
                 .expireAfterUpdate(5000)
                 .expireMaxSize(1000)
-                .create()
+                .create() as HTreeMap
 
         //fill over rim
         for(key in 0 until 2000)
@@ -352,7 +354,7 @@ class HTreeMapExpirationTest {
                 .layout(0, 8,4)
                 .expireAfterCreate()
                 .expireStoreSize(1024*1024*20)
-                .create()
+                .create() as HTreeMap
 
         //fill 10MB
         for(key in 0 until 1024*10)
@@ -448,7 +450,7 @@ class HTreeMapExpirationTest {
                 .hashMap("map", Serializer.INTEGER, Serializer.INTEGER)
                 .expireAfterCreate(1000000)
                 .expireOverflow(map2)
-                .createOrOpen()
+                .createOrOpen() as HTreeMap
 
         for(i in 0 until 1000)
             map1.put(i,i)

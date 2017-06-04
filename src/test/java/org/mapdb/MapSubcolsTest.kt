@@ -5,6 +5,7 @@ import org.junit.Ignore
 import org.junit.Test
 import org.mapdb.serializer.SerializerByteArray
 import org.mapdb.serializer.SerializerIntArray
+import org.mapdb.tree.BTreeMap
 import java.util.*
 
 /**
@@ -95,8 +96,8 @@ class MapSubcolsTest{
 
     @Test @Ignore
     fun treeMap(){
-        val m = DBMaker.memoryDB().make().treeMap("aa", keyser, valser).create()
-        assert(m.keySerializer == m.comparator)
+        val m = DBMaker.memoryDB().make().treeMap("aa", keyser, valser).create() as BTreeMap
+        assert(m.keySerializer == m.comparator())
         test(m)
     }
 }

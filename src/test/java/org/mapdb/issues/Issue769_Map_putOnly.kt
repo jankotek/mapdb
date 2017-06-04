@@ -37,7 +37,7 @@ class Issue769_Map_putOnly : Serializer<String>{
         check(m)
     }
 
-    private fun check(m: MapExtra<Int, String>) {
+    private fun check(m: DBConcurrentMap<Int, String>) {
         m.put(1, "one")
         deser.clear()
         ser.clear()

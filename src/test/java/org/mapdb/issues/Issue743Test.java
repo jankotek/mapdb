@@ -2,6 +2,7 @@ package org.mapdb.issues;
 
 import org.junit.Test;
 import org.mapdb.DB;
+import org.mapdb.DBConcurrentNavigableMap;
 import org.mapdb.DBMaker;
 import org.mapdb.Serializer;
 import org.mapdb.tree.BTreeMap;
@@ -18,7 +19,7 @@ public class Issue743Test {
                 .closeOnJvmShutdown()
                 .make();
 
-        BTreeMap<Integer,String> testMap = db.treeMap("test",
+        DBConcurrentNavigableMap<Integer,String> testMap = db.treeMap("test",
                 Serializer.INTEGER,
                 Serializer.JAVA )
                 .counterEnable()
@@ -56,7 +57,7 @@ public class Issue743Test {
                 .closeOnJvmShutdown()
                 .make();
 
-        BTreeMap<Long,String> testMap = db.treeMap("test2",
+        BTreeMap<Long,String> testMap = (BTreeMap<Long, String>) db.treeMap("test2",
                 Serializer.LONG,
                 Serializer.STRING )
                 .counterEnable().createOrOpen();

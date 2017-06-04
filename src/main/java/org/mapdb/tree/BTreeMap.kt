@@ -85,7 +85,9 @@ class BTreeMap<K,V>(
         override val hasValues:Boolean,
         private val modificationListeners: Array<MapModificationListener<K,V>>?
 ): MutableMap<K,V>, Verifiable, Closeable, Serializable, ConcurrencyAware,
-        ConcurrentNavigableMap<K, V>, ConcurrentNavigableMapExtra<K,V> {
+        ConcurrentNavigableMap<K, V>, DBConcurrentNavigableMap<K,V>,
+        BTreeMapJava.ConcurrentNavigableMap2<K,V>
+{
 
 
     companion object {

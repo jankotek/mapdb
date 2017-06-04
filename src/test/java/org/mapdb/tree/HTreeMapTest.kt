@@ -2,11 +2,11 @@
 
 package org.mapdb.tree
 
-import org.mapdb.*
 import org.fest.reflect.core.Reflection
 import org.junit.Assert.*
 import org.junit.Ignore
 import org.junit.Test
+import org.mapdb.*
 import org.mapdb.store.StoreOnHeap
 import org.mapdb.util.Utils
 import org.mapdb.volume.SingleByteArrayVol
@@ -235,7 +235,7 @@ class HTreeMapTest{
                 }
                 counter.incrementAndGet()
             })
-            .create()
+            .create() as HTreeMap
 
         seg = m.hashToSegment(m.hash("aa"))
 
@@ -314,7 +314,8 @@ class HTreeMapTest{
                 .expireMaxSize(MAX_ITEM_SIZE).counterEnable()
                 .expireAfterCreate(EXPIRE_TIME, TimeUnit.SECONDS)
                 .expireAfterUpdate(EXPIRE_TIME, TimeUnit.SECONDS)
-                .expireStoreSize(MAX_GB_SIZE).create()
+                .expireStoreSize(MAX_GB_SIZE)
+                .create() as HTreeMap
 
         for (i in 0..999) {
             m.put(i, i)
@@ -398,7 +399,7 @@ class HTreeMapTest{
                         counter.incrementAndGet()
                     }
                 })
-                .create()
+                .create() as HTreeMap
         m.put("aa", "aa")
         m.put("aa", "bb")
         m.remove("aa")
@@ -413,7 +414,7 @@ class HTreeMapTest{
     }
 
     @Test fun calculateCollisions(){
-        val map = DBMaker.heapDB().make().hashMap("name", Serializer.LONG, Serializer.LONG).createOrOpen()
+        val map = DBMaker.heapDB().make().hashMap("name", Serializer.LONG, Serializer.LONG).createOrOpen() as HTreeMap
         for(i in 0L until 1000)
             map[i] = i
         val (collision, size) = map.calculateCollisionSize()
@@ -428,7 +429,7 @@ class HTreeMapTest{
             }
         }
 
-        val map = DBMaker.heapDB().make().hashMap("name", ser2, Serializer.LONG).createOrOpen()
+        val map = DBMaker.heapDB().make().hashMap("name", ser2, Serializer.LONG).createOrOpen() as HTreeMap
         for(i in 0L until 1000)
             map[i] = i
         val (collision, size) = map.calculateCollisionSize()
