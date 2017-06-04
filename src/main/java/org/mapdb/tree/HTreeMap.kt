@@ -6,6 +6,8 @@ import org.eclipse.collections.api.map.primitive.MutableLongLongMap
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.mapdb.util.*
 import org.mapdb.*
+import org.mapdb.queue.QueueLong
+import org.mapdb.queue.QueueLongTakeUntil
 import java.io.Closeable
 import java.security.SecureRandom
 import java.util.*
@@ -70,9 +72,9 @@ class HTreeMap<K,V>(
                 expireGetTTL:Long = 0L,
                 expireMaxSize:Long = 0L,
                 expireStoreSize:Long = 0L,
-                expireCreateQueues:Array<QueueLong>? = if(expireCreateTTL<=0L) null else Array(stores.size, { i->QueueLong.make(store = stores[i])}),
-                expireUpdateQueues:Array<QueueLong>? = if(expireUpdateTTL<=0L) null else Array(stores.size, { i->QueueLong.make(store = stores[i])}),
-                expireGetQueues:Array<QueueLong>? = if(expireGetTTL<=0L) null else Array(stores.size, { i->QueueLong.make(store = stores[i])}),
+                expireCreateQueues:Array<QueueLong>? = if(expireCreateTTL<=0L) null else Array(stores.size, { i-> QueueLong.make(store = stores[i])}),
+                expireUpdateQueues:Array<QueueLong>? = if(expireUpdateTTL<=0L) null else Array(stores.size, { i-> QueueLong.make(store = stores[i])}),
+                expireGetQueues:Array<QueueLong>? = if(expireGetTTL<=0L) null else Array(stores.size, { i-> QueueLong.make(store = stores[i])}),
                 expireExecutor:ScheduledExecutorService? = null,
                 expireExecutorPeriod:Long = 0,
                 expireCompactThreshold:Double? = null,
@@ -904,23 +906,23 @@ class HTreeMap<K,V>(
                 var purged = false;
 
                 //expiration based on maximal Map size
-                if(numberToTake>0){
+                if (numberToTake > 0) {
                     numberToTake--
                     purged = true
                 }
 
                 //expiration based on TTL
-                if(!purged && node.timestamp!=0L && node.timestamp < currTimestamp){
+                if (!purged && node.timestamp != 0L && node.timestamp < currTimestamp) {
                     purged = true
                 }
 
                 //expiration based on maximal store size
-                if(!purged && expireStoreSize!=0L){
+                if (!purged && expireStoreSize != 0L) {
                     val store = stores[segment] as StoreDirect
                     purged = store.fileTail - store.getFreeSize() > expireStoreSize
                 }
 
-                if(purged) {
+                if (purged) {
                     //remove entry from Map
                     expireEvictEntry(segment = segment, leafRecid = node.value, nodeRecid = nodeRecid)
                 }

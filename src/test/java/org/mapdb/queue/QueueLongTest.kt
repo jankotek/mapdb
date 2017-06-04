@@ -1,7 +1,10 @@
-package org.mapdb
+package org.mapdb.queue
 
 import org.junit.Assert.*
 import org.junit.Test
+import org.mapdb.DBException
+import org.mapdb.TT
+import org.mapdb.queue.QueueLong
 import java.util.*
 import java.util.concurrent.LinkedBlockingQueue
 

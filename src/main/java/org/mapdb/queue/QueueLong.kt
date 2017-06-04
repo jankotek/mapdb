@@ -1,8 +1,8 @@
 
-package org.mapdb
+package org.mapdb.queue
 
-import org.mapdb.store.*
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
+import org.mapdb.*
 import org.mapdb.store.StoreTrivial
 import java.io.PrintStream
 
@@ -12,11 +12,11 @@ import java.io.PrintStream
 
 //TODO sequentially unsafe
 class QueueLong(
-    val store:Store,
-    val tailRecid: Long,
-    val headRecid: Long,
-    val headPrevRecid: Long
-):Verifiable{
+        val store: Store,
+        val tailRecid: Long,
+        val headRecid: Long,
+        val headPrevRecid: Long
+): Verifiable {
 
     init{
         if(CC.ASSERT && tailRecid == headRecid)
@@ -24,7 +24,7 @@ class QueueLong(
     }
     companion object{
         fun make(
-                store:Store = StoreTrivial(),
+                store: Store = StoreTrivial(),
                 tailRecid:Long = store.put(store.put(null, Node.SERIALIZER), Serializer.RECID),
                 //code bellow takes value from `tailRecid` and saves it as different record
                 headRecid:Long = store.put(store.get(tailRecid, Serializer.RECID), Serializer.RECID),
@@ -106,7 +106,7 @@ class QueueLong(
         if(prevRecid!=0L){
             val prevNode = store.get(prevRecid, Node.SERIALIZER)
                 ?:throw DBException.DataCorruption("prev node not found")
-            store.update(prevRecid, prevNode.copy(nextRecid=nodeRecid),Node.SERIALIZER)
+            store.update(prevRecid, prevNode.copy(nextRecid=nodeRecid), Node.SERIALIZER)
         }
         val tail2 = tail;
         if(tail2==head2){
@@ -143,7 +143,7 @@ class QueueLong(
 
 
     /** Takes elements, until callback returns true. When callback returns false, last node is preserved in Queue*/
-    fun takeUntil(f:QueueLongTakeUntil){
+    fun takeUntil(f: QueueLongTakeUntil){
         while(true){
             val tail2 = tail
             val node = store.get(tail2, Node.SERIALIZER)
@@ -162,7 +162,7 @@ class QueueLong(
         }
     }
 
-    fun remove(nodeRecid: Long, removeNode:Boolean):Node{
+    fun remove(nodeRecid: Long, removeNode:Boolean): Node {
         //TODO PERF get/Delete in single operation
         val node = store.get(nodeRecid, Node.SERIALIZER)!!
         if(removeNode)
@@ -199,7 +199,7 @@ class QueueLong(
         val headPrev2 = headPrev
         if(headPrev2==nodeRecid){
             //already at top of queue, just update timestamp
-            val node = store.get(nodeRecid,Node.SERIALIZER)
+            val node = store.get(nodeRecid, Node.SERIALIZER)
                 ?: throw DBException.DataCorruption("link error")
             store.update(nodeRecid, node.copy(timestamp=newTimestamp), Node.SERIALIZER)
             return
@@ -257,7 +257,7 @@ class QueueLong(
         val head = head
         var currentRecid = tail;
         while(head!=currentRecid){
-            val node = store.get(currentRecid,Node.SERIALIZER)
+            val node = store.get(currentRecid, Node.SERIALIZER)
                 ?: throw DBException.DataCorruption("linked queue node not found")
             currentRecid = node.nextRecid
             ret++
@@ -295,7 +295,7 @@ class QueueLong(
             prevRecid = recid
         }
 
-        if(store.get(head,Node.SERIALIZER)!=null)
+        if(store.get(head, Node.SERIALIZER)!=null)
             throw AssertionError("prealloc record")
         if(prevRecid != headPrev)
             throw AssertionError("wrong headPrevRecid")

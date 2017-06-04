@@ -10,6 +10,7 @@ import org.junit.Assert.*
 import org.junit.Ignore
 import org.junit.Test
 import org.mapdb.elsa.ElsaSerializerPojo
+import org.mapdb.queue.QueueLong
 import org.mapdb.serializer.GroupSerializerObjectArray
 import org.mapdb.store.StoreTrivial
 import org.mapdb.tree.IndexTreeList
@@ -132,7 +133,7 @@ class DBTest{
         assertEquals("22", p["aa"+DB.Keys.expireUpdateTTL])
         assertEquals("33", p["aa"+DB.Keys.expireGetTTL])
 
-        fun qToString(q:QueueLong)=""+q.tailRecid+","+q.headRecid+","+q.headPrevRecid
+        fun qToString(q: QueueLong)=""+q.tailRecid+","+q.headRecid+","+q.headPrevRecid
         assertEquals(qToString(hmap.expireCreateQueues!![0]), p["aa"+DB.Keys.expireCreateQueue])
         assertEquals(qToString(hmap.expireUpdateQueues!![0]), p["aa"+DB.Keys.expireUpdateQueue])
         assertEquals(qToString(hmap.expireGetQueues!![0]), p["aa"+DB.Keys.expireGetQueue])
@@ -539,7 +540,7 @@ class DBTest{
         assertEquals(null, p["aa"+DB.Keys.expireUpdateTTL])
         assertEquals("33", p["aa"+DB.Keys.expireGetTTL])
 
-        fun qToString(q:QueueLong)=""+q.tailRecid+","+q.headRecid+","+q.headPrevRecid
+        fun qToString(q: QueueLong)=""+q.tailRecid+","+q.headRecid+","+q.headPrevRecid
         assertEquals(qToString(hmap.map.expireCreateQueues!![0]), p["aa"+DB.Keys.expireCreateQueue])
         assertEquals(null, p["aa"+DB.Keys.expireUpdateQueue])
         assertEquals(qToString(hmap.map.expireGetQueues!![0]), p["aa"+DB.Keys.expireGetQueue])

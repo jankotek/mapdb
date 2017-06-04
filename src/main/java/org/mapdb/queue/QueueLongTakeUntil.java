@@ -1,4 +1,4 @@
-package org.mapdb;
+package org.mapdb.queue;
 
 /**
  * Callback interface for {@link QueueLong}

@@ -7,6 +7,7 @@ import org.eclipse.collections.api.map.primitive.MutableLongValuesMap
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.mapdb.elsa.*
 import org.mapdb.elsa.ElsaSerializerPojo.ClassInfo
+import org.mapdb.queue.QueueLong
 import org.mapdb.serializer.GroupSerializer
 import org.mapdb.serializer.GroupSerializerObjectArray
 import org.mapdb.serializer.GroupSerializerWrapper
