@@ -1,5 +1,6 @@
-package org.mapdb
+package org.mapdb.store
 
+import org.mapdb.*
 import org.eclipse.collections.impl.map.mutable.primitive.LongIntHashMap
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -7,6 +8,7 @@ import org.junit.runners.Parameterized
 import java.util.*
 import org.junit.Assert.*
 import org.junit.Ignore
+import org.mapdb.store.StoreDirectJava
 
 
 /**

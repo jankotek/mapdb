@@ -1,4 +1,6 @@
-package org.mapdb
+package org.mapdb.store
+
+import org.mapdb.*
 
 /**
  * Wraps Store and throws `UnsupportedOperationException("Read-only")` on operations which would modify it

@@ -2,7 +2,11 @@ package org.mapdb.issues
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import org.mapdb.*
+import org.mapdb.DBMaker
+import org.mapdb.Serializer
+import org.mapdb.TT
+import org.mapdb.store.StoreDirect
+import org.mapdb.store.StoreWAL
 import org.mapdb.util.DataIO
 import org.mapdb.volume.RandomAccessFileVol
 import java.util.concurrent.atomic.AtomicBoolean

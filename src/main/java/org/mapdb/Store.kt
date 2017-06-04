@@ -63,5 +63,5 @@ interface StoreTx:Store{
 
 interface StoreBinary:Store{
 
-    fun getBinaryLong(recid:Long, f:StoreBinaryGetLong):Long
+    fun getBinaryLong(recid:Long, f: StoreBinaryGetLong):Long
 }

@@ -1,6 +1,7 @@
 package org.mapdb.tree;
 
 import org.mapdb.*;
+import org.mapdb.StoreBinaryGetLong;
 
 import java.io.IOException;
 import java.util.Arrays;

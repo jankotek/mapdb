@@ -1,7 +1,9 @@
 
 package org.mapdb
 
+import org.mapdb.store.*
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
+import org.mapdb.store.StoreTrivial
 import java.io.PrintStream
 
 /**

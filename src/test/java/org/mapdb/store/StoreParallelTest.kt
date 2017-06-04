@@ -1,5 +1,6 @@
-package org.mapdb
+package org.mapdb.store
 
+import org.mapdb.*
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Ignore

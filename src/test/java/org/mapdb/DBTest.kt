@@ -2,6 +2,7 @@
 
 package org.mapdb
 
+import org.mapdb.store.*
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.fest.reflect.core.Reflection
@@ -10,6 +11,7 @@ import org.junit.Ignore
 import org.junit.Test
 import org.mapdb.elsa.ElsaSerializerPojo
 import org.mapdb.serializer.GroupSerializerObjectArray
+import org.mapdb.store.StoreTrivial
 import org.mapdb.tree.IndexTreeList
 import org.mapdb.tree.IndexTreeLongLongMap
 import org.mapdb.util.DataIO
@@ -142,7 +144,7 @@ class DBTest{
 
 
     @Test fun hashMap_Create_Default(){
-        val db = DB(store =StoreTrivial(), storeOpened = false, isThreadSafe = false)
+        val db = DB(store = StoreTrivial(), storeOpened = false, isThreadSafe = false)
 
         val hmap = db.hashMap("aa")
                 .create()

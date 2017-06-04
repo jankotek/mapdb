@@ -1,12 +1,14 @@
 package org.mapdb.tree
 
-import org.mapdb.*
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap
 import org.junit.Assert.*
 import org.junit.Ignore
 import org.junit.Test
-
-import org.mapdb.tree.IndexTreeListJava.*;
+import org.mapdb.TT
+import org.mapdb.store.StoreDirect
+import org.mapdb.store.StoreOnHeap
+import org.mapdb.store.StoreTrivial
+import org.mapdb.tree.IndexTreeListJava.*
 import java.util.*
 
 class IndexTreeListTest{

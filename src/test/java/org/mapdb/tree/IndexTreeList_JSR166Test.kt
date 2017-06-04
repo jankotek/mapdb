@@ -1,5 +1,6 @@
 package org.mapdb.tree
 
+import org.mapdb.store.*
 import org.mapdb.*
 import org.mapdb.tree.jsr166Tests.CopyOnWriteArrayListTest
 

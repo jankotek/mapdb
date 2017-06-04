@@ -1,9 +1,10 @@
-package org.mapdb
+package org.mapdb.store
 
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
 import org.junit.Assert.*
 import org.junit.Test
+import org.mapdb.*
 import org.mapdb.TT.assertFailsWith
 import java.util.*
 import java.util.concurrent.atomic.AtomicLong

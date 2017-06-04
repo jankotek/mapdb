@@ -5,7 +5,7 @@ import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExpectedException
-import org.mapdb.StoreAccess.volume
+import org.mapdb.store.*
 import org.mapdb.VolumeAccess.sliceShift
 import org.mapdb.elsa.Bean1
 import org.mapdb.util.DataIO

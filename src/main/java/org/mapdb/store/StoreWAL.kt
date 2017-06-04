@@ -1,10 +1,12 @@
-package org.mapdb
+package org.mapdb.store
 
+import org.mapdb.*
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
+import org.mapdb.store.StoreDirectJava
 import org.mapdb.util.DataIO.*
-import org.mapdb.StoreDirectJava.*
+import org.mapdb.store.StoreDirectJava.*
 import org.mapdb.util.DataIO
 import org.mapdb.util.Utils
 import org.mapdb.volume.ReadOnlyVolume

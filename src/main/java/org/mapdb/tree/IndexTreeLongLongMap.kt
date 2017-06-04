@@ -1,5 +1,6 @@
 package org.mapdb.tree
 
+import org.mapdb.store.StoreTrivial
 import org.eclipse.collections.api.LazyLongIterable
 import org.eclipse.collections.api.LongIterable
 import org.eclipse.collections.api.RichIterable

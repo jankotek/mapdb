@@ -1,9 +1,10 @@
-package org.mapdb
+package org.mapdb.store
 
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
-import org.mapdb.util.DataIO.*
-import org.mapdb.StoreDirectJava.*
+import org.mapdb.*
+import org.mapdb.store.StoreDirectJava.*
 import org.mapdb.util.DataIO
+import org.mapdb.util.DataIO.*
 import org.mapdb.util.Utils
 import org.mapdb.volume.Volume
 import org.mapdb.volume.VolumeFactory
@@ -75,7 +76,7 @@ class StoreDirect(
 
     protected val freeSize = AtomicLong(-1L)
 
-    override protected val volume: Volume = {
+    override val volume: Volume = {
         volumeFactory.makeVolume(
                 file,
                 isReadOnly,

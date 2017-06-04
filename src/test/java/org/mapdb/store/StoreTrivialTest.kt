@@ -1,8 +1,11 @@
-package org.mapdb
+package org.mapdb.store
 
 import org.fest.reflect.core.Reflection
 import org.junit.Assert.*
 import org.junit.Test
+import org.mapdb.CC
+import org.mapdb.Serializer
+import org.mapdb.TT
 import org.mapdb.util.Utils
 import org.mapdb.volume.RandomAccessFileVol
 import java.io.ByteArrayInputStream

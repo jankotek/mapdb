@@ -5,7 +5,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mapdb.DataInput2
 import org.mapdb.DataOutput2
-import org.mapdb.StoreTrivial
+import org.mapdb.store.StoreTrivial
 import java.nio.ByteBuffer
 import java.util.*
 

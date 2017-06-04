@@ -1,5 +1,6 @@
 package org.mapdb.tree
 
+import org.mapdb.store.*
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet
 import org.junit.Assert.*
 import org.junit.Test

@@ -4,6 +4,7 @@ import org.junit.Assert
 import org.junit.Test
 import org.mapdb.*
 import org.mapdb.serializer.GroupSerializerObjectArray
+import org.mapdb.store.StoreTrivial
 import java.util.*
 
 class DBTreeTest{

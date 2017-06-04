@@ -1,4 +1,6 @@
-package org.mapdb;
+package org.mapdb.store;
+
+import org.mapdb.CC;
 
 /**
  * Low level utilities for StoreDirect

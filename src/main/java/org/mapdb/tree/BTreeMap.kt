@@ -4,11 +4,11 @@ import org.eclipse.collections.api.list.primitive.MutableLongList
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.eclipse.collections.impl.stack.mutable.primitive.LongArrayStack
-import org.mapdb.tree.BTreeMapJava.*
-import org.mapdb.serializer.GroupSerializer
-import org.mapdb.util.*
 import org.mapdb.*
-
+import org.mapdb.serializer.GroupSerializer
+import org.mapdb.store.StoreTrivial
+import org.mapdb.tree.BTreeMapJava.*
+import org.mapdb.util.Utils
 import java.io.Closeable
 import java.io.ObjectStreamException
 import java.io.PrintStream
@@ -99,7 +99,7 @@ class BTreeMap<K,V>(
                 valueInline: Boolean = true,
                 //insert recid of new empty node
                 rootRecidRecid: Long = putEmptyRoot(store, keySerializer, if(valueInline) valueSerializer else Serializer.RECID),
-                maxNodeSize: Int =  CC.BTREEMAP_MAX_NODE_SIZE ,
+                maxNodeSize: Int =  CC.BTREEMAP_MAX_NODE_SIZE,
                 comparator: Comparator<K> = keySerializer,
                 isThreadSafe:Boolean = true,
                 counterRecid:Long=0L,

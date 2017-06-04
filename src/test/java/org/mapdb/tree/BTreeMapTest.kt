@@ -2,15 +2,16 @@
 
 package org.mapdb.tree
 
-import org.mapdb.*
 import org.eclipse.collections.api.list.primitive.MutableLongList
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet
 import org.fest.reflect.core.Reflection
 import org.junit.Assert.*
 import org.junit.Ignore
 import org.junit.Test
+import org.mapdb.*
+import org.mapdb.store.StoreDirect
+import org.mapdb.store.calculateFreeSize
 import org.mapdb.tree.BTreeMapJava.*
-import org.mapdb.StoreAccess.calculateFreeSize
 import java.io.IOException
 import java.math.BigInteger
 import java.util.*

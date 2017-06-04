@@ -1,9 +1,11 @@
-package org.mapdb
+package org.mapdb.store
 
 import org.junit.Assert.*
 import org.junit.Test
-import org.mapdb.StoreAccess.cacheRecords
-import org.mapdb.StoreAccess.volume
+import org.mapdb.CC
+import org.mapdb.DBException
+import org.mapdb.Serializer
+import org.mapdb.TT
 import java.io.File
 import java.io.RandomAccessFile
 

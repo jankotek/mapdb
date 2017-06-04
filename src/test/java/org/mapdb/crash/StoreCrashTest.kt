@@ -2,7 +2,11 @@ package org.mapdb.crash
 
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.mapdb.*
+import org.mapdb.Serializer
+import org.mapdb.Store
+import org.mapdb.TT
+import org.mapdb.store.StoreTrivialTx
+import org.mapdb.store.StoreWAL
 import java.io.File
 
 /**

@@ -1,5 +1,8 @@
 package org.mapdb;
 
+import org.mapdb.DataInput2;
+import org.mapdb.StoreBinary;
+
 import java.io.IOException;
 
 /**

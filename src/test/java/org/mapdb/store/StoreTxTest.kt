@@ -1,7 +1,8 @@
-package org.mapdb
+package org.mapdb.store
 
+import org.mapdb.*
+import org.junit.Assert.assertEquals
 import org.junit.Test
-import org.junit.Assert.*
 
 abstract class StoreTxTest{
 

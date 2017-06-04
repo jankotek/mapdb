@@ -1,8 +1,7 @@
 package org.mapdb;
 
 import org.junit.Test;
-
-import java.nio.channels.OverlappingFileLockException;
+import org.mapdb.store.StoreTrivial;
 
 /**
  * Tests jave interoperability

@@ -1,5 +1,6 @@
-package org.mapdb
+package org.mapdb.store
 
+import org.mapdb.*
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.eclipse.collections.impl.stack.mutable.primitive.LongArrayStack

@@ -1,4 +1,4 @@
-package org.mapdb
+package org.mapdb.store
 
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
@@ -6,10 +6,10 @@ import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.junit.Assert.*
 import org.junit.Ignore
 import org.junit.Test
-import org.mapdb.util.DataIO.*
-import org.mapdb.StoreAccess.*
-import org.mapdb.StoreDirectJava.*
+import org.mapdb.*
+import org.mapdb.store.StoreDirectJava.*
 import org.mapdb.util.DataIO
+import org.mapdb.util.DataIO.*
 import org.mapdb.volume.*
 import java.io.File
 import java.io.RandomAccessFile

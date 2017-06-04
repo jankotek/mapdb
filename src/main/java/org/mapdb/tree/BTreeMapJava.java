@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.mapdb.*;
 import org.mapdb.serializer.GroupSerializer;
+import org.mapdb.StoreBinaryGetLong;
 import org.mapdb.util.DataIO;
 import org.mapdb.util.Utils;
 

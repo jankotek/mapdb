@@ -1,6 +1,6 @@
 @file:Suppress("CAST_NEVER_SUCCEEDS")
 
-package org.mapdb.StoreAccess
+package org.mapdb.store
 
 import org.eclipse.collections.api.list.primitive.MutableLongList
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
