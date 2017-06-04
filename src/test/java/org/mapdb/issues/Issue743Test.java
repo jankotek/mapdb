@@ -1,7 +1,10 @@
 package org.mapdb.issues;
 
 import org.junit.Test;
-import org.mapdb.*;
+import org.mapdb.DB;
+import org.mapdb.DBMaker;
+import org.mapdb.Serializer;
+import org.mapdb.tree.BTreeMap;
 
 import static org.junit.Assert.assertEquals;
 

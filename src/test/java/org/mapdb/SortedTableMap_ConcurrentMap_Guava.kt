@@ -1,6 +1,6 @@
 package org.mapdb
 
-import org.mapdb.guavaTests.ConcurrentMapInterfaceTest
+import org.mapdb.tree.guavaTests.ConcurrentMapInterfaceTest
 import java.util.concurrent.ConcurrentMap
 
 class SortedTableMap_ConcurrentMap_Guava:

@@ -2,6 +2,7 @@
 
 package org.mapdb.serializer
 
+import org.mapdb.tree.*
 import org.junit.Assert.*
 import org.junit.Test
 import org.mapdb.*

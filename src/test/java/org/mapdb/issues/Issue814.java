@@ -1,7 +1,7 @@
 package org.mapdb.issues;
 
 import org.junit.Test;
-import org.mapdb.BTreeMap;
+import org.mapdb.tree.BTreeMap;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Serializer;

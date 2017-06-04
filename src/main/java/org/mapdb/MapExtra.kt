@@ -1,5 +1,6 @@
 package org.mapdb
 
+import org.mapdb.tree.BTreeMapJava
 import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.ConcurrentNavigableMap
 import java.util.function.BiConsumer

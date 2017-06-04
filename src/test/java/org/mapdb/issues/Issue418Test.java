@@ -3,7 +3,7 @@ package org.mapdb.issues;
 import org.junit.Test;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
-import org.mapdb.HTreeMap;
+import org.mapdb.tree.HTreeMap;
 import org.mapdb.TT;
 
 import java.io.File;

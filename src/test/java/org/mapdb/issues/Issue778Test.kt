@@ -3,10 +3,10 @@ package org.mapdb.issues
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
-import org.mapdb.BTreeMap
 import org.mapdb.DBMaker
 import org.mapdb.Serializer
 import org.mapdb.serializer.SerializerArrayDelta
+import org.mapdb.tree.BTreeMap
 import java.util.*
 
 class Issue778Test {

@@ -1,6 +1,7 @@
 package org.mapdb
 
 import org.mapdb.serializer.GroupSerializer
+import org.mapdb.tree.BTreeMapJava
 import org.mapdb.util.DataIO
 import org.mapdb.volume.Volume
 import java.io.ObjectStreamException

@@ -1,6 +1,8 @@
 package org.mapdb;
 
 import org.junit.Test;
+import org.mapdb.tree.BTreeMap;
+import org.mapdb.tree.HTreeMap;
 import org.mapdb.tuple.Tuple2;
 import org.mapdb.tuple.Tuple2Serializer;
 

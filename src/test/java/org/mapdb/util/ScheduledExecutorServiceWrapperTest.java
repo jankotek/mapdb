@@ -7,7 +7,7 @@
  */
 package org.mapdb.util;
 
-import org.mapdb.jsr166Tests.JSR166TestCase;
+import org.mapdb.tree.jsr166Tests.JSR166TestCase;
 
 import java.util.ArrayList;
 import java.util.HashSet;

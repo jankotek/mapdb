@@ -1,7 +1,9 @@
 package org.mapdb
 
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.junit.Assert.*
+import org.mapdb.tree.HTreeMap
 import java.util.*
 
 abstract class MapExtraTest{

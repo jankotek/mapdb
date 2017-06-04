@@ -1,15 +1,9 @@
 package org.mapdb
 
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.Parameterized
-import org.mapdb.jsr166Tests.ConcurrentHashMapTest
-import org.mapdb.jsr166Tests.ConcurrentSkipListMapTest
-import org.mapdb.jsr166Tests.JSR166TestCase
+import org.mapdb.tree.jsr166Tests.ConcurrentSkipListMapTest
+import org.mapdb.tree.jsr166Tests.JSR166TestCase
 import java.util.*
-import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.ConcurrentNavigableMap
-import java.util.concurrent.ConcurrentSkipListMap
 
 class SortedTableMap_ConcurrentSkipListMapTest_JSR166Test() : ConcurrentSkipListMapTest()
 {

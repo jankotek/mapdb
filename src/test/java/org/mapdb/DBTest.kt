@@ -10,6 +10,8 @@ import org.junit.Ignore
 import org.junit.Test
 import org.mapdb.elsa.ElsaSerializerPojo
 import org.mapdb.serializer.GroupSerializerObjectArray
+import org.mapdb.tree.IndexTreeList
+import org.mapdb.tree.IndexTreeLongLongMap
 import org.mapdb.util.DataIO
 import org.mapdb.util.Utils
 import java.io.NotSerializableException
@@ -657,9 +659,6 @@ class DBTest{
 
     }
 
-    fun btreemap(set: NavigableSet<*>):BTreeMap<*,*>{
-        return (set as BTreeMapJava.KeySet).m as BTreeMap<*,*>
-    }
 
     @Test fun hashSet_Create_Multi_Store(){
         val hmap = DBMaker
@@ -741,68 +740,6 @@ class DBTest{
     }
 
 
-
-    @Test fun treeSet_create_unresolvable_serializer(){
-        val db = DB(store =StoreTrivial(), storeOpened = false, isThreadSafe = false)
-        val unresolvable = object:GroupSerializerObjectArray<String>(){
-            override fun deserialize(input: DataInput2, available: Int): String? {
-                throw UnsupportedOperationException()
-            }
-
-            override fun serialize(out: DataOutput2, value: String) {
-                throw UnsupportedOperationException()
-            }
-        }
-        val map = db.treeSet("aa", unresolvable).create()
-
-        assertEquals(unresolvable, btreemap(map).keySerializer)
-        
-        val nameCatalog = db.nameCatalogLoad()
-        assertTrue(2<nameCatalog.size)
-        assertEquals("TreeSet",nameCatalog["aa#type"])
-        assertEquals(null, nameCatalog["aa#keySerializer"])
-        assertEquals(null, nameCatalog["aa#serializer"])
-    }
-
-    @Test fun treeSet_Create(){
-        val db = DB(store =StoreTrivial(), storeOpened = false, isThreadSafe = false)
-
-        val map = db.treeSet("aa", Serializer.BIG_DECIMAL)
-                .counterEnable()
-                .maxNodeSize(16)
-                .create()
-        
-        val p = db.nameCatalogParamsFor("aa")
-
-        assertEquals(5, p.size)
-        assertEquals("TreeSet", p["aa"+DB.Keys.type])
-        assertEquals("org.mapdb.Serializer#BIG_DECIMAL", p["aa"+DB.Keys.serializer])
-        assertEquals("16", p["aa"+DB.Keys.maxNodeSize])
-        assertEquals(btreemap(map).rootRecidRecid.toString(), p["aa"+DB.Keys.rootRecidRecid])
-        //TODO reenable once counter is done
-        //        assertTrue(p["aa"+DB.Keys.counterRecids]!!.toLong()>0)
-
-    }
-
-
-    @Test fun treeSet_Create_Default(){
-        val db = DB(store =StoreTrivial(), storeOpened = false, isThreadSafe = false)
-
-        val map = db.treeSet("aa")
-                .create()
-
-        val p = db.nameCatalogParamsFor("aa")
-
-        assertEquals(5, p.size)
-        assertEquals(btreemap(map).store, db.store)
-        assertEquals("0", p["aa"+DB.Keys.counterRecid])
-        assertEquals(CC.BTREEMAP_MAX_NODE_SIZE.toString(), p["aa"+DB.Keys.maxNodeSize])
-        assertEquals(btreemap(map).rootRecidRecid.toString(), p["aa"+DB.Keys.rootRecidRecid])
-        assertEquals("TreeSet", p["aa"+DB.Keys.type])
-        assertEquals("org.mapdb.DB#defaultSerializer", p["aa"+DB.Keys.serializer])
-        assertEquals(null, p["aa"+DB.Keys.keySerializer])
-        assertEquals(null, p["aa"+DB.Keys.valueSerializer])
-    }
 // TODO treeSet import
 //    @Test fun treeSet_import(){
 //        val db = DB(store=StoreTrivial(), storeOpened = false)

@@ -1,10 +1,7 @@
 package org.mapdb
 
-import org.junit.runner.RunWith
-import org.junit.runners.Parameterized
-import org.mapdb.jsr166Tests.ConcurrentSkipListSubMapTest
-import org.mapdb.jsr166Tests.JSR166Test
-import org.mapdb.jsr166Tests.JSR166TestCase
+import org.mapdb.tree.jsr166Tests.ConcurrentSkipListSubMapTest
+import org.mapdb.tree.jsr166Tests.JSR166Test
 import java.util.concurrent.ConcurrentNavigableMap
 
 class SortedTableMap_ConcurrentSkipListSubMapTest_JSR166Test()
