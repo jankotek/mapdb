@@ -2244,10 +2244,10 @@ class BTreeMap<K,V>(
         }
     }
 
-    override fun checkThreadSafe(){
+    override fun assertThreadSafe(){
         if(isThreadSafe.not())
             throw AssertionError();
-        store.checkThreadSafe()
+        store.assertThreadSafe()
     }
 
 //TODO PERF optimize clear, traverse nodes and clear each node in one step

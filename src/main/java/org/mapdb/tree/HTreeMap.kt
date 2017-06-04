@@ -1402,10 +1402,10 @@ class HTreeMap<K,V>(
         }
     }
 
-    override fun checkThreadSafe() {
-        super.checkThreadSafe()
+    override fun assertThreadSafe() {
+        super.assertThreadSafe()
         for(s in stores)
-            s.checkThreadSafe()
+            s.assertThreadSafe()
     }
 
     /** calculates number of collisions and total size of this set.

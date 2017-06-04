@@ -1939,8 +1939,8 @@ open class DB(
     fun indexTreeList(name: String) = IndexTreeListMaker<Any?>(this, name, defaultSerializer as Serializer<Any?>)
 
 
-    override fun checkThreadSafe() {
-        super.checkThreadSafe()
+    override fun assertThreadSafe() {
+        super.assertThreadSafe()
         if(store.isThreadSafe.not())
             throw AssertionError()
     }

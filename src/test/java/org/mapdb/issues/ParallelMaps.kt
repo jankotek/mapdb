@@ -75,7 +75,7 @@ class ParallelMaps(val fab:()-> MutableMap<Any,Any>) {
         val tmp = fab();
 
         if(tmp is ConcurrencyAware)
-            tmp.checkThreadSafe()
+            tmp.assertThreadSafe()
 
         val size = 1000
         IntStream.rangeClosed(1, size).parallel().forEach { i -> tmp.put(i, 11) }

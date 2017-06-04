@@ -8,8 +8,8 @@ interface ConcurrencyAware{
     /** returns true if this is configured to be thread safe */
     val isThreadSafe:Boolean
 
-    /** checks all subcomponents, if this component is really thread safe, and throws an exception if not thread safe */
-    fun checkThreadSafe() {
+    /** checks that class and all of its subcomponents is really thread safe, and throws an exception if is not thread safe */
+    fun assertThreadSafe() {
         if(isThreadSafe.not())
             throw AssertionError();
     }
