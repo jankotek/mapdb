@@ -9,14 +9,9 @@ import org.mapdb.serializer.GroupSerializer
 import org.mapdb.store.StoreTrivial
 import org.mapdb.tree.BTreeMapJava.*
 import org.mapdb.util.Utils
-import java.io.Closeable
-import java.io.ObjectStreamException
-import java.io.PrintStream
-import java.io.Serializable
+import java.io.*
 import java.util.*
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ConcurrentNavigableMap
-import java.util.concurrent.ConcurrentSkipListMap
+import java.util.concurrent.*
 import java.util.concurrent.locks.LockSupport
 import java.util.function.BiConsumer
 
@@ -84,9 +79,8 @@ class BTreeMap<K,V>(
         val counterRecid:Long,
         override val hasValues:Boolean,
         private val modificationListeners: Array<MapModificationListener<K,V>>?
-): MutableMap<K,V>, Verifiable, Closeable, Serializable, ConcurrencyAware,
-        ConcurrentNavigableMap<K, V>, DBConcurrentNavigableMap<K,V>,
-        BTreeMapJava.ConcurrentNavigableMap2<K,V>
+): DBConcurrentNavigableMap<K,V>,
+   BTreeMapJava.ConcurrentNavigableMap2<K,V>
 {
 
 

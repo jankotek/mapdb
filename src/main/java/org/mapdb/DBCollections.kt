@@ -3,8 +3,7 @@ package org.mapdb
 import org.mapdb.tree.BTreeMapJava
 import java.io.Closeable
 import java.util.*
-import java.util.concurrent.ConcurrentMap
-import java.util.concurrent.ConcurrentNavigableMap
+import java.util.concurrent.*
 import java.util.function.BiConsumer
 
 /**
@@ -129,15 +128,12 @@ interface DBSet<E> : java.util.Set<E>,
         Closeable,
         Verifiable,
         ConcurrencyAware {
-
-
 }
 
 interface DBNavigableSet<E> : DBSet<E>, java.util.NavigableSet<E>{
 
     override fun spliterator(): Spliterator<E> {
-        return NavigableSet@this.spliterator()
+        return Spliterators.spliteratorUnknownSize<E>(iterator(), 0)
     }
-
 
 }

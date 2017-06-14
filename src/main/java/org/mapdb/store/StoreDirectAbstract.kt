@@ -4,13 +4,9 @@ import org.eclipse.collections.api.list.primitive.MutableLongList
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.mapdb.*
 import org.mapdb.store.StoreDirectJava.RECID_LONG_STACK
-import org.mapdb.util.DataIO
-import org.mapdb.util.DataIO.parity1Get
-import org.mapdb.util.DataIO.parity1Set
-import org.mapdb.util.ThreadSafeLongArrayList
-import org.mapdb.util.Utils
-import org.mapdb.volume.Volume
-import org.mapdb.volume.VolumeFactory
+import org.mapdb.util.*
+import org.mapdb.util.DataIO.*
+import org.mapdb.volume.*
 import java.io.IOException
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -227,8 +223,8 @@ abstract class StoreDirectAbstract(
     }
 
     protected fun <R> deserialize(serializer: Serializer<R>, di: DataInput2, size: Long, recid:Long): R? {
-        assert(serializer.isQuick() || di is DataInput2.ByteArray)
-        assert(serializer.isQuick() || locks==null || recid<0 || !locks.isReadLockedByCurrentThread(recidToSegment(recid)))
+        assert(serializer.isQuick || di is DataInput2.ByteArray)
+        assert(serializer.isQuick || locks==null || recid<0 || !locks.isReadLockedByCurrentThread(recidToSegment(recid)))
         try{
             val ret = serializer.deserialize(di, size.toInt());
             return ret

@@ -14,7 +14,6 @@ import org.mapdb.util.Utils
 import java.io.Closeable
 import java.security.SecureRandom
 import java.util.*
-import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 import java.util.function.BiConsumer
@@ -52,7 +51,7 @@ class HTreeMap<K,V>(
 
         //TODO queue is probably sequentially unsafe
 
-) : ConcurrentMap<K,V>, ConcurrencyAware, DBConcurrentMap<K,V>, MutableMap<K,V>, Verifiable, Closeable{
+) : DBConcurrentMap<K,V>{
 
 
     companion object{
@@ -1423,7 +1422,7 @@ class HTreeMap<K,V>(
     }
 
     override fun assertThreadSafe() {
-        ConcurrencyAware@this.assertThreadSafe()
+        super.assertThreadSafe()
         for(s in stores)
             s.assertThreadSafe()
     }
