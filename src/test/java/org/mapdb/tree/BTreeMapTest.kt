@@ -1358,7 +1358,7 @@ class BTreeMapTest {
     }
 
 
-    @Test @Throws(IOException::class, ClassNotFoundException::class)
+    @Test @Ignore
     fun serialize_clone() {
         val m:MutableMap<Int,Int> = DBMaker
                 .memoryDB()
@@ -1376,7 +1376,7 @@ class BTreeMapTest {
         assertTrue(m.entries.containsAll(m2.entries))
     }
 
-    @Test @Throws(IOException::class, ClassNotFoundException::class)
+    @Test @Ignore
     @Ignore //TODO this fails because class after deserialization implements different interface
     fun serialize_set_clone() {
         val m = DBMaker.memoryDB().make().treeSet("map", Serializer.INTEGER).createOrOpen()
