@@ -3,11 +3,9 @@ package org.mapdb.store
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.mapdb.*
 import org.mapdb.store.StoreDirectJava.*
-import org.mapdb.util.DataIO
+import org.mapdb.util.*
 import org.mapdb.util.DataIO.*
-import org.mapdb.util.Utils
-import org.mapdb.volume.Volume
-import org.mapdb.volume.VolumeFactory
+import org.mapdb.volume.*
 import java.io.File
 import java.util.*
 import java.util.concurrent.atomic.AtomicLong
@@ -553,9 +551,7 @@ class StoreDirect(
                     return deserialize(serializer, di2, size, recid)
                 }else{
                     //copy data into byte[]
-                    val b = ByteArray(size.toInt())
-                    volume.getData(offset, b, 0, size.toInt())
-                    di = DataInput2.ByteArray(b)
+                    di = copyDataInputFromVolume(offset, size.toInt())
                 }
             }
         }
@@ -590,7 +586,10 @@ class StoreDirect(
             return serializer.deserializeFromLong(offset.ushr(8), size.toInt())
         }
 
-        val di = volume.getDataInput(offset, size.toInt())
+
+        val di =
+                if(serializer.isQuick) volume.getDataInput(offset, size.toInt())
+                else copyDataInputFromVolume(offset, size.toInt())
         return deserialize(serializer, di, size, recid)
     }
 

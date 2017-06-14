@@ -408,4 +408,10 @@ abstract class StoreDirectAbstract(
         return c
     }
 
+    protected fun copyDataInputFromVolume(offset: Long, size: Int): DataInput2 {
+        val b = ByteArray(size)
+        volume.getData(offset, b, 0, size)
+        return DataInput2.ByteArray(b)
+    }
+
 }

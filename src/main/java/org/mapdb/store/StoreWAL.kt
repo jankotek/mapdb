@@ -1,18 +1,12 @@
 package org.mapdb.store
 
-import org.mapdb.*
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
-import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap
-import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
-import org.mapdb.store.StoreDirectJava
-import org.mapdb.util.DataIO.*
+import org.eclipse.collections.impl.map.mutable.primitive.*
+import org.mapdb.*
 import org.mapdb.store.StoreDirectJava.*
-import org.mapdb.util.DataIO
-import org.mapdb.util.Utils
-import org.mapdb.volume.ReadOnlyVolume
-import org.mapdb.volume.SingleByteArrayVol
-import org.mapdb.volume.Volume
-import org.mapdb.volume.VolumeFactory
+import org.mapdb.util.*
+import org.mapdb.util.DataIO.*
+import org.mapdb.volume.*
 import java.io.File
 import java.util.*
 
@@ -577,9 +571,10 @@ class StoreWAL(
         val di = if (walId != 0L) {
             //try to get from WAL
             DataInput2.ByteArray(wal.walGetRecord(walId, recid))
-        } else {
-            //not in WAL, load from volume
+        } else if(serializer.isQuick) {
             volume.getDataInput(volOffset, size.toInt())
+        }else {
+            copyDataInputFromVolume(volOffset, size.toInt())
         }
         return deserialize(serializer, di, size, recid)
     }
