@@ -41,12 +41,10 @@ public class SerializerCharArray extends GroupSerializerObjectArray<char[]> {
 
     @Override
     public int hashCode(char[] chars, int seed) {
-        //TODO CHANGE should use seed here, but is required for compatibility
-        int res = 0;
         for (char c : chars) {
-            res = (res + c) * -1640531527 ;
+            seed = (seed + c) * (-1640531527) ;
         }
-        return res;
+        return seed;
     }
 
     @Override
