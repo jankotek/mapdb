@@ -1376,7 +1376,7 @@ class BTreeMapTest {
         assertTrue(m.entries.containsAll(m2.entries))
     }
 
-    @Test @Ignore
+    @Test
     @Ignore //TODO this fails because class after deserialization implements different interface
     fun serialize_set_clone() {
         val m = DBMaker.memoryDB().make().treeSet("map", Serializer.INTEGER).createOrOpen()
