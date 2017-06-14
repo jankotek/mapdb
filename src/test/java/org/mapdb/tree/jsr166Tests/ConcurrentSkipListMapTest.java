@@ -4,7 +4,7 @@ package org.mapdb.tree.jsr166Tests;/*
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-import org.junit.Test;
+import org.junit.*;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
@@ -793,7 +793,7 @@ public abstract class ConcurrentSkipListMapTest extends JSR166Test {
     /**
      * A deserialized map equals original
      */
-    @Test
+    @Test @Ignore
     public void testSerialization() throws Exception {
         NavigableMap x = map5();
         NavigableMap y = serialClone(x);
