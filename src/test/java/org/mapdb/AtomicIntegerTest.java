@@ -8,6 +8,7 @@ package org.mapdb;/*
 
 import junit.framework.TestCase;
 
+
 public class AtomicIntegerTest extends TestCase {
 
     DB db;
@@ -89,9 +90,9 @@ public class AtomicIntegerTest extends TestCase {
      * getAndSet returns previous value and sets to given value
      */
     public void testGetAndSet(){
-        assertEquals(1,ai.getAndSet(0));
-        assertEquals(0,ai.getAndSet(-10));
-        assertEquals(-10,ai.getAndSet(1));
+        assert(1 == ai.getAndSet(0));
+        assert(0 == ai.getAndSet(-10));
+        assert(-10 == ai.getAndSet(1));
     }
 
     /*

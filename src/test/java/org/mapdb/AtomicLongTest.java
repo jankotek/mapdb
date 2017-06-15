@@ -116,13 +116,13 @@ public class AtomicLongTest extends TestCase {
      */
     public void testGetAndIncrement(){
         
-        assertEquals(1,ai.getAndIncrement());
-        assertEquals(2,ai.get());
+        assert(1==ai.getAndIncrement());
+        assert(2==ai.get());
         ai.set(-2);
-        assertEquals(-2,ai.getAndIncrement());
-        assertEquals(-1,ai.getAndIncrement());
-        assertEquals(0,ai.getAndIncrement());
-        assertEquals(1,ai.get());
+        assert(-2==ai.getAndIncrement());
+        assert(-1==ai.getAndIncrement());
+        assert(0==ai.getAndIncrement());
+        assert(1==ai.get());
     }
 
     /*
