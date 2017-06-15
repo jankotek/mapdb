@@ -13,12 +13,8 @@ import org.mapdb.elsa.ElsaSerializerPojo
 import org.mapdb.queue.QueueLong
 import org.mapdb.serializer.GroupSerializerObjectArray
 import org.mapdb.store.StoreTrivial
-import org.mapdb.tree.BTreeMap
-import org.mapdb.tree.HTreeMap
-import org.mapdb.tree.IndexTreeList
-import org.mapdb.tree.IndexTreeLongLongMap
-import org.mapdb.util.DataIO
-import org.mapdb.util.Utils
+import org.mapdb.tree.*
+import org.mapdb.util.*
 import java.io.NotSerializableException
 import java.io.Serializable
 import java.math.BigDecimal
@@ -140,7 +136,7 @@ class DBTest{
         assertEquals(qToString(hmap.expireUpdateQueues!![0]), p["aa"+DB.Keys.expireUpdateQueue])
         assertEquals(qToString(hmap.expireGetQueues!![0]), p["aa"+DB.Keys.expireGetQueue])
 
-        assertEquals(1, hmap.counterRecids!!.size)
+        assertEquals(1, hmap.counters!!.size)
         assertTrue(p["aa"+DB.Keys.counterRecids]!!.toLong()>0)
 
     }
@@ -182,7 +178,7 @@ class DBTest{
         assertEquals("", p["aa"+DB.Keys.expireUpdateQueue])
         assertEquals("", p["aa"+DB.Keys.expireGetQueue])
 
-        assertEquals(null, hmap.counterRecids)
+        assertEquals(null, hmap.counters)
         assertEquals("", p["aa"+DB.Keys.counterRecids])
 
 
@@ -220,7 +216,7 @@ class DBTest{
         assertEquals("20", p["aa"+DB.Keys.expireUpdateTTL])
         assertEquals("30", p["aa"+DB.Keys.expireGetTTL])
 
-        assertEquals(null, hmap.counterRecids)
+        assertEquals(null, hmap.counters)
         assertEquals("", p["aa"+DB.Keys.counterRecids])
 
         hmap.stores.forEach{assertTrue(db.store===it)}
@@ -547,7 +543,7 @@ class DBTest{
         assertEquals(null, p["aa"+DB.Keys.expireUpdateQueue])
         assertEquals(qToString(hmap.map.expireGetQueues!![0]), p["aa"+DB.Keys.expireGetQueue])
 
-        assertEquals(1, hmap.map.counterRecids!!.size)
+        assertEquals(1, hmap.map.counters!!.size)
         assertTrue(p["aa"+DB.Keys.counterRecids]!!.toLong()>0)
 
     }
@@ -588,7 +584,7 @@ class DBTest{
         assertEquals(null, p["aa"+DB.Keys.expireUpdateQueue])
         assertEquals("", p["aa"+DB.Keys.expireGetQueue])
 
-        assertEquals(null, hset.map.counterRecids)
+        assertEquals(null, hset.map.counters)
         assertEquals("", p["aa"+DB.Keys.counterRecids])
 
 
@@ -627,7 +623,7 @@ class DBTest{
         assertEquals(null, p["aa"+DB.Keys.expireUpdateTTL])
         assertEquals("30", p["aa"+DB.Keys.expireGetTTL])
 
-        assertEquals(null, hset.map.counterRecids)
+        assertEquals(null, hset.map.counters)
         assertEquals("", p["aa"+DB.Keys.counterRecids])
 
         hset.map.stores.forEach{assertTrue(db.store===it)}

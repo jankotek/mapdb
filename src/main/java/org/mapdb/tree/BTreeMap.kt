@@ -210,6 +210,8 @@ class BTreeMap<K,V>(
 
     protected val nodeSerializer = NodeSerializer(this.keySerializer, this.comparator, this.valueNodeSerializer);
 
+    private val counter:Atomic.Long? = if(counterRecid>0) Atomic.Long(store, counterRecid, true) else null
+
     protected val rootRecid: Long
         get() = store.get(rootRecidRecid, Serializer.RECID)
                 ?: throw DBException.DataCorruption("Root Recid not found");
@@ -402,7 +404,7 @@ class BTreeMap<K,V>(
                         val values = valueNodeSerializer.valueArrayPut(A.values, pos, value2)
                         A = Node(flags, A.link, A.keys, values)
                         store.update(current, A, nodeSerializer)
-                        counterIncrement(1)
+                        counter?.increment()
                         listenerNotify(key, null, value, false)
                         unlock(current)
                         return null
@@ -419,7 +421,7 @@ class BTreeMap<K,V>(
                 A = if (A.isDir) {
                     copyAddKeyDir(A, pos, v, p)
                 } else {
-                    counterIncrement(1)
+                    counter?.increment()
                     listenerNotify(key, null, value, false)
                     copyAddKeyLeaf(A, pos, v, value)
                 }
@@ -565,7 +567,7 @@ class BTreeMap<K,V>(
                                 } else {
                                     keys = keySerializer.valueArrayDeleteValue(A.keys, pos + 1)
                                 }
-                                counterIncrement(-1)
+                                counter?.decrement()
                                 if(!valueInline)
                                     store.update(oldValueRecid as Long, replaceWithValue, valueSerializer)
                                 valueNodeSerializer.valueArrayDeleteValue(A.values, valuePos + 1)
@@ -935,9 +937,8 @@ class BTreeMap<K,V>(
         get() = Math.min(Int.MAX_VALUE.toLong(), sizeLong()).toInt()
 
     override fun sizeLong(): Long {
-        if(counterRecid!=0L)
-            return store.get(counterRecid, Serializer.LONG)
-                    ?:throw DBException.DataCorruption("Counter not found")
+        if(counter!=null)
+            return counter.get()
 
         var ret = 0L
         val iter = keys.iterator()
@@ -946,15 +947,6 @@ class BTreeMap<K,V>(
             ret++
         }
         return ret
-    }
-
-    private fun counterIncrement(i:Int){
-        if(counterRecid==0L)
-            return
-        do{
-            val counter = store.get(counterRecid, Serializer.LONG)
-                    ?:throw DBException.DataCorruption("Counter not found")
-        }while(store.compareAndSwap(counterRecid, counter, counter+i, Serializer.LONG).not())
     }
 
 

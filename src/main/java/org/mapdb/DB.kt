@@ -1,31 +1,21 @@
 package org.mapdb
 
-import com.google.common.cache.Cache
-import com.google.common.cache.CacheBuilder
-import org.eclipse.collections.api.map.primitive.MutableLongLongMap
-import org.eclipse.collections.api.map.primitive.MutableLongValuesMap
+import com.google.common.cache.*
+import org.eclipse.collections.api.map.primitive.*
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.mapdb.elsa.*
 import org.mapdb.elsa.ElsaSerializerPojo.ClassInfo
 import org.mapdb.queue.QueueLong
-import org.mapdb.serializer.GroupSerializer
-import org.mapdb.serializer.GroupSerializerObjectArray
-import org.mapdb.serializer.GroupSerializerWrapper
+import org.mapdb.serializer.*
 import org.mapdb.tree.*
 import org.mapdb.tuple.*
 import org.mapdb.util.*
-import java.io.Closeable
-import java.io.DataInput
-import java.io.DataOutput
-import java.lang.ref.Reference
-import java.lang.ref.WeakReference
-import java.math.BigDecimal
-import java.math.BigInteger
+import java.io.*
+import java.lang.ref.*
+import java.math.*
 import java.security.SecureRandom
 import java.util.*
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.ScheduledExecutorService
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import java.util.logging.Level
@@ -1165,7 +1155,7 @@ open class DB(
              catalog[name + Keys.rootRecidRecid] = rootRecidRecid2.toString()
 
              val counterRecid2 =
-                     if (_counterEnable) _counterRecid ?: db.store.put(0L, Serializer.LONG)
+                     if (_counterEnable) _counterRecid ?: db.store.put(0L, Serializer.LONG_PACKED)
                      else 0L
              catalog[name + Keys.counterRecid] = counterRecid2.toString()
 
@@ -1342,7 +1332,7 @@ open class DB(
                     this@TreeMapMaker._rootRecidRecid = consumer.rootRecidRecid
                             ?: throw AssertionError()
                     this@TreeMapMaker._counterRecid =
-                            if(_counterEnable) db.store.put(consumer.counter, Serializer.LONG)
+                            if(_counterEnable) db.store.put(consumer.counter, Serializer.LONG_PACKED)
                             else 0L
                     return this@TreeMapMaker.make2(create=true)
                 }
@@ -1420,7 +1410,7 @@ open class DB(
                     this@TreeSetMaker._rootRecidRecid = consumer.rootRecidRecid
                             ?: throw AssertionError()
                     this@TreeSetMaker._counterRecid =
-                            if(_counterEnable) db.store.put(consumer.counter, Serializer.LONG)
+                            if(_counterEnable) db.store.put(consumer.counter, Serializer.LONG_PACKED)
                             else 0L
                     return this@TreeSetMaker.make2(create=true)
                 }
@@ -1670,8 +1660,9 @@ open class DB(
             val recid = catalog[name+Keys.recid]!!.toLong()
             return Atomic.Integer(db.store, recid)
         }
+        //TODO NOT NEGATIVE option
 
-        override fun create()= make2(true)
+        override fun create() = make2(true)
         override fun createOrOpen() = make2(null)
         override fun open() = make2(false)
     }
@@ -1682,19 +1673,19 @@ open class DB(
 
 
 
-    class AtomicLongMaker(db:DB, name:String, protected val value:Long=0):Maker<Atomic.Long>(db, name, "AtomicLong"){
+    class AtomicLongMaker(db:DB, name:String, val value:Long=0):Maker<Atomic.Long>(db, name, "AtomicLong"){
 
         override fun awareItems(): Array<Any?> = arrayOf()
 
         override fun create2(catalog: SortedMap<String, String>): Atomic.Long {
             val recid = db.store.put(value, Serializer.LONG)
             catalog[name+Keys.recid] = recid.toString()
-            return Atomic.Long(db.store, recid)
+            return Atomic.Long(db.store, recid, false) //TODO param for not negative
         }
 
         override fun open2(catalog: SortedMap<String, String>): Atomic.Long {
             val recid = catalog[name+Keys.recid]!!.toLong()
-            return Atomic.Long(db.store, recid)
+            return Atomic.Long(db.store, recid, false)
         }
 
         override fun create()= make2(true)

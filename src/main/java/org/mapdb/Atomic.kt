@@ -113,7 +113,9 @@ object Atomic {
                    * @return recid under which value is saved
                    */
                   val recid: kotlin.Long) : java.lang.Number() {
-
+        init{
+            assert(recid>0)
+        }
         /**
          * Gets the current value.
 
@@ -141,12 +143,12 @@ object Atomic {
          * @return the previous value
          */
         fun getAndSet(newValue: Int): Int? {
-            
+
             while (true) {
                 val current = get()
-                
+
                 if (compareAndSet(current, newValue)) {
-                    
+
                     return current
                 }
             }
@@ -175,15 +177,23 @@ object Atomic {
          */
         fun getAndIncrement(): Int {
 
-                while (true) {
-                    val current = get()
-                    val next = current + 1
-                    if (compareAndSet(current, next)) {
-                        return current
-                    }
-
+            while (true) {
+                val current = get()
+                val next = current + 1
+                if (compareAndSet(current, next)) {
+                    return current
                 }
+
             }
+        }
+
+        fun increment(){
+            getAndIncrement()
+        }
+
+        fun decrement(){
+            getAndDecrement()
+        }
 
 
         /**
@@ -209,14 +219,14 @@ object Atomic {
          * @return the previous value
          */
         fun getAndAdd(delta: Int): Int {
-            
+
             while (true) {
-                
+
                 val current = get()
                 val next = current + delta
-                
+
                 if (compareAndSet(current, next)) {
-                    
+
                     return current
                 }
             }
@@ -228,14 +238,14 @@ object Atomic {
          * @return the updated value
          */
         fun incrementAndGet(): Int {
-            
+
             while (true) {
-                
+
                 val current = get()
                 val next = current + 1
-                
+
                 if (compareAndSet(current, next)) {
-                    
+
                     return next
                 }
             }
@@ -247,18 +257,19 @@ object Atomic {
          * @return the updated value
          */
         fun decrementAndGet(): Int {
-            
+
             while (true) {
-                
+
                 val current = get()
                 val next = current - 1
-                
+
                 if (compareAndSet(current, next)) {
-                    
+
                     return next
                 }
             }
         }
+
 
         /**
          * Atomically adds the given value to the current value.
@@ -268,14 +279,14 @@ object Atomic {
          * @return the updated value
          */
         fun addAndGet(delta: Int): Int {
-            
+
             while (true) {
-                
+
                 val current = get()
                 val next = current + delta
-                
+
                 if (compareAndSet(current, next)) {
-                    
+
                     return next
                 }
             }
@@ -308,7 +319,7 @@ object Atomic {
 
         companion object {
 
-                @JvmStatic private val serialVersionUID = 4615119399830853054L
+            @JvmStatic private val serialVersionUID = 4615119399830853054L
         }
 
     }
@@ -326,8 +337,14 @@ object Atomic {
                /**
                 * @return recid under which value is saved
                 */
-               val recid: kotlin.Long) : java.lang.Number() {
+               val recid: kotlin.Long,
+               val notNegative: kotlin.Boolean) : java.lang.Number() {
+        init{
+            assert(recid>0)
+        }
 
+        //TODO ensure that PACKED provides real perf boost, ie is not negative
+        private val serializer = if(!notNegative) Serializer.LONG else Serializer.LONG_PACKED
 
         /**
          * Gets the current value.
@@ -335,7 +352,7 @@ object Atomic {
          * @return the current value
          */
         fun get(): kotlin.Long {
-            return store.get(recid, Serializer.LONG)!!
+            return store.get(recid, serializer)!!
         }
 
         /**
@@ -344,7 +361,7 @@ object Atomic {
          * @param newValue the new value
          */
         fun set(newValue: kotlin.Long) {
-            store.update(recid, newValue, Serializer.LONG)
+            store.update(recid, newValue, serializer)
         }
 
 
@@ -356,13 +373,10 @@ object Atomic {
          * @return the previous value
          */
         fun getAndSet(newValue: kotlin.Long): kotlin.Long {
-            
             while (true) {
-                
                 val current = get()
-                
                 if (compareAndSet(current, newValue)) {
-                    
+
                     return current
                 }
             }
@@ -380,7 +394,7 @@ object Atomic {
          * * the actual value was not equal to the expected value.
          */
         fun compareAndSet(expect: kotlin.Long, update: kotlin.Long): kotlin.Boolean {
-            return store.compareAndSwap(recid, expect, update, Serializer.LONG)
+            return store.compareAndSwap(recid, expect, update, serializer)
         }
 
 
@@ -389,15 +403,15 @@ object Atomic {
 
          * @return the previous value
          */
-         fun getAndIncrement(): kotlin.Long{
-                while (true) {
-                    val current = get()
-                    val next = current + 1
-                    if (compareAndSet(current, next)) {
-                        return current
-                    }
+        fun getAndIncrement(): kotlin.Long{
+            while (true) {
+                val current = get()
+                val next = current + 1
+                if (compareAndSet(current, next)) {
+                    return current
                 }
             }
+        }
 
         /**
          * Atomically decrements by one the current value.
@@ -405,14 +419,23 @@ object Atomic {
          * @return the previous value
          */
         fun getAndDecrement(): kotlin.Long{
-                while (true) {
-                    val current = get()
-                    val next = current - 1
-                    if (compareAndSet(current, next)) {
-                        return current
-                    }
+            while (true) {
+                val current = get()
+                val next = current - 1
+                if (compareAndSet(current, next)) {
+                    return current
                 }
             }
+        }
+
+
+        fun increment(){
+            getAndIncrement()
+        }
+
+        fun decrement(){
+            getAndDecrement()
+        }
 
         /**
          * Atomically adds the given value to the current value.
@@ -422,14 +445,14 @@ object Atomic {
          * @return the previous value
          */
         fun getAndAdd(delta: kotlin.Long): kotlin.Long {
-            
+
             while (true) {
-                
+
                 val current = get()
                 val next = current + delta
-                
+
                 if (compareAndSet(current, next)) {
-                    
+
                     return current
                 }
             }
@@ -441,14 +464,10 @@ object Atomic {
          * @return the updated value
          */
         fun incrementAndGet(): kotlin.Long {
-            
             while (true) {
-                
                 val current = get()
                 val next = current + 1
-                
                 if (compareAndSet(current, next)) {
-                    
                     return next
                 }
             }
@@ -460,14 +479,10 @@ object Atomic {
          * @return the updated value
          */
         fun decrementAndGet(): kotlin.Long {
-            
             while (true) {
-                
                 val current = get()
                 val next = current - 1
-                
                 if (compareAndSet(current, next)) {
-                    
                     return next
                 }
             }
@@ -481,14 +496,10 @@ object Atomic {
          * @return the updated value
          */
         fun addAndGet(delta: kotlin.Long): kotlin.Long {
-            
             while (true) {
-                
                 val current = get()
                 val next = current + delta
-                
                 if (compareAndSet(current, next)) {
-                    
                     return next
                 }
             }
@@ -520,8 +531,7 @@ object Atomic {
         }
 
         companion object {
-
-            private val serialVersionUID = 2882620413591274781L
+            @JvmStatic private val serialVersionUID = 2882620413591274781L
         }
 
     }
@@ -536,6 +546,9 @@ object Atomic {
                    */
                   val recid: kotlin.Long) {
 
+        init{
+            assert(recid>0)
+        }
 
         /**
          * Returns the current value.
@@ -580,13 +593,13 @@ object Atomic {
          * @return the previous value
          */
         fun getAndSet(newValue: kotlin.Boolean): kotlin.Boolean {
-            
+
             while (true) {
-                
+
                 val current = get()
-                
+
                 if (compareAndSet(current, newValue)) {
-                    
+
                     return current
                 }
             }
@@ -600,6 +613,11 @@ object Atomic {
             return get().toString()
         }
 
+
+        companion object {
+            @JvmStatic private val serialVersionUID = 23904324090330932L
+        }
+
     }
 
     /**
@@ -611,8 +629,12 @@ object Atomic {
                   */
                  val recid: kotlin.Long) {
 
+        init{
+            assert(recid>0)
+        }
+
         override fun toString(): kotlin.String {
-            return get()?.toString()?:"null"
+            return get() ?:"null"
         }
 
         /**
@@ -666,26 +688,26 @@ object Atomic {
             }
         }
 
+
+        companion object {
+            @JvmStatic private val serialVersionUID = 430902902309023432L
+        }
+
     }
 
     /**
      * Atomically updated variable which may contain any type of record.
      */
     class Var<E>(protected val store: Store,
-            //
-            //        /* used for deserialization */
-            //        protected Var(Store store, SerializerBase serializerBase, DataInput is, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
-            //            objectStack.add(this);
-            //            this.store = store;
-            //            this.recid = DataIO.unpackLong(is);
-            //            this.serializer = (Serializer<E>) serializerBase.deserialize(is,objectStack);
-            //        }
 
                  /**
                   * @return recid under which value is saved
                   */
                  val recid: kotlin.Long, val serializer: Serializer<E>) {
 
+        init{
+            assert(recid>0)
+        }
 
         override fun toString(): kotlin.String {
             val v = get()
@@ -743,6 +765,9 @@ object Atomic {
             }
         }
 
+        companion object {
+            @JvmStatic private val serialVersionUID = 9009290490239002390L
+        }
 
     }
 

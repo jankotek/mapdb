@@ -26,7 +26,7 @@ class HTreeMap<K,V>(
         val stores: Array<Store>,
         val indexTrees: Array<MutableLongLongMap>,
         private val hashSeed:Int,
-        val counterRecids:LongArray?,
+        counterRecids:LongArray?,
         val expireCreateTTL:Long,
         val expireUpdateTTL:Long,
         val expireGetTTL:Long,
@@ -123,6 +123,10 @@ class HTreeMap<K,V>(
             (expireCreateQueues!=null || expireUpdateQueues!=null || expireGetQueues!=null)
 
     protected val modificationListenersEmpty = modificationListeners==null || modificationListeners.isEmpty()
+
+    protected val counters : Array<Atomic.Long>? =
+            if(counterRecids == null) null
+            else counterRecids.mapIndexed{i:Int, recid:Long -> Atomic.Long(stores[i], recid, true) }.toTypedArray()
 
     init{
         if(segmentCount!=stores.size)
@@ -299,19 +303,6 @@ class HTreeMap<K,V>(
         }
     }
 
-
-    private fun counter(segment:Int, ammount:Int){
-        if(counterRecids==null)
-            return
-        if(CC.ASSERT)
-            locks?.checkWriteLocked(segment)
-
-        val recid = counterRecids[segment]
-        val count = stores[segment].get(recid, Serializer.LONG_PACKED)
-            ?: throw DBException.DataCorruption("counter not found")
-        stores[segment].update(recid, count+ammount, Serializer.LONG_PACKED)
-    }
-
     override fun put(key: K, value: V): V? {
         return put2(key, value, false)
     }
@@ -377,7 +368,7 @@ class HTreeMap<K,V>(
                         store.update(leafRecid2, leaf, leafSerializer)
                         leafRecid2
                     }
-            counter(segment,+1)
+            counters?.get(segment)?.increment()
             indexTree.put(index, leafRecid2)
 
             listenerNotify(key, null, value, triggered)
@@ -461,7 +452,7 @@ class HTreeMap<K,V>(
         }
 
         store.update(leafRecid, leaf, leafSerializer)
-        counter(segment,+1)
+        counters?.get(segment)?.increment()
         listenerNotify(key, null, value, triggered)
         return null
 
@@ -533,7 +524,7 @@ class HTreeMap<K,V>(
 
                 if(!valueInline)
                     store.delete(leaf[i+1] as Long, valueSerializer)
-                counter(segment,-1)
+                counters?.get(segment)?.decrement()
                 if(!modificationListenersEmpty)
                     listenerNotify(key, oldVal as V?, null, evicted)
                 return oldVal
@@ -596,8 +587,7 @@ class HTreeMap<K,V>(
                 expireGetQueues?.get(segment)?.clear()
                 indexTree.clear()
 
-                if(counterRecids!=null)
-                    store.update(counterRecids[segment],0L, Serializer.LONG_PACKED)
+                counters?.forEach { it.set(0)}
             }
         }
     }
@@ -735,9 +725,8 @@ class HTreeMap<K,V>(
         for(segment in 0 until segmentCount) {
 
             locks.lockRead(segment){
-                if(counterRecids!=null){
-                    ret += stores[segment].get(counterRecids[segment], Serializer.LONG_PACKED)
-                            ?: throw DBException.DataCorruption("counter not found")
+                if(counters!=null){
+                    ret += counters[segment].get()
                 }else {
                     indexTrees[segment].forEachKeyValue { _, leafRecid ->
                         val leaf = leafGet(stores[segment], leafRecid)
@@ -894,8 +883,7 @@ class HTreeMap<K,V>(
         var numberToTake:Long =
                 if(expireMaxSize==0L) 0L
                 else{
-                    val segmentSize = stores[segment].get(counterRecids!![segment], Serializer.LONG_PACKED)
-                        ?: throw DBException.DataCorruption("Counter not found")
+                    val segmentSize = counters!![segment].get()
                     Math.max(0L, (segmentSize*segmentCount-expireMaxSize)/segmentCount)
                 }
         for (q in arrayOf(expireGetQueues?.get(segment), expireUpdateQueues?.get(segment), expireCreateQueues?.get(segment))) {

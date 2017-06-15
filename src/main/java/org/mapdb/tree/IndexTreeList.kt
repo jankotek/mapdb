@@ -14,17 +14,19 @@ class IndexTreeList<E> (
         val store:Store,
         val serializer:Serializer<E>,
         val map: MutableLongLongMap,
-        val counterRecid:Long,
+        counterRecid:Long,
         val isThreadSafe:Boolean
         ) : AbstractList<E?>() {
+
+    private val counter = Atomic.Long(store, counterRecid, true)
 
     val lock = if(isThreadSafe) ReentrantReadWriteLock() else null
 
     override fun add(element: E?): Boolean {
         lock.lockWrite{
-            val index = size++
+            val index = counter.getAndIncrement()
             val recid = store.put(element, serializer)
-            map.put(index.toLong(), recid)
+            map.put(index, recid)
             return true
         }
     }
@@ -36,11 +38,11 @@ class IndexTreeList<E> (
             for (i in size - 1 downTo index) {
                 val recid = map.get(i.toLong())
                 if (recid == 0L)
-                    continue;
+                    continue
                 map.remove(i.toLong())
                 map.put((i + 1).toLong(), recid)
             }
-            size++
+            counter.increment()
 
             val recid = map[index.toLong()]
             if (recid == 0L) {
@@ -53,7 +55,7 @@ class IndexTreeList<E> (
 
     override fun clear() {
         lock.lockWrite{
-            size = 0;
+            counter.set(0)
             //TODO iterate over map and clear in in single pass if IndexTreeLongLongMap
             map.forEachValue { recid -> store.delete(recid, serializer) }
             map.clear()
@@ -80,7 +82,7 @@ class IndexTreeList<E> (
                 map.remove(i.toLong())
                 map.put((i - 1).toLong(), recid2)
             }
-            size--
+            counter.decrement()
             return ret;
         }
     }
@@ -91,7 +93,7 @@ class IndexTreeList<E> (
             val recid = map[index.toLong()]
             if (recid == 0L) {
                 map.put(index.toLong(), store.put(element, serializer))
-                return null;
+                return null
             } else {
                 val ret = store.get(recid, serializer)
                 store.update(recid, element, serializer)
@@ -156,11 +158,6 @@ class IndexTreeList<E> (
     }
 
 
-    override var size: Int
-        get() = store.get(counterRecid, Serializer.LONG_PACKED)!!.toInt()
-        protected set(size:Int) {
-            store.update(counterRecid, size.toLong(), Serializer.LONG_PACKED)
-        }
-
-
+    override val size: Int
+        get() = counter.get().toInt()
 }
