@@ -140,7 +140,7 @@ public abstract class JSR166TestCase extends TestCase {
      * The scaling factor to apply to standard delays used in tests.
      */
     private static final int delayFactor =
-        Integer.getInteger("jsr166.delay.factor", 1);
+        Integer.getInteger("jsr166.delay.factor", 100);
 
     public JSR166TestCase() { super(); }
     public JSR166TestCase(String name) { super(name); }

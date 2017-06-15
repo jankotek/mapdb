@@ -139,7 +139,7 @@ public abstract class JSR166Test extends org.junit.Assert{
      * The scaling factor to apply to standard delays used in tests.
      */
     private static final int delayFactor =
-        Integer.getInteger("jsr166.delay.factor", 1);
+        Integer.getInteger("jsr166.delay.factor", 100);
 
     /**
      * A filter for tests to run, matching strings of the form
