@@ -1,9 +1,8 @@
 package org.mapdb.tree
 
 import org.eclipse.collections.api.map.primitive.MutableLongLongMap
-import org.mapdb.Serializer
-import org.mapdb.Store
-import org.mapdb.util.Utils
+import org.mapdb.*
+import org.mapdb.util.*
 import java.util.*
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
@@ -22,7 +21,7 @@ class IndexTreeList<E> (
     val lock = if(isThreadSafe) ReentrantReadWriteLock() else null
 
     override fun add(element: E?): Boolean {
-        Utils.lockWrite(lock) {
+        lock.lockWrite{
             val index = size++
             val recid = store.put(element, serializer)
             map.put(index.toLong(), recid)
@@ -31,7 +30,7 @@ class IndexTreeList<E> (
     }
 
     override fun add(index: Int, element: E?) {
-        Utils.lockWrite(lock) {
+        lock.lockWrite{
             checkIndex(index)
             //make space
             for (i in size - 1 downTo index) {
@@ -53,7 +52,7 @@ class IndexTreeList<E> (
     }
 
     override fun clear() {
-        Utils.lockWrite(lock) {
+        lock.lockWrite{
             size = 0;
             //TODO iterate over map and clear in in single pass if IndexTreeLongLongMap
             map.forEachValue { recid -> store.delete(recid, serializer) }
@@ -62,7 +61,7 @@ class IndexTreeList<E> (
     }
 
     override fun removeAt(index: Int): E? {
-        Utils.lockWrite(lock) {
+        lock.lockWrite{
             checkIndex(index)
             val recid = map[index.toLong()]
             val ret = if (recid == 0L) {
@@ -87,7 +86,7 @@ class IndexTreeList<E> (
     }
 
     override fun set(index: Int, element: E?): E? {
-        Utils.lockWrite(lock) {
+        lock.lockWrite{
             checkIndex(index)
             val recid = map[index.toLong()]
             if (recid == 0L) {
@@ -107,7 +106,7 @@ class IndexTreeList<E> (
     }
 
     override fun get(index: Int): E? {
-        Utils.lockRead(lock) {
+        lock.lockRead{
             checkIndex(index)
 
             val recid = map[index.toLong()]
@@ -129,13 +128,13 @@ class IndexTreeList<E> (
             @Volatile var index = 0;
             @Volatile var indexToRemove:Int?=null;
             override fun hasNext(): Boolean {
-                Utils.lockRead(lock) {
+                lock.lockRead {
                     return index < this@IndexTreeList.size
                 }
             }
 
             override fun next(): E? {
-                Utils.lockRead(lock) {
+                lock.lockRead{
                     if (index >= this@IndexTreeList.size)
                         throw NoSuchElementException()
                     indexToRemove = index
@@ -146,7 +145,7 @@ class IndexTreeList<E> (
             }
 
             override fun remove() {
-                Utils.lockWrite(lock) {
+                lock.lockWrite{
                     removeAt(indexToRemove ?: throw IllegalStateException())
                     index--
                     indexToRemove = null

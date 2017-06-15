@@ -7,7 +7,7 @@ import org.mapdb.CC
 import org.mapdb.DBException
 import org.mapdb.Serializer
 import org.mapdb.Store
-import org.mapdb.util.Utils
+import org.mapdb.util.*
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
@@ -44,7 +44,7 @@ class StoreOnHeap(
     }
 
     override fun preallocate(): Long {
-        Utils.lockWrite(lock) {
+        lock.lockWrite{
             val recid =
                     if (freeRecids.isEmpty)
                         maxRecid.incrementAndGet()
@@ -59,7 +59,7 @@ class StoreOnHeap(
     }
 
     override fun <R> put(record: R?, serializer: Serializer<R>): Long {
-        Utils.lockWrite(lock) {
+        lock.lockWrite{
             val recid = preallocate();
             @Suppress("UNCHECKED_CAST")
             update(recid, record ?: NULL_RECORD as R?, serializer);
@@ -68,7 +68,7 @@ class StoreOnHeap(
     }
 
     override fun <R> update(recid: Long, record: R?, serializer: Serializer<R>) {
-        Utils.lockWrite(lock) {
+        lock.lockWrite{
             if(records.containsKey(recid).not())
                     throw DBException.GetVoid(recid);
 
@@ -78,7 +78,7 @@ class StoreOnHeap(
 
     override fun <R> compareAndSwap(recid: Long, expectedOldRecord: R?, newRecord: R?, serializer: Serializer<R>): Boolean {
         //TODO use StampedLock here?
-        Utils.lockWrite(lock) {
+        lock.lockWrite {
             val old2 = records.get(recid)
                     ?: throw DBException.GetVoid(recid);
 
@@ -92,7 +92,7 @@ class StoreOnHeap(
     }
 
     override fun <R> delete(recid: Long, serializer: Serializer<R>) {
-        Utils.lockWrite(lock) {
+        lock.lockWrite{
             if(!records.containsKey(recid))
                 throw DBException.GetVoid(recid);
 
@@ -112,7 +112,7 @@ class StoreOnHeap(
 
     override fun close() {
         if(CC.PARANOID) {
-            Utils.lockWrite(lock) {
+            lock.lockWrite{
                 val freeRecidsSet = LongHashSet();
                 freeRecidsSet.addAll(freeRecids)
                 for (recid in 1..maxRecid.get()) {
@@ -126,7 +126,7 @@ class StoreOnHeap(
     override val isClosed = false
 
     override fun <R> get(recid: Long, serializer: Serializer<R>): R? {
-        val record = Utils.lockRead(lock) {
+        val record = lock.lockRead{
             records.get(recid)
         }
 
@@ -135,13 +135,13 @@ class StoreOnHeap(
 
 
     override fun getAllRecids(): LongIterator {
-        Utils.lockRead(lock){
+        lock.lockRead{
             return records.keySet().toArray().iterator()
         }
     }
 
     override fun getAllRecidsSize(): Long {
-        Utils.lockRead(lock){
+        lock.lockRead{
             return records.size().toLong()
         }
     }

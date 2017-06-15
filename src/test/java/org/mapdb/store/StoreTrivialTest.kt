@@ -3,14 +3,10 @@ package org.mapdb.store
 import org.fest.reflect.core.Reflection
 import org.junit.Assert.*
 import org.junit.Test
-import org.mapdb.CC
-import org.mapdb.Serializer
-import org.mapdb.TT
-import org.mapdb.util.Utils
+import org.mapdb.*
+import org.mapdb.util.lockRead
 import org.mapdb.volume.RandomAccessFileVol
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.io.File
+import java.io.*
 import java.util.concurrent.locks.ReadWriteLock
 
 class StoreTrivialTest : StoreReopenTest() {
@@ -58,7 +54,7 @@ class StoreTrivialTest : StoreReopenTest() {
         for(i in 100 downTo  10){
             File(file.path+"."+i+StoreTrivialTx.COMMIT_MARKER_SUFFIX).createNewFile()
         }
-        Utils.lockRead(e.lock) {
+        e.lock.lockRead{
             assertEquals(
                     100L,
                     e.findLattestCommitMarker())
@@ -77,7 +73,7 @@ class StoreTrivialTest : StoreReopenTest() {
         val m2 = File(file.toString()+".2"+StoreTrivialTx.COMMIT_MARKER_SUFFIX)
 
 
-        s.put(1L, Serializer.LONG);
+        s.put(1L, Serializer.LONG)
 
         assertTrue(!f0.exists())
         assertTrue(!m0.exists())

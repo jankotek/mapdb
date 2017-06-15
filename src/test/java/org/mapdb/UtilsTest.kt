@@ -1,9 +1,8 @@
 package org.mapdb
 
-import org.junit.Ignore
-import org.junit.Test
+import org.junit.*
 import org.mapdb.TT.assertFailsWith
-import org.mapdb.util.Utils
+import org.mapdb.util.*
 import java.util.concurrent.CountDownLatch
 
 class UtilsTest{
@@ -12,7 +11,7 @@ class UtilsTest{
 
     @Test(timeout = 10000)
     fun single_entry_lock(){
-        val lock = Utils.singleEntryLock()
+        val lock = SingleEntryLock()
         lock.lock()
         lock.unlock()
 
@@ -29,7 +28,7 @@ class UtilsTest{
 
     @Test(timeout = 10000)
     fun single_entry_read_write_lock(){
-        val lock = Utils.SingleEntryReadWriteLock()
+        val lock = SingleEntryReadWriteLock()
         lock.writeLock().lock()
         lock.writeLock().unlock()
 
@@ -49,7 +48,7 @@ class UtilsTest{
 
     @Test(timeout = 10000)
     fun single_entry_read_write_lock2(){
-        val lock = Utils.SingleEntryReadWriteLock()
+        val lock = SingleEntryReadWriteLock()
 
         lock.readLock().lock()
         assertFailsWith(IllegalMonitorStateException::class.java){
@@ -68,7 +67,7 @@ class UtilsTest{
 
     @Test(timeout = 10000)
     fun single_entry_read_write_segment_lock(){
-        val lock = Utils.SingleEntryReadWriteSegmentedLock(16)
+        val lock = SingleEntryReadWriteSegmentedLock(16)
         lock.writeLock(1)
         lock.writeUnlock(1)
 
@@ -88,7 +87,7 @@ class UtilsTest{
 
     @Test(timeout = 10000)
     fun single_entry_read_write_segment_lock2(){
-        val lock = Utils.SingleEntryReadWriteSegmentedLock(16)
+        val lock = SingleEntryReadWriteSegmentedLock(16)
 
         lock.readLock(1)
         assertFailsWith(IllegalMonitorStateException::class.java){
@@ -107,7 +106,7 @@ class UtilsTest{
 
     @Test(timeout = 10000)
     fun single_entry_read_write_segment_lock3(){
-        val lock = Utils.SingleEntryReadWriteSegmentedLock(16)
+        val lock = SingleEntryReadWriteSegmentedLock(16)
         lock.writeLock(1)
 
         assertFailsWith(IllegalMonitorStateException::class.java){
@@ -157,7 +156,7 @@ class UtilsTest{
 
     @Test(timeout = 10000)
     fun single_entry_read_write_segment_lock4(){
-        val lock = Utils.SingleEntryReadWriteSegmentedLock(16)
+        val lock = SingleEntryReadWriteSegmentedLock(16)
         lock.readLock(1)
 
         assertFailsWith(IllegalMonitorStateException::class.java){
@@ -208,7 +207,7 @@ class UtilsTest{
     @Test(timeout = 10000)
     @Ignore
     fun lockWriteAll(){
-        val locks = Utils.SingleEntryReadWriteSegmentedLock(10)
+        val locks = SingleEntryReadWriteSegmentedLock(10)
 
         val locked = CountDownLatch(2)
         val waitUntilFinish1 = TT.async {
@@ -237,7 +236,7 @@ class UtilsTest{
     @Test(timeout = 10000)
     @Ignore
     fun lockReadAll(){
-        val locks = Utils.SingleEntryReadWriteSegmentedLock(10)
+        val locks = SingleEntryReadWriteSegmentedLock(10)
 
 
         val locked = CountDownLatch(2)

@@ -115,7 +115,7 @@ class StoreWAL(
     init{
         if(checksum)
             throw DBException.WrongConfiguration("StoreWAL does not support checksum yet") //TODO StoreWAL checksums
-        Utils.lock(structuralLock) {
+        structuralLock.lock {
             if (!volumeExistsAtStart) {
                 realVolume.ensureAvailable(CC.PAGE_SIZE)
                 //TODO crash resistance while file is being created
@@ -181,7 +181,7 @@ class StoreWAL(
 
     override fun <R> compareAndSwap(recid: Long, expectedOldRecord: R?, newRecord: R?, serializer: Serializer<R>): Boolean {
         assertNotClosed()
-        Utils.lockWrite(locks,recidToSegment(recid)) {
+        locks.lockWrite(recidToSegment(recid)) {
             //compare old value
             val old = getProtected(recid, serializer)
 
@@ -196,7 +196,7 @@ class StoreWAL(
             val di = serialize(newRecord, serializer, recid)
 
             updateProtected(recid, di)
-            return true;
+            return true
         }
     }
 
@@ -205,14 +205,14 @@ class StoreWAL(
         assertNotClosed()
         val segment = recidToSegment(recid)
 
-        Utils.lockWrite(locks,segment) {
+        locks.lockWrite(segment) {
             val oldIndexVal = getIndexVal(recid);
             val oldSize = indexValToSize(oldIndexVal);
             if (oldSize == DELETED_RECORD_SIZE)
                 throw DBException.GetVoid(recid)
 
             if (oldSize != NULL_RECORD_SIZE) {
-                Utils.lock(structuralLock) {
+                structuralLock.lock{
                     if (indexValFlagLinked(oldIndexVal)) {
                         linkedRecordDelete(oldIndexVal,recid)
                     } else if(oldSize>5){
@@ -233,10 +233,10 @@ class StoreWAL(
 
     override fun preallocate(): Long {
         assertNotClosed()
-        val recid = Utils.lock(structuralLock){
+        val recid = structuralLock.lock{
             allocateRecid()
         }
-        Utils.lockWrite(locks,recidToSegment(recid)) {
+        locks.lockWrite(recidToSegment(recid)) {
 //            if (CC.ASSERT) {
 //                val oldVal = volume.getLong(recidToOffset(recid))
 //                if(oldVal!=0L && indexValToSize(oldVal)!=DELETED_RECORD_SIZE)
@@ -337,7 +337,7 @@ class StoreWAL(
         var remSize = size.toLong();
         //insert first non linked record
         var chunkSize:Long = Math.min(MAX_RECORD_SIZE, remSize);
-        var chunkOffset = Utils.lock(structuralLock){
+        var chunkOffset = structuralLock.lock{
             allocateData(roundUp(chunkSize.toInt(),16), false)
         }
         var walId = wal.walPutRecord(recid,output, (remSize-chunkSize).toInt(), chunkSize.toInt())
@@ -349,11 +349,11 @@ class StoreWAL(
         // iterate in reverse order (from tail and from end of record)
         while(remSize>0){
             val prevLink = parity3Set((chunkSize+isLinked).shl(48) + chunkOffset + isLinked)
-            isLinked = MLINKED;
+            isLinked = MLINKED
 
             //allocate stuff
             chunkSize = Math.min(MAX_RECORD_SIZE - 8, remSize);
-            chunkOffset = Utils.lock(structuralLock){
+            chunkOffset = structuralLock.lock{
                 allocateData(roundUp(chunkSize+8,16).toInt(), false)
             }
 
@@ -377,12 +377,12 @@ class StoreWAL(
         val di = serialize(record, serializer, -1)
 
         assertNotClosed()
-        val recid = Utils.lock(structuralLock){
+        val recid = structuralLock.lock{
             allocateRecid()
         }
         val indexOffset = recidToOffset(recid)
         val segment = recidToSegment(recid)
-        Utils.lockWrite(locks,segment) {
+        locks.lockWrite(segment) {
             if (di != null) {
                 if(di.pos==0) {
                     val indexVal = indexValCompose(size = 0, offset = 0L, archive = 1, linked = 0, unused = 0)
@@ -397,7 +397,7 @@ class StoreWAL(
                     setIndexVal(recid,indexVal)
                 }else{
                     //allocate space
-                    val volOffset = Utils.lock(structuralLock) {
+                    val volOffset = structuralLock.lock {
                         allocateData(roundUp(di.pos, 16), false)
                     }
                     val walId = wal.walPutRecord(recid, di.buf, 0, di.pos)
@@ -420,7 +420,7 @@ class StoreWAL(
         assertNotClosed()
         val di = serialize(record, serializer, recid)
 
-        Utils.lockWrite(locks,recidToSegment(recid)) {
+        locks.lockWrite(recidToSegment(recid)) {
             updateProtected(recid, di)
         }
     }
@@ -442,7 +442,7 @@ class StoreWAL(
         if (oldLinked || (
                 (newUpSize != roundUp(roundSixDown(oldSize), 16)) &&
                 oldSize != NULL_RECORD_SIZE && oldSize > 5L )) {
-            Utils.lock(structuralLock) {
+            structuralLock.lock {
                 if (oldLinked) {
                     linkedRecordDelete(oldIndexVal,recid)
                 } else {
@@ -478,7 +478,7 @@ class StoreWAL(
                 } else if (size == 0) {
                     0L
                 } else {
-                    Utils.lock(structuralLock) {
+                    structuralLock.lock {
                         allocateData(roundUp(size, 16), false)
                     }
                 }
@@ -498,7 +498,7 @@ class StoreWAL(
         var size:Long = -1
         var fromLong = Long.MIN_VALUE
 
-        Utils.lockRead(locks,segment){
+        locks.lockRead(segment){
 
             val indexVal = getIndexVal(recid)
             size = indexValToSize(indexVal)
@@ -582,7 +582,7 @@ class StoreWAL(
     override fun getAllRecids(): LongIterator {
         val ret = LongArrayList()
 
-        Utils.lockReadAll(locks){
+        locks.lockReadAll{
             val maxRecid = maxRecid
             for (recid in 1..maxRecid) {
                 try {
@@ -602,7 +602,7 @@ class StoreWAL(
 
     }
     override fun close() {
-        Utils.lockWriteAll(locks){
+        locks.lockWriteAll{
             if (closed.compareAndSet(false, true).not())
                 return
 
@@ -616,7 +616,7 @@ class StoreWAL(
     }
 
     override fun rollback() {
-        Utils.lockWriteAll(locks){
+        locks.lockWriteAll{
             realVolume.getData(0,headBytes, 0, headBytes.size)
             cacheIndexLinks.clear()
             cacheIndexVals.forEach { it.clear() }
@@ -630,7 +630,7 @@ class StoreWAL(
     }
 
     override fun commit() {
-        Utils.lockWriteAll(locks){
+        locks.lockWriteAll{
             DataIO.putInt(headBytes, 20, calculateHeaderChecksum())
             //write index page
             wal.walPutByteArray(0, headBytes, 0, headBytes.size)
@@ -682,7 +682,7 @@ class StoreWAL(
 
     override protected fun allocateNewPage():Long{
         if(CC.ASSERT)
-            Utils.assertLocked(structuralLock)
+            structuralLock.assertLocked()
 
         val eof = fileTail
         val newEof = eof + CC.PAGE_SIZE
@@ -693,7 +693,7 @@ class StoreWAL(
 
     override protected fun allocateNewIndexPage():Long{
         if(CC.ASSERT)
-            Utils.assertLocked(structuralLock)
+            structuralLock.assertLocked()
 
         val indexPage = allocateNewPage();
 
@@ -729,7 +729,7 @@ class StoreWAL(
 
     override protected fun longStackPut(masterLinkOffset:Long, value:Long, recursive:Boolean){
         if(CC.ASSERT)
-            Utils.assertLocked(structuralLock)
+            structuralLock.assertLocked()
         if (CC.ASSERT && (masterLinkOffset <= 0 || masterLinkOffset > CC.PAGE_SIZE || masterLinkOffset % 8 != 0L))
             throw DBException.DataCorruption("wrong master link")
         if(CC.ASSERT && value.shr(48)!=0L)
@@ -782,7 +782,7 @@ class StoreWAL(
 
     protected fun longStackNewChunk(masterLinkOffset: Long, prevPageOffset: Long, value: Long, valueSize:Long, recursive: Boolean) {
         if(CC.ASSERT) {
-            Utils.assertLocked(structuralLock)
+            structuralLock.assertLocked()
         }
         if(CC.PARANOID){
             //ensure that this  longStackPut() method is not twice on stack trace
@@ -854,7 +854,7 @@ class StoreWAL(
 
     override protected fun longStackTake(masterLinkOffset:Long, recursive:Boolean):Long {
         if(CC.ASSERT)
-            Utils.assertLocked(structuralLock)
+            structuralLock.assertLocked()
 
         if (CC.ASSERT && (masterLinkOffset <= 0 || masterLinkOffset > CC.PAGE_SIZE || masterLinkOffset % 8 != 0L))
             throw DBException.DataCorruption("wrong master link")

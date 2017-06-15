@@ -3,15 +3,13 @@
 package org.mapdb.tree
 
 import org.fest.reflect.core.Reflection
+import org.junit.*
 import org.junit.Assert.*
-import org.junit.Ignore
-import org.junit.Test
 import org.mapdb.*
 import org.mapdb.store.StoreOnHeap
-import org.mapdb.util.Utils
+import org.mapdb.util.SingleEntryReadWriteSegmentedLock
 import org.mapdb.volume.SingleByteArrayVol
-import java.io.Closeable
-import java.io.Serializable
+import java.io.*
 import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
@@ -21,8 +19,8 @@ class HTreeMapTest{
     val HTreeMap<*,*>.leafSerializer: Serializer<Array<Any>>
         get() = Reflection.method("getLeafSerializer").`in`(this).invoke() as Serializer<Array<Any>>
 
-    val HTreeMap<*,*>.locks:  Utils.SingleEntryReadWriteSegmentedLock?
-        get() = Reflection.method("getLocks").`in`(this).invoke() as  Utils.SingleEntryReadWriteSegmentedLock?
+    val HTreeMap<*,*>.locks:  SingleEntryReadWriteSegmentedLock?
+        get() = Reflection.method("getLocks").`in`(this).invoke() as  SingleEntryReadWriteSegmentedLock?
 
 
     fun HTreeMap<*,*>.hashToSegment(h: Int): Int =

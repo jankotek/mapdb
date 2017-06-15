@@ -88,7 +88,7 @@ class StoreDirect(
     override protected val headVol = volume
 
     init{
-        Utils.lock(structuralLock) {
+        structuralLock.lock {
             if (!volumeExistsAtStart) {
                 //TODO crash resistance while file is being created
                 //initialize values
@@ -140,14 +140,14 @@ class StoreDirect(
             locks?.checkWriteLocked(recidToSegment(recid))
 
         val offset = recidToOffset(recid)
-        volume.putLong(offset, parity1Set(value));
+        volume.putLong(offset, parity1Set(value))
     }
 
 
 
     override protected fun allocateNewPage():Long{
         if(CC.ASSERT)
-            Utils.assertLocked(structuralLock)
+            structuralLock.assertLocked()
 
         val eof = fileTail
         val newEof = eof + CC.PAGE_SIZE
@@ -160,7 +160,7 @@ class StoreDirect(
 
     override protected fun allocateNewIndexPage():Long{
         if(CC.ASSERT)
-            Utils.assertLocked(structuralLock)
+            structuralLock.assertLocked()
 
         val indexPage = allocateNewPage();
 
@@ -240,7 +240,7 @@ class StoreDirect(
         var remSize = size.toLong();
         //insert first non linked record
         var chunkSize:Long = Math.min(MAX_RECORD_SIZE, remSize);
-        var chunkOffset = Utils.lock(structuralLock){
+        var chunkOffset = structuralLock.lock{
             allocateData(roundUp(chunkSize.toInt(),16), false)
         }
         volume.putData(chunkOffset, output, (remSize-chunkSize).toInt(), chunkSize.toInt())
@@ -254,7 +254,7 @@ class StoreDirect(
 
             //allocate stuff
             chunkSize = Math.min(MAX_RECORD_SIZE - 8, remSize);
-            chunkOffset = Utils.lock(structuralLock){
+            chunkOffset = structuralLock.lock{
                 allocateData(roundUp(chunkSize+8,16).toInt(), false)
             }
 
@@ -272,7 +272,7 @@ class StoreDirect(
 
     override protected fun longStackPut(masterLinkOffset:Long, value:Long, recursive:Boolean){
         if(CC.ASSERT)
-            Utils.assertLocked(structuralLock)
+            structuralLock.assertLocked()
         if (CC.ASSERT && (masterLinkOffset <= 0 || masterLinkOffset > CC.PAGE_SIZE || masterLinkOffset % 8 != 0L))
             throw DBException.DataCorruption("wrong master link")
         if(CC.ASSERT && value.shr(48)!=0L)
@@ -310,7 +310,7 @@ class StoreDirect(
 
     protected fun longStackNewChunk(masterLinkOffset: Long, prevPageOffset: Long, value: Long, valueSize:Long, recursive: Boolean) {
         if(CC.ASSERT) {
-            Utils.assertLocked(structuralLock)
+            structuralLock.assertLocked()
         }
         if(CC.PARANOID){
             //ensure that this  longStackPut() method is not twice on stack trace
@@ -380,7 +380,7 @@ class StoreDirect(
 
     override protected fun longStackTake(masterLinkOffset:Long, recursive:Boolean):Long {
         if(CC.ASSERT)
-            Utils.assertLocked(structuralLock)
+            structuralLock.assertLocked()
 
         if (CC.ASSERT && (masterLinkOffset <= 0 || masterLinkOffset > CC.PAGE_SIZE || masterLinkOffset % 8 != 0L))
             throw DBException.DataCorruption("wrong master link")
@@ -501,11 +501,11 @@ class StoreDirect(
 
     override fun preallocate(): Long {
         assertNotClosed()
-        val recid = Utils.lock(structuralLock){
+        val recid = structuralLock.lock(){
             allocateRecid()
         }
 
-        Utils.lockWrite(locks,recidToSegment(recid)) {
+        locks.lockWrite(recidToSegment(recid)) {
             if (CC.ASSERT) {
                 val oldVal = volume.getLong(recidToOffset(recid))
                 if(oldVal!=0L && indexValToSize(oldVal)!=DELETED_RECORD_SIZE)
@@ -525,7 +525,7 @@ class StoreDirect(
         var size:Long = -1
         var fromLong = Long.MIN_VALUE
 
-        Utils.lockRead(locks,recidToSegment(recid)) {
+        locks.lockRead(recidToSegment(recid)) {
             val indexVal = getIndexVal(recid)
 
             if (indexValFlagLinked(indexVal)) {
@@ -598,7 +598,7 @@ class StoreDirect(
     override fun getBinaryLong(recid:Long, f: StoreBinaryGetLong): Long {
         assertNotClosed()
 
-        Utils.lockRead(locks, recidToSegment(recid)) {
+        locks.lockRead(recidToSegment(recid)) {
             val indexVal = getIndexVal(recid);
 
             if (indexValFlagLinked(indexVal)) {
@@ -634,13 +634,13 @@ class StoreDirect(
 
         val di = serialize(record, serializer, -1);
 
-        Utils.lockRead(compactionLock) {
+        compactionLock.lockRead{
 
-            val recid = Utils.lock(structuralLock) {
+            val recid = structuralLock.lock{
                 allocateRecid()
             }
 
-            Utils.lockWrite(locks, recidToSegment(recid)) {
+            locks.lockWrite(recidToSegment(recid)) {
                 if (di == null) {
                     setIndexVal(recid, indexValCompose(size = NULL_RECORD_SIZE, offset = 0, linked = 0, unused = 0, archive = 1))
                     return recid
@@ -661,7 +661,7 @@ class StoreDirect(
                     //store inside offset at index table
                     offset = DataIO.getLong(di.buf, 0).ushr((7 - di.pos) * 8)
                 } else {
-                    offset = Utils.lock(structuralLock) {
+                    offset = structuralLock.lock {
                         allocateData(roundUp(di.pos, 16), false)
                     }
                     volume.putData(offset, di.buf, 0, di.pos)
@@ -677,7 +677,7 @@ class StoreDirect(
         assertNotClosed()
         val di = serialize(record, serializer, recid);
 
-        Utils.lockWrite(locks, recidToSegment(recid)) {
+        locks.lockWrite(recidToSegment(recid)) {
             updateProtected(recid, di)
         }
     }
@@ -699,7 +699,7 @@ class StoreDirect(
         if (oldLinked || (
                 (newUpSize != roundUp(roundSixDown(oldSize), 16)) &&
                 oldSize != NULL_RECORD_SIZE && oldSize > 5L )) {
-            Utils.lock(structuralLock) {
+            structuralLock.lock{
                 if (oldLinked) {
                     linkedRecordDelete(oldIndexVal)
                 } else {
@@ -734,7 +734,7 @@ class StoreDirect(
                 } else if (size == 0) {
                     0L
                 } else {
-                    Utils.lock(structuralLock) {
+                    structuralLock.lock {
                         allocateData(roundUp(size, 16), false)
                     }
                 }
@@ -746,14 +746,14 @@ class StoreDirect(
 
     override fun <R> compareAndSwap(recid: Long, expectedOldRecord: R?, newRecord: R?, serializer: Serializer<R>): Boolean {
         assertNotClosed()
-        Utils.lockWrite(locks,recidToSegment(recid)) {
+        locks.lockWrite(recidToSegment(recid)) {
             //compare old value
             val old = getProtected(recid, serializer)
 
             if (old === null && expectedOldRecord !== null)
-                return false;
+                return false
             if (old !== null && expectedOldRecord === null)
-                return false;
+                return false
 
             if (old !== expectedOldRecord && !serializer.equals(old!!, expectedOldRecord!!))
                 return false
@@ -768,14 +768,14 @@ class StoreDirect(
     override fun <R> delete(recid: Long, serializer: Serializer<R>) {
         assertNotClosed()
 
-        Utils.lockWrite(locks, recidToSegment(recid)) {
+        locks.lockWrite(recidToSegment(recid)) {
             val oldIndexVal = getIndexVal(recid);
             val oldSize = indexValToSize(oldIndexVal);
             if (oldSize == DELETED_RECORD_SIZE)
                 throw DBException.GetVoid(recid)
 
             if (oldSize != NULL_RECORD_SIZE) {
-                Utils.lock(structuralLock) {
+                structuralLock.lock {
                     if (indexValFlagLinked(oldIndexVal)) {
                         linkedRecordDelete(oldIndexVal)
                     } else if(oldSize>5){
@@ -795,9 +795,9 @@ class StoreDirect(
     }
 
     override fun compact() {
-        Utils.lockWrite(compactionLock) {
-            Utils.lockWriteAll(locks) {
-                Utils.lock(structuralLock) {
+        compactionLock.lockWrite {
+            locks.lockWriteAll {
+                structuralLock.lock {
                     //TODO use file for compaction, if store is file based
                     val store2 = StoreDirect.make(isThreadSafe = false, concShift = 0)
 
@@ -904,7 +904,7 @@ class StoreDirect(
     }
 
     override fun close() {
-        Utils.lockWriteAll(locks){
+        locks.lockWriteAll{
             if(closed.compareAndSet(false,true).not())
                 return
 
@@ -926,7 +926,7 @@ class StoreDirect(
     override fun getAllRecids(): LongIterator {
         val ret = LongArrayList()
 
-        Utils.lockReadAll(locks){
+        locks.lockReadAll{
             val maxRecid = maxRecid
 
             for (recid in 1..maxRecid) {
@@ -971,8 +971,8 @@ class StoreDirect(
             bit.set(start0, end0)
         }
 
-        Utils.lockReadAll(locks){
-            Utils.lock(structuralLock){
+        locks.lockReadAll{
+            structuralLock.lock{
 
 
                 set(0, HEAD_END, false)
@@ -1070,7 +1070,7 @@ class StoreDirect(
         var ret = freeSize.get()
         if (ret != -1L)
             return ret
-        Utils.lock(structuralLock){
+        structuralLock.lock{
             //try one more time under lock
             ret = freeSize.get()
             if (ret != -1L)
@@ -1084,7 +1084,7 @@ class StoreDirect(
     }
 
     private fun calculateFreeSize(): Long {
-        Utils.assertLocked(structuralLock)
+        structuralLock.assertLocked()
         //traverse list of records
         var ret1 = 0L
         val fileTail = fileTail

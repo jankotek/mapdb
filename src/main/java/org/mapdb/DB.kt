@@ -13,8 +13,7 @@ import org.mapdb.serializer.GroupSerializerObjectArray
 import org.mapdb.serializer.GroupSerializerWrapper
 import org.mapdb.tree.*
 import org.mapdb.tuple.*
-import org.mapdb.util.DataIO
-import org.mapdb.util.Utils
+import org.mapdb.util.*
 import java.io.Closeable
 import java.io.DataInput
 import java.io.DataOutput
@@ -401,7 +400,7 @@ open class DB(
     protected val executors:MutableSet<ExecutorService> = Collections.synchronizedSet(LinkedHashSet())
 
     fun nameCatalogLoad():SortedMap<String, String> {
-        return Utils.lockRead(lock){
+        return lock.lockRead{
             checkNotClosed()
             nameCatalogLoadLocked()
         }
@@ -409,13 +408,13 @@ open class DB(
     }
     protected fun nameCatalogLoadLocked():SortedMap<String, String> {
         if(CC.ASSERT)
-            Utils.assertReadLock(lock)
+            lock.assertReadLock()
         return store.get(CC.RECID_NAME_CATALOG, NAME_CATALOG_SERIALIZER)
                 ?: throw DBException.WrongConfiguration("Could not open store, it has no Named Catalog");
     }
 
     fun nameCatalogSave(nameCatalog: SortedMap<String, String>) {
-        Utils.lockWrite(lock){
+        lock.lockWrite{
             checkNotClosed()
             nameCatalogSaveLocked(nameCatalog)
         }
@@ -423,7 +422,7 @@ open class DB(
 
     protected fun nameCatalogSaveLocked(nameCatalog: SortedMap<String, String>) {
         if(CC.ASSERT)
-            Utils.assertWriteLock(lock)
+            lock.assertWriteLock()
         store.update(CC.RECID_NAME_CATALOG, nameCatalog, NAME_CATALOG_SERIALIZER)
     }
 
@@ -481,7 +480,7 @@ open class DB(
 
     private fun unknownClassesSave(){
         if(CC.ASSERT)
-            Utils.assertWriteLock(lock)
+            lock.assertWriteLock()
         //TODO batch class dump
         unknownClasses.forEach {
             defaultSerializerRegisterClass_noLock(it)
@@ -490,7 +489,7 @@ open class DB(
     }
 
     fun commit(){
-        Utils.lockWrite(lock) {
+        lock.lockWrite{
             checkNotClosed()
             unknownClassesSave()
             store.commit()
@@ -502,7 +501,7 @@ open class DB(
         if(store !is StoreTx)
             throw UnsupportedOperationException("Store does not support rollback")
 
-        Utils.lockWrite(lock) {
+        lock.lockWrite {
             checkNotClosed()
             unknownClasses.clear()
             store.rollback()
@@ -519,7 +518,7 @@ open class DB(
         if(shutdownReference!=null)
             shutdownHooks.remove(shutdownReference)
 
-        Utils.lockWrite(lock) {
+        lock.lockWrite {
             unknownClassesSave()
 
             //shutdown running executors if any
@@ -536,7 +535,7 @@ open class DB(
     }
 
     fun <E> get(name:String):E{
-        Utils.lockWrite(lock) {
+        lock.lockWrite {
             checkNotClosed()
             val type = nameCatalogGet(name + Keys.type)
             val ret:Any? = when (type) {
@@ -566,7 +565,7 @@ open class DB(
             namesInstanciated.asMap().filterValues { it===e }.keys.firstOrNull()
 
     fun exists(name: String): Boolean {
-        Utils.lockRead(lock) {
+        lock.lockRead {
             checkNotClosed()
             return nameCatalogGet(name + Keys.type) != null
         }
@@ -584,7 +583,7 @@ open class DB(
     }
 
     fun delete(name:String){
-        Utils.lockWrite(lock) {
+        lock.lockWrite {
 
             val params = nameCatalogParamsFor(name)
             if (params.isEmpty())
@@ -1605,7 +1604,7 @@ open class DB(
         open fun open():E = make2( false)
 
         protected fun make2(create:Boolean?):E{
-            Utils.lockWrite(db.lock){
+            db.lock.lockWrite{
                 db.checkNotClosed()
                 verify()
 
@@ -1951,14 +1950,14 @@ open class DB(
      * and will save space for collections which do not use specialized serializer.
      */
     fun defaultSerializerRegisterClass(clazz:Class<*>){
-        Utils.lockWrite(lock) {
+        lock.lockWrite {
             checkNotClosed()
             defaultSerializerRegisterClass_noLock(clazz)
         }
     }
     private fun defaultSerializerRegisterClass_noLock(clazz:Class<*>) {
         if(CC.ASSERT)
-            Utils.assertWriteLock(lock)
+            lock.assertWriteLock()
         var infos = loadClassInfos()
         val className = clazz.name
         if (infos.find { it.name == className } != null)

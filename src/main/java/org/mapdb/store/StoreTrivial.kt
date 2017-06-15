@@ -4,8 +4,7 @@ import org.mapdb.*
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.eclipse.collections.impl.stack.mutable.primitive.LongArrayStack
-import org.mapdb.util.DataIO
-import org.mapdb.util.Utils
+import org.mapdb.util.*
 import java.io.*
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
@@ -26,7 +25,7 @@ open class StoreTrivial(
         override val isThreadSafe:Boolean=true
     ):Store {
 
-    protected val lock: ReadWriteLock? = Utils.newReadWriteLock(isThreadSafe)
+    protected val lock: ReadWriteLock? = newReadWriteLock(isThreadSafe)
 
     private val closed = AtomicBoolean(false);
 
@@ -45,14 +44,14 @@ open class StoreTrivial(
     }
 
     fun loadFrom(inStream: InputStream){
-        Utils.lockWrite(lock){
+        lock.lockWrite{
             loadFromInternal(inStream)
         }
     }
 
     protected fun loadFromInternal(inStream: InputStream){
         if(CC.ASSERT)
-            Utils.assertWriteLock(lock)
+            lock.assertWriteLock()
 
         fileHeaderCheck(DataInputStream(inStream).readLong())
 
@@ -104,7 +103,7 @@ open class StoreTrivial(
     }
 
     fun saveTo(outStream: OutputStream) {
-        Utils.lockRead(lock) {
+        lock.lockRead{
             saveToProtected(outStream)
         }
     }
@@ -138,14 +137,14 @@ open class StoreTrivial(
     }
 
     override fun preallocate(): Long {
-        Utils.lockWrite(lock) {
+        lock.lockWrite{
             return preallocateInternal();
         }
     }
 
     private fun preallocateInternal(): Long {
         if(CC.ASSERT)
-            Utils.assertWriteLock(lock)
+            lock.assertWriteLock()
 
         val recid =
                 if (freeRecids.isEmpty)
@@ -162,7 +161,7 @@ open class StoreTrivial(
 
     override fun <R> put(record: R?, serializer: Serializer<R>): Long {
         val bytes = toByteArray(record, serializer)
-        Utils.lockWrite(lock) {
+        lock.lockWrite{
             val recid = preallocateInternal()
             val old =records.put(recid, bytes)
             if(CC.ASSERT && old!=NULL_RECORD)
@@ -174,7 +173,7 @@ open class StoreTrivial(
 
     override fun <R> update(recid: Long, record: R?, serializer: Serializer<R>) {
         val bytes = toByteArray(record, serializer)
-        Utils.lockWrite(lock) {
+        lock.lockWrite{
             records.get(recid)
                     ?: throw DBException.GetVoid(recid);
 
@@ -186,7 +185,7 @@ open class StoreTrivial(
         val expectedOld:ByteArray = toByteArray(expectedOldRecord, serializer)
 
         //TODO stamped lock?
-        Utils.lockWrite(lock) {
+        lock.lockWrite{
             val old = records.get(recid)
                     ?: throw DBException.GetVoid(recid);
 
@@ -205,7 +204,7 @@ open class StoreTrivial(
     }
 
     override fun <R> delete(recid: Long, serializer: Serializer<R>) {
-        Utils.lockWrite(lock) {
+        lock.lockWrite{
             records.get(recid)
                     ?: throw DBException.GetVoid(recid);
 
@@ -225,7 +224,7 @@ open class StoreTrivial(
             return
 
         if(CC.PARANOID) {
-            Utils.lockRead(lock) {
+            lock.lockRead{
                 val freeRecidsSet = LongHashSet();
                 freeRecidsSet.addAll(freeRecids)
                 for (recid in 1..maxRecid) {
@@ -241,7 +240,7 @@ open class StoreTrivial(
 
     override fun <R> get(recid: Long, serializer: Serializer<R>): R? {
         val bytes:ByteArray? =
-            Utils.lockRead(lock) {
+            lock.lockRead{
                 records.get(recid)
             }
         if(bytes===null){
@@ -256,14 +255,14 @@ open class StoreTrivial(
     }
 
     fun clear(){
-        Utils.lockWrite(lock){
+        lock.lockWrite{
             clearInternal()
         }
     }
 
     internal fun clearInternal(){
         if(CC.ASSERT)
-            Utils.assertWriteLock(lock)
+            lock.assertWriteLock()
         records.clear()
         freeRecids.clear()
         maxRecid = 0
@@ -285,9 +284,9 @@ open class StoreTrivial(
         if(this===other)
             return true;
 
-        Utils.lockRead(lock) {
+        lock.lockRead() {
             if (records.size() != other.records.size())
-                return false;
+                return false
 
 
             val recidIter = records.keySet().longIterator()
@@ -301,7 +300,7 @@ open class StoreTrivial(
                     continue
 
                 if (b1 !== b2 && !Arrays.equals(b1, b2)) {
-                    return false;
+                    return false
                 }
 
                 if (b1 === NULL_RECORD)
@@ -314,7 +313,7 @@ open class StoreTrivial(
 
 
     override fun getAllRecids(): LongIterator {
-        Utils.lockRead(lock) {
+        lock.lockRead{
             return records.keySet().toArray().iterator()
         }
     }
@@ -358,7 +357,7 @@ class StoreTrivialTx(val file:File, isThreadSafe:Boolean=true, val deleteFilesAf
     private var lastFileNum:Long = -1
 
     init{
-        Utils.lockWrite(lock){
+        lock.lockWrite{
             val buf = ByteBuffer.allocate(8)
             if(fileChannel.size()>0L) {
                 fileChannel.read(buf, 0L)
@@ -381,7 +380,7 @@ class StoreTrivialTx(val file:File, isThreadSafe:Boolean=true, val deleteFilesAf
         }
     }
     internal  fun findLattestCommitMarker():Long?{
-        Utils.assertReadLock(lock)
+        lock.assertReadLock()
         if(null == path)
             return null
 
@@ -420,7 +419,7 @@ class StoreTrivialTx(val file:File, isThreadSafe:Boolean=true, val deleteFilesAf
 
     protected fun loadFrom(number:Long){
         if(CC.ASSERT)
-            Utils.assertWriteLock(lock)
+            lock.assertWriteLock()
         val readFrom = Utils.pathChangeSuffix(path, "."+number + DATA_SUFFIX)
 
         Utils.logDebug { "Loading from ${readFrom} with length ${readFrom.toFile().length()}" }
@@ -430,7 +429,7 @@ class StoreTrivialTx(val file:File, isThreadSafe:Boolean=true, val deleteFilesAf
     }
 
     override fun commit() {
-        Utils.lockWrite(lock) {
+        lock.lockWrite{
             val prev = lastFileNum;
             val next = prev + 1;
 
@@ -453,7 +452,7 @@ class StoreTrivialTx(val file:File, isThreadSafe:Boolean=true, val deleteFilesAf
     }
 
     override fun rollback() {
-        Utils.lockWrite(lock) {
+        lock.lockWrite{
             if(lastFileNum==-1L){
                 //no commit was made yet, revert to empty state
                 clearInternal()
@@ -464,7 +463,7 @@ class StoreTrivialTx(val file:File, isThreadSafe:Boolean=true, val deleteFilesAf
     }
 
     override fun close() {
-        Utils.lockWrite(lock) {
+        lock.lockWrite{
             fileLock.release();
             fileChannel.close()
             super.close()

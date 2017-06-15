@@ -4,13 +4,11 @@ package org.mapdb.store
 
 import org.eclipse.collections.api.list.primitive.MutableLongList
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
-import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap
-import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
+import org.eclipse.collections.impl.map.mutable.primitive.*
 import org.fest.reflect.core.Reflection
-import org.mapdb.*
-import org.mapdb.util.Utils
-import org.mapdb.volume.SingleByteArrayVol
-import org.mapdb.volume.Volume
+import org.mapdb.WriteAheadLog
+import org.mapdb.util.*
+import org.mapdb.volume.*
 import java.util.concurrent.locks.Lock
 
 
@@ -30,8 +28,8 @@ val StoreDirectAbstract.structuralLock: Lock?
     get() = Reflection.method("getStructuralLock").`in`(this).invoke() as Lock?
 
 
-val StoreDirectAbstract.locks: Utils.SingleEntryReadWriteSegmentedLock?
-    get() = Reflection.method("getLocks").`in`(this).invoke() as Utils.SingleEntryReadWriteSegmentedLock?
+val StoreDirectAbstract.locks: SingleEntryReadWriteSegmentedLock?
+    get() = Reflection.method("getLocks").`in`(this).invoke() as SingleEntryReadWriteSegmentedLock?
 
 fun StoreDirectAbstract.indexValCompose(size: Long,
                                         offset: Long,
@@ -56,7 +54,7 @@ fun StoreDirectAbstract.allocateRecid(): Long =
 
 
 fun StoreDirectAbstract.calculateFreeSize(): Long {
-    return Utils.lock(this.structuralLock) {
+    return this.structuralLock.lock{
         Reflection.method("calculateFreeSize")
                 .`in`(this)
                 .invoke() as Long

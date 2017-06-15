@@ -29,9 +29,9 @@ abstract class StoreDirectAbstract(
 
     protected val segmentCount = 1.shl(concShift)
     protected val segmentMask = 1L.shl(concShift)-1
-    protected val locks = Utils.newReadWriteSegmentedLock(isThreadSafe, segmentCount)
-    protected val structuralLock = Utils.newLock(isThreadSafe)
-    protected val compactionLock = Utils.newReadWriteLock(isThreadSafe)
+    protected val locks = newReadWriteSegmentedLock(isThreadSafe, segmentCount)
+    protected val structuralLock = newLock(isThreadSafe)
+    protected val compactionLock = newReadWriteLock(isThreadSafe)
 
     protected val volumeExistsAtStart = volumeFactory.exists(file)
 
@@ -68,7 +68,7 @@ abstract class StoreDirectAbstract(
             if(CC.ASSERT && (v%16)!=0L)
                 throw DBException.DataCorruption("unaligned data tail")
             if(CC.ASSERT)
-                Utils.assertLocked(structuralLock)
+                structuralLock.assertLocked()
             headVol.putLong(StoreDirectJava.DATA_TAIL_OFFSET, DataIO.parity4Set(v))
         }
 
@@ -77,7 +77,7 @@ abstract class StoreDirectAbstract(
         get() = DataIO.parity3Get(headVol.getLong(StoreDirectJava.INDEX_TAIL_OFFSET)).ushr(3)
         set(v:Long){
             if(CC.ASSERT)
-                Utils.assertLocked(structuralLock)
+                structuralLock.assertLocked()
             headVol.putLong(StoreDirectJava.INDEX_TAIL_OFFSET, DataIO.parity3Set(v.shl(3)))
         }
 
@@ -87,7 +87,7 @@ abstract class StoreDirectAbstract(
         get() = DataIO.parity16Get(headVol.getLong(StoreDirectJava.FILE_TAIL_OFFSET))
         set(v:Long){
             if(CC.ASSERT)
-                Utils.assertLocked(structuralLock)
+                structuralLock.assertLocked()
             headVol.putLong(StoreDirectJava.FILE_TAIL_OFFSET, DataIO.parity16Set(v))
         }
 
@@ -251,7 +251,7 @@ abstract class StoreDirectAbstract(
 
     protected fun allocateRecid():Long{
         if(CC.ASSERT)
-            Utils.assertLocked(structuralLock)
+            structuralLock.assertLocked()
 
         val reusedRecid = longStackTake(RECID_LONG_STACK,false)
         if(reusedRecid!=0L){
@@ -280,7 +280,7 @@ abstract class StoreDirectAbstract(
 
     protected fun allocateData(size:Int, recursive:Boolean):Long{
         if(CC.ASSERT)
-            Utils.assertLocked(structuralLock)
+            structuralLock.assertLocked()
 
         if(CC.ASSERT && size> StoreDirectJava.MAX_RECORD_SIZE)
             throw AssertionError()
@@ -351,7 +351,7 @@ abstract class StoreDirectAbstract(
 
     protected fun releaseData(size:Long, offset:Long, recursive:Boolean){
         if(CC.ASSERT)
-            Utils.assertLocked(structuralLock)
+            structuralLock.assertLocked()
 
         if(CC.ASSERT && size%16!=0L)
             throw AssertionError()
