@@ -13,7 +13,7 @@ import kotlin.test.fail
 
 @RunWith(Parameterized::class)
 class BTreeMap_PumpTest(
-        val mapMaker:DB.TreeMapMaker<Any?, Any?>
+        val mapMaker2:()->DB.TreeMapMaker<Any?, Any?>
 ) {
 
     companion object {
@@ -33,61 +33,63 @@ class BTreeMap_PumpTest(
             for(storeType in 0..2)
             for(isThreadSafe in bools)
             for(counter in bools){
-                val db:DB = when(storeType){
-                    0-> {
-                        val d = DBMaker.heapDB()
-                        if(!isThreadSafe) d.concurrencyDisable()
-                        d.make()
-                    }
-                    1-> DB(StoreTrivial(), isThreadSafe = isThreadSafe, storeOpened = false)
-                    2-> {
-                        val d = DBMaker.memoryDB()
-                        if(!isThreadSafe) d.concurrencyDisable()
-                        d.make()
-                    }
-                    else -> throw AssertionError()
-                }
-                val keySer = if(otherComparator){
-                    // map should use Comparator for comparations, not this serializers
-                    object:GroupSerializer<Int> by Serializer.INTEGER{
-                        override fun valueArrayBinaryGet(input: DataInput2?, keysLen: Int, pos: Int): Int {
-                            fail()
+                ret += {
+                    val db: DB = when (storeType) {
+                        0 -> {
+                            val d = DBMaker.heapDB()
+                            if (!isThreadSafe) d.concurrencyDisable()
+                            d.make()
                         }
+                        1 -> DB(StoreTrivial(), isThreadSafe = isThreadSafe, storeOpened = false)
+                        2 -> {
+                            val d = DBMaker.memoryDB()
+                            if (!isThreadSafe) d.concurrencyDisable()
+                            d.make()
+                        }
+                        else -> throw AssertionError()
+                    }
+                    val keySer = if (otherComparator) {
+                        // map should use Comparator for comparations, not this serializers
+                        object : GroupSerializer<Int> by Serializer.INTEGER {
+                            override fun valueArrayBinaryGet(input: DataInput2?, keysLen: Int, pos: Int): Int {
+                                fail()
+                            }
 
-                        //TODO this needs more testing
+                            //TODO this needs more testing
 //                        override fun valueArrayBinarySearch(key: Int?, input: DataInput2?, keysLen: Int, comparator: Comparator<*>?): Int {
 //                            fail()
 //                        }
 
-                        override fun compare(first: Int?, second: Int?): Int {
-                            fail()
-                        }
+                            override fun compare(first: Int?, second: Int?): Int {
+                                fail()
+                            }
 
-                        override fun valueArraySearch(keys: Any?, key: Int?): Int {
-                            fail()
-                        }
+                            override fun valueArraySearch(keys: Any?, key: Int?): Int {
+                                fail()
+                            }
 
 //                        override fun valueArraySearch(keys: Any?, key: Int?, comparator: Comparator<*>?): Int {
 //                            fail()
 //                        }
-                    }
-                }else Serializer.INTEGER
+                        }
+                    } else Serializer.INTEGER
 
-                val m =
-                        if(generic) db.treeMap("aa")
-                        else db.treeMap("aa", keySer, Serializer.STRING)
+                    val m =
+                            if (generic) db.treeMap("aa")
+                            else db.treeMap("aa", keySer, Serializer.STRING)
 
 
-                val comparator = Serializer.INTEGER
+                    val comparator = Serializer.INTEGER
 
-                m.comparator(comparator)
+                    m.comparator(comparator)
 
-                if(small) m.maxNodeSize(6)
-                if(!valueInline) m.valuesOutsideNodesEnable()
+                    if (small) m.maxNodeSize(6)
+                    if (!valueInline) m.valuesOutsideNodesEnable()
 
-                if(counter) m.counterEnable()
+                    if (counter) m.counterEnable()
 
-                ret += m
+                    m
+                }
             }
 
             return ret
@@ -96,7 +98,7 @@ class BTreeMap_PumpTest(
 
     @Test fun test(){
         val limit = (100 + TT.testScale()*1e6).toInt()
-
+        val mapMaker = mapMaker2()
         val sink = mapMaker.createFromSink()
         (0 until limit).forEach {
             sink.put(it, it.toString())
