@@ -1,14 +1,14 @@
 package org.mapdb.tree
 
-import org.mapdb.store.*
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 import org.mapdb.*
-import org.mapdb.tree.guavaTests.ConcurrentMapInterfaceTest
 import org.mapdb.serializer.GroupSerializer
+import org.mapdb.store.*
+import org.mapdb.tree.guavaTests.ConcurrentMapInterfaceTest
 import java.io.IOException
 import java.util.*
 import java.util.concurrent.ConcurrentMap
@@ -54,7 +54,7 @@ class BTreeMap_ConcurrentMap_GuavaTest(
                     }
 
                     val nodeSize = if(small) 4 else 32
-                    val counterRecid = if(counter) store.put(0L, Serializer.LONG) else 0L
+                    val counterRecid = if(counter) store.put(0L, Serializer.LONG_PACKED) else 0L
                     var keySer:GroupSerializer<Int> = if(generic==null) Serializer.INTEGER else {
                             if(generic) Serializer.ELSA as GroupSerializer<Int> else Serializer.INTEGER
                         }
