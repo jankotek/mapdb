@@ -3,8 +3,8 @@
 package org.mapdb
 
 import org.fest.reflect.core.Reflection
-import org.junit.*
 import org.junit.Assert.*
+import org.junit.Test
 import org.mapdb.store.StoreTrivial
 import org.mapdb.tree.BTreeMap
 
@@ -36,8 +36,9 @@ class PumpTest{
 
 
     @Test
-    @Ignore
     fun mega(){
+        if(TT.shortTest())
+            return
         check((1..1000000).map{Pair(it, it*2)})
     }
 
