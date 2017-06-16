@@ -97,7 +97,7 @@ class BTreeMap_PumpTest(
     }
 
     @Test fun test(){
-        val limit = (100 + TT.testScale()*1e6).toInt()
+        val limit = (100 + TT.testScale()*1e5).toInt()
         val mapMaker = mapMaker2()
         val sink = mapMaker.createFromSink()
         (0 until limit).forEach {
