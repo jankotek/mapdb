@@ -108,7 +108,6 @@ public class ElsaIssues {
         map.put(1,new AAA());
 
         db.compact();
-        System.out.println(db.getStore().get(CC.RECID_CLASS_INFOS, Serializer.RECID_ARRAY));
         db.close();
 
         db = DBMaker.fileDB(f)
