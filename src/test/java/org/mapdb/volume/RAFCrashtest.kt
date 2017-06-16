@@ -1,13 +1,11 @@
 package org.mapdb.volume
 
-import org.junit.Ignore
+import org.junit.Assert.assertEquals
 import org.junit.Test
-import java.io.File
-import java.io.RandomAccessFile
-import java.util.*
-import org.junit.Assert.*
-import org.mapdb.crash.CrashJVM
 import org.mapdb.TT
+import org.mapdb.crash.CrashJVM
+import java.io.*
+import java.util.*
 
 
 class RAFCrashtest: CrashJVM(){
@@ -56,8 +54,10 @@ class RAFCrashtest: CrashJVM(){
 
 
     @Test
-    @org.junit.Ignore
     fun run() {
+        if (TT.shortTest())
+            return
+
         run(this, time = TT.testRuntime(10))
     }
 }

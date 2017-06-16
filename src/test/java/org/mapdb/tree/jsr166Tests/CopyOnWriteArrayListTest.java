@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
 
+
 public abstract class CopyOnWriteArrayListTest extends JSR166TestCase {
 
 

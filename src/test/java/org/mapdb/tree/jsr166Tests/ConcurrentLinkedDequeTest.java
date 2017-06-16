@@ -6,18 +6,12 @@ package org.mapdb.tree.jsr166Tests;/*
  * Pat Fisher, Mike Judd.
  */
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-import java.util.Queue;
-import java.util.Random;
+import junit.framework.*;
+
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
-import junit.framework.Test;
-import junit.framework.TestSuite;
-
+abstract
 public class ConcurrentLinkedDequeTest extends JSR166TestCase {
 
     public static void main(String[] args) {

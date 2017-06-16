@@ -3,8 +3,9 @@ package org.mapdb.volume
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import org.mapdb.util.DataIO
+import org.mapdb.TT
 import org.mapdb.crash.CrashJVM
+import org.mapdb.util.DataIO
 import java.io.File
 import java.util.*
 
@@ -73,8 +74,10 @@ abstract class VolumeSyncCrashTest(val volfab: VolumeFactory) : CrashJVM(){
     }
 
     @Test
-    @org.junit.Ignore
     fun run(){
+        if (TT.shortTest())
+            return
+
         CrashJVM.Companion.run(this, time = org.mapdb.TT.testRuntime(10))
     }
 }

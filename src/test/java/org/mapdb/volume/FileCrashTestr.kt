@@ -34,8 +34,11 @@ class FileCrashTestr: CrashJVM(){
         }
     }
 
-    @Test @org.junit.Ignore
+    @Test
     fun test(){
+        if (TT.shortTest())
+            return
+
         val runtime = 4000L + TT.testScale()*60*1000;
         val start = System.currentTimeMillis()
         Companion.run(this, time=runtime, killDelay = 200)

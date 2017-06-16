@@ -2,26 +2,21 @@
 
 package org.mapdb
 
-import org.mapdb.store.*
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.fest.reflect.core.Reflection
+import org.junit.*
 import org.junit.Assert.*
-import org.junit.Ignore
-import org.junit.Test
 import org.mapdb.elsa.ElsaSerializerPojo
 import org.mapdb.queue.QueueLong
 import org.mapdb.serializer.GroupSerializerObjectArray
-import org.mapdb.store.StoreTrivial
+import org.mapdb.store.*
 import org.mapdb.tree.*
 import org.mapdb.util.*
-import java.io.NotSerializableException
-import java.io.Serializable
+import java.io.*
 import java.math.BigDecimal
 import java.util.*
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.*
 
 class DBTest{
 
@@ -311,8 +306,11 @@ class DBTest{
     }
 
 
-    @Test @Ignore
+    @Test
     fun executors_hashMap(){
+        if(TT.shortTest())
+            return
+
         val db = DBMaker.heapDB().make()
         assertEquals(0, db.executors.size)
         val exec = Executors.newSingleThreadScheduledExecutor()
@@ -716,8 +714,11 @@ class DBTest{
     }
 
 
-    @Test @Ignore
+    @Test
     fun executors_hashSet(){
+        if(TT.shortTest())
+            return
+
         val db = DBMaker.heapDB().make()
         assertEquals(0, db.executors.size)
         val exec = Executors.newSingleThreadScheduledExecutor()
@@ -805,8 +806,11 @@ class DBTest{
     }
 
 
-    @Test @Ignore
+    @Test
     fun indexTreeLongLongMap_reopen(){
+        if(TT.shortTest())
+            return
+
         val f = TT.tempFile()
 
         var db = DB(store =StoreDirect.make(file=f.path), storeOpened = false, isThreadSafe = false)
@@ -842,8 +846,11 @@ class DBTest{
     }
 
 
-    @Test @Ignore
+    @Test
     fun indexTreeList_reopen(){
+        if(TT.shortTest())
+            return
+
         val f = TT.tempFile()
 
         var db = DB(store =StoreDirect.make(file=f.path), storeOpened = false, isThreadSafe = false)
@@ -927,8 +934,11 @@ class DBTest{
     }
 
 
-    @Test @Ignore
+    @Test
     fun testReopenExistingFile() {
+        if(TT.shortTest())
+            return
+
         //TODO test more configurations
         val file = TT.tempFile()
         for (i in 0..10) {
@@ -1190,8 +1200,11 @@ class DBTest{
         assertEquals(1e6.toLong(), size)
     }
 
-    @Test @Ignore
+    @Test
     fun deleteFilesAfterOpen(){
+        if(TT.shortTest())
+            return
+
         fun test(fab:(f: String)->DB){
             val dir = TT.tempDir()
             assertTrue(dir.listFiles().isEmpty())
@@ -1224,8 +1237,11 @@ class DBTest{
 
 
 
-    @Test @Ignore
+    @Test
     fun deleteFilesAfterClose(){
+        if(TT.shortTest())
+            return
+
         fun test(fab:(f: String)->DB){
             val dir = TT.tempDir()
             assertTrue(dir.listFiles().isEmpty())
@@ -1259,8 +1275,11 @@ class DBTest{
 
 
 
-    @Test @Ignore
+    @Test
     fun allFiles(){
+        if(TT.shortTest())
+            return
+
         fun test(fab:(f: String)->DB){
             val dir = TT.tempDir()
             assertTrue(dir.listFiles().isEmpty())
@@ -1319,8 +1338,11 @@ class DBTest{
         }
     }
 
-    @Test @Ignore
+    @Test
     fun reversed_comparator_restored(){
+        if(TT.shortTest())
+            return
+
         val f = TT.tempFile()
 
         var db = DBMaker.fileDB(f).make()

@@ -6,45 +6,28 @@ package org.mapdb.tree.jsr166Tests;/*
  * Pat Fisher, Mike Judd.
  */
 
+import java.util.*;
+import java.util.concurrent.*;
+
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-import java.util.Queue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-
-import junit.framework.Test;
-
+abstract
 public class LinkedBlockingQueueTest extends JSR166TestCase {
 
+    abstract
     public static class Unbounded extends BlockingQueueTest {
         protected BlockingQueue emptyCollection() {
             return new LinkedBlockingQueue();
         }
     }
 
+    abstract
     public static class Bounded extends BlockingQueueTest {
         protected BlockingQueue emptyCollection() {
             return new LinkedBlockingQueue(SIZE);
         }
     }
 
-    public static void main(String[] args) {
-        main(suite(), args);
-    }
-
-    public static Test suite() {
-        return newTestSuite(LinkedBlockingQueueTest.class,
-                            new Unbounded().testSuite(),
-                            new Bounded().testSuite());
-    }
 
     /**
      * Returns a new queue of given size containing consecutive

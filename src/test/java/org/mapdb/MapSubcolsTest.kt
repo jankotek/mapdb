@@ -1,10 +1,8 @@
 package org.mapdb
 
 import org.junit.Assert.assertEquals
-import org.junit.Ignore
 import org.junit.Test
-import org.mapdb.serializer.SerializerByteArray
-import org.mapdb.serializer.SerializerIntArray
+import org.mapdb.serializer.*
 import org.mapdb.tree.BTreeMap
 import java.util.*
 
@@ -88,14 +86,20 @@ class MapSubcolsTest{
     }
 
 
-    @Test @Ignore
+    @Test
     fun hashMap(){
+        if(TT.shortTest())
+            return
+
         test(DBMaker.memoryDB().make().hashMap("aa", keyser, valser).create())
     }
 
 
-    @Test @Ignore
+    @Test
     fun treeMap(){
+        if(TT.shortTest())
+            return
+
         val m = DBMaker.memoryDB().make().treeMap("aa", keyser, valser).create() as BTreeMap
         assert(m.keySerializer == m.comparator())
         test(m)

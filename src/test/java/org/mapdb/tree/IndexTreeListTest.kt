@@ -134,8 +134,11 @@ class IndexTreeListTest{
     }
 
 
-    @Test @Ignore
+    @Test
     fun treeRandom(){
+        if(TT.shortTest())
+            return
+
         val levels = 3;
         val maxIndex = 1.shl(dirShift*levels)
         val ref = LongLongHashMap()

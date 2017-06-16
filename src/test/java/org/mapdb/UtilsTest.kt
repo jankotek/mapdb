@@ -1,6 +1,6 @@
 package org.mapdb
 
-import org.junit.*
+import org.junit.Test
 import org.mapdb.TT.assertFailsWith
 import org.mapdb.util.*
 import java.util.concurrent.CountDownLatch
@@ -205,8 +205,10 @@ class UtilsTest{
 
 
     @Test(timeout = 10000)
-    @Ignore
     fun lockWriteAll(){
+        if(TT.shortTest())
+            return
+
         val locks = SingleEntryReadWriteSegmentedLock(10)
 
         val locked = CountDownLatch(2)
@@ -234,8 +236,10 @@ class UtilsTest{
 
 
     @Test(timeout = 10000)
-    @Ignore
     fun lockReadAll(){
+        if(TT.shortTest())
+            return
+
         val locks = SingleEntryReadWriteSegmentedLock(10)
 
 

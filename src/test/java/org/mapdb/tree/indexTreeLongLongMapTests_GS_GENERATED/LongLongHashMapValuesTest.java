@@ -23,14 +23,12 @@ import org.eclipse.collections.api.iterator.LongIterator;
 import org.eclipse.collections.api.list.MutableList;
 import org.eclipse.collections.api.map.primitive.MutableLongLongMap;
 import org.eclipse.collections.impl.block.factory.primitive.LongPredicates;
-import org.eclipse.collections.impl.collection.mutable.primitive.SynchronizedLongCollection;
-import org.eclipse.collections.impl.collection.mutable.primitive.UnmodifiableLongCollection;
+import org.eclipse.collections.impl.collection.mutable.primitive.*;
 import org.eclipse.collections.impl.list.mutable.FastList;
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList;
 import org.eclipse.collections.impl.test.Verify;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.*;
+import org.mapdb.TT;
 
 import java.util.NoSuchElementException;
 
@@ -155,18 +153,24 @@ public abstract class LongLongHashMapValuesTest extends AbstractMutableLongColle
     protected abstract MutableLongLongMap newWithKeysValues(long... args);
 
     @Override
-    @Test @Ignore
+    @Test
     public void asSynchronized()
     {
+        if(TT.shortTest())
+            return;
+
         MutableLongCollection collection = this.classUnderTest();
         Verify.assertInstanceOf(SynchronizedLongCollection.class, collection.asSynchronized());
         Assert.assertTrue(collection.asSynchronized().containsAll(this.classUnderTest()));
     }
 
     @Override
-    @Test @Ignore
+    @Test
     public void asUnmodifiable()
     {
+        if(TT.shortTest())
+            return;
+
         MutableLongCollection collection = this.classUnderTest();
         Verify.assertInstanceOf(UnmodifiableLongCollection.class, collection.asUnmodifiable());
         Assert.assertTrue(collection.asUnmodifiable().containsAll(this.classUnderTest()));

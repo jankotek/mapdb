@@ -1,10 +1,7 @@
 package org.mapdb.issues;
 
 import org.junit.Test;
-import org.mapdb.DB;
-import org.mapdb.DBConcurrentNavigableMap;
-import org.mapdb.DBMaker;
-import org.mapdb.Serializer;
+import org.mapdb.*;
 import org.mapdb.tree.BTreeMap;
 
 import static org.junit.Assert.assertEquals;
@@ -13,8 +10,10 @@ public class Issue743Test {
 
 
     @Test
-    @org.junit.Ignore
     public void testAfterClear_Integer(){
+        if(TT.shortTest())
+            return;
+
         DB db = DBMaker.memoryDB()
                 .closeOnJvmShutdown()
                 .make();

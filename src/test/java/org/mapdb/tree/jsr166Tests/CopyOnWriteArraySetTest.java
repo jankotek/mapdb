@@ -12,6 +12,7 @@ import junit.framework.TestSuite;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArraySet;
 
+abstract
 public class CopyOnWriteArraySetTest extends JSR166TestCase {
     public static void main(String[] args) {
         main(suite(), args);

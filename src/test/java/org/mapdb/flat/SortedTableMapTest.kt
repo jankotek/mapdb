@@ -2,16 +2,11 @@ package org.mapdb.flat
 
 import org.fest.reflect.core.Reflection
 import org.junit.Assert.*
-import org.junit.Ignore
 import org.junit.Test
-import org.mapdb.CC
-import org.mapdb.DBException
-import org.mapdb.Serializer
-import org.mapdb.TT
+import org.mapdb.*
 import org.mapdb.TT.assertFailsWith
 import org.mapdb.util.DataIO
-import org.mapdb.volume.ByteArrayVol
-import org.mapdb.volume.RandomAccessFileVol
+import org.mapdb.volume.*
 import java.io.RandomAccessFile
 import java.math.BigInteger
 import java.util.*
@@ -42,8 +37,11 @@ class SortedTableMapTest{
         test(1000)
     }
 
-    @Test @Ignore
+    @Test
     fun importMega(){
+        if(TT.shortTest())
+            return
+
         test(1000000)
     }
 
@@ -157,8 +155,11 @@ class SortedTableMapTest{
     }
 
 
-    @Test @Ignore
+    @Test
     fun entry_iterator_values_issue685(){
+        if(TT.shortTest())
+            return
+
         val consumer = SortedTableMap.createFromSink(
                 keySerializer = Serializer.INTEGER,
                 valueSerializer = Serializer.INTEGER,

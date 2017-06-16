@@ -1,12 +1,9 @@
 package org.mapdb.tree
 
 import org.fest.reflect.core.Reflection
+import org.junit.*
 import org.junit.Assert.*
-import org.junit.Ignore
-import org.junit.Test
-import org.mapdb.DBMaker
-import org.mapdb.Serializer
-import org.mapdb.TT
+import org.mapdb.*
 import org.mapdb.volume.SingleByteArrayVol
 import java.util.*
 
@@ -18,8 +15,10 @@ class HTreeMapExpirationTest {
 
 
     @Test(timeout = 10000)
-    @org.junit.Ignore
     fun expire_create() {
+        if(TT.shortTest())
+            return
+
         val map: HTreeMap<Int, String> = HTreeMap.make(expireCreateTTL = 1000, concShift = 0)
 
         assertEquals(0, map.expireCreateQueues!![0].size())
@@ -44,8 +43,10 @@ class HTreeMapExpirationTest {
     }
 
     @Test(timeout = 10000)
-    @Ignore
     fun expire_update() {
+        if(TT.shortTest())
+            return
+
         val map: HTreeMap<Int, String> = HTreeMap.make(expireUpdateTTL = 1000, concShift = 0)
 
         assertEquals(0, map.expireUpdateQueues!![0].size())
@@ -65,8 +66,10 @@ class HTreeMapExpirationTest {
     }
 
     @Test(timeout = 10000)
-    @Ignore
     fun expire_get() {
+        if(TT.shortTest())
+            return
+
         val map: HTreeMap<Int, String> = HTreeMap.make(expireGetTTL = 1000, concShift = 0)
 
         map.put(1, "aa")
@@ -83,8 +86,10 @@ class HTreeMapExpirationTest {
     }
 
     @Test (timeout = 10000)
-    @org.junit.Ignore
     fun instant_create() {
+        if(TT.shortTest())
+            return
+
         val map: HTreeMap<Int, String> = HTreeMap.make(expireCreateTTL = 1, concShift = 0)
         map.put(1, "aa")
         Thread.sleep(100)
@@ -94,8 +99,10 @@ class HTreeMapExpirationTest {
 
 
     @Test(timeout = 10000)
-    @org.junit.Ignore
     fun instant_update() {
+        if(TT.shortTest())
+            return
+
         val map: HTreeMap<Int, String> = HTreeMap.make(expireUpdateTTL = 1, concShift = 0)
 
         assertEquals(0, map.expireUpdateQueues!![0].size())
@@ -121,8 +128,11 @@ class HTreeMapExpirationTest {
         assertNull(map[1]);
     }
 
-    @Test (timeout = 100000) @Ignore
+    @Test (timeout = 100000)
     fun concurrentExpire() {
+        if(TT.shortTest())
+            return
+
         val map: HTreeMap<Int, Int> = HTreeMap.make(expireCreateTTL = 300, concShift = 4,
                 valueSerializer = Serializer.INTEGER, keySerializer = Serializer.INTEGER)
 
@@ -140,8 +150,11 @@ class HTreeMapExpirationTest {
         }
     }
 
-    @Test (timeout = 100000) @Ignore
+    @Test (timeout = 100000)
     fun concurrentExpire_update() {
+        if(TT.shortTest())
+            return
+
         val map: HTreeMap<Int, Int> = HTreeMap.make(expireUpdateTTL = 300, concShift = 4,
                 valueSerializer = Serializer.INTEGER, keySerializer = Serializer.INTEGER)
 
@@ -160,8 +173,10 @@ class HTreeMapExpirationTest {
     }
 
     @Test (timeout = 100000)
-    @org.junit.Ignore
     fun concurrentExpire_get() {
+        if(TT.shortTest())
+            return
+
         val map: HTreeMap<Int, Int> = HTreeMap.make(expireGetTTL = 300, concShift = 4,
                 valueSerializer = Serializer.INTEGER, keySerializer = Serializer.INTEGER)
 
@@ -181,8 +196,10 @@ class HTreeMapExpirationTest {
     }
 
     @Test (timeout = 10000)
-    @org.junit.Ignore
     fun background_expiration(){
+        if(TT.shortTest())
+            return
+
         val map = HTreeMap.make(expireCreateTTL = 300, concShift = 4,
                 valueSerializer = Serializer.INTEGER, keySerializer = Serializer.INTEGER,
                 expireExecutor = TT.executor(), expireExecutorPeriod = 100)
@@ -202,8 +219,11 @@ class HTreeMapExpirationTest {
         map.expireExecutor!!.shutdown()
     }
 
-    @Test(timeout = 100000) @Ignore
+    @Test(timeout = 100000)
     fun maxSize(){
+        if(TT.shortTest())
+            return
+
         val map = DBMaker.memoryDB().make()
                 .hashMap("aa", Serializer.INTEGER, Serializer.INTEGER)
                 .expireAfterCreate()
@@ -213,8 +233,11 @@ class HTreeMapExpirationTest {
         maxSizeTest(map)
     }
 
-    @Test(timeout = 100000) @Ignore
+    @Test(timeout = 100000)
     fun maxSizeSingleSeg(){
+        if(TT.shortTest())
+            return
+
         val map = DBMaker.memoryDB().make()
                 .hashMap("aa", Serializer.INTEGER, Serializer.INTEGER)
                 .expireAfterCreate()

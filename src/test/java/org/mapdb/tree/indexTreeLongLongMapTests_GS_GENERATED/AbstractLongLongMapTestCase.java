@@ -16,30 +16,26 @@
 
 package org.mapdb.tree.indexTreeLongLongMapTests_GS_GENERATED;
 
-import org.eclipse.collections.api.LazyLongIterable;
-import org.eclipse.collections.api.LongIterable;
+import org.eclipse.collections.api.*;
 import org.eclipse.collections.api.bag.MutableBag;
 import org.eclipse.collections.api.block.function.primitive.LongToObjectFunction;
 import org.eclipse.collections.api.iterator.LongIterator;
-import org.eclipse.collections.api.map.primitive.ImmutableLongLongMap;
-import org.eclipse.collections.api.map.primitive.LongLongMap;
+import org.eclipse.collections.api.map.primitive.*;
 import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.eclipse.collections.api.tuple.primitive.LongLongPair;
 import org.eclipse.collections.impl.bag.mutable.primitive.LongHashBag;
 import org.eclipse.collections.impl.block.factory.primitive.LongPredicates;
 import org.eclipse.collections.impl.factory.Bags;
-import org.eclipse.collections.impl.factory.primitive.LongBags;
-import org.eclipse.collections.impl.factory.primitive.LongLongMaps;
+import org.eclipse.collections.impl.factory.primitive.*;
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet;
 import org.eclipse.collections.impl.test.Verify;
 import org.eclipse.collections.impl.tuple.primitive.PrimitiveTuples;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.*;
+import org.mapdb.TT;
 
-import java.util.Arrays;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 /**
  * This file was automatically generated from template file abstractPrimitivePrimitiveMapTestCase.stg.
@@ -821,9 +817,11 @@ public abstract class AbstractLongLongMapTestCase
     }
 
     @Test
-    @org.junit.Ignore
     public void keyValuesView()
     {
+        if(TT.shortTest())
+            return;
+
         MutableBag<LongLongPair> expected = Bags.mutable.of();
         this.map.forEachKeyValue((long key, long value) -> expected.add(PrimitiveTuples.pair(key, value)));
         Assert.assertEquals(expected, this.map.keyValuesView().toBag());

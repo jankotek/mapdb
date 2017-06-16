@@ -1,14 +1,11 @@
 package org.mapdb.tuple;
 
 
-import org.junit.Ignore;
 import org.junit.Test;
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
+import org.mapdb.*;
 
 import java.util.Set;
-import java.util.concurrent.ConcurrentNavigableMap;
-import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.*;
 
 import static org.junit.Assert.*;
 import static org.mapdb.tuple.Tuple.*;
@@ -130,8 +127,10 @@ public class TupleTest {
     }
 
 
-    @Test @Ignore
+    @Test
     public void t5_compare(){
+        if(TT.shortTest())
+            return;
 
 
         for(int a1=0;a1<vals.length;a1++){
@@ -170,8 +169,10 @@ public class TupleTest {
     }
 
 
-    @Test @org.junit.Ignore
+    @Test
     public void t6_compare(){
+        if(TT.shortTest())
+            return;
 
 
         for(int a1=0;a1<vals.length;a1++){

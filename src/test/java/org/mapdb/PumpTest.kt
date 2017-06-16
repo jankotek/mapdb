@@ -3,10 +3,8 @@
 package org.mapdb
 
 import org.fest.reflect.core.Reflection
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
-import org.junit.Ignore
-import org.junit.Test
+import org.junit.*
+import org.junit.Assert.*
 import org.mapdb.store.StoreTrivial
 import org.mapdb.tree.BTreeMap
 

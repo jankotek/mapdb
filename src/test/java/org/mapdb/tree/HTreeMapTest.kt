@@ -199,8 +199,11 @@ class HTreeMapTest{
     }
 
 
-    @Test @Ignore
+    @Test
     fun hasher() {
+        if(TT.shortTest())
+            return
+
         val m = DBMaker.memoryDB().make()
                 .hashMap("test", Serializer.INT_ARRAY, Serializer.INTEGER).create()
 
@@ -250,9 +253,12 @@ class HTreeMapTest{
         assertEquals(8, counter.get().toLong())
     }
 
-    @Test @Ignore
+    @Test
     fun test_iterate_and_remove() {
-        val max = 1e5.toInt()
+        if(TT.shortTest())
+            return
+
+        val max = 1e6.toInt()
 
         val m = DBMaker.memoryDB().make().hashSet("test", Serializer.INTEGER).create()
 
@@ -360,8 +366,11 @@ class HTreeMapTest{
         }
     }
 
-    @Test @Ignore
+    @Test
     fun continous_expiration(){
+        if(TT.shortTest())
+            return
+
         val size = 128 * 1024*1024
         val volume = SingleByteArrayVol(size)
         val db = DBMaker.volumeDB(volume, false).make()
@@ -436,8 +445,10 @@ class HTreeMapTest{
     }
 
     @Test
-    @org.junit.Ignore
     fun key_iterator_does_not_deserialize_external_values(){
+        if(TT.shortTest())
+            return
+
         var keyDeserCount = 0
         var stopValDeser = false
 

@@ -1,14 +1,12 @@
 package org.mapdb.store
 
-import org.mapdb.*
 import org.eclipse.collections.impl.map.mutable.primitive.LongIntHashMap
+import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
+import org.mapdb.*
 import java.util.*
-import org.junit.Assert.*
-import org.junit.Ignore
-import org.mapdb.store.StoreDirectJava
 
 
 /**
@@ -67,8 +65,11 @@ class StoreDirect_LongStackAllocTest(
         }
     }
 
-    @Test @Ignore
+    @Test
     fun run(){
+        if(TT.shortTest())
+            return
+
         val size = 200000
         val r = Random(data.randomSeed)
 

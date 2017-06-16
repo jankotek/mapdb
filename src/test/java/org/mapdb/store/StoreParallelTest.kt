@@ -1,12 +1,10 @@
 package org.mapdb.store
 
-import org.mapdb.*
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Ignore
+import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
+import org.mapdb.*
 
 /**
  * Tests if store is thread safe
@@ -34,8 +32,10 @@ class StoreParallelTest(val maker:()->Store){
     val threadCount = 10
 
     @Test(timeout = 10*60*1000)
-    @Ignore
     fun close(){
+        if(TT.shortTest())
+            return
+
         val end = TT.nowPlusMinutes(2.0)
         val executor = TT.executor(threadCount)
         while(System.currentTimeMillis()<end){
@@ -49,8 +49,10 @@ class StoreParallelTest(val maker:()->Store){
 
 
     @Test(timeout = 10*60*1000)
-    @Ignore
     fun update(){
+        if(TT.shortTest())
+            return
+
         val end = TT.nowPlusMinutes(2.0)
         val executor = TT.executor(threadCount)
         while(System.currentTimeMillis()<end){
@@ -71,8 +73,10 @@ class StoreParallelTest(val maker:()->Store){
 
 
     @Test(timeout = 10*60*1000)
-    @Ignore
     fun cas(){
+        if(TT.shortTest())
+            return
+
         val end = TT.nowPlusMinutes(2.0)
         val executor = TT.executor(threadCount)
         while(System.currentTimeMillis()<end){
@@ -94,8 +98,10 @@ class StoreParallelTest(val maker:()->Store){
 
 
     @Test(timeout = 10*60*1000)
-    @Ignore
     fun commit(){
+        if(TT.shortTest())
+            return
+
         val end = TT.nowPlusMinutes(2.0)
         val executor = TT.executor(threadCount)
         while(System.currentTimeMillis()<end){

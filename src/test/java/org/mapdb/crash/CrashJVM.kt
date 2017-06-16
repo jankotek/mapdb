@@ -1,15 +1,11 @@
 package org.mapdb.crash
 
-import org.junit.After
+import org.junit.*
 import org.junit.Assert.assertTrue
-import org.junit.Before
-import org.junit.Test
-import org.mapdb.util.DataIO
 import org.mapdb.TT
 import org.mapdb.TT.assertFailsWith
-import java.io.ByteArrayOutputStream
-import java.io.File
-import java.io.InputStream
+import org.mapdb.util.DataIO
+import java.io.*
 
 /**
  * Runs custom code in forked JVM, and verify if data survive JVM crash.
@@ -280,8 +276,10 @@ class CrashJVMTest: CrashJVM(){
     }
 
     @Test
-    @org.junit.Ignore
     fun test(){
+        if(TT.shortTest())
+            return
+
         val runtime = 4000L + TT.testScale()*60*1000;
         val start = System.currentTimeMillis()
         run(this, time=runtime, killDelay = 200)

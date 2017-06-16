@@ -1,15 +1,12 @@
 package org.mapdb.volume
 
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
+import org.junit.Assert.*
 import org.junit.Test
-import org.mapdb.CC
-import org.mapdb.util.DataIO
-import org.mapdb.TT
+import org.mapdb.*
 import org.mapdb.crash.CrashJVM
-import java.io.File
-import java.io.RandomAccessFile
+import org.mapdb.util.DataIO
+import java.io.*
 import java.util.*
 
 
@@ -70,26 +67,34 @@ class VolumeCrashTest(): CrashJVM(){
     }
 
     @Test
-    @org.junit.Ignore
     fun fileChannel() {
+        if (TT.shortTest())
+            return
+
         run(this, time = TT.testRuntime(10), params="fileChannel")
     }
 
     @Test
-    @org.junit.Ignore
     fun raf() {
+        if (TT.shortTest())
+            return
+
         run(this, time = TT.testRuntime(10), params="raf")
     }
 
     @Test
-    @org.junit.Ignore
     fun mapped() {
+        if (TT.shortTest())
+            return
+
         run(this, time = TT.testRuntime(10), params="mapped")
     }
 
     @Test
-    @org.junit.Ignore
     fun mappedSingle() {
+        if (TT.shortTest())
+            return
+
         run(this, time = TT.testRuntime(10), params="mappedSingle")
     }
 }

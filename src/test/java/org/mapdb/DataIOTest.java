@@ -204,8 +204,11 @@ public class DataIOTest {
         assertTrue(-1L != DataIO.intToLong(-1));
     }
 
-    @Test @org.junit.Ignore
+    @Test
     public void packedLong_volume() throws IOException {
+        if(TT.shortTest())
+            return;
+
         DataOutput2 out = new DataOutput2();
         DataInput2.ByteArray in = new DataInput2.ByteArray(out.buf);
         Volume v = new SingleByteArrayVol(out.buf);

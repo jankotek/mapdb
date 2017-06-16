@@ -6,15 +6,11 @@ package org.mapdb.tree.jsr166Tests;/*
  * Pat Fisher, Mike Judd.
  */
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.NoSuchElementException;
+import junit.framework.*;
 
-import junit.framework.Test;
-import junit.framework.TestSuite;
+import java.util.*;
 
+abstract
 public class LinkedListTest extends JSR166TestCase {
     public static void main(String[] args) {
         main(suite(), args);

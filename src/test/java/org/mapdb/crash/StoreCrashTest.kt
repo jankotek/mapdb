@@ -2,11 +2,8 @@ package org.mapdb.crash
 
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.mapdb.Serializer
-import org.mapdb.Store
-import org.mapdb.TT
-import org.mapdb.store.StoreTrivialTx
-import org.mapdb.store.StoreWAL
+import org.mapdb.*
+import org.mapdb.store.*
 import java.io.File
 
 /**
@@ -42,8 +39,10 @@ abstract class StoreCrashTest: CrashJVM(){
     }
 
     @Test
-    @org.junit.Ignore
     fun crashTest(){
+        if(TT.shortTest())
+            return
+
         val store = openStore(File(getTestDir(), "store"))
         val recid = store.put(0L, Serializer.LONG)
         store.commit()

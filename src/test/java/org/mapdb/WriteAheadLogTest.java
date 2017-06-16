@@ -1,14 +1,12 @@
 package org.mapdb;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mapdb.util.DataIO;
 import org.mapdb.volume.Volume;
 
 import java.io.File;
 import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.*;
 
 import static org.junit.Assert.*;
 
@@ -326,8 +324,10 @@ public class WriteAheadLogTest {
     }
 
     @Test
-    @Ignore
     public void overflow_byte_array() {
+        if(TT.shortTest())
+            return;
+
         File f = TT.tempFile();
         f.delete();
         File f0 = new File(f.getPath() + ".wal.0");
@@ -347,8 +347,10 @@ public class WriteAheadLogTest {
     }
 
     @Test
-    @Ignore
     public void overflow_record() {
+        if(TT.shortTest())
+            return;
+
         File f = TT.tempFile();
         f.delete();
         File f0 = new File(f.getPath() + ".wal.0");

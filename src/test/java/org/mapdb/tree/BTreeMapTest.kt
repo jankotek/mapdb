@@ -5,20 +5,14 @@ package org.mapdb.tree
 import org.eclipse.collections.api.list.primitive.MutableLongList
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet
 import org.fest.reflect.core.Reflection
+import org.junit.*
 import org.junit.Assert.*
-import org.junit.Ignore
-import org.junit.Test
 import org.mapdb.*
-import org.mapdb.store.StoreDirect
-import org.mapdb.store.calculateFreeSize
+import org.mapdb.store.*
 import org.mapdb.tree.BTreeMapJava.*
-import java.io.IOException
 import java.math.BigInteger
 import java.util.*
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ConcurrentSkipListMap
-import java.util.concurrent.ConcurrentSkipListSet
-import java.util.concurrent.CopyOnWriteArraySet
+import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicInteger
 
 @Suppress("UNCHECKED_CAST")
@@ -472,8 +466,11 @@ class BTreeMapTest {
         }
     }
 
-    @Test  @Ignore
+    @Test
     fun randomInsert() {
+        if(TT.shortTest())
+            return
+
         val map = BTreeMap.make(
                 keySerializer = Serializer.INTEGER,
                 valueSerializer = Serializer.INTEGER,
@@ -482,8 +479,8 @@ class BTreeMapTest {
 
         var r = Random(1)
         val ref = IntHashSet()
-        for (i in 0..1000) {
-            val key = r.nextInt(10000)
+        for (i in 0..10000) {
+            val key = r.nextInt(100000)
             ref.add(key)
             map.put(key, key * 100)
             map.verify()
@@ -493,8 +490,11 @@ class BTreeMapTest {
         }
     }
 
-    @Test @Ignore
+    @Test
     fun randomInsert_returnVal() {
+        if(TT.shortTest())
+            return
+
         val map = BTreeMap.make(
                 keySerializer = Serializer.INTEGER,
                 valueSerializer = Serializer.INTEGER,
@@ -503,8 +503,8 @@ class BTreeMapTest {
 
         var r = Random(1)
         val ref = IntHashSet()
-        for (i in 0..1000) {
-            val key = r.nextInt(10000)
+        for (i in 0..10000) {
+            val key = r.nextInt(100000)
             ref.add(key)
             map.put(key, key * 100 + i - 1)
             map.verify()
@@ -515,8 +515,11 @@ class BTreeMapTest {
         }
     }
 
-    @Test  @Ignore
+    @Test
     fun randomInsert_delete() {
+        if(TT.shortTest())
+            return
+
         val map = BTreeMap.make(
                 keySerializer = Serializer.INTEGER,
                 valueSerializer = Serializer.INTEGER,
@@ -525,8 +528,8 @@ class BTreeMapTest {
 
         var r = Random(1)
         val ref = IntHashSet()
-        for (i in 0..1000) {
-            val key = r.nextInt(10000)
+        for (i in 0..10000) {
+            val key = r.nextInt(100000)
             ref.add(key)
             map.put(key, key * 100)
         }
@@ -541,7 +544,7 @@ class BTreeMapTest {
             removed.add(key)
 
 
-            for (i in 0..10000) {
+            for (i in 0..100000) {
                 if (!ref.contains(i) && !removed.contains(i)) {
                     assertEquals(null, map[i])
                 }
@@ -586,8 +589,11 @@ class BTreeMapTest {
 
 
     /* check that empty leaf nodes are skipped during iteration */
-    @Test  @Ignore
+    @Test
     fun iterate_remove() {
+        if(TT.shortTest())
+            return
+
         val map = BTreeMap.make(
                 keySerializer = Serializer.INTEGER,
                 valueSerializer = Serializer.INTEGER,
@@ -866,8 +872,11 @@ class BTreeMapTest {
         }
     }
 
-    @Test @Ignore
+    @Test
     fun prefix_submap(){
+        if(TT.shortTest())
+            return
+
         val map = BTreeMap.make(
                 keySerializer = Serializer.BYTE_ARRAY,
                 valueSerializer = Serializer.BYTE_ARRAY)
@@ -961,8 +970,10 @@ class BTreeMapTest {
 
 
 
-    @Test @Ignore
+    @Test
     fun findSmaller() {
+        if(TT.shortTest())
+            return
 
         val m = DBMaker.memoryDB().make().treeMap("test").create() as NavigableMap<Int, String>
 
@@ -1287,10 +1298,12 @@ class BTreeMapTest {
     }
 
 
-    @Test  @Ignore
+    @Test
     fun issue403_store_grows_with_values_outside_nodes() {
-        val f = TT.tempFile()
-        val db = DBMaker.fileDB(f).closeOnJvmShutdown().make()
+        if(TT.shortTest())
+            return
+
+        val db = DBMaker.memoryDB().closeOnJvmShutdown().make()
 
         val id2entry = db.treeMap("id2entry")
                 .valueSerializer(Serializer.BYTE_ARRAY)
@@ -1324,7 +1337,6 @@ class BTreeMapTest {
 
 
         db.close()
-        f.delete()
     }
 
 
@@ -1360,13 +1372,14 @@ class BTreeMapTest {
 
     @Test @Ignore
     fun serialize_clone() {
+
         val m:MutableMap<Int,Int> = DBMaker
                 .memoryDB()
                 .make()
                 .treeMap("map", Serializer.INTEGER, Serializer.INTEGER)
                 .createOrOpen()
 
-        for (i in 0..999) {
+        for (i in 0..9999) {
             m.put(i, i * 10)
         }
 

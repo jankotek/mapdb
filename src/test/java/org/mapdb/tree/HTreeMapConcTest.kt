@@ -22,7 +22,6 @@ class HTreeMapConcTest(val mapMaker:(generic:Boolean)-> ConcurrentMap<Any?, Any?
         }
     }
     @Test
-    @org.junit.Ignore
     fun basicTest(){
         val map = mapMaker(false);
         var max = 10000;

@@ -4,18 +4,11 @@ package org.mapdb.tree.jsr166Tests;/*
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-import java.util.ArrayDeque;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-import java.util.Queue;
-import java.util.Random;
+import junit.framework.*;
 
-import junit.framework.Test;
-import junit.framework.TestSuite;
+import java.util.*;
 
+abstract
 public class ArrayDequeTest extends JSR166TestCase {
     public static void main(String[] args) {
         main(suite(), args);

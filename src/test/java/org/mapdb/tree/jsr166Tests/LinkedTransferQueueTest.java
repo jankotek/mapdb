@@ -5,22 +5,10 @@ package org.mapdb.tree.jsr166Tests;/*
  * Other contributors include John Vint
  */
 
+import java.util.*;
+import java.util.concurrent.*;
+
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Queue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedTransferQueue;
-
-import junit.framework.Test;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public abstract class LinkedTransferQueueTest extends JSR166TestCase {
@@ -32,20 +20,11 @@ public abstract class LinkedTransferQueueTest extends JSR166TestCase {
         public boolean permitsNulls() { return false; }
     }
 
+    abstract
     public static class Generic extends BlockingQueueTest {
         protected BlockingQueue emptyCollection() {
             return new LinkedTransferQueue();
         }
-    }
-
-    public static void main(String[] args) {
-        main(suite(), args);
-    }
-
-    public static Test suite() {
-        return newTestSuite(LinkedTransferQueueTest.class,
-                            new Generic().testSuite(),
-                            CollectionTest.testSuite(new Implementation()));
     }
 
     /**

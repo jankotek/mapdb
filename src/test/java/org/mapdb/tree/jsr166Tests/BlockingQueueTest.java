@@ -7,21 +7,17 @@ package org.mapdb.tree.jsr166Tests;/*
  * Pat Fisher, Mike Judd.
  */
 
+import junit.framework.*;
+
+import java.util.*;
+import java.util.concurrent.*;
+
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Queue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CountDownLatch;
-
-import junit.framework.Test;
-import junit.framework.TestSuite;
 
 /**
  * Contains "contract" tests applicable to all BlockingQueue implementations.
  */
+
 public abstract class BlockingQueueTest extends JSR166TestCase {
     /*
      * This is the start of an attempt to refactor the tests for the

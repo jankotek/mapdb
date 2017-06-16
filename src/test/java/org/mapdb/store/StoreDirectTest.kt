@@ -3,16 +3,14 @@ package org.mapdb.store
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
+import org.junit.*
 import org.junit.Assert.*
-import org.junit.Ignore
-import org.junit.Test
 import org.mapdb.*
 import org.mapdb.store.StoreDirectJava.*
 import org.mapdb.util.DataIO
 import org.mapdb.util.DataIO.*
 import org.mapdb.volume.*
-import java.io.File
-import java.io.RandomAccessFile
+import java.io.*
 import java.util.*
 
 class StoreDirectTest:StoreDirectAbstractTest(){
@@ -259,8 +257,9 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
     }
 
     @Test
-    @Ignore
     fun recidToOffset_convert(){
+        if(TT.shortTest())
+            return
         val s = openStore()
         s.structuralLock?.lock()
         s.allocateNewIndexPage();
@@ -275,8 +274,11 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
         }
     }
 
-    @Test @Ignore
+    @Test
     fun recid2Offset() {
+        if(TT.shortTest())
+            return
+
         val e = openStore()
 
         //create 2 fake index pages
@@ -343,8 +345,10 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
     }
 
     @Test
-    @Ignore
     fun allocate_recid(){
+        if(TT.shortTest())
+            return
+
         val s = openStore()
         s.structuralLock?.lock()
         for(recid in 1L .. 100000L){
@@ -408,9 +412,11 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
     }
 
     @Test
-    @Ignore
     fun longStack_putTake_many() {
-        val max2 = 10000L
+        if(TT.shortTest())
+            return
+
+        val max2 = 100000L
         val min2 = if(TT.shortTest()) max2 else 1
         val s = openStore()
         s.structuralLock?.lock()
@@ -447,8 +453,11 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
 
 
 
-    @Test @Ignore
+    @Test
     fun freeSpace3(){
+        if(TT.shortTest())
+            return
+
         val db = DBMaker.memoryDB().make()
         val store = db.store as StoreDirect
         val map = db.hashMap("map",Serializer.LONG, Serializer.BYTE_ARRAY).create()
@@ -460,8 +469,10 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
     }
 
     @Test
-    @Ignore
     fun compact(){
+        if(TT.shortTest())
+            return
+
         val store = openStore();
 
         val ref = LongObjectHashMap<ByteArray>()
@@ -552,10 +563,13 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
         f.delete()
     }
 
-    @Test @Ignore
+    @Test
     fun small_ser_size(){
+        if(TT.shortTest())
+            return
+
         val f  = TT.tempFile()
-        for(size in 1 .. 20){
+        for(size in 1 .. 40){
             var store = openStore(f)
 
             var b = TT.randomByteArray(size,1)
@@ -650,8 +664,11 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
         }
     }
 
-    @Test @Ignore
+    @Test
     fun head_feat_bits(){
+        if(TT.shortTest())
+            return
+
         val firstUnknownBit = 3
         for(bitPos in firstUnknownBit until 32) {
             val file = TT.tempFile()
@@ -672,8 +689,11 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
     }
 
 
-    @Test @Ignore
+    @Test
     fun direct_feat_bits(){
+        if(TT.shortTest())
+            return
+
         val firstUnknownBit = 1
         for(bitPos in firstUnknownBit until 32) {
             val file = TT.tempFile()

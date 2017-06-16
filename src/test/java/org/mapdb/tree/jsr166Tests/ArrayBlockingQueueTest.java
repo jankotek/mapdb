@@ -6,44 +6,26 @@ package org.mapdb.tree.jsr166Tests;/*
  * Pat Fisher, Mike Judd.
  */
 
+import java.util.*;
+import java.util.concurrent.*;
+
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-import java.util.Queue;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ExecutorService;
-
-import junit.framework.Test;
-
+abstract
 public class ArrayBlockingQueueTest extends JSR166TestCase {
 
+    abstract
     public static class Fair extends BlockingQueueTest {
         protected BlockingQueue emptyCollection() {
             return new ArrayBlockingQueue(SIZE, true);
         }
     }
 
+    abstract
     public static class NonFair extends BlockingQueueTest {
         protected BlockingQueue emptyCollection() {
             return new ArrayBlockingQueue(SIZE, false);
         }
-    }
-
-    public static void main(String[] args) {
-        main(suite(), args);
-    }
-
-    public static Test suite() {
-        return newTestSuite(ArrayBlockingQueueTest.class,
-                            new Fair().testSuite(),
-                            new NonFair().testSuite());
     }
 
     /**
