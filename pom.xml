@@ -47,7 +47,7 @@
 
         <testThreadCount>3</testThreadCount>
         <testArgLine></testArgLine>
-        <testReuseForks>true</testReuseForks>
+        <testReuseForks>false</testReuseForks>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>

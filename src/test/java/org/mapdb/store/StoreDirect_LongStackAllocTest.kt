@@ -6,6 +6,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 import org.mapdb.*
+import org.mapdb.volume.MappedFileVol
 import java.util.*
 
 
@@ -72,8 +73,10 @@ class StoreDirect_LongStackAllocTest(
 
         val size = 200000
         val r = Random(data.randomSeed)
-
-        val store = StoreDirect.make(isThreadSafe = false, concShift = 0)
+        val f = TT.tempFile()
+        val store = StoreDirect.make(
+                file = f.path, volumeFactory = MappedFileVol.FACTORY,
+                isThreadSafe = false, concShift = 0)
 
         val recids = LongIntHashMap()
 
@@ -124,6 +127,8 @@ class StoreDirect_LongStackAllocTest(
             assertEquals(size, old.size)
             TT.assertAllZero(old)
         }
+        store.close()
+        f.delete()
     }
 
 

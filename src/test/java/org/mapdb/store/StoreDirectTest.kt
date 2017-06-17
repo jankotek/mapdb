@@ -3,8 +3,8 @@ package org.mapdb.store
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
-import org.junit.*
 import org.junit.Assert.*
+import org.junit.Test
 import org.mapdb.*
 import org.mapdb.store.StoreDirectJava.*
 import org.mapdb.util.DataIO
@@ -416,7 +416,7 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
         if(TT.shortTest())
             return
 
-        val max2 = 100000L
+        val max2 = 10000L
         val min2 = if(TT.shortTest()) max2 else 1
         val s = openStore()
         s.structuralLock?.lock()
