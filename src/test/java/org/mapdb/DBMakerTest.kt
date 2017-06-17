@@ -325,6 +325,7 @@ class DBMakerTest{
 
             val file = args[0]
             val db1 = DBMaker.fileDB(file).make()
+            System.out.println("Locked database.")
             Thread.sleep(60000)
             db1.close()
         }

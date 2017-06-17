@@ -10,7 +10,7 @@ import java.util.*
  * test if map keyset, values and entrySet correctly use Serializer.hashcode and Serializer.equals
  */
 //TODO this needs more work, better way to mock serializer statistics
-class MapSubcolsTest{
+abstract class MapSubcolsTest{
 
     var keyEqCount = 0
     var keyHashCount = 0
@@ -21,14 +21,11 @@ class MapSubcolsTest{
             return super.equals(first, second)
         }
 
-
-
         override fun hashCode(o: ByteArray, seed: Int): Int {
             keyHashCount++
             return super.hashCode(o, seed)
         }
     }
-
 
     var valEqCount = 0
     var valHashCount = 0
@@ -88,18 +85,12 @@ class MapSubcolsTest{
 
     @Test
     fun hashMap(){
-        if(TT.shortTest())
-            return
-
         test(DBMaker.memoryDB().make().hashMap("aa", keyser, valser).create())
     }
 
 
     @Test
     fun treeMap(){
-        if(TT.shortTest())
-            return
-
         val m = DBMaker.memoryDB().make().treeMap("aa", keyser, valser).create() as BTreeMap
         assert(m.keySerializer == m.comparator())
         test(m)

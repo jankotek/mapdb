@@ -26,7 +26,8 @@ public final class JavaProcess {
         commandArgs.addAll(Arrays.asList(args));
 
         ProcessBuilder builder = new ProcessBuilder(commandArgs);
-
+        // redirects output to console for debug
+        //builder.inheritIO();
         return builder.start();
     }
 }
