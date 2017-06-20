@@ -2,9 +2,7 @@
 
 package org.mapdb
 
-import org.fest.reflect.core.Reflection
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
+import org.junit.Assert.*
 import org.junit.Test
 import java.util.*
 
@@ -13,10 +11,7 @@ import java.util.*
  */
 class DBSerTest{
 
-    fun DB.pojoSingletons() =
-            Reflection.method("pojoSingletons")
-                    .`in`(this)
-                    .invoke() as Array<Any>
+    fun DB.pojoSingletons():Array<Any> = TT.reflectionInvokeMethod(this, "pojoSingletons")
 
 
     @Test fun named(){

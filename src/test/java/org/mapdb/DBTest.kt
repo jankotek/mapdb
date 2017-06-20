@@ -22,7 +22,7 @@ class DBTest{
 
 
     val DB.executors: MutableSet<ExecutorService>
-        get() = Reflection.method("getExecutors").`in`(this).invoke() as MutableSet<ExecutorService>
+        get() = TT.reflectionInvokeMethod(this, "getExecutors")
 
     //TODO remove this once LongLongMap is thread safe
     fun DB.indexTreeLongLongMap(name:String) =
@@ -1006,11 +1006,8 @@ class DBTest{
 
     class TestPojo: Serializable {}
 
-    fun DB.loadClassInfos() =
-            Reflection.method("loadClassInfos")
-                    .`in`(this)
-                    .invoke() as Array<ElsaSerializerPojo.ClassInfo>
-
+    fun DB.loadClassInfos():Array<ElsaSerializerPojo.ClassInfo> =
+            TT.reflectionInvokeMethod(this, "loadClassInfos")
 
     @Test fun class_registered(){
         val f = TT.tempFile()
@@ -1072,7 +1069,7 @@ class DBTest{
         f.delete()
     }
 
-    fun DB.classInfoSerializer() = Reflection.method("getClassInfoSerializer").`in`(this).invoke() as Serializer<Any>
+    fun DB.classInfoSerializer():Serializer<Any> = TT.reflectionInvokeMethod(this, "getClassInfoSerializer")
 
     @Test fun register_class_leaves_old_value(){
         var db = DBMaker.memoryDB().make()

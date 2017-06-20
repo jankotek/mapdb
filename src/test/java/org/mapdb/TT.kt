@@ -257,6 +257,21 @@ object TT{
     }
 
 
+    fun <E> reflectionInvokeMethod(obj:Any, name:String):E{
+        val clazz = obj.javaClass
+        val method = clazz.getDeclaredMethod(name)
+        method.isAccessible = true
+        return method.invoke(obj) as E
+    }
+
+
+    fun <E> reflectionGetField(obj:Any, name:String):E{
+        val clazz = obj.javaClass
+        val field = clazz.getDeclaredField(name)
+        field.isAccessible = true
+        return field.get(obj) as E
+    }
+
 }
 
 class TTTest{
