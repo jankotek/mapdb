@@ -1,6 +1,6 @@
 package org.mapdb.util
 
-import com.google.common.collect.MapMaker
+import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
 import org.mapdb.CC
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.*
@@ -106,12 +106,12 @@ class SingleEntryReadWriteLock: ReadWriteLock {
     //TODO private
     val lock: ReentrantReadWriteLock = ReentrantReadWriteLock()
 
-    private val readLockThreads = MapMaker().weakKeys().makeMap<Thread, Lock>()
+    private val readLockThreads = LongObjectHashMap<Lock>()
 
     fun checkNotLocked() {
         if (lock.isWriteLockedByCurrentThread)
             throw IllegalMonitorStateException("can not lock, already locked for write by current thread")
-        if(readLockThreads.containsKey(Thread.currentThread()))
+        if(readLockThreads.containsKey(Thread.currentThread().id))
             throw IllegalMonitorStateException("can not lock, already locked for read by current thread")
     }
 
@@ -123,7 +123,7 @@ class SingleEntryReadWriteLock: ReadWriteLock {
     /** checks if locked for read or locked for write, fails if not locked */
     fun checkReadLocked() {
         if(!lock.isWriteLockedByCurrentThread
-                && !readLockThreads.containsKey(Thread.currentThread()))
+                && !readLockThreads.containsKey(Thread.currentThread().id))
             throw IllegalMonitorStateException("not locked for read")
     }
 
@@ -133,7 +133,7 @@ class SingleEntryReadWriteLock: ReadWriteLock {
             throw IllegalMonitorStateException("is write locked")
         if(lock.readHoldCount!=1)
             throw IllegalMonitorStateException("readHoldCount is wrong")
-        if(!readLockThreads.containsKey(Thread.currentThread()))
+        if(!readLockThreads.containsKey(Thread.currentThread().id))
             throw IllegalMonitorStateException("not locked for read")
     }
 
@@ -177,7 +177,7 @@ class SingleEntryReadWriteLock: ReadWriteLock {
             checkNotLocked()
             val r =  origReadLock.tryLock()
             if(r)
-                readLockThreads.put(Thread.currentThread(), this)
+                readLockThreads.put(Thread.currentThread().id, this)
             return r
         }
 
@@ -185,7 +185,7 @@ class SingleEntryReadWriteLock: ReadWriteLock {
             checkNotLocked()
             val r = origReadLock.tryLock(time, unit)
             if(r)
-                readLockThreads.put(Thread.currentThread(), this)
+                readLockThreads.put(Thread.currentThread().id, this)
             return r
         }
 
@@ -195,18 +195,18 @@ class SingleEntryReadWriteLock: ReadWriteLock {
 
         override fun lock() {
             checkNotLocked()
-            readLockThreads.put(Thread.currentThread(), this)
+            readLockThreads.put(Thread.currentThread().id, this)
             origReadLock.lock()
         }
 
         override fun lockInterruptibly() {
             checkNotLocked()
-            readLockThreads.put(Thread.currentThread(), this)
+            readLockThreads.put(Thread.currentThread().id, this)
             origReadLock.lockInterruptibly()
         }
 
         override fun unlock() {
-            readLockThreads.remove(Thread.currentThread())
+            readLockThreads.remove(Thread.currentThread().id)
             origReadLock.unlock()
         }
     }
@@ -214,7 +214,7 @@ class SingleEntryReadWriteLock: ReadWriteLock {
     override fun writeLock() = newWriteLock
     override fun readLock() = newReadLock
     fun isWriteLockedByCurrentThread(): Boolean = lock.isWriteLockedByCurrentThread()
-    fun isReadLockedByCurrentThread(): Boolean = readLockThreads.containsKey(Thread.currentThread())
+    fun isReadLockedByCurrentThread(): Boolean = readLockThreads.containsKey(Thread.currentThread().id)
 
 }
 
