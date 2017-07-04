@@ -25,6 +25,7 @@ import org.eclipse.collections.api.set.primitive.MutableLongSet
 import org.eclipse.collections.api.tuple.primitive.LongLongPair
 import org.eclipse.collections.impl.bag.mutable.HashBag
 import org.eclipse.collections.impl.bag.mutable.primitive.LongHashBag
+import org.eclipse.collections.impl.collection.mutable.primitive.*
 import org.eclipse.collections.impl.factory.Sets
 import org.eclipse.collections.impl.factory.primitive.LongSets
 import org.eclipse.collections.impl.lazy.AbstractLazyIterable
@@ -710,13 +711,11 @@ public class IndexTreeLongLongMap(
                 }
 
                 override fun asSynchronized(): MutableLongCollection? {
-                    //TODO synchronized
-                    throw UnsupportedOperationException()
-                }
+                    return SynchronizedLongCollection.of(this)
+                 }
 
                 override fun asUnmodifiable(): MutableLongCollection? {
-                    //TODO synchronized
-                    throw UnsupportedOperationException()
+                    return UnmodifiableLongCollection.of(this)
                 }
 
                 override fun clear() {

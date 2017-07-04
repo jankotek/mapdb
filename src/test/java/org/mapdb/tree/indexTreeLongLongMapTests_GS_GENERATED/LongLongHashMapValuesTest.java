@@ -153,7 +153,6 @@ public abstract class LongLongHashMapValuesTest extends AbstractMutableLongColle
 
     @Override
     @Test
-    @Ignore //TODO reenable once implemented
     public void asSynchronized()
     {
         MutableLongCollection collection = this.classUnderTest();
@@ -163,7 +162,6 @@ public abstract class LongLongHashMapValuesTest extends AbstractMutableLongColle
 
     @Override
     @Test
-    @Ignore //TODO reenable once implemented
     public void asUnmodifiable()
     {
         MutableLongCollection collection = this.classUnderTest();
