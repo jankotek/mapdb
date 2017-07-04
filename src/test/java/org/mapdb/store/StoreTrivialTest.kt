@@ -1,6 +1,7 @@
 package org.mapdb.store
 
-import org.fest.reflect.core.Reflection
+import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
+import org.eclipse.collections.impl.stack.mutable.primitive.LongArrayStack
 import org.junit.Assert.*
 import org.junit.Test
 import org.mapdb.*
@@ -12,8 +13,18 @@ import java.util.concurrent.locks.ReadWriteLock
 class StoreTrivialTest : StoreReopenTest() {
 
     val StoreTrivial.lock:  ReadWriteLock?
-        get() = Reflection.method("getLock").`in`(this).invoke() as  ReadWriteLock?
+        get() = TT.reflectionInvokeMethod(this, "getLock", StoreTrivial::class.java)
 
+    val StoreTrivial.freeRecids:LongArrayStack
+        get() = TT.reflectionInvokeMethod(this, "getFreeRecids", StoreTrivial::class.java)
+
+
+    val StoreTrivial.records: LongObjectHashMap<ByteArray>
+        get() = TT.reflectionInvokeMethod(this, "getRecords", StoreTrivial::class.java)
+
+
+    val StoreTrivial.maxRecid: Long
+        get() = TT.reflectionInvokeMethod(this, "getMaxRecid", StoreTrivial::class.java)
 
     override fun openStore() = StoreTrivial();
 
@@ -133,4 +144,36 @@ class StoreTrivialTest : StoreReopenTest() {
         store.close()
         assertEquals(0, dir.listFiles().size)
     }
+
+    @Test fun compact(){
+        val store = StoreTrivial()
+        val r1 = store.put("aa", Serializer.STRING)
+        assertEquals(r1, 1)
+        val r2 = store.put("aa", Serializer.STRING)
+        assertEquals(r2, 2)
+        assertEquals(store.maxRecid, 2)
+        assertTrue(store.freeRecids.isEmpty)
+
+        store.delete(r2, Serializer.STRING)
+        assertEquals(store.freeRecids.size(),1)
+        assertEquals(store.maxRecid, 2)
+
+        store.compact()
+        assertEquals(store.freeRecids.size(),0)
+        assertEquals(store.maxRecid, 1)
+
+        store.delete(r1, Serializer.STRING)
+        assertEquals(store.freeRecids.size(),1)
+        assertEquals(store.maxRecid, 1)
+
+        store.compact()
+        assertEquals(store.freeRecids.size(),0)
+        assertEquals(store.maxRecid, 0)
+
+        store.compact()
+        assertEquals(store.freeRecids.size(),0)
+        assertEquals(store.maxRecid, 0)
+
+    }
+
 }

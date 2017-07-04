@@ -945,34 +945,32 @@ class StoreDirect(
 
 
     override fun verify(){
-
-        /// TODO move this section back under lock, once Kotlin compiler issue is resolved in 1.1.2
-        val bit = BitSet()
-        val max = fileTail
-
-        fun set(start: Long, end: Long, expectZeros: Boolean) {
-            if (start > max)
-                throw AssertionError("start too high")
-            if (end > max)
-                throw AssertionError("end too high")
-
-            if (CC.ZEROS && expectZeros)
-                volume.assertZeroes(start, end)
-
-            val start0 = start.toInt()
-            val end0 = end.toInt()
-
-            for (index in start0 until end0) {
-                if (bit.get(index)) {
-                    throw AssertionError("already set $index - ${index % CC.PAGE_SIZE}")
-                }
-            }
-
-            bit.set(start0, end0)
-        }
-
         locks.lockReadAll{
             structuralLock.lock{
+
+                val bit = BitSet()
+                val max = fileTail
+
+                fun set(start: Long, end: Long, expectZeros: Boolean) {
+                    if (start > max)
+                        throw AssertionError("start too high")
+                    if (end > max)
+                        throw AssertionError("end too high")
+
+                    if (CC.ZEROS && expectZeros)
+                        volume.assertZeroes(start, end)
+
+                    val start0 = start.toInt()
+                    val end0 = end.toInt()
+
+                    for (index in start0 until end0) {
+                        if (bit.get(index)) {
+                            throw AssertionError("already set $index - ${index % CC.PAGE_SIZE}")
+                        }
+                    }
+
+                    bit.set(start0, end0)
+                }
 
 
                 set(0, HEAD_END, false)
