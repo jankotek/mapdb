@@ -980,6 +980,9 @@ class HTreeMap<K,V>(
         override val size: Int
         get() = map.size
 
+        override fun contains(element: K): Boolean {
+            return map.containsKey(element)
+        }
 
         override fun add(element: K): Boolean {
             if(map.hasValues)
