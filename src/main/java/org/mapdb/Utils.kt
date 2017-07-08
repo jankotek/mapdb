@@ -203,7 +203,7 @@ internal object Utils {
 
 
     fun newLock(threadSafe: Boolean): Lock? {
-        return if(CC.ASSERT){
+        return if(CC.PARANOID){
             if(threadSafe) SingleEntryLock()
             else null   //TODO assert no reentry in single threaded mode
         }else{
@@ -213,7 +213,7 @@ internal object Utils {
     }
 
     fun newReadWriteLock(threadSafe: Boolean): ReadWriteLock? {
-        return if(CC.ASSERT){
+        return if(CC.PARANOID){
             if(threadSafe) SingleEntryReadWriteLock()
             else null; //TODO assert no reentry even in thread safe mode
         }else{

@@ -4,12 +4,11 @@ import org.fest.reflect.core.Reflection
 import org.junit.Assert.*
 import org.junit.Test
 import org.mapdb.volume.SingleByteArrayVol
-import java.io.Closeable
-import java.io.Serializable
+import java.io.*
 import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.locks.ReadWriteLock
+import java.util.concurrent.locks.*
 
 class HTreeMapTest{
 
@@ -223,8 +222,10 @@ class HTreeMapTest{
         m = db.hashMap("name", Serializer.STRING, Serializer.STRING)
             .modificationListener(MapModificationListener { key, oldVal, newVal, triggered ->
                 for (i in 0..m!!.locks!!.size - 1) {
+                    val lock = m!!.locks[i]
                     assertEquals(seg == i,
-                            (m!!.locks[i] as Utils.SingleEntryReadWriteLock).lock.isWriteLockedByCurrentThread)
+                            if(lock is ReentrantReadWriteLock) lock.isWriteLockedByCurrentThread
+                            else (lock as Utils.SingleEntryReadWriteLock).lock.isWriteLockedByCurrentThread)
                 }
                 counter.incrementAndGet()
             })
