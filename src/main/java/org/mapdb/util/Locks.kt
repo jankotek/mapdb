@@ -1,8 +1,7 @@
 package org.mapdb.util
 
-import com.google.common.collect.MapMaker
 import org.mapdb.CC
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.*
 import java.util.concurrent.locks.*
 
 /**
@@ -80,14 +79,14 @@ inline fun <E> SingleEntryReadWriteSegmentedLock?.lockRead(segment:Int, f:()->E)
 fun ReadWriteLock?.assertReadLock() {
     if(CC.ASSERT && this is ReentrantReadWriteLock && this.readLockCount==0 && !this.isWriteLockedByCurrentThread)
         throw AssertionError("not read locked")
-    if(CC.ASSERT && this is SingleEntryReadWriteLock && this.lock.readLockCount==0 && !this.lock.isWriteLockedByCurrentThread)
+    if(CC.ASSERT && this is SingleEntryReadWriteLock && this.readLockCount()==0 && !this.isWriteLockedByCurrentThread())
         throw AssertionError("not read locked")
 }
 
 fun ReadWriteLock?.assertWriteLock() {
     if(CC.ASSERT && this is ReentrantReadWriteLock && !this.isWriteLockedByCurrentThread)
         throw AssertionError("not write locked")
-    if(CC.ASSERT && this is SingleEntryReadWriteLock && !this.lock.isWriteLockedByCurrentThread)
+    if(CC.ASSERT && this is SingleEntryReadWriteLock && !this.isWriteLockedByCurrentThread())
         throw AssertionError("not write locked")
 }
 
@@ -103,16 +102,24 @@ inline fun <E> Lock?.lock(body: () -> E):E {
 
 class SingleEntryReadWriteLock: ReadWriteLock {
 
-    //TODO private
-    val lock: ReentrantReadWriteLock = ReentrantReadWriteLock()
+    private val lock: ReentrantReadWriteLock = ReentrantReadWriteLock()
 
-    private val readLockThreads = MapMaker().weakKeys().makeMap<Thread, Lock>()
+    private val readLockThreads = ConcurrentHashMap<Thread,Lock>()
 
-    fun checkNotLocked() {
+    fun checkNotWriteLocked(){
         if (lock.isWriteLockedByCurrentThread)
             throw IllegalMonitorStateException("can not lock, already locked for write by current thread")
-        if(readLockThreads.containsKey(Thread.currentThread()))
+
+    }
+
+    fun checkNotReadLocked() {
+         if(readLockThreads.containsKey(Thread.currentThread()))
             throw IllegalMonitorStateException("can not lock, already locked for read by current thread")
+    }
+
+    fun checkNotLocked(){
+        checkNotWriteLocked()
+        checkNotReadLocked()
     }
 
     fun checkWriteLocked() {
@@ -194,25 +201,31 @@ class SingleEntryReadWriteLock: ReadWriteLock {
         }
 
         override fun lock() {
-            checkNotLocked()
-            readLockThreads.put(Thread.currentThread(), this)
+            checkNotWriteLocked()
+            if(readLockThreads.put(Thread.currentThread(), this)!=null)
+                throw IllegalMonitorStateException("can not lock, already locked for read by current thread")
+
             origReadLock.lock()
         }
 
         override fun lockInterruptibly() {
-            checkNotLocked()
-            readLockThreads.put(Thread.currentThread(), this)
+            checkNotWriteLocked()
+            if(readLockThreads.put(Thread.currentThread(), this)!=null)
+                throw IllegalMonitorStateException("can not lock, already locked for read by current thread")
             origReadLock.lockInterruptibly()
         }
 
         override fun unlock() {
-            readLockThreads.remove(Thread.currentThread())
+            readLockThreads.remove(Thread.currentThread()) ?:
+                    throw IllegalMonitorStateException("Can not unlock, current thread does not have a lock")
             origReadLock.unlock()
         }
     }
 
     override fun writeLock() = newWriteLock
     override fun readLock() = newReadLock
+
+    fun readLockCount(): Int = readLockThreads.size
     fun isWriteLockedByCurrentThread(): Boolean = lock.isWriteLockedByCurrentThread()
     fun isReadLockedByCurrentThread(): Boolean = readLockThreads.containsKey(Thread.currentThread())
 

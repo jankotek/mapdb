@@ -599,8 +599,9 @@ class StoreWAL(
 
 
     override fun verify() {
-
+        //TODO verify
     }
+
     override fun close() {
         locks.lockWriteAll{
             if (closed.compareAndSet(false, true).not())

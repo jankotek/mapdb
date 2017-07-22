@@ -1,17 +1,14 @@
 package org.mapdb.store
 
-import org.mapdb.*
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.eclipse.collections.impl.stack.mutable.primitive.LongArrayStack
+import org.mapdb.*
 import org.mapdb.util.*
 import java.io.*
 import java.nio.ByteBuffer
-import java.nio.channels.FileChannel
-import java.nio.channels.FileLock
-import java.nio.channels.OverlappingFileLockException
-import java.nio.file.Files
-import java.nio.file.StandardOpenOption
+import java.nio.channels.*
+import java.nio.file.*
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.locks.ReadWriteLock
@@ -27,16 +24,16 @@ open class StoreTrivial(
 
     protected val lock: ReadWriteLock? = newReadWriteLock(isThreadSafe)
 
-    private val closed = AtomicBoolean(false);
+    protected val closed = AtomicBoolean(false);
 
     /** stack of deleted recids, those will be reused*/
     //TODO check for duplicates in freeRecids
-    private val freeRecids = LongArrayStack();
+    protected val freeRecids = LongArrayStack();
     /** maximal allocated recid. All other recids should be in `freeRecid` stack or in `records`*/
-    @Volatile  private var maxRecid:Long = 0;
+    @Volatile  protected var maxRecid:Long = 0;
 
     /** Stores data */
-    private val records = LongObjectHashMap<ByteArray>();
+    protected val records = LongObjectHashMap<ByteArray>();
 
 
     companion object {
@@ -217,6 +214,17 @@ open class StoreTrivial(
     }
 
     override fun compact() {
+        //try to minimize maxRecid, and release free recids
+        lock.lockWrite{
+            val maxRecordRecid = records.keySet().maxIfEmpty(0L)
+            val fr = freeRecids.toArray()
+            freeRecids.clear()
+            for(recid in fr){
+                if(recid<maxRecordRecid)
+                    freeRecids.push(recid)
+            }
+            maxRecid = maxRecordRecid
+        }
     }
 
     override fun close() {
@@ -227,7 +235,8 @@ open class StoreTrivial(
             lock.lockRead{
                 val freeRecidsSet = LongHashSet();
                 freeRecidsSet.addAll(freeRecids)
-                for (recid in 1..maxRecid) {
+                for (recid in 1..maxRecid) {//TODO put assertions for underlying collections and Volumes
+
                     if (!freeRecidsSet.contains(recid) && !records.containsKey(recid))
                         throw IllegalStateException("Recid not used " + recid);
                 }
@@ -319,6 +328,18 @@ open class StoreTrivial(
     }
 
     override fun verify() {
+        lock.lockRead{
+            freeRecids.forEach { recid ->
+                if ((records.containsKey(recid)))
+                    throw AssertionError("free recid is present")
+                if(recid>maxRecid)
+                    throw AssertionError("max recid")
+            }
+            records.keySet().forEach{ recid ->
+                if(recid>maxRecid)
+                    throw AssertionError("max recid")
+            }
+        }
     }
 
     override val isReadOnly = false

@@ -3,10 +3,7 @@ package org.mapdb.store
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.eclipse.collections.impl.stack.mutable.primitive.LongArrayStack
-import org.mapdb.CC
-import org.mapdb.DBException
-import org.mapdb.Serializer
-import org.mapdb.Store
+import org.mapdb.*
 import org.mapdb.util.*
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.locks.ReentrantReadWriteLock
@@ -106,7 +103,17 @@ class StoreOnHeap(
     }
 
     override fun compact() {
-        //nothing to compact
+        //try to minimize maxRecid, and release free recids
+        lock.lockWrite{
+            val maxRecordRecid = records.keySet().maxIfEmpty(0L)
+            val fr = freeRecids.toArray()
+            freeRecids.clear()
+            for(recid in fr){
+                if(recid<maxRecordRecid)
+                    freeRecids.push(recid)
+            }
+            maxRecid.set(maxRecordRecid)
+        }
     }
 
 
@@ -147,6 +154,18 @@ class StoreOnHeap(
     }
 
     override fun verify() {
+        lock.lockRead{
+            freeRecids.forEach { recid ->
+                if ((records.containsKey(recid)))
+                    throw AssertionError("free recid is present")
+                if(recid>maxRecid.get())
+                    throw AssertionError("max recid")
+            }
+            records.keySet().forEach{ recid ->
+                if(recid>maxRecid.get())
+                    throw AssertionError("max recid")
+            }
+        }
     }
 
     override val isReadOnly = false
