@@ -32,7 +32,7 @@ public class SerializerClass extends GroupSerializerObjectArray<Class<?>> {
         try {
             return classLoader.loadClass(in.readUTF());
         } catch (ClassNotFoundException e) {
-            throw new DBException.SerializationError(e);
+            throw new DBException.SerializationException(e);
         }
     }
 

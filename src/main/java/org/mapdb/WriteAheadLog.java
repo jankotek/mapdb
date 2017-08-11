@@ -890,7 +890,7 @@ public class WriteAheadLog {
             try {
                 in.readFully(data);
             } catch (IOException e) {
-                throw new DBException.VolumeIOError(e);
+                throw new DBException.VolumeIOException(e);
             }
             return data;
         }

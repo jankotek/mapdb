@@ -218,7 +218,7 @@ class SortedTableMap<K,V>(
                         for (bb in array) {
                             DataIO.putInt(bytes, intPos, pos)
                             if (pos + bb.size > bytes.size)
-                                throw AssertionError()
+                                throw IllegalStateException()
                             System.arraycopy(bb, 0, bytes, pos, bb.size)
                             intPos += 4
                             pos += bb.size

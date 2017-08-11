@@ -145,7 +145,7 @@ class BTreeMap<K,V>(
             }
 
             override fun valueArrayFromArray(objects: Array<out Any>?): Int? {
-                throw IllegalAccessError()
+                throw UnsupportedOperationException()
             }
 
             override fun valueArrayGet(vals: Any?, pos: Int): Boolean? {
@@ -157,11 +157,11 @@ class BTreeMap<K,V>(
             }
 
             override fun valueArraySearch(keys: Any?, key: Boolean?): Int {
-                throw IllegalAccessError()
+                throw UnsupportedOperationException()
             }
 
             override fun valueArraySearch(keys: Any?, key: Boolean?, comparator: Comparator<*>?): Int {
-                throw IllegalAccessError()
+                throw UnsupportedOperationException()
             }
 
             override fun valueArraySerialize(out: DataOutput2?, vals: Any?) {
@@ -176,11 +176,11 @@ class BTreeMap<K,V>(
             }
 
             override fun deserialize(input: DataInput2, available: Int): Boolean? {
-                throw IllegalAccessError();
+                throw UnsupportedOperationException();
             }
 
             override fun serialize(out: DataOutput2, value: Boolean) {
-                throw IllegalAccessError();
+                throw UnsupportedOperationException();
             }
 
             override fun isTrusted(): Boolean {
@@ -364,7 +364,7 @@ class BTreeMap<K,V>(
                 var pos = keySerializer.valueArraySearch(A.keys, v, comparator)
                 if (pos >= 0) {
                     if(A.isDir) {
-                        throw AssertionError(key);
+                        throw IllegalStateException(key.toString());
                     }
 
                     if(!isLinkValue(pos, A)) {
@@ -395,7 +395,7 @@ class BTreeMap<K,V>(
                     }else{
                         //is linked key, will set lastKeyDouble flag, keys are unmodified and values have new value
                         if(A.isLastKeyDouble)
-                            throw AssertionError()
+                            throw IllegalStateException()
                         val flags = A.flags + BTreeMapJava.LAST_KEY_DOUBLE
                         val value2:Any? =
                                 if(valueInline) value
@@ -480,8 +480,7 @@ class BTreeMap<K,V>(
             unlockAllCurrentThread()
             throw e
         } finally {
-            if (CC.ASSERT)
-                assertCurrentThreadUnlocked()
+            assertCurrentThreadUnlocked()
         }
     }
 
@@ -552,7 +551,7 @@ class BTreeMap<K,V>(
 
                 if(oldValueExpanded == null) {
                     // this should not happen, since node is already locked
-                    throw AssertionError()
+                    throw IllegalStateException()
                 }
                 var keys = A.keys
                 var flags = A.flags.toInt()
@@ -597,8 +596,7 @@ class BTreeMap<K,V>(
             unlockAllCurrentThread()
             throw e
         } finally {
-            if (CC.ASSERT)
-                assertCurrentThreadUnlocked()
+            assertCurrentThreadUnlocked()
         }
     }
 
@@ -699,7 +697,7 @@ class BTreeMap<K,V>(
             return
         val v = locks.remove(nodeRecid)
         if (v == null || v != Thread.currentThread().id)
-            throw AssertionError("Unlocked wrong thread");
+            throw IllegalStateException("Unlocked wrong thread");
     }
 
     fun unlockAllCurrentThread() {
@@ -717,7 +715,7 @@ class BTreeMap<K,V>(
 
 
     fun assertCurrentThreadUnlocked() {
-        if(!isThreadSafe)
+        if(!CC.ASSERT || !isThreadSafe)
             return
         val id = Thread.currentThread().id
         val iter = locks.iterator()
@@ -743,10 +741,10 @@ class BTreeMap<K,V>(
     override fun verify() {
         fun verifyRecur(node: Node, left: Boolean, right: Boolean, knownNodes: LongHashSet, nextNodeRecid: Long) {
             if (left != node.isLeftEdge)
-                throw AssertionError("left does not match $left")
+                throw IllegalStateException("left does not match $left")
             //TODO follow link for this assertion
 //            if (right != node.isRightEdge)
-//                throw AssertionError("right does not match $right")
+//                throw IllegalStateException("right does not match $right")
 
             //check keys are sorted, no duplicates
             val keysLen = keySerializer.valueArraySize(node.keys)
@@ -755,7 +753,7 @@ class BTreeMap<K,V>(
                         keySerializer.valueArrayGet(node.keys, i - 1),
                         keySerializer.valueArrayGet(node.keys, i))
                 if (compare >= 0)
-                    throw AssertionError("Not sorted: " + Arrays.toString(keySerializer.valueArrayToArray(node.keys)))
+                    throw IllegalStateException("Not sorted: " + Arrays.toString(keySerializer.valueArrayToArray(node.keys)))
             }
 
             //iterate over child
@@ -766,7 +764,7 @@ class BTreeMap<K,V>(
                     val recid = child[i]
 
                     if (knownNodes.contains(recid))
-                        throw AssertionError("recid duplicate: $recid")
+                        throw IllegalStateException("recid duplicate: $recid")
                     knownNodes.add(recid)
                     var node = getNode(recid)
                     verifyRecur(node, left = (i == 0) && left, right = (child.size == i + 1) && right,
@@ -776,7 +774,7 @@ class BTreeMap<K,V>(
                     //                    //follow link until next node is found
                     //                    while(node.link!=prevLink){
                     //                        if(knownNodes.contains(node.link))
-                    //                            throw AssertionError()
+                    //                            throw IllegalStateException()
                     //                        knownNodes.add(node.link)
                     //
                     //                        node = getNode(node.link)
@@ -793,7 +791,7 @@ class BTreeMap<K,V>(
         val rootRecid = rootRecid
 
         if(leftEdges!=loadLeftEdges()){
-            throw AssertionError();
+            throw IllegalStateException();
         }
         val node = getNode(rootRecid)
 
@@ -805,26 +803,26 @@ class BTreeMap<K,V>(
         for (leftRecid in leftEdges.toArray()) {
 
             if (knownNodes.contains(leftRecid).not())
-                throw AssertionError()
+                throw IllegalStateException()
             var node2 = getNode(leftRecid)
             if (!knownNodes.remove(leftRecid))
-                throw AssertionError()
+                throw IllegalStateException()
 
             while (node2.isRightEdge.not()) {
                 //TODO enable once links are traced
                 //                if(!knownNodes.remove(node.link))
-                //                    throw AssertionError()
+                //                    throw IllegalStateException()
 
                 val next = getNode(node2.link)
                 if (comparator.compare(node2.highKey(keySerializer) as K, keySerializer.valueArrayGet(next.keys, 0)) != 0)
-                    throw AssertionError(node2.link)
+                    throw IllegalStateException(node2.link.toString())
 
                 node2 = next
             }
         }
         //TODO enable once links are traced
         //        if(knownNodes.isEmpty.not())
-        //            throw AssertionError(knownNodes)
+        //            throw IllegalStateException(knownNodes)
     }
 
 
@@ -1483,7 +1481,7 @@ class BTreeMap<K,V>(
                     val currKey = keySerializer.valueArrayGet(ret.keys, 0)
                     val nextKey = nextNode!!.highKey(keySerializer)
                     if(comparator.compare(nextKey, currKey)>0){
-                        throw AssertionError("wrong reverse iteration")
+                        throw IllegalStateException("wrong reverse iteration")
                     }
                 }
 
@@ -2234,7 +2232,7 @@ class BTreeMap<K,V>(
 
     override fun assertThreadSafe(){
         if(isThreadSafe.not())
-            throw AssertionError();
+            throw IllegalStateException();
         store.assertThreadSafe()
     }
 

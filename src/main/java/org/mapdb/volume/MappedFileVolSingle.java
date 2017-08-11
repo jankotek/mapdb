@@ -105,7 +105,7 @@ public final class MappedFileVolSingle extends ByteBufferVolSingle {
                 buffer = buffer.asReadOnlyBuffer();
             //TODO assert endianess
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
     }
 
@@ -125,7 +125,7 @@ public final class MappedFileVolSingle extends ByteBufferVolSingle {
             }
             raf.close();
         } catch (IOException e) {
-            throw new DBException.VolumeIOError(e);
+            throw new DBException.VolumeIOException(e);
         }
 
         if (cleanerHackEnabled && buffer != null && (buffer instanceof MappedByteBuffer)) {

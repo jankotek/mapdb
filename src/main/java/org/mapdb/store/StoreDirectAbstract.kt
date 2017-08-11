@@ -57,7 +57,7 @@ abstract class StoreDirectAbstract(
 
     protected fun assertNotClosed(){
         if(closed.get())
-            throw IllegalAccessError("Store was closed");
+            throw IllegalStateException("Store was closed");
     }
 
 
@@ -231,7 +231,7 @@ abstract class StoreDirectAbstract(
             //TODO assert number of bytes read
             //TODO wrap di, if untrusted serializer
         }catch(e: IOException){
-            throw DBException.SerializationError(e)
+            throw DBException.SerializationException(e)
         }
     }
 
@@ -244,7 +244,7 @@ abstract class StoreDirectAbstract(
             serializer.serialize(out, record);
             return out;
         }catch(e: IOException){
-            throw DBException.SerializationError(e)
+            throw DBException.SerializationException(e)
         }
     }
 
@@ -271,7 +271,7 @@ abstract class StoreDirectAbstract(
         // increment maximal recid
         val ret = maxRecid2+1;
         maxRecid = ret;
-        if(CC.ZEROS && volume.getLong(recidToOffset(ret))!=0L)
+        if(CC.ASSERT && CC.ZEROS && volume.getLong(recidToOffset(ret))!=0L)
             throw AssertionError();
         return ret;
     }

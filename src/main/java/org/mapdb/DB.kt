@@ -152,7 +152,7 @@ open class DB(
 
     protected fun checkNotClosed(){
         if(closed.get())
-            throw IllegalAccessError("DB was closed")
+            throw IllegalStateException("DB was closed")
     }
 
     /** Already loaded named collections. Values are weakly referenced. We need singletons for locking */
@@ -180,7 +180,7 @@ open class DB(
     private val nameSer = object:ElsaSerializerBase.Serializer<Any>(){
         override fun serialize(out: DataOutput, value: Any, objectStack: ElsaStack?) {
             val name = getNameForObject(value)
-                    ?: throw DBException.SerializationError("Could not serialize named object, it was not instantiated by this db")
+                    ?: throw DBException.SerializationException("Could not serialize named object, it was not instantiated by this db")
 
             out.writeUTF(name)
         }
@@ -363,7 +363,7 @@ open class DB(
                 Serializer.STRING_DELTA2, Serializer.STRING_INTERN, Serializer.STRING_ASCII, Serializer.STRING_NOSIZE,
                 Serializer.LONG, Serializer.LONG_PACKED, Serializer.LONG_DELTA, Serializer.INTEGER,
                 Serializer.INTEGER_PACKED, Serializer.INTEGER_DELTA, Serializer.BOOLEAN, Serializer.RECID,
-                Serializer.RECID_ARRAY, Serializer.ILLEGAL_ACCESS, Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY_DELTA,
+                Serializer.RECID_ARRAY, Serializer.SERIALIZER_UNSUPPORTED, Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY_DELTA,
                 Serializer.BYTE_ARRAY_DELTA2, Serializer.BYTE_ARRAY_NOSIZE, Serializer.CHAR_ARRAY, Serializer.INT_ARRAY,
                 Serializer.LONG_ARRAY, Serializer.DOUBLE_ARRAY, Serializer.JAVA, Serializer.ELSA, Serializer.UUID,
                 Serializer.BYTE, Serializer.FLOAT, Serializer.DOUBLE, Serializer.SHORT, Serializer.SHORT_ARRAY,
@@ -1330,7 +1330,7 @@ open class DB(
                 override fun create(): DBConcurrentNavigableMap<K, V> {
                     consumer.create()
                     this@TreeMapMaker._rootRecidRecid = consumer.rootRecidRecid
-                            ?: throw AssertionError()
+                            ?: throw IllegalStateException()
                     this@TreeMapMaker._counterRecid =
                             if(_counterEnable) db.store.put(consumer.counter, Serializer.LONG_PACKED)
                             else 0L
@@ -1408,7 +1408,7 @@ open class DB(
                 override fun create(): DBNavigableSet<E> {
                     consumer.create()
                     this@TreeSetMaker._rootRecidRecid = consumer.rootRecidRecid
-                            ?: throw AssertionError()
+                            ?: throw IllegalStateException()
                     this@TreeSetMaker._counterRecid =
                             if(_counterEnable) db.store.put(consumer.counter, Serializer.LONG_PACKED)
                             else 0L
@@ -1933,7 +1933,7 @@ open class DB(
     override fun assertThreadSafe() {
         super.assertThreadSafe()
         if(store.isThreadSafe.not())
-            throw AssertionError()
+            throw IllegalStateException()
     }
 
     /**

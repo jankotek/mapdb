@@ -160,7 +160,7 @@ public class UnsafeVolume extends Volume {
         //*LOG*/ System.err.flush();
         if(hasLimit && offset>sizeLimit) {
             //return false;
-            throw new IllegalAccessError("too big"); //TODO size limit here
+            throw new IllegalStateException("too big"); //TODO size limit here
         }
 
 
