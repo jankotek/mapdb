@@ -987,7 +987,7 @@ class HTreeMap<K,V>(
         override fun add(element: K): Boolean {
             if(map.hasValues)
                 throw UnsupportedOperationException("Can not add without val")
-            return map.put(element, true as Any?)!=null //TODO default val for hashsets
+            return map.put(element, true as Any?)==null
         }
 
         override fun clear() {
