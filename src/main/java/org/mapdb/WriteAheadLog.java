@@ -303,7 +303,7 @@ public class WriteAheadLog {
      * @return allocated fileOffset
      */
     protected long allocate(final int reqSize, final int optSize){
-        if(CC.ASSERT && reqSize>=CC.PAGE_SIZE)
+        if(CC.PARANOID && reqSize>=CC.PAGE_SIZE)
             throw new AssertionError();
         fileOffsetLock.lock();
         try{
@@ -817,7 +817,7 @@ public class WriteAheadLog {
      */
     public DataInput2 walGetByteArray(long walPointer) {
         int arraySize = walPointerToSize(walPointer);
-        if(CC.ASSERT && arraySize==0)
+        if(CC.PARANOID && arraySize==0)
             throw new AssertionError();
         int fileNum = (int) (walPointerToFileNum(walPointer));
         long dataOffset = (walPointerToOffset(walPointer));
@@ -871,7 +871,7 @@ public class WriteAheadLog {
         dataOffset += recid >>> 60;
         recid &= DataIO.PACK_LONG_RESULT_MASK;
 
-        if(CC.ASSERT && expectedRecid!=0 && recid!=expectedRecid){
+        if(CC.PARANOID && expectedRecid!=0 && recid!=expectedRecid){
             throw new AssertionError();
         }
 
@@ -918,17 +918,17 @@ public class WriteAheadLog {
         checksum &= 15;
         curVol.putUnsignedByte(walOffset2, (I_BYTE_ARRAY << 4)|checksum);
         walOffset2+=1;
-        if(CC.ASSERT && (size&0xFFFF)!=size)
+        if(CC.PARANOID && (size&0xFFFF)!=size)
             throw new AssertionError();
         curVol.putLong(walOffset2, ((long) size) << 48 | offset);
         walOffset2+=8;
         curVol.putData(walOffset2, buf,bufPos,size);
 
-        if(CC.ASSERT && (size&pointerSizeMask)!=size)
+        if(CC.PARANOID && (size&pointerSizeMask)!=size)
             throw new AssertionError();
-        if(CC.ASSERT && (fileNum&pointerFileMask)!=fileNum)
+        if(CC.PARANOID && (fileNum&pointerFileMask)!=fileNum)
             throw new AssertionError();
-        if(CC.ASSERT && (walPointerToOffset(walOffset2))!=walOffset2)
+        if(CC.PARANOID && (walPointerToOffset(walOffset2))!=walOffset2)
             throw new AssertionError();
 
         return walPointer(size,fileNum,walOffset2);
@@ -939,11 +939,11 @@ public class WriteAheadLog {
         val |= (fileNum)<<(pointerOffsetBites);
         val |= offset;
 
-        if(CC.ASSERT && offset!=walPointerToOffset(val))
+        if(CC.PARANOID && offset!=walPointerToOffset(val))
             throw new AssertionError();
-        if(CC.ASSERT && fileNum!=walPointerToOffset(fileNum))
+        if(CC.PARANOID && fileNum!=walPointerToOffset(fileNum))
             throw new AssertionError();
-        if(CC.ASSERT && size!=walPointerToOffset(size))
+        if(CC.PARANOID && size!=walPointerToOffset(size))
             throw new AssertionError();
 
         return val;
@@ -951,14 +951,14 @@ public class WriteAheadLog {
 
     //TODO walPutRecord and walGetRecord are both synchronized, that is just broken
     synchronized public long walPutRecord(long recid, byte[] buf, int bufPos, int size){
-        if(CC.ASSERT && buf==null && size!=0)
+        if(CC.PARANOID && buf==null && size!=0)
             throw new AssertionError();
         ensureFileReady(true);
         long sizeToWrite = buf==null?0:(size+1);
         final int plusSize = +1+ DataIO.packLongSize(recid)+ DataIO.packLongSize(sizeToWrite)+size;
         long walOffset2 = allocate(plusSize-size, size);
         long startPos = walOffset2;
-        if(CC.ASSERT && startPos>=MAX_FILE_SIZE)
+        if(CC.PARANOID && startPos>=MAX_FILE_SIZE)
             throw new AssertionError();
 
 
@@ -993,7 +993,7 @@ public class WriteAheadLog {
 
         Volume curVol2 = curVol;
 
-        if(CC.ASSERT && offset>>>48!=0)
+        if(CC.PARANOID && offset>>>48!=0)
             throw new DBException.DataCorruption("wrong offset");
         curVol2.ensureAvailable(walOffset2+plusSize);
         int parity = 1+Long.bitCount(value)+Long.bitCount(offset);

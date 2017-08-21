@@ -19,7 +19,7 @@ class QueueLong(
 ): Verifiable {
 
     init{
-        if(CC.ASSERT && tailRecid == headRecid)
+        if(CC.PARANOID && tailRecid == headRecid)
             throw AssertionError("head==tail")
     }
     companion object{
@@ -149,7 +149,7 @@ class QueueLong(
             val node = store.get(tail2, Node.SERIALIZER)
                     ?: return // reached head
 
-            if(CC.ASSERT && node.prevRecid!=0L)
+            if(CC.PARANOID && node.prevRecid!=0L)
                 throw DBException.DataCorruption("prevRecid not 0")
 
             val taken = f.take(tail2, node);
@@ -157,7 +157,7 @@ class QueueLong(
                 return
 
             val nodeTaken = take()
-            if(CC.ASSERT && node.value!=nodeTaken!!.value)
+            if(CC.PARANOID && node.value!=nodeTaken!!.value)
                 throw DBException.DataCorruption("wrong nodes")
         }
     }
@@ -171,11 +171,11 @@ class QueueLong(
         //TODO get/update in single operation, take transformation as an argument
         val nextNode = store.get(node.nextRecid, Node.SERIALIZER)
         if(nextNode!=null) {
-            if(CC.ASSERT && nextNode.prevRecid!=nodeRecid)
+            if(CC.PARANOID && nextNode.prevRecid!=nodeRecid)
                 throw DBException.DataCorruption("node link error")
             store.update(node.nextRecid, nextNode.copy(prevRecid = node.prevRecid), Node.SERIALIZER)
         }else{
-            if(CC.ASSERT && headPrev!=nodeRecid)
+            if(CC.PARANOID && headPrev!=nodeRecid)
                 throw DBException.DataCorruption("headPrev error")
             headPrev = node.prevRecid
         }
@@ -183,12 +183,12 @@ class QueueLong(
         if(node.prevRecid!=0L) {
             val prevNode = store.get(node.prevRecid, Node.SERIALIZER)
             if (prevNode != null) {
-                if(CC.ASSERT && prevNode.nextRecid!=nodeRecid)
+                if(CC.PARANOID && prevNode.nextRecid!=nodeRecid)
                     throw DBException.DataCorruption("node link error")
                 store.update(node.prevRecid, prevNode.copy(nextRecid = node.nextRecid), Node.SERIALIZER)
             }
         }else{
-            if(CC.ASSERT && tail!=nodeRecid)
+            if(CC.PARANOID && tail!=nodeRecid)
                 throw DBException.DataCorruption("tail error")
             tail = node.nextRecid
         }
@@ -213,11 +213,11 @@ class QueueLong(
         //TODO get/update in single operation, take transformation as an argument
         val nextNode = store.get(node.nextRecid, Node.SERIALIZER)
         if(nextNode!=null) {
-            if(CC.ASSERT && nextNode.prevRecid!=nodeRecid)
+            if(CC.PARANOID && nextNode.prevRecid!=nodeRecid)
                 throw DBException.DataCorruption("node link error")
             store.update(node.nextRecid, nextNode.copy(prevRecid = node.prevRecid), Node.SERIALIZER)
         }else{
-            if(CC.ASSERT && headPrev!=nodeRecid)
+            if(CC.PARANOID && headPrev!=nodeRecid)
                 throw DBException.DataCorruption("headPrev error")
             headPrev = node.prevRecid
         }
@@ -225,12 +225,12 @@ class QueueLong(
         if(node.prevRecid!=0L) {
             val prevNode = store.get(node.prevRecid, Node.SERIALIZER)
             if (prevNode != null) {
-                if(CC.ASSERT && prevNode.nextRecid!=nodeRecid)
+                if(CC.PARANOID && prevNode.nextRecid!=nodeRecid)
                     throw DBException.DataCorruption("node link error")
                 store.update(node.prevRecid, prevNode.copy(nextRecid = node.nextRecid), Node.SERIALIZER)
             }
         }else{
-            if(CC.ASSERT && tail!=nodeRecid)
+            if(CC.PARANOID && tail!=nodeRecid)
                 throw DBException.DataCorruption("tail error")
             tail = node.nextRecid
         }

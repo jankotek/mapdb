@@ -218,7 +218,7 @@ public final class ByteArrayVol extends Volume {
 
     @Override
     public void clear(long startOffset, long endOffset) {
-        if (CC.ASSERT && (startOffset >>> sliceShift) != ((endOffset - 1) >>> sliceShift))
+        if (CC.PARANOID && (startOffset >>> sliceShift) != ((endOffset - 1) >>> sliceShift))
             throw new AssertionError();
         byte[] buf = getSlice(startOffset);
         int start = (int) (startOffset & sliceSizeModMask);

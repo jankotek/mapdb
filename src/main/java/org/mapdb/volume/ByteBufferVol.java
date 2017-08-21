@@ -248,7 +248,7 @@ abstract public class ByteBufferVol extends Volume {
         final ByteBuffer b = getSlice(pos);
         int bpos = (int) (pos & sliceSizeModMask);
 
-        if(CC.ASSERT && (value >>>48!=0))
+        if(CC.PARANOID && (value >>>48!=0))
             throw new DBException.DataCorruption("six long out of range");
 
         b.put(bpos++, (byte) (0xff & (value >> 40)));
@@ -295,7 +295,7 @@ abstract public class ByteBufferVol extends Volume {
 
     @Override
     public void clear(long startOffset, long endOffset) {
-        if(CC.ASSERT && (startOffset >>> sliceShift) != ((endOffset-1) >>> sliceShift))
+        if(CC.PARANOID && (startOffset >>> sliceShift) != ((endOffset-1) >>> sliceShift))
             throw new AssertionError();
         ByteBuffer buf = getSlice(startOffset);
         int start = (int) (startOffset&sliceSizeModMask);

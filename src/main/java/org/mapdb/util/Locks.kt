@@ -77,16 +77,16 @@ inline fun <E> SingleEntryReadWriteSegmentedLock?.lockRead(segment:Int, f:()->E)
 
 
 fun ReadWriteLock?.assertReadLock() {
-    if(CC.ASSERT && this is ReentrantReadWriteLock && this.readLockCount==0 && !this.isWriteLockedByCurrentThread)
+    if(CC.PARANOID && this is ReentrantReadWriteLock && this.readLockCount==0 && !this.isWriteLockedByCurrentThread)
         throw AssertionError("not read locked")
-    if(CC.ASSERT && this is SingleEntryReadWriteLock && this.readLockCount()==0 && !this.isWriteLockedByCurrentThread())
+    if(CC.PARANOID && this is SingleEntryReadWriteLock && this.readLockCount()==0 && !this.isWriteLockedByCurrentThread())
         throw AssertionError("not read locked")
 }
 
 fun ReadWriteLock?.assertWriteLock() {
-    if(CC.ASSERT && this is ReentrantReadWriteLock && !this.isWriteLockedByCurrentThread)
+    if(CC.PARANOID && this is ReentrantReadWriteLock && !this.isWriteLockedByCurrentThread)
         throw AssertionError("not write locked")
-    if(CC.ASSERT && this is SingleEntryReadWriteLock && !this.isWriteLockedByCurrentThread())
+    if(CC.PARANOID && this is SingleEntryReadWriteLock && !this.isWriteLockedByCurrentThread())
         throw AssertionError("not write locked")
 }
 
@@ -249,7 +249,7 @@ class SingleEntryLock(val lock: ReentrantLock = ReentrantLock()): Lock by lock{
 
 
 fun newLock(threadSafe: Boolean): Lock? {
-    return if(CC.ASSERT){
+    return if(CC.PARANOID){
         if(threadSafe) SingleEntryLock()
         else null   //TODO assert no reentry in single threaded mode
     }else{
@@ -264,7 +264,7 @@ fun newReadWriteSegmentedLock(threadSafe: Boolean, segmentCount:Int): SingleEntr
         else null
 
 fun newReadWriteLock(threadSafe: Boolean): ReadWriteLock? {
-    return if(CC.ASSERT){
+    return if(CC.PARANOID){
         if(threadSafe) SingleEntryReadWriteLock()
         else null; //TODO assert no reentry even in thread safe mode
     }else{
@@ -274,7 +274,7 @@ fun newReadWriteLock(threadSafe: Boolean): ReadWriteLock? {
 }
 
 fun Lock?.assertLocked() {
-    if(CC.ASSERT &&
+    if(CC.PARANOID &&
             ((this is ReentrantLock && this.isHeldByCurrentThread.not())
                     || this is SingleEntryLock && this.lock.isHeldByCurrentThread.not()))
         throw AssertionError("Not locked")

@@ -261,7 +261,7 @@ final class CompressLZF{
 
     public void expand(DataInput in, byte[] out, int outPos, int outLen) throws IOException {
         // if ((inPos | outPos | outLen) < 0) {
-        if(CC.ASSERT && ! (outLen>=0))
+        if(CC.PARANOID && ! (outLen>=0))
             throw new AssertionError();
         do {
             int ctrl = in.readByte() & 255;
@@ -307,7 +307,7 @@ final class CompressLZF{
 
     public void expand(ByteBuffer in, int inPos, byte[] out, int outPos, int outLen) {
         ByteBuffer in2=null;
-        if(CC.ASSERT && ! (outLen>=0))
+        if(CC.PARANOID && ! (outLen>=0))
             throw new AssertionError();
         do {
             int ctrl = in.get(inPos++) & 255;

@@ -41,16 +41,16 @@ public class BTreeMapJava {
             this.keys = keys;
             this.values = values;
 
-            if(CC.ASSERT && isLastKeyDouble() && isDir())
+            if(CC.PARANOID && isLastKeyDouble() && isDir())
                 throw new AssertionError();
 
-            if(CC.ASSERT && isRightEdge() && (link!=0L))
+            if(CC.PARANOID && isRightEdge() && (link!=0L))
                 throw new AssertionError();
 
-            if(CC.ASSERT && !isRightEdge() && (link==0L))
+            if(CC.PARANOID && !isRightEdge() && (link==0L))
                 throw new AssertionError();
 
-            if(CC.ASSERT && isDir() && getChildren().length==0)
+            if(CC.PARANOID && isDir() && getChildren().length==0)
                 throw new AssertionError();
         }
 
@@ -149,7 +149,7 @@ public class BTreeMapJava {
 
         @Override
         public void serialize(@NotNull DataOutput2 out, @NotNull Node value) throws IOException {
-            if(CC.ASSERT && value.flags>>>4!=0)
+            if(CC.PARANOID && value.flags>>>4!=0)
                 throw new AssertionError();
 
             if(CC.PARANOID)
@@ -183,7 +183,7 @@ public class BTreeMapJava {
                     input.unpackLong();
 
             Object keys = keysLen==0? keySerializer.valueArrayEmpty() : keySerializer.valueArrayDeserialize(input, keysLen);
-            if(CC.ASSERT && keysLen!=keySerializer.valueArraySize(keys))
+            if(CC.PARANOID && keysLen!=keySerializer.valueArraySize(keys))
                 throw new AssertionError();
 
             Object values;
@@ -220,7 +220,7 @@ public class BTreeMapJava {
 
 
     static long findChild(GroupSerializer keySerializer, Node node, Comparator comparator, Object key){
-        if(CC.ASSERT && !node.isDir())
+        if(CC.PARANOID && !node.isDir())
             throw new AssertionError();
         //find an index
         int pos = keySerializer.valueArraySearch(node.keys, key, comparator);
@@ -233,7 +233,7 @@ public class BTreeMapJava {
         pos = Math.max(0, pos);
         long[] children = (long[]) node.values;
         if(pos>=children.length) {
-            if(CC.ASSERT && node.isRightEdge())
+            if(CC.PARANOID && node.isRightEdge())
                 throw new AssertionError();
             return node.link;
         }
@@ -344,7 +344,7 @@ public class BTreeMapJava {
                 keysLen = keysLen - 1 + intLeft + intRight;
 
                 if(pos>=keysLen) {
-                    if(CC.ASSERT && intRight==1)
+                    if(CC.PARANOID && intRight==1)
                         throw new AssertionError();
                     return link;
                 }

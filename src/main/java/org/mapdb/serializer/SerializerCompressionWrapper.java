@@ -67,7 +67,7 @@ public final class SerializerCompressionWrapper<E> implements GroupSerializer<E>
         LZF.get().expand(in,unpacked,0,unpackedSize);
         DataInput2.ByteArray in2 = new DataInput2.ByteArray(unpacked);
         E ret =  serializer.deserialize(in2,unpackedSize);
-        if(CC.ASSERT && ! (in2.pos==unpackedSize))
+        if(CC.PARANOID && ! (in2.pos==unpackedSize))
             throw new DBException.DataCorruption( "data were not fully read");
         return ret;
     }
@@ -144,7 +144,7 @@ public final class SerializerCompressionWrapper<E> implements GroupSerializer<E>
         LZF.get().expand(in,unpacked,0,unpackedSize);
         DataInput2.ByteArray in2 = new DataInput2.ByteArray(unpacked);
         Object ret =  serializer.valueArrayDeserialize(in2, size);
-        if(CC.ASSERT && ! (in2.pos==unpackedSize))
+        if(CC.PARANOID && ! (in2.pos==unpackedSize))
             throw new DBException.DataCorruption( "data were not fully read");
         return ret;
     }

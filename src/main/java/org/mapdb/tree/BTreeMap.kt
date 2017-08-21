@@ -225,7 +225,7 @@ class BTreeMap<K,V>(
         var recid = rootRecid
         while (true) {
             val node = getNode(recid)
-            if (CC.ASSERT && recid <= 0L)
+            if (CC.PARANOID && recid <= 0L)
                 throw AssertionError()
             ret.add(recid)
             if (node.isDir.not())
@@ -445,7 +445,7 @@ class BTreeMap<K,V>(
                     unlock(current)
                     p = q
                     v = A.highKey(keySerializer) as K
-                    //                if(CC.ASSERT && COMPARATOR.compare(v, key)<0)
+                    //                if(CC.PARANOID && COMPARATOR.compare(v, key)<0)
                     //                    throw AssertionError()
                     level++
                     current = if (stack.isEmpty.not()) {
@@ -641,7 +641,7 @@ class BTreeMap<K,V>(
 
 
     private fun copyAddKeyLeaf(a: Node, insertPos: Int, key: K, value: V): Node {
-        if (CC.ASSERT && a.isDir)
+        if (CC.PARANOID && a.isDir)
             throw AssertionError()
 
         val keysLen = keySerializer.valueArraySize(a.keys)
@@ -672,7 +672,7 @@ class BTreeMap<K,V>(
     }
 
     private fun copyAddKeyDir(a: Node, insertPos: Int, key: K, newChild: Long): Node {
-        if (CC.ASSERT && a.isDir.not())
+        if (CC.PARANOID && a.isDir.not())
             throw AssertionError()
 
         val keys = keySerializer.valueArrayPut(a.keys, insertPos, key)
@@ -715,7 +715,7 @@ class BTreeMap<K,V>(
 
 
     fun assertCurrentThreadUnlocked() {
-        if(!CC.ASSERT || !isThreadSafe)
+        if(!CC.PARANOID || !isThreadSafe)
             return
         val id = Thread.currentThread().id
         val iter = locks.iterator()
@@ -1402,7 +1402,7 @@ class BTreeMap<K,V>(
                 nextNode = leafLinkedStack.pollFirst();
                 if(nextNode!=null)
                     return
-                if(CC.ASSERT && leafLinkedStack.isEmpty().not())
+                if(CC.PARANOID && leafLinkedStack.isEmpty().not())
                     throw AssertionError()
 
                 fun stackMove(){
@@ -1429,7 +1429,7 @@ class BTreeMap<K,V>(
                     val nodeRecid = stack.last.node.children[stack.last.nodePos--]
                     var node = getNode(nodeRecid)
                     while(node.link != limit){
-                        if(CC.ASSERT && hi!=null && comparator.compare(hi,keySerializer.valueArrayGet(node.keys, 0))<0){
+                        if(CC.PARANOID && hi!=null && comparator.compare(hi,keySerializer.valueArrayGet(node.keys, 0))<0){
                             throw AssertionError()
                         }
                         linkedStack.add(node)
@@ -1477,7 +1477,7 @@ class BTreeMap<K,V>(
                 val ret = nextNode
                         ?: throw NoSuchElementException()
                 advance()
-                if(CC.ASSERT && nextNode!=null){
+                if(CC.PARANOID && nextNode!=null){
                     val currKey = keySerializer.valueArrayGet(ret.keys, 0)
                     val nextKey = nextNode!!.highKey(keySerializer)
                     if(comparator.compare(nextKey, currKey)>0){

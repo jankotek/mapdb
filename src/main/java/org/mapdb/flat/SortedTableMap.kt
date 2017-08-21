@@ -230,7 +230,7 @@ class SortedTableMap<K,V>(
                         bytes[pos++] = 0
                     }
 
-                    if (CC.ASSERT && intPos != headSize + 4 + 2 * 4 * nodeKeys.size + 4)
+                    if (CC.PARANOID && intPos != headSize + 4 + 2 * 4 * nodeKeys.size + 4)
                         throw AssertionError()
 
                     //append to volume

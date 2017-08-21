@@ -30,7 +30,7 @@ public class SerializerLongDelta extends SerializerLong {
             long curr = keys[i];
             //$DELAY$
             out.packLong(curr - prev);
-            if (CC.ASSERT && curr < prev)
+            if (CC.PARANOID && curr < prev)
                 throw new AssertionError("not sorted");
             prev = curr;
         }

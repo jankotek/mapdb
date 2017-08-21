@@ -30,7 +30,7 @@ public class SerializerIntegerDelta extends SerializerInteger {
             int curr = keys[i];
             //$DELAY$
             out.packInt(curr - prev);
-            if (CC.ASSERT && curr < prev)
+            if (CC.PARANOID && curr < prev)
                 throw new AssertionError("not sorted");
             prev = curr;
         }

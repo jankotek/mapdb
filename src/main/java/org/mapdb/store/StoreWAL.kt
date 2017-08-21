@@ -80,7 +80,7 @@ class StoreWAL(
         )
     }()
 
-    override protected val volume: Volume = if(CC.ASSERT) ReadOnlyVolume(realVolume) else realVolume
+    override protected val volume: Volume = if(CC.PARANOID) ReadOnlyVolume(realVolume) else realVolume
 
     /** header is stored in-memory, so it can be rolled back */
     protected val headBytes = ByteArray(StoreDirectJava.HEAD_END.toInt())
@@ -156,7 +156,7 @@ class StoreWAL(
 
     override fun getIndexVal(recid: Long): Long {
         val segment = recidToSegment(recid)
-        if(CC.ASSERT)
+        if(CC.PARANOID)
             locks?.checkReadLocked(segment)
 
         val indexOffset = recidToOffset(recid)
@@ -171,7 +171,7 @@ class StoreWAL(
 
     override fun setIndexVal(recid: Long, value: Long) {
         val segment = recidToSegment(recid)
-        if(CC.ASSERT)
+        if(CC.PARANOID)
             locks?.checkReadLocked(segment)
 
         val indexOffset = recidToOffset(recid)
@@ -237,7 +237,7 @@ class StoreWAL(
             allocateRecid()
         }
         locks.lockWrite(recidToSegment(recid)) {
-//            if (CC.ASSERT) {
+//            if (CC.PARANOID) {
 //                val oldVal = volume.getLong(recidToOffset(recid))
 //                if(oldVal!=0L && indexValToSize(oldVal)!=DELETED_RECORD_SIZE)
 //                    throw DBException.DataCorruption("old recid is not empty")
@@ -251,7 +251,7 @@ class StoreWAL(
 
 
     protected fun linkedRecordGet(indexValue:Long, recid:Long):ByteArray{
-        if(CC.ASSERT && !indexValFlagLinked(indexValue))
+        if(CC.PARANOID && !indexValFlagLinked(indexValue))
             throw AssertionError("not linked record")
 
         val segment = recidToSegment(recid);
@@ -298,7 +298,7 @@ class StoreWAL(
     }
 
     protected fun linkedRecordDelete(indexValue:Long, recid:Long){
-        if(CC.ASSERT && !indexValFlagLinked(indexValue))
+        if(CC.PARANOID && !indexValFlagLinked(indexValue))
             throw AssertionError("not linked record")
 
         val segment = recidToSegment(recid);
@@ -368,7 +368,7 @@ class StoreWAL(
             cacheRec.put(chunkOffset,walId)
 //            volume.putData(chunkOffset+8, output, remSize.toInt(), chunkSize.toInt())
         }
-        if(CC.ASSERT && remSize!=0L)
+        if(CC.PARANOID && remSize!=0L)
             throw AssertionError();
         return (chunkSize+8).shl(48) + chunkOffset + isLinked + MARCHIVE
     }
@@ -426,7 +426,7 @@ class StoreWAL(
     }
 
     private fun updateProtected(recid: Long, di: DataOutput2?){
-        if(CC.ASSERT)
+        if(CC.PARANOID)
             locks?.checkWriteLocked(recidToSegment(recid))
 
         val oldIndexVal = getIndexVal(recid);
@@ -682,7 +682,7 @@ class StoreWAL(
 
 
     override protected fun allocateNewPage():Long{
-        if(CC.ASSERT)
+        if(CC.PARANOID)
             structuralLock.assertLocked()
 
         val eof = fileTail
@@ -693,7 +693,7 @@ class StoreWAL(
     }
 
     override protected fun allocateNewIndexPage():Long{
-        if(CC.ASSERT)
+        if(CC.PARANOID)
             structuralLock.assertLocked()
 
         val indexPage = allocateNewPage();
@@ -705,7 +705,7 @@ class StoreWAL(
                 else
                     indexPages[indexPages.size()-1] + 8
 
-//        if(CC.ASSERT && parity16Get(volume.getLong(pagePointerOffset))!=0L)
+//        if(CC.PARANOID && parity16Get(volume.getLong(pagePointerOffset))!=0L)
 //            throw DBException.DataCorruption("index pointer not empty")
 
         wal.walPutLong(pagePointerOffset, parity16Set(indexPage))
@@ -729,13 +729,13 @@ class StoreWAL(
 
 
     override protected fun longStackPut(masterLinkOffset:Long, value:Long, recursive:Boolean){
-        if(CC.ASSERT)
+        if(CC.PARANOID)
             structuralLock.assertLocked()
-        if (CC.ASSERT && (masterLinkOffset <= 0 || masterLinkOffset > CC.PAGE_SIZE || masterLinkOffset % 8 != 0L))
+        if (CC.PARANOID && (masterLinkOffset <= 0 || masterLinkOffset > CC.PAGE_SIZE || masterLinkOffset % 8 != 0L))
             throw DBException.DataCorruption("wrong master link")
-        if(CC.ASSERT && value.shr(48)!=0L)
+        if(CC.PARANOID && value.shr(48)!=0L)
             throw AssertionError()
-        if(CC.ASSERT)
+        if(CC.PARANOID)
             parity1Get(value)
 
         /** size of value after it was packed */
@@ -776,13 +776,13 @@ class StoreWAL(
             volume.getData(chunkOffset, ba, 0, pageSize)
             cacheStacks.put(chunkOffset,ba)
         }
-        if(CC.ASSERT && ba.size>LONG_STACK_MAX_SIZE)
+        if(CC.PARANOID && ba.size>LONG_STACK_MAX_SIZE)
             throw AssertionError()
         return ba
     }
 
     protected fun longStackNewChunk(masterLinkOffset: Long, prevPageOffset: Long, value: Long, valueSize:Long, recursive: Boolean) {
-        if(CC.ASSERT) {
+        if(CC.PARANOID) {
             structuralLock.assertLocked()
         }
         if(CC.PARANOID){
@@ -794,7 +794,7 @@ class StoreWAL(
                 throw AssertionError("longStackNewChunk called in recursion, longStackTake() is more then once on stack frame")
         }
 
-        if (CC.ASSERT && (masterLinkOffset <= 0 || masterLinkOffset > CC.PAGE_SIZE || masterLinkOffset % 8 != 0L))
+        if (CC.PARANOID && (masterLinkOffset <= 0 || masterLinkOffset > CC.PAGE_SIZE || masterLinkOffset % 8 != 0L))
             throw DBException.DataCorruption("wrong master link")
 
         var newChunkSize:Long = -1L
@@ -834,7 +834,7 @@ class StoreWAL(
             }
         }
 
-        if(CC.ASSERT && newChunkSize % 16!=0L)
+        if(CC.PARANOID && newChunkSize % 16!=0L)
             throw AssertionError()
 
         //by now we should have determined size to take, so just take it
@@ -854,10 +854,10 @@ class StoreWAL(
     }
 
     override protected fun longStackTake(masterLinkOffset:Long, recursive:Boolean):Long {
-        if(CC.ASSERT)
+        if(CC.PARANOID)
             structuralLock.assertLocked()
 
-        if (CC.ASSERT && (masterLinkOffset <= 0 || masterLinkOffset > CC.PAGE_SIZE || masterLinkOffset % 8 != 0L))
+        if (CC.PARANOID && (masterLinkOffset <= 0 || masterLinkOffset > CC.PAGE_SIZE || masterLinkOffset % 8 != 0L))
             throw DBException.DataCorruption("wrong master link")
 
         val masterLinkVal = parity4Get(headVol.getLong(masterLinkOffset))
@@ -876,10 +876,10 @@ class StoreWAL(
             pos--
         }
 
-        if(CC.ASSERT && pos<8L)
+        if(CC.PARANOID && pos<8L)
             throw DBException.DataCorruption("position too small")
 
-        if(CC.ASSERT && getLong(ba, 0).ushr(48)<=pos)
+        if(CC.PARANOID && getLong(ba, 0).ushr(48)<=pos)
             throw DBException.DataCorruption("position beyond chunk "+masterLinkOffset);
 
         //get value and zero it out
@@ -893,9 +893,9 @@ class StoreWAL(
         if(pos>8L) {
             //there is enough space on current chunk, so just decrease its size
             headVol.putLong(masterLinkOffset, parity4Set(pos.toLong().shl(48) + offset))
-            if(CC.ASSERT && ret.shr(48)!=0L)
+            if(CC.PARANOID && ret.shr(48)!=0L)
                 throw AssertionError()
-            if(CC.ASSERT && ret!=0L)
+            if(CC.PARANOID && ret!=0L)
                 parity1Get(ret)
 
             return ret;
@@ -928,9 +928,9 @@ class StoreWAL(
 
         releaseData(currentSize, offset, true);
 
-        if(CC.ASSERT && ret.shr(48)!=0L)
+        if(CC.PARANOID && ret.shr(48)!=0L)
             throw AssertionError()
-        if(CC.ASSERT && ret != 0L)
+        if(CC.PARANOID && ret != 0L)
             parity1Get(ret)
         return ret;
     }

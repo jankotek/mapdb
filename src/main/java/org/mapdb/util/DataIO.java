@@ -367,7 +367,7 @@ public final class DataIO {
     }
 
     public static void putSixLong(byte[] buf, int pos, long value) {
-        if(CC.ASSERT && (value>>>48!=0))
+        if(CC.PARANOID && (value>>>48!=0))
             throw new AssertionError();
 
         buf[pos++] = (byte) (0xff & (value >> 40));
@@ -425,13 +425,13 @@ public final class DataIO {
 
 
     public static long parity1Set(long i) {
-        if(CC.ASSERT && (i&1)!=0)
+        if(CC.PARANOID && (i&1)!=0)
             throw new DBException.PointerChecksumBroken();
         return i | ((Long.bitCount(i)+1)%2);
     }
 
     public static int parity1Set(int i) {
-        if(CC.ASSERT && (i&1)!=0)
+        if(CC.PARANOID && (i&1)!=0)
             throw new DBException.PointerChecksumBroken();
         return i | ((Integer.bitCount(i)+1)%2);
     }
@@ -452,7 +452,7 @@ public final class DataIO {
     }
 
     public static long parity3Set(long i) {
-        if(CC.ASSERT && (i&0x7)!=0)
+        if(CC.PARANOID && (i&0x7)!=0)
             throw new DBException.PointerChecksumBroken();
         return i | ((Long.bitCount(i)+1)%8);
     }
@@ -466,7 +466,7 @@ public final class DataIO {
     }
 
     public static long parity4Set(long i) {
-        if(CC.ASSERT && (i&0xF)!=0)
+        if(CC.PARANOID && (i&0xF)!=0)
             throw new DBException.PointerChecksumBroken();
         return i | ((Long.bitCount(i)+1)%16);
     }
@@ -481,7 +481,7 @@ public final class DataIO {
 
 
     public static long parity16Set(long i) {
-        if(CC.ASSERT && (i&0xFFFF)!=0)
+        if(CC.PARANOID && (i&0xFFFF)!=0)
             throw new DBException.PointerChecksumBroken();
         return i | (DataIO.longHash(i+1)&0xFFFFL);
     }

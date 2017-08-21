@@ -49,7 +49,7 @@ public class SerializerStringDelta2 implements  GroupSerializer<String> {
             this.offset = offset;
             this.array = array;
 
-            if(CC.ASSERT && ! (array.length==0 || array.length == offset[offset.length-1]))
+            if(CC.PARANOID && ! (array.length==0 || array.length == offset[offset.length-1]))
                 throw new DBException.DataCorruption("inconsistent array size");
         }
 
@@ -292,7 +292,7 @@ public class SerializerStringDelta2 implements  GroupSerializer<String> {
             this.offset = offset;
             this.array = array;
 
-            if(CC.ASSERT && ! (array.length==0 || array.length == offset[offset.length-1]))
+            if(CC.PARANOID && ! (array.length==0 || array.length == offset[offset.length-1]))
                 throw new DBException.DataCorruption("inconsistent array size");
         }
 

@@ -102,7 +102,7 @@ public final class MappedFileVol extends ByteBufferVol {
                 slices = new ByteBuffer[chunksSize];
                 for (int i = 0; i < slices.length; i++) {
                     ByteBuffer b = fileChannel.map(mapMode, 1L * sliceSize * i, sliceSize);
-                    if (CC.ASSERT && b.order() != ByteOrder.BIG_ENDIAN)
+                    if (CC.PARANOID && b.order() != ByteOrder.BIG_ENDIAN)
                         throw new AssertionError("Little-endian");
                     slices[i] = b;
                 }
@@ -145,7 +145,7 @@ public final class MappedFileVol extends ByteBufferVol {
 
             for (int pos = oldSize; pos < slices2.length; pos++) {
                 ByteBuffer b = fileChannel.map(mapMode, 1L * sliceSize * pos, sliceSize);
-                if (CC.ASSERT && b.order() != ByteOrder.BIG_ENDIAN)
+                if (CC.PARANOID && b.order() != ByteOrder.BIG_ENDIAN)
                     throw new AssertionError("Little-endian");
                 slices2[pos] = b;
             }
@@ -288,7 +288,7 @@ public final class MappedFileVol extends ByteBufferVol {
             if (ByteBufferVol.windowsWorkaround) {
                 for (int pos = 0; pos < maxSize; pos++) {
                     ByteBuffer b = fileChannel.map(mapMode, 1L * sliceSize * pos, sliceSize);
-                    if (CC.ASSERT && b.order() != ByteOrder.BIG_ENDIAN)
+                    if (CC.PARANOID && b.order() != ByteOrder.BIG_ENDIAN)
                         throw new AssertionError("Little-endian");
                     slices[pos] = b;
                 }

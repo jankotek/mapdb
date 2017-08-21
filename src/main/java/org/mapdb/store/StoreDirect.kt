@@ -121,7 +121,7 @@ class StoreDirect(
     }
 
     override protected fun getIndexVal(recid:Long):Long{
-        if(CC.PARANOID) //should be ASSERT, but this method is accessed way too often
+        if(CC.PARANOID) //should be PARANOID, but this method is accessed way too often
             locks?.checkReadLocked(recidToSegment(recid))
 
         try {
@@ -136,7 +136,7 @@ class StoreDirect(
     }
 
     override protected fun setIndexVal(recid:Long, value:Long){
-        if(CC.ASSERT)
+        if(CC.PARANOID)
             locks?.checkWriteLocked(recidToSegment(recid))
 
         val offset = recidToOffset(recid)
@@ -146,7 +146,7 @@ class StoreDirect(
 
 
     override protected fun allocateNewPage():Long{
-        if(CC.ASSERT)
+        if(CC.PARANOID)
             structuralLock.assertLocked()
 
         val eof = fileTail
@@ -159,7 +159,7 @@ class StoreDirect(
     }
 
     override protected fun allocateNewIndexPage():Long{
-        if(CC.ASSERT)
+        if(CC.PARANOID)
             structuralLock.assertLocked()
 
         val indexPage = allocateNewPage();
@@ -171,7 +171,7 @@ class StoreDirect(
                 else
                     indexPages[indexPages.size()-1] + 8
 
-        if(CC.ASSERT && parity16Get(volume.getLong(pagePointerOffset))!=0L)
+        if(CC.PARANOID && parity16Get(volume.getLong(pagePointerOffset))!=0L)
             throw DBException.DataCorruption("index pointer not empty")
 
         volume.putLong(pagePointerOffset, parity16Set(indexPage))
@@ -186,7 +186,7 @@ class StoreDirect(
 
     protected fun linkedRecordGet(indexValue:Long):ByteArray{
 
-        if(CC.ASSERT && !indexValFlagLinked(indexValue))
+        if(CC.PARANOID && !indexValFlagLinked(indexValue))
             throw AssertionError("not linked record")
 
         var b = ByteArray(128*1024)
@@ -215,7 +215,7 @@ class StoreDirect(
     }
 
     protected fun linkedRecordDelete(indexValue:Long){
-        if(CC.ASSERT && !indexValFlagLinked(indexValue))
+        if(CC.PARANOID && !indexValFlagLinked(indexValue))
             throw AssertionError("not linked record")
 
         var pointer = indexValue
@@ -264,20 +264,20 @@ class StoreDirect(
             remSize-=chunkSize
             volume.putData(chunkOffset+8, output, remSize.toInt(), chunkSize.toInt())
         }
-        if(CC.ASSERT && remSize!=0L)
+        if(CC.PARANOID && remSize!=0L)
             throw AssertionError();
         return (chunkSize+8).shl(48) + chunkOffset + isLinked + MARCHIVE
     }
 
 
     override protected fun longStackPut(masterLinkOffset:Long, value:Long, recursive:Boolean){
-        if(CC.ASSERT)
+        if(CC.PARANOID)
             structuralLock.assertLocked()
-        if (CC.ASSERT && (masterLinkOffset <= 0 || masterLinkOffset > CC.PAGE_SIZE || masterLinkOffset % 8 != 0L))
+        if (CC.PARANOID && (masterLinkOffset <= 0 || masterLinkOffset > CC.PAGE_SIZE || masterLinkOffset % 8 != 0L))
             throw DBException.DataCorruption("wrong master link")
-        if(CC.ASSERT && value.shr(48)!=0L)
+        if(CC.PARANOID && value.shr(48)!=0L)
             throw AssertionError()
-        if(CC.ASSERT)
+        if(CC.PARANOID)
             parity1Get(value)
 
         /** size of value after it was packed */
@@ -309,7 +309,7 @@ class StoreDirect(
     }
 
     protected fun longStackNewChunk(masterLinkOffset: Long, prevPageOffset: Long, value: Long, valueSize:Long, recursive: Boolean) {
-        if(CC.ASSERT) {
+        if(CC.PARANOID) {
             structuralLock.assertLocked()
         }
         if(CC.PARANOID){
@@ -321,7 +321,7 @@ class StoreDirect(
                 throw AssertionError("longStackNewChunk called in recursion, longStackTake() is more then once on stack frame")
         }
 
-        if (CC.ASSERT && (masterLinkOffset <= 0 || masterLinkOffset > CC.PAGE_SIZE || masterLinkOffset % 8 != 0L))
+        if (CC.PARANOID && (masterLinkOffset <= 0 || masterLinkOffset > CC.PAGE_SIZE || masterLinkOffset % 8 != 0L))
             throw DBException.DataCorruption("wrong master link")
 
         var newChunkSize:Long = -1L
@@ -361,7 +361,7 @@ class StoreDirect(
             }
         }
 
-        if(CC.ASSERT && newChunkSize % 16!=0L)
+        if(CC.PARANOID && newChunkSize % 16!=0L)
             throw AssertionError()
 
         //by now we should have determined size to take, so just take it
@@ -379,10 +379,10 @@ class StoreDirect(
     }
 
     override protected fun longStackTake(masterLinkOffset:Long, recursive:Boolean):Long {
-        if(CC.ASSERT)
+        if(CC.PARANOID)
             structuralLock.assertLocked()
 
-        if (CC.ASSERT && (masterLinkOffset <= 0 || masterLinkOffset > CC.PAGE_SIZE || masterLinkOffset % 8 != 0L))
+        if (CC.PARANOID && (masterLinkOffset <= 0 || masterLinkOffset > CC.PAGE_SIZE || masterLinkOffset % 8 != 0L))
             throw DBException.DataCorruption("wrong master link")
 
         val masterLinkVal = parity4Get(volume.getLong(masterLinkOffset))
@@ -400,10 +400,10 @@ class StoreDirect(
             pos--
         }
 
-        if(CC.ASSERT && pos<8L)
+        if(CC.PARANOID && pos<8L)
             throw DBException.DataCorruption("position too small")
 
-        if(CC.ASSERT && volume.getLong(offset).ushr(48)<=pos)
+        if(CC.PARANOID && volume.getLong(offset).ushr(48)<=pos)
             throw DBException.DataCorruption("position beyond chunk "+masterLinkOffset);
 
         //get value and zero it out
@@ -415,9 +415,9 @@ class StoreDirect(
         if(pos>8L) {
             //there is enough space on current chunk, so just decrease its size
             volume.putLong(masterLinkOffset, parity4Set(pos.shl(48) + offset))
-            if(CC.ASSERT && ret.shr(48)!=0L)
+            if(CC.PARANOID && ret.shr(48)!=0L)
                 throw AssertionError()
-            if(CC.ASSERT)
+            if(CC.PARANOID)
                 parity1Get(ret)
 
             return ret;
@@ -447,9 +447,9 @@ class StoreDirect(
 
         releaseData(currentSize, offset, true);
 
-        if(CC.ASSERT && ret.shr(48)!=0L)
+        if(CC.PARANOID && ret.shr(48)!=0L)
             throw AssertionError()
-        if(CC.ASSERT && ret!=0L)
+        if(CC.PARANOID && ret!=0L)
             parity1Get(ret)
         return ret;
     }
@@ -506,7 +506,7 @@ class StoreDirect(
         }
 
         locks.lockWrite(recidToSegment(recid)) {
-            if (CC.ASSERT) {
+            if (CC.PARANOID) {
                 val oldVal = volume.getLong(recidToOffset(recid))
                 if(oldVal!=0L && indexValToSize(oldVal)!=DELETED_RECORD_SIZE)
                     throw DBException.DataCorruption("old recid is not empty")
@@ -683,7 +683,7 @@ class StoreDirect(
     }
 
     private fun updateProtected(recid: Long, di: DataOutput2?) {
-        if (CC.ASSERT)
+        if (CC.PARANOID)
             locks?.checkWriteLocked(recidToSegment(recid))
 
         val oldIndexVal = getIndexVal(recid);
@@ -805,7 +805,7 @@ class StoreDirect(
                     for (i in 0 until indexPages.size())
                         store2.allocateNewIndexPage()
 
-                    if (CC.ASSERT && store2.indexPages.size() != indexPages.size())
+                    if (CC.PARANOID && store2.indexPages.size() != indexPages.size())
                         throw AssertionError();
 
                     //now iterate over all recids
@@ -857,7 +857,7 @@ class StoreDirect(
 
     /** only called from compaction, it inserts new record under given recid */
     private fun putCompact(recid: Long, data: ByteArray?) {
-        if(CC.ASSERT && isThreadSafe) //compaction is done on second store, which sis always thread unsafe
+        if(CC.PARANOID && isThreadSafe) //compaction is done on second store, which sis always thread unsafe
             throw AssertionError();
         if (data == null) {
             setIndexVal(recid, indexValCompose(size = NULL_RECORD_SIZE, offset = 0, linked = 0, unused = 0, archive = 1))
@@ -1054,7 +1054,7 @@ class StoreDirect(
 
 
     override protected fun freeSizeIncrement(increment: Long) {
-        if(CC.ASSERT && increment%16!=0L)
+        if(CC.PARANOID && increment%16!=0L)
             throw AssertionError()
         while (true) {
             val v = freeSize.get()
@@ -1090,9 +1090,9 @@ class StoreDirect(
             val masterLinkOffset = longStackMasterLinkOffset(size)
             longStackForEach(masterLinkOffset, { v ->
                 val v2 = parity1Get(v).shl(3)
-                if(CC.ASSERT && v2==0L)
+                if(CC.PARANOID && v2==0L)
                     throw AssertionError()
-                if(CC.ASSERT && v2>fileTail)
+                if(CC.PARANOID && v2>fileTail)
                     throw AssertionError()
 
                 ret1 += size

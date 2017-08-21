@@ -324,7 +324,7 @@ public final class RandomAccessFileVol extends Volume {
 
     @Override
     public synchronized void putSixLong(long pos, long value) {
-        if (CC.ASSERT && (value >>> 48 != 0))
+        if (CC.PARANOID && (value >>> 48 != 0))
             throw new DBException.DataCorruption("six long out of range");
         try {
             raf.seek(pos);

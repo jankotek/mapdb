@@ -621,7 +621,7 @@ public interface Serializer<A /*extends Comparable<? super A>*/> extends Compara
      * @throws IOException in case of an I/O error
      */
     default A deserializeFromLong(long input, int available) throws IOException {
-        if (CC.ASSERT && available < 0 || available > 8) {
+        if (CC.PARANOID && available < 0 || available > 8) {
             throw new AssertionError();
         }
         byte[] b = new byte[available];

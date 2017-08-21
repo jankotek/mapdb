@@ -397,7 +397,7 @@ open class DB(
 
     }
     protected fun nameCatalogLoadLocked():SortedMap<String, String> {
-        if(CC.ASSERT)
+        if(CC.PARANOID)
             lock.assertReadLock()
         return store.get(CC.RECID_NAME_CATALOG, NAME_CATALOG_SERIALIZER)
                 ?: throw DBException.WrongConfiguration("Could not open store, it has no Named Catalog");
@@ -411,7 +411,7 @@ open class DB(
     }
 
     protected fun nameCatalogSaveLocked(nameCatalog: SortedMap<String, String>) {
-        if(CC.ASSERT)
+        if(CC.PARANOID)
             lock.assertWriteLock()
         store.update(CC.RECID_NAME_CATALOG, nameCatalog, NAME_CATALOG_SERIALIZER)
     }
@@ -469,7 +469,7 @@ open class DB(
 
 
     private fun unknownClassesSave(){
-        if(CC.ASSERT)
+        if(CC.PARANOID)
             lock.assertWriteLock()
         //TODO batch class dump
         unknownClasses.forEach {
@@ -1947,7 +1947,7 @@ open class DB(
         }
     }
     private fun defaultSerializerRegisterClass_noLock(clazz:Class<*>) {
-        if(CC.ASSERT)
+        if(CC.PARANOID)
             lock.assertWriteLock()
         var infos = loadClassInfos()
         val className = clazz.name

@@ -102,7 +102,7 @@ public final class ByteBufferMemoryVol extends ByteBufferVol {
                 ByteBuffer b = useDirectBuffer ?
                         ByteBuffer.allocateDirect(sliceSize) :
                         ByteBuffer.allocate(sliceSize);
-                if (CC.ASSERT && b.order() != ByteOrder.BIG_ENDIAN)
+                if (CC.PARANOID && b.order() != ByteOrder.BIG_ENDIAN)
                     throw new AssertionError("little-endian");
                 slices2[pos] = b;
             }

@@ -336,7 +336,7 @@ class HTreeMap<K,V>(
 
     protected fun putProtected(hash:Int, key:K, value:V, triggered:Boolean, noValueExpand:Boolean):V?{
         val segment = hashToSegment(hash)
-        if(CC.ASSERT)
+        if(CC.PARANOID)
             locks?.checkWriteLocked(segment)
         if(CC.PARANOID && hash!= hash(key))
             throw AssertionError()
@@ -479,7 +479,7 @@ class HTreeMap<K,V>(
 
     protected fun removeProtected(hash:Int, key: K, evicted:Boolean, retTrue:Boolean): Any? {
         val segment = hashToSegment(hash)
-        if(CC.ASSERT)
+        if(CC.PARANOID)
             locks?.checkWriteLocked(segment)
         if(CC.PARANOID && hash!= hash(key))
             throw AssertionError()
@@ -631,7 +631,7 @@ class HTreeMap<K,V>(
 
     protected fun getprotected(hash:Int, key:K, updateQueue:Boolean):V?{
         val segment = hashToSegment(hash)
-        if(CC.ASSERT) {
+        if(CC.PARANOID) {
             if(updateQueue && expireGetQueues!=null)
                 locks?.checkWriteLocked(segment)
             else
@@ -669,7 +669,7 @@ class HTreeMap<K,V>(
     }
 
     private fun getprotectedQueues(expireGetQueues: Array<QueueLong>, i: Int, leaf: Array<Any>, leafRecid: Long, segment: Int, store: Store): Array<Any> {
-        if(CC.ASSERT)
+        if(CC.PARANOID)
             locks?.checkWriteLocked(segment)
 
         //update expiration stuff
@@ -859,9 +859,9 @@ class HTreeMap<K,V>(
     }
 
     protected fun expireId(nodeRecid: Long, queue:Long):Long{
-        if(CC.ASSERT && queue !in 1L..3L)
+        if(CC.PARANOID && queue !in 1L..3L)
             throw AssertionError("Wrong queue id: "+queue)
-        if(CC.ASSERT && nodeRecid==0L)
+        if(CC.PARANOID && nodeRecid==0L)
             throw AssertionError("zero nodeRecid")
         return nodeRecid.shl(2) + queue
     }
@@ -876,7 +876,7 @@ class HTreeMap<K,V>(
     }
 
     protected fun expireEvictSegment(segment:Int){
-        if(CC.ASSERT)
+        if(CC.PARANOID)
             locks?.checkWriteLocked(segment)
 
         val currTimestamp = System.currentTimeMillis()
@@ -928,7 +928,7 @@ class HTreeMap<K,V>(
     }
 
     protected fun expireEvictEntry(segment:Int, leafRecid:Long, nodeRecid:Long){
-        if(CC.ASSERT)
+        if(CC.PARANOID)
             locks?.checkWriteLocked(segment)
 
         val leaf = stores[segment].get(leafRecid, leafSerializer)
@@ -941,11 +941,11 @@ class HTreeMap<K,V>(
             @Suppress("UNCHECKED_CAST")
             val key = leaf[leafIndex] as K
             val hash = hash(key);
-            if(CC.ASSERT && segment!=hashToSegment(hash))
+            if(CC.PARANOID && segment!=hashToSegment(hash))
                 throw AssertionError()
             val old = removeProtected(hash = hash, key = key, evicted = true, retTrue = false)
             //TODO PERF if leaf has two or more items, delete directly from leaf
-            if(CC.ASSERT && old==null)
+            if(CC.PARANOID && old==null)
                 throw AssertionError()
             return;
         }
@@ -1252,7 +1252,7 @@ class HTreeMap<K,V>(
         if(valueInline)
             @Suppress("UNCHECKED_CAST")
             return wrappedValue as V
-        if(CC.ASSERT)
+        if(CC.PARANOID)
           locks?.checkReadLocked(segment)
         return stores[segment].get(wrappedValue as Long, valueSerializer)
                 ?: throw DBException.DataCorruption("linked value not found")
@@ -1260,7 +1260,7 @@ class HTreeMap<K,V>(
 
 
     protected fun valueWrap(segment:Int, value:V):Any{
-        if(CC.ASSERT)
+        if(CC.PARANOID)
             locks?.checkWriteLocked(segment)
 
         return if(valueInline) value as Any
@@ -1431,9 +1431,9 @@ class HTreeMap<K,V>(
     private fun leafGet(store:Store, leafRecid:Long):Array<Any>{
         val leaf = store.get(leafRecid, leafSerializer)
                 ?: throw DBException.DataCorruption("linked leaf not found")
-        if(CC.ASSERT && leaf.size%3!=0)
+        if(CC.PARANOID && leaf.size%3!=0)
             throw AssertionError()
-        if(CC.ASSERT && leaf.size<3)
+        if(CC.PARANOID && leaf.size<3)
             throw AssertionError()
         return leaf
     }

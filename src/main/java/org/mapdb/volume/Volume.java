@@ -254,7 +254,7 @@ public abstract class Volume implements Closeable{
     }
 
     public void putSixLong(long pos, long value) {
-        if(CC.ASSERT && (value>>>48!=0))
+        if(CC.PARANOID && (value>>>48!=0))
             throw new DBException.DataCorruption("six long illegal value");
 
         putByte(pos++, (byte) (0xff & (value >> 40)));
@@ -346,7 +346,7 @@ public abstract class Volume implements Closeable{
     public abstract void clear(final long startOffset, final long endOffset);
 
     public void clearOverlap(final long startOffset, final long endOffset) {
-        if (CC.ASSERT && startOffset > endOffset)
+        if (CC.PARANOID && startOffset > endOffset)
             throw new AssertionError();
 
         final long bufSize = 1L << CC.PAGE_SHIFT;
@@ -365,7 +365,7 @@ public abstract class Volume implements Closeable{
             offset = Math.min(endOffset, DataIO.roundUp(offset + 1, bufSize));
         }
 
-        if(CC.ASSERT && prevOffset!=endOffset)
+        if(CC.PARANOID && prevOffset!=endOffset)
             throw new AssertionError();
 }
 
@@ -383,7 +383,7 @@ public abstract class Volume implements Closeable{
 
         for(long offset=0;offset<volSize;offset+=bufSize){
             long size = Math.min(volSize,offset+bufSize)-offset;
-            if(CC.ASSERT && (size<0))
+            if(CC.PARANOID && (size<0))
                 throw new AssertionError();
             copyTo(offset,to,offset, size);
         }
@@ -420,7 +420,7 @@ public abstract class Volume implements Closeable{
         byte[] buf = new byte[1024];
         for(long offset=0;offset<volSize;offset+=buf.length){
             int size = (int)(Math.min(volSize,offset+buf.length)-offset);
-            if(CC.ASSERT && (size<0))
+            if(CC.PARANOID && (size<0))
                 throw new AssertionError();
 
             getData(offset, buf, 0, size);

@@ -65,9 +65,9 @@ abstract class StoreDirectAbstract(
     protected var dataTail: Long
         get() = DataIO.parity4Get(headVol.getLong(StoreDirectJava.DATA_TAIL_OFFSET))
         set(v:Long){
-            if(CC.ASSERT && (v%16)!=0L)
+            if(CC.PARANOID && (v%16)!=0L)
                 throw DBException.DataCorruption("unaligned data tail")
-            if(CC.ASSERT)
+            if(CC.PARANOID)
                 structuralLock.assertLocked()
             headVol.putLong(StoreDirectJava.DATA_TAIL_OFFSET, DataIO.parity4Set(v))
         }
@@ -76,7 +76,7 @@ abstract class StoreDirectAbstract(
     protected var maxRecid: Long
         get() = DataIO.parity3Get(headVol.getLong(StoreDirectJava.INDEX_TAIL_OFFSET)).ushr(3)
         set(v:Long){
-            if(CC.ASSERT)
+            if(CC.PARANOID)
                 structuralLock.assertLocked()
             headVol.putLong(StoreDirectJava.INDEX_TAIL_OFFSET, DataIO.parity3Set(v.shl(3)))
         }
@@ -86,7 +86,7 @@ abstract class StoreDirectAbstract(
     internal var fileTail: Long
         get() = DataIO.parity16Get(headVol.getLong(StoreDirectJava.FILE_TAIL_OFFSET))
         set(v:Long){
-            if(CC.ASSERT)
+            if(CC.PARANOID)
                 structuralLock.assertLocked()
             headVol.putLong(StoreDirectJava.FILE_TAIL_OFFSET, DataIO.parity16Set(v))
         }
@@ -170,7 +170,7 @@ abstract class StoreDirectAbstract(
             val nextPage = DataIO.parity16Get(volume.getLong(indexPagePointerOffset))
             if (nextPage == 0L)
                 break;
-            if (CC.ASSERT && nextPage % CC.PAGE_SIZE != 0L)
+            if (CC.PARANOID && nextPage % CC.PAGE_SIZE != 0L)
                 throw DBException.DataCorruption("wrong page pointer")
             indexPages.add(nextPage)
             indexPagePointerOffset = nextPage + 8
@@ -185,21 +185,21 @@ abstract class StoreDirectAbstract(
                                   archive:Int
             ):Long{
 
-        if(CC.ASSERT && size<0 || size>0xFFFF)
+        if(CC.PARANOID && size<0 || size>0xFFFF)
             throw AssertionError()
 
-        if(CC.ASSERT && (offset%16) != 0L)
+        if(CC.PARANOID && (offset%16) != 0L)
             throw DBException.DataCorruption("unaligned offset")
 
-        if(CC.ASSERT && (offset and StoreDirectJava.MOFFSET) != offset)
+        if(CC.PARANOID && (offset and StoreDirectJava.MOFFSET) != offset)
             throw DBException.DataCorruption("unaligned offset")
 
 
-        if(CC.ASSERT && (linked in 0..1).not())
+        if(CC.PARANOID && (linked in 0..1).not())
             throw AssertionError()
-        if(CC.ASSERT && (archive in 0..1).not())
+        if(CC.PARANOID && (archive in 0..1).not())
             throw AssertionError()
-        if(CC.ASSERT && (unused in 0..1).not())
+        if(CC.PARANOID && (unused in 0..1).not())
             throw AssertionError()
 
         return size.shl(48) + offset + linked* StoreDirectJava.MLINKED + unused* StoreDirectJava.MUNUSED + archive* StoreDirectJava.MARCHIVE
@@ -250,7 +250,7 @@ abstract class StoreDirectAbstract(
 
 
     protected fun allocateRecid():Long{
-        if(CC.ASSERT)
+        if(CC.PARANOID)
             structuralLock.assertLocked()
 
         val reusedRecid = longStackTake(RECID_LONG_STACK,false)
@@ -271,7 +271,7 @@ abstract class StoreDirectAbstract(
         // increment maximal recid
         val ret = maxRecid2+1;
         maxRecid = ret;
-        if(CC.ASSERT && CC.ZEROS && volume.getLong(recidToOffset(ret))!=0L)
+        if(CC.PARANOID && CC.ZEROS && volume.getLong(recidToOffset(ret))!=0L)
             throw AssertionError();
         return ret;
     }
@@ -279,14 +279,14 @@ abstract class StoreDirectAbstract(
     abstract protected fun allocateNewIndexPage():Long
 
     protected fun allocateData(size:Int, recursive:Boolean):Long{
-        if(CC.ASSERT)
+        if(CC.PARANOID)
             structuralLock.assertLocked()
 
-        if(CC.ASSERT && size> StoreDirectJava.MAX_RECORD_SIZE)
+        if(CC.PARANOID && size> StoreDirectJava.MAX_RECORD_SIZE)
             throw AssertionError()
-        if(CC.ASSERT && size<=0)
+        if(CC.PARANOID && size<=0)
             throw AssertionError()
-        if(CC.ASSERT && size%16!=0)
+        if(CC.PARANOID && size%16!=0)
             throw AssertionError()
 
 
@@ -296,7 +296,7 @@ abstract class StoreDirectAbstract(
             val reusedDataOffset2 = parity1Get(reusedDataOffset).shl(3)
             if(CC.ZEROS)
                 volume.assertZeroes(reusedDataOffset2, reusedDataOffset2+size)
-            if(CC.ASSERT && reusedDataOffset2%16!=0L)
+            if(CC.PARANOID && reusedDataOffset2%16!=0L)
                 throw DBException.DataCorruption("wrong offset")
 
             freeSizeIncrement(-size.toLong())
@@ -312,7 +312,7 @@ abstract class StoreDirectAbstract(
             dataTail = page+size
             if(CC.ZEROS)
                 volume.assertZeroes(page, page+size)
-            if(CC.ASSERT && page%16!=0L)
+            if(CC.PARANOID && page%16!=0L)
                 throw DBException.DataCorruption("wrong offset")
             return page;
         }
@@ -329,7 +329,7 @@ abstract class StoreDirectAbstract(
 
             if(CC.ZEROS)
                 volume.assertZeroes(dataTail2, dataTail2+size)
-            if(CC.ASSERT && dataTail2%16!=0L)
+            if(CC.PARANOID && dataTail2%16!=0L)
                 throw DBException.DataCorruption("wrong offset")
             return dataTail2
         }
@@ -350,12 +350,12 @@ abstract class StoreDirectAbstract(
 
 
     protected fun releaseData(size:Long, offset:Long, recursive:Boolean){
-        if(CC.ASSERT)
+        if(CC.PARANOID)
             structuralLock.assertLocked()
 
-        if(CC.ASSERT && size%16!=0L)
+        if(CC.PARANOID && size%16!=0L)
             throw AssertionError()
-        if(CC.ASSERT && size> StoreDirectJava.MAX_RECORD_SIZE)
+        if(CC.PARANOID && size> StoreDirectJava.MAX_RECORD_SIZE)
             throw AssertionError()
 
         if(CC.ZEROS)
@@ -383,9 +383,9 @@ abstract class StoreDirectAbstract(
 
 
     protected fun longStackMasterLinkOffset(size: Long): Long {
-        if (CC.ASSERT && size % 16 != 0L)
+        if (CC.PARANOID && size % 16 != 0L)
             throw AssertionError()
-        if(CC.ASSERT && size> StoreDirectJava.MAX_RECORD_SIZE)
+        if(CC.PARANOID && size> StoreDirectJava.MAX_RECORD_SIZE)
             throw AssertionError()
         return size / 2 + StoreDirectJava.RECID_LONG_STACK // really is size*8/16
     }

@@ -39,7 +39,7 @@ public class SerializerArrayTuple implements GroupSerializer<Object[]>, DB.DBAwa
 
 
     protected Object[] cast(Object o){
-        if(CC.ASSERT && ((Object[])o).length%size!=0) {
+        if(CC.PARANOID && ((Object[])o).length%size!=0) {
             throw new AssertionError();
         }
         return (Object[])o;
@@ -109,7 +109,7 @@ public class SerializerArrayTuple implements GroupSerializer<Object[]>, DB.DBAwa
 
     @Override
     public Object valueArrayPut(Object vals, int pos, Object[] newValue) {
-        if(CC.ASSERT && newValue.length%size!=0)
+        if(CC.PARANOID && newValue.length%size!=0)
             throw new AssertionError();
         Object[] array = cast(vals);
         pos*=size;
@@ -123,7 +123,7 @@ public class SerializerArrayTuple implements GroupSerializer<Object[]>, DB.DBAwa
 
     @Override
     public Object valueArrayUpdateVal(Object vals, int pos, Object[] newValue) {
-        if(CC.ASSERT && newValue.length!=size)
+        if(CC.PARANOID && newValue.length!=size)
             throw new AssertionError();
         Object[] ret = cast(vals).clone();
         System.arraycopy(newValue, 0, ret, pos*size, size);
@@ -136,7 +136,7 @@ public class SerializerArrayTuple implements GroupSerializer<Object[]>, DB.DBAwa
         int pos = 0;
         for(Object oo:objects){
             Object[] oo2= (Object[]) oo;
-            if(CC.ASSERT && oo2.length!=size)
+            if(CC.PARANOID && oo2.length!=size)
                 throw new AssertionError();
             for(Object o:oo2)
                 v[pos++]=o;
@@ -199,7 +199,7 @@ public class SerializerArrayTuple implements GroupSerializer<Object[]>, DB.DBAwa
 
     @Override
     public int hashCode(@NotNull Object[] objects, int seed) {
-        if(CC.ASSERT && objects.length%size!=0)
+        if(CC.PARANOID && objects.length%size!=0)
             throw new AssertionError();
         for(int i=0;i<objects.length;i++){
             seed+= DataIO.intHash(ser[i].hashCode(objects[i],seed));

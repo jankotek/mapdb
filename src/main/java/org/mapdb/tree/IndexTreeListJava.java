@@ -18,7 +18,7 @@ public class IndexTreeListJava {
         @Override
         public void serialize(DataOutput2 out, long[] value) throws IOException {
 
-            if(CC.ASSERT){
+            if(CC.PARANOID){
                 int len = 2 +
                         2*Long.bitCount(value[0])+
                         2*Long.bitCount(value[1]);
@@ -84,7 +84,7 @@ public class IndexTreeListJava {
 
     /** converts hash slot into actual offset in dir array, using bitmap */
     static final int dirOffsetFromSlot(long[] dir, int slot) {
-        if(CC.ASSERT && slot>127)
+        if(CC.PARANOID && slot>127)
             throw new DBException.DataCorruption("slot too high");
 
         int offset = 0;
@@ -107,7 +107,7 @@ public class IndexTreeListJava {
     }
 
     static final int dirOffsetFromLong(long bitmap1, long bitmap2, int slot) {
-        if(CC.ASSERT && slot>127)
+        if(CC.PARANOID && slot>127)
             throw new DBException.DataCorruption("slot too high");
 
         int offset = 0;
@@ -153,7 +153,7 @@ public class IndexTreeListJava {
 
     static final long[] dirRemove(long[] dir, final int slot){
         int offset = dirOffsetFromSlot(dir, slot);
-        if(CC.ASSERT && offset<=0){
+        if(CC.PARANOID && offset<=0){
             throw new DBException.DataCorruption("offset too low");
         }
         //shrink and copy data
@@ -178,11 +178,11 @@ public class IndexTreeListJava {
      * @return value recid, 0 if not found
      */
     static final long treeGet(int dirShift, long recid, StoreImmutable store, int level, final long index) {
-        if(CC.ASSERT && index<0)
+        if(CC.PARANOID && index<0)
             throw new AssertionError();
-        if(CC.ASSERT && index>>>(level*dirShift)!=0)
+        if(CC.PARANOID && index>>>(level*dirShift)!=0)
             throw new AssertionError();
-        if(CC.ASSERT && (dirShift<0||dirShift>maxDirShift))
+        if(CC.PARANOID && (dirShift<0||dirShift>maxDirShift))
             throw new AssertionError();
 
         if(!(store instanceof StoreBinary)) {
@@ -279,11 +279,11 @@ public class IndexTreeListJava {
     }
 
     static final Long treeGetNullable(int dirShift, long recid, StoreImmutable store, int level, long index) {
-        if(CC.ASSERT && index<0)
+        if(CC.PARANOID && index<0)
             throw new AssertionError();
-        if(CC.ASSERT && index>>>(level*dirShift)!=0)
+        if(CC.PARANOID && index>>>(level*dirShift)!=0)
             throw new AssertionError();
-        if(CC.ASSERT && (dirShift<0||dirShift>maxDirShift))
+        if(CC.PARANOID && (dirShift<0||dirShift>maxDirShift))
             throw new AssertionError();
 
 
@@ -326,9 +326,9 @@ public class IndexTreeListJava {
             int level,
             final long index,
             long value){
-        if(CC.ASSERT && index<0)
+        if(CC.PARANOID && index<0)
             throw new AssertionError();
-        if(CC.ASSERT && index>>>(level*dirShift)!=0)
+        if(CC.PARANOID && index>>>(level*dirShift)!=0)
             throw new AssertionError();
 
 
@@ -380,11 +380,11 @@ public class IndexTreeListJava {
      * inserts new dir with two values
      */
     static long treePutSub(int dirShift, Store store, int level, long index1, long value1, long index2, long value2) {
-        if(CC.ASSERT && level<0)
+        if(CC.PARANOID && level<0)
             throw new DBException.DataCorruption("level too low");
-        if(CC.ASSERT && (dirShift<0||dirShift>maxDirShift))
+        if(CC.PARANOID && (dirShift<0||dirShift>maxDirShift))
             throw new AssertionError();
-        if(CC.ASSERT && index1>>>((level+1)*dirShift)!=index2>>>((level+1)*dirShift)){
+        if(CC.PARANOID && index1>>>((level+1)*dirShift)!=index2>>>((level+1)*dirShift)){
             throw new DBException.DataCorruption("inconsistent index");
         }
         int pos1 = treePos(dirShift, level, index1);
@@ -409,15 +409,15 @@ public class IndexTreeListJava {
                               long index,
                               Long expectedValue //null for always remove
     ){
-        if(CC.ASSERT && level<0)
+        if(CC.PARANOID && level<0)
             throw new DBException.DataCorruption("level too low");
-        if(CC.ASSERT && index<0)
+        if(CC.PARANOID && index<0)
             throw new AssertionError();
-        if(CC.ASSERT && (dirShift<0||dirShift>maxDirShift))
+        if(CC.PARANOID && (dirShift<0||dirShift>maxDirShift))
             throw new AssertionError();
 
 //      TODO assert at top level
-//        if(CC.ASSERT && index>>>(level*dirShift)!=0)
+//        if(CC.PARANOID && index>>>(level*dirShift)!=0)
 //            throw new AssertionError();
 
         long[] dir = store.get(recid, dirSer);
@@ -464,15 +464,15 @@ public class IndexTreeListJava {
                                 long index,
                                 Long expectedValue //null for always remove
     ){
-        if(CC.ASSERT && level<0)
+        if(CC.PARANOID && level<0)
             throw new DBException.DataCorruption("level too low");
-        if(CC.ASSERT && index<0)
+        if(CC.PARANOID && index<0)
             throw new AssertionError();
-        if(CC.ASSERT && (dirShift<0||dirShift>maxDirShift))
+        if(CC.PARANOID && (dirShift<0||dirShift>maxDirShift))
             throw new AssertionError();
 
 //      TODO assert at top level
-//        if(CC.ASSERT && index>>>(level*dirShift)!=0)
+//        if(CC.PARANOID && index>>>(level*dirShift)!=0)
 //            throw new AssertionError();
 
         long[] dir = store.get(recid, dirSer);
@@ -524,11 +524,11 @@ public class IndexTreeListJava {
         }
     }
     public static long[] treeIter(int dirShift, long recid, Store store, int level, long indexStart){
-        if(CC.ASSERT && level<0)
+        if(CC.PARANOID && level<0)
             throw new DBException.DataCorruption("level too low");
-        if(CC.ASSERT && indexStart<0)
+        if(CC.PARANOID && indexStart<0)
             throw new AssertionError();
-        if(CC.ASSERT && (dirShift<0||dirShift>maxDirShift))
+        if(CC.PARANOID && (dirShift<0||dirShift>maxDirShift))
             throw new AssertionError();
 
 
@@ -588,7 +588,7 @@ public class IndexTreeListJava {
     }
 
     public static <V> V treeFold(long recid, Store store, int level, V initValue, TreeTraverseCallback<V> callback){
-        if(CC.ASSERT && level<0)
+        if(CC.PARANOID && level<0)
             throw new DBException.DataCorruption("level too low");
 
 
@@ -616,7 +616,7 @@ public class IndexTreeListJava {
     }
 
     private static void treeClear(long recid, Store store, int level, boolean topLevel){
-        if(CC.ASSERT && level<0)
+        if(CC.PARANOID && level<0)
             throw new DBException.DataCorruption("level too low");
 
         long[] dir = store.get(recid, dirSer);
@@ -637,7 +637,7 @@ public class IndexTreeListJava {
     }
 
     public static long[] treeLast(long recid, Store store, int level){
-        if(CC.ASSERT && level<0)
+        if(CC.PARANOID && level<0)
             throw new DBException.DataCorruption("level too low");
 
         long[] dir = store.get(recid, dirSer);

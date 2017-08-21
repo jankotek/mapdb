@@ -188,7 +188,7 @@ object Pump{
                 }
 
                 //finish dir stack
-                if(CC.ASSERT && dirStack.last.leftEdge==0)
+                if(CC.PARANOID && dirStack.last.leftEdge==0)
                     throw AssertionError() //more then one node at top level
 
                 var childFromLowerLevel = nextLeafLink
