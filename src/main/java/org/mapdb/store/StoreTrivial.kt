@@ -232,15 +232,7 @@ open class StoreTrivial(
             return
 
         if(CC.PARANOID) {
-            lock.lockRead{
-                val freeRecidsSet = LongHashSet();
-                freeRecidsSet.addAll(freeRecids)
-                for (recid in 1..maxRecid) {//TODO put assertions for underlying collections and Volumes
-
-                    if (!freeRecidsSet.contains(recid) && !records.containsKey(recid))
-                        throw IllegalStateException("Recid not used " + recid);
-                }
-            }
+            verify()
         }
     }
 
@@ -340,6 +332,17 @@ open class StoreTrivial(
                     throw AssertionError("max recid")
             }
         }
+
+        lock.lockRead{
+            val freeRecidsSet = LongHashSet();
+            freeRecidsSet.addAll(freeRecids)
+            for (recid in 1..maxRecid) {//TODO put assertions for underlying collections and Volumes
+
+                if (!freeRecidsSet.contains(recid) && !records.containsKey(recid))
+                    throw IllegalStateException("Recid not used " + recid);
+            }
+        }
+
     }
 
     override val isReadOnly = false
@@ -484,10 +487,15 @@ class StoreTrivialTx(val file:File, isThreadSafe:Boolean=true, val deleteFilesAf
     }
 
     override fun close() {
+        if(CC.PARANOID)
+            verify()
+
         lock.lockWrite{
+            if(closed.compareAndSet(false,true).not())
+                return
+
             fileLock.release();
             fileChannel.close()
-            super.close()
             if(deleteFilesAfterClose){
                 val f = file.path
                 for(i in 0 .. lastFileNum){

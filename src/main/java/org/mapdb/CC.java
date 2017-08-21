@@ -13,7 +13,7 @@ public interface CC{
     boolean LOG = true;
 
     /** compile MapDB with assertions enabled*/
-    boolean PARANOID = true;
+    boolean PARANOID = false;
 
     /**
      * If enabled store space is filled with zeroes on allocation, deletion and update.
