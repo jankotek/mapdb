@@ -301,6 +301,26 @@
                 </configuration>
             </plugin>
 
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jdeps-plugin</artifactId>
+                <version>3.0.0</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>jdkinternals</goal>
+                            <goal>test-jdkinternals</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <dotOutput>target/jdeps</dotOutput>
+                    <failOnWarning>false</failOnWarning>
+                    <recursive>true</recursive>
+                    <verbose>true</verbose>
+                </configuration>
+            </plugin>
+
         </plugins>
 
     </build>
