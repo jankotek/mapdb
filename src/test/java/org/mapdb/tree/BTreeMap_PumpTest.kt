@@ -1,5 +1,6 @@
 package org.mapdb.tree
 
+import io.kotlintest.matchers.fail
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
@@ -8,7 +9,6 @@ import org.mapdb.serializer.GroupSerializer
 import org.mapdb.store.StoreTrivial
 import java.io.IOException
 import java.util.*
-import kotlin.test.fail
 
 
 @RunWith(Parameterized::class)
@@ -52,7 +52,7 @@ class BTreeMap_PumpTest(
                         // map should use Comparator for comparations, not this serializers
                         object : GroupSerializer<Int> by Serializer.INTEGER {
                             override fun valueArrayBinaryGet(input: DataInput2?, keysLen: Int, pos: Int): Int {
-                                fail()
+                                fail("should not be used")
                             }
 
                             //TODO this needs more testing
@@ -61,11 +61,11 @@ class BTreeMap_PumpTest(
 //                        }
 
                             override fun compare(first: Int?, second: Int?): Int {
-                                fail()
+                                fail("should not be used")
                             }
 
                             override fun valueArraySearch(keys: Any?, key: Int?): Int {
-                                fail()
+                                fail("should not be used")
                             }
 
 //                        override fun valueArraySearch(keys: Any?, key: Int?, comparator: Comparator<*>?): Int {
