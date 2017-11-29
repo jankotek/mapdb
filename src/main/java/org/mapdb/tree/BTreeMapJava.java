@@ -396,7 +396,7 @@ public class BTreeMapJava {
 
     public static final class KeySet<E>
             extends AbstractSet<E>
-            implements DBNavigableSet<E>,Serializable {
+            implements DBNavigableSet<E>{
 
         protected final ConcurrentNavigableMap2<E,Object> m;
         private final boolean hasValues;

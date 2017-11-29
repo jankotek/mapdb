@@ -24,7 +24,7 @@ class SortedTableMap<K,V>(
         protected val volume: Volume,
         override val hasValues: Boolean = false
 ): ConcurrentMap<K, V>, ConcurrentNavigableMap<K, V>, DBConcurrentNavigableMap<K,V>,  BTreeMapJava.ConcurrentNavigableMap2<K,V>,
-        MutableMap<K,V>, Serializable{
+        MutableMap<K,V>{
 
     abstract class Sink<K, V> : Pump.Sink<Pair<K, V>, SortedTableMap<K, V>>() {
         fun put(key: K, value: V) {

@@ -10,6 +10,7 @@ import org.junit.Assert.*
 import org.mapdb.*
 import org.mapdb.store.*
 import org.mapdb.tree.BTreeMapJava.*
+import java.io.NotSerializableException
 import java.math.BigInteger
 import java.util.*
 import java.util.concurrent.*
@@ -1370,7 +1371,7 @@ class BTreeMapTest {
     }
 
 
-    @Test @Ignore
+    @Test
     fun serialize_clone() {
 
         val m:MutableMap<Int,Int> = DBMaker
@@ -1383,24 +1384,26 @@ class BTreeMapTest {
             m.put(i, i * 10)
         }
 
-        val m2 = TT.cloneJavaSerialization(m)
-        assertEquals(ConcurrentSkipListMap::class.java, m2.javaClass)
-        assertTrue(m2.entries.containsAll(m.entries))
-        assertTrue(m.entries.containsAll(m2.entries))
+        shouldThrow<NotSerializableException> {
+            val m2 = TT.cloneJavaSerialization(m)
+            assertEquals(ConcurrentSkipListMap::class.java, m2.javaClass)
+            assertTrue(m2.entries.containsAll(m.entries))
+            assertTrue(m.entries.containsAll(m2.entries))
+        }
     }
 
     @Test
-    @Ignore //TODO this fails because class after deserialization implements different interface
     fun serialize_set_clone() {
         val m = DBMaker.memoryDB().make().treeSet("map", Serializer.INTEGER).createOrOpen()
         for (i in 0..999) {
             m.add(i)
         }
-
-        val m2 = TT.cloneJavaSerialization(m)
-        assertEquals(ConcurrentSkipListSet::class.java, m2.javaClass)
-        assertTrue(m2.containsAll(m))
-        assertTrue(m.containsAll(m2))
+        shouldThrow<NotSerializableException> {
+            val m2 = TT.cloneJavaSerialization(m)
+            assertEquals(ConcurrentSkipListSet::class.java, m2.javaClass)
+            assertTrue(m2.containsAll(m))
+            assertTrue(m.containsAll(m2))
+        }
     }
 
     @Test fun external_value_null_after_delete(){
