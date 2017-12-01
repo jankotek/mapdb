@@ -34,8 +34,8 @@
     </scm>
 
     <properties>
-        <kotlin.version>1.1.60</kotlin.version>
-        <kotlin.plugin.version>1.1.4-3</kotlin.plugin.version>
+        <kotlin.version>1.2.0</kotlin.version>
+        <kotlin.plugin.version>1.2.0</kotlin.plugin.version>
 
         <java.target.version>1.8</java.target.version>
         <java.source.version>1.8</java.source.version>
@@ -189,6 +189,7 @@
                     <target>${java.target.version}</target>
                     <source>${java.source.version}</source>
                     <encoding>${project.build.sourceEncoding}</encoding>
+                    <jvmTarget>${java.target.version}</jvmTarget>
                 </configuration>
             </plugin>
             <plugin>
