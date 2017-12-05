@@ -3,6 +3,7 @@ package org.mapdb.volume
 import org.junit.Assert.*
 import org.junit.Test
 import org.mapdb.*
+import org.mapdb.serializer.Serializers
 import org.mapdb.util.DataIO
 import java.io.*
 import java.util.*
@@ -139,7 +140,7 @@ class VolumeSingleTest(val fab: Function1<String, Volume>) {
         val b2 = ByteArray(size)
         vol.getDataInputOverlap(offset, size).readFully(b2, 0, size)
 
-        assertTrue(Serializer.BYTE_ARRAY.equals(b, b2))
+        assertTrue(Serializers.BYTE_ARRAY.equals(b, b2))
     }
 
 
@@ -197,7 +198,7 @@ class VolumeSingleTest(val fab: Function1<String, Volume>) {
 
         val volMem = ByteArrayVol()
         val db = DBMaker.volumeDB(volMem, false).make()
-        val s = db.treeSet("aa",Serializer.STRING).createOrOpen()
+        val s = db.treeSet("aa", Serializers.STRING).createOrOpen()
         val s2 = TreeSet<String>()
 
         for(i in 0 until 10000){
@@ -211,7 +212,7 @@ class VolumeSingleTest(val fab: Function1<String, Volume>) {
         val vol2 = fab.invoke(f.path)
         volMem.copyTo(vol2)
         val db2 = DBMaker.volumeDB(vol2, true).make()
-        val s3 = db2.treeSet("aa",Serializer.STRING).createOrOpen()
+        val s3 = db2.treeSet("aa", Serializers.STRING).createOrOpen()
 
         assertEquals(s2.size, s3.size)
         assertEquals(s2,s3)

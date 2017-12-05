@@ -5,6 +5,7 @@ package org.mapdb
 import org.fest.reflect.core.Reflection
 import org.junit.Assert.*
 import org.junit.Test
+import org.mapdb.serializer.Serializers
 import org.mapdb.store.StoreTrivial
 import org.mapdb.tree.BTreeMap
 
@@ -51,8 +52,8 @@ class PumpTest{
         val store = StoreTrivial()
         val taker = Pump.treeMap(
                 store = store,
-                keySerializer = Serializer.INTEGER,
-                valueSerializer = Serializer.INTEGER,
+                keySerializer = Serializers.INTEGER,
+                valueSerializer = Serializers.INTEGER,
                 dirNodeSize = 10,
                 leafNodeSize = 10
         )
@@ -66,8 +67,8 @@ class PumpTest{
         val map = BTreeMap.make(
                 store = store,
                 rootRecidRecid = root,
-                valueSerializer = Serializer.INTEGER,
-                keySerializer = Serializer.INTEGER)
+                valueSerializer = Serializers.INTEGER,
+                keySerializer = Serializers.INTEGER)
 //        map.printStructure(System.out)
         map.verify()
 

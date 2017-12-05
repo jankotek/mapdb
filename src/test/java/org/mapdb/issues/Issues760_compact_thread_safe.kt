@@ -3,6 +3,7 @@ package org.mapdb.issues
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.mapdb.*
+import org.mapdb.serializer.Serializers
 import org.mapdb.store.*
 import org.mapdb.util.DataIO
 import org.mapdb.volume.RandomAccessFileVol
@@ -73,7 +74,7 @@ class Issues760_compact_thread_safe {
             //init entries
             val recids = LongArray(entries)
             for (i in 0 until entries) {
-                recids[i] = store.put(initValue, Serializer.INTEGER)
+                recids[i] = store.put(initValue, Serializers.INTEGER)
             }
             assertEquals(recids.toSet().size, recids.size)
 
@@ -83,14 +84,14 @@ class Issues760_compact_thread_safe {
             for (k in 0 until updateCount) {
                 for (recid in recids) {
                     //get -> increment -> store
-                    store.update(recid, store.get(recid, Serializer.INTEGER)!!+1, Serializer.INTEGER)
+                    store.update(recid, store.get(recid, Serializers.INTEGER)!!+1, Serializers.INTEGER)
                 }
             }
             end.set(false)
 
             // verify
             for (recid in recids) {
-                assertEquals(initValue + updateCount, store.get(recid, Serializer.INTEGER)!!)
+                assertEquals(initValue + updateCount, store.get(recid, Serializers.INTEGER)!!)
             }
         } finally {
             store.close()
@@ -117,7 +118,7 @@ class Issues760_compact_thread_safe {
         val make = if(!tx) DBMaker.fileDB(db1).closeOnJvmShutdown().make()
                     else DBMaker.fileDB(db1).closeOnJvmShutdown().transactionEnable().make()
         try {
-            val open = make.hashMap("aaaaa", Serializer.INTEGER, Serializer.INTEGER).createOrOpen()
+            val open = make.hashMap("aaaaa", Serializers.INTEGER, Serializers.INTEGER).createOrOpen()
             //compact continuous loop
             val compact = Thread({
                 while (end.get()) {

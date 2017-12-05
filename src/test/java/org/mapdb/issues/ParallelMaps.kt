@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.mapdb.*
 import org.mapdb.DBMaker.StoreType.*
+import org.mapdb.serializer.Serializers
 import org.mapdb.tree.BTreeMap
 import org.mapdb.tree.HTreeMap
 import java.io.Closeable
@@ -39,7 +40,7 @@ class ParallelMaps(val fab:()-> MutableMap<Any,Any>) {
                 ret.add({
                     var maker = db().hashMap("aa")
                     if(intSer)
-                        maker.keySerializer(Serializer.INTEGER).valueSerializer(Serializer.INTEGER)
+                        maker.keySerializer(Serializers.INTEGER).valueSerializer(Serializers.INTEGER)
                     if(counter)
                         maker.counterEnable()
                     maker.create()
@@ -48,7 +49,7 @@ class ParallelMaps(val fab:()-> MutableMap<Any,Any>) {
                     ret.add({
                         var maker =  db().treeMap("map").maxNodeSize(nodeSize)
                         if(intSer)
-                            maker.keySerializer(Serializer.INTEGER).valueSerializer(Serializer.INTEGER)
+                            maker.keySerializer(Serializers.INTEGER).valueSerializer(Serializers.INTEGER)
                         if(counter)
                             maker.counterEnable()
                         maker.create()

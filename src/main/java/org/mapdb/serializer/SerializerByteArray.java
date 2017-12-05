@@ -58,7 +58,7 @@ public class SerializerByteArray implements GroupSerializer<byte[]> {
 
     @Override
     public int valueArraySearch(Object keys, byte[] key) {
-        return Arrays.binarySearch((byte[][])keys, key, Serializer.BYTE_ARRAY);
+        return Arrays.binarySearch((byte[][])keys, key, Serializers.BYTE_ARRAY);
     }
 
     @Override
@@ -73,7 +73,7 @@ public class SerializerByteArray implements GroupSerializer<byte[]> {
         byte[][] vals2 = (byte[][]) vals;
         out.packInt(vals2.length);
         for(byte[]b:vals2){
-            Serializer.BYTE_ARRAY.serialize(out, b);
+            Serializers.BYTE_ARRAY.serialize(out, b);
         }
     }
 
@@ -82,7 +82,7 @@ public class SerializerByteArray implements GroupSerializer<byte[]> {
         int s = in.unpackInt();
         byte[][] ret = new byte[s][];
         for(int i=0;i<s;i++) {
-            ret[i] = Serializer.BYTE_ARRAY.deserialize(in, -1);
+            ret[i] = Serializers.BYTE_ARRAY.deserialize(in, -1);
         }
         return ret;
     }

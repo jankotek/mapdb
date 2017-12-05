@@ -3,7 +3,7 @@ package org.mapdb.serializer;
 import org.jetbrains.annotations.NotNull;
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
-import org.mapdb.Serializer;
+import org.mapdb.serializer.Serializers;
 
 import java.io.IOException;
 
@@ -28,7 +28,7 @@ public class SerializerStringIntern extends GroupSerializerObjectArray<String> {
 
     @Override
     public int hashCode(@NotNull String s, int seed) {
-        return STRING.hashCode(s, seed);
+        return Serializers.STRING.hashCode(s, seed);
     }
 
 

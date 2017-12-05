@@ -3,6 +3,8 @@ package org.mapdb.tree
 import org.mapdb.*
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
+import org.mapdb.serializer.Serializer
+import org.mapdb.serializer.Serializers
 import org.mapdb.tree.guavaTests.ConcurrentMapInterfaceTest
 import java.io.IOException
 import java.util.*
@@ -67,7 +69,7 @@ class HTreeMap_GuavaTest(val mapMaker:(generic:Boolean)-> ConcurrentMap<Any?, An
                             }
 
                     val keySerializer =
-                            if (singleHash.not()) Serializer.INTEGER
+                            if (singleHash.not()) Serializers.INTEGER
                             else singleHashSerializer
 
                     if(inlineValue)
@@ -83,7 +85,7 @@ class HTreeMap_GuavaTest(val mapMaker:(generic:Boolean)-> ConcurrentMap<Any?, An
                         maker.counterEnable()
 
                     if(!generic)
-                        maker.keySerializer(keySerializer).valueSerializer(Serializer.STRING)
+                        maker.keySerializer(keySerializer).valueSerializer(Serializers.STRING)
 
                     if(!collapse)
                         maker.removeCollapsesIndexTreeDisable()

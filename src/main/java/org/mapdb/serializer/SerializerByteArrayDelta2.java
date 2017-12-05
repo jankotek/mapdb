@@ -2,10 +2,11 @@ package org.mapdb.serializer;
 
 import org.jetbrains.annotations.NotNull;
 import static org.mapdb.serializer.SerializerStringDelta2.ByteArrayKeys;
+
+import org.mapdb.serializer.Serializers;
 import org.mapdb.util.DataIO;
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
-import org.mapdb.Serializer;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -148,27 +149,27 @@ public class SerializerByteArrayDelta2 implements GroupSerializer<byte[]> {
 
     @Override
     public void serialize(@NotNull DataOutput2 out, @NotNull byte[] value) throws IOException {
-        Serializer.BYTE_ARRAY.serialize(out, value);
+        Serializers.BYTE_ARRAY.serialize(out, value);
     }
 
     @Override
     public byte[] deserialize(@NotNull DataInput2 input, int available) throws IOException {
-        return Serializer.BYTE_ARRAY.deserialize(input, available);
+        return Serializers.BYTE_ARRAY.deserialize(input, available);
     }
 
     @Override
     public int compare(byte[] o1, byte[] o2) {
-        return Serializer.BYTE_ARRAY.compare(o1, o2);
+        return Serializers.BYTE_ARRAY.compare(o1, o2);
     }
 
     @Override
     public boolean equals(byte[] a1, byte[] a2) {
-        return Serializer.BYTE_ARRAY.equals(a1, a2);
+        return Serializers.BYTE_ARRAY.equals(a1, a2);
     }
 
     @Override
     public int hashCode(@NotNull byte[] bytes, int seed) {
-        return Serializer.BYTE_ARRAY.hashCode(bytes, seed);
+        return Serializers.BYTE_ARRAY.hashCode(bytes, seed);
     }
 
     @Override

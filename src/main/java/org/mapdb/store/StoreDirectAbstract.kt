@@ -3,6 +3,7 @@ package org.mapdb.store
 import org.eclipse.collections.api.list.primitive.MutableLongList
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.mapdb.*
+import org.mapdb.serializer.Serializer
 import org.mapdb.store.StoreDirectJava.RECID_LONG_STACK
 import org.mapdb.util.*
 import org.mapdb.util.DataIO.*
@@ -235,7 +236,7 @@ abstract class StoreDirectAbstract(
         }
     }
 
-    protected fun <R> serialize(record: R?, serializer:Serializer<R>, recid:Long):DataOutput2?{
+    protected fun <R> serialize(record: R?, serializer: Serializer<R>, recid:Long):DataOutput2?{
         if(record == null)
             return null;
         assert(serializer.isQuick() || locks==null || recid<0 || !locks.isReadLockedByCurrentThread(recidToSegment(recid)))

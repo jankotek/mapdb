@@ -59,7 +59,7 @@ abstract class SerializerTest<E> {
     }
 
     open @Test fun trusted(){
-        assertTrue(serializer.isTrusted || serializer== Serializer.JAVA || serializer== Serializer.ELSA)
+        assertTrue(serializer.isTrusted || serializer== Serializers.JAVA || serializer== Serializers.ELSA)
     }
 
     @Test fun fixedSize(){
@@ -231,7 +231,7 @@ abstract class GroupSerializerTest<E>:SerializerTest<E>(){
 
     @Test fun btreemap(){
         val ser = serializer as GroupSerializer<Any>
-        val map = BTreeMap.make(keySerializer = ser, valueSerializer = Serializer.INTEGER)
+        val map = BTreeMap.make(keySerializer = ser, valueSerializer = Serializers.INTEGER)
         val set = TreeSet(ser);
         for(i in 1..100)
             set.add(randomValue() as Any)
@@ -265,58 +265,58 @@ abstract class GroupSerializerTest<E>:SerializerTest<E>(){
 
 class Serializer_CHAR: GroupSerializerTest<Char>(){
     override fun randomValue() = random.nextInt().toChar()
-    override val serializer = Serializer.CHAR
+    override val serializer = Serializers.CHAR
 }
 
 class Serializer_STRINGXXHASH: GroupSerializerTest<String>(){
     override fun randomValue() = TT.randomString(random.nextInt(10))
-    override val serializer = Serializer.STRING_ORIGHASH
+    override val serializer = Serializers.STRING_ORIGHASH
 }
 
 class Serializer_STRING: GroupSerializerTest<String>(){
     override fun randomValue() = TT.randomString(random.nextInt(10))
-    override val serializer = Serializer.STRING
+    override val serializer = Serializers.STRING
 }
 
 class Serializer_STRING_DELTA: GroupSerializerTest<String>(){
     override fun randomValue() = TT.randomString(random.nextInt(10))
-    override val serializer = Serializer.STRING_DELTA
+    override val serializer = Serializers.STRING_DELTA
 }
 class Serializer_STRING_DELTA2: GroupSerializerTest<String>(){
     override fun randomValue() = TT.randomString(random.nextInt(10))
-    override val serializer = Serializer.STRING_DELTA2
+    override val serializer = Serializers.STRING_DELTA2
 }
 
 
 class Serializer_STRING_INTERN: GroupSerializerTest<String>(){
     override fun randomValue() = TT.randomString(random.nextInt(10))
-    override val serializer = Serializer.STRING_INTERN
+    override val serializer = Serializers.STRING_INTERN
 }
 
 class Serializer_STRING_ASCII: GroupSerializerTest<String>(){
     override fun randomValue() = TT.randomString(random.nextInt(10))
-    override val serializer = Serializer.STRING_ASCII
+    override val serializer = Serializers.STRING_ASCII
 }
 
 class Serializer_STRING_NOSIZE: SerializerTest<String>(){
     override fun randomValue() = TT.randomString(random.nextInt(10))
-    override val serializer = Serializer.STRING_NOSIZE
+    override val serializer = Serializers.STRING_NOSIZE
 
 }
 
 class Serializer_LONG: GroupSerializerTest<Long>(){
     override fun randomValue() = random.nextLong()
-    override val serializer = Serializer.LONG
+    override val serializer = Serializers.LONG
 }
 
 class Serializer_LONG_PACKED: GroupSerializerTest<Long>(){
     override fun randomValue() = random.nextLong()
-    override val serializer = Serializer.LONG_PACKED
+    override val serializer = Serializers.LONG_PACKED
 }
 
 class Serializer_LONG_DELTA: GroupSerializerTest<Long>(){
     override fun randomValue() = random.nextLong()
-    override val serializer = Serializer.LONG_DELTA
+    override val serializer = Serializers.LONG_DELTA
     override fun randomArray(): Array<Any> {
         val v = super.randomArray()
         Arrays.sort(v)
@@ -334,17 +334,17 @@ class Serializer_LONG_DELTA: GroupSerializerTest<Long>(){
 
 class Serializer_INTEGER: GroupSerializerTest<Int>(){
     override fun randomValue() = random.nextInt()
-    override val serializer = Serializer.INTEGER
+    override val serializer = Serializers.INTEGER
 }
 
 class Serializer_INTEGER_PACKED: GroupSerializerTest<Int>(){
     override fun randomValue() = random.nextInt()
-    override val serializer = Serializer.INTEGER_PACKED
+    override val serializer = Serializers.INTEGER_PACKED
 }
 
 class Serializer_INTEGER_DELTA: GroupSerializerTest<Int>(){
     override fun randomValue() = random.nextInt()
-    override val serializer = Serializer.INTEGER_DELTA
+    override val serializer = Serializers.INTEGER_DELTA
 
     override fun randomArray(): Array<Any> {
         val v = super.randomArray()
@@ -373,12 +373,12 @@ class Serializer_INTEGER_DELTA: GroupSerializerTest<Int>(){
 
 class Serializer_BOOLEAN: GroupSerializerTest<Boolean>(){
     override fun randomValue() = random.nextBoolean()
-    override val serializer = Serializer.BOOLEAN
+    override val serializer = Serializers.BOOLEAN
 }
 
 class Serializer_RECID: GroupSerializerTest<Long>(){
     override fun randomValue() = random.nextLong().and(0xFFFFFFFFFFFFL) //6 bytes
-    override val serializer = Serializer.RECID
+    override val serializer = Serializers.RECID
 }
 
 class Serializer_RECID_ARRAY: GroupSerializerTest<LongArray>(){
@@ -390,16 +390,16 @@ class Serializer_RECID_ARRAY: GroupSerializerTest<LongArray>(){
         return ret
     }
 
-    override val serializer = Serializer.RECID_ARRAY
+    override val serializer = Serializers.RECID_ARRAY
 }
 
 class Serializer_BYTE_ARRAY: GroupSerializerTest<ByteArray>(){
     override fun randomValue() = TT.randomByteArray(random.nextInt(50))
-    override val serializer = Serializer.BYTE_ARRAY
+    override val serializer = Serializers.BYTE_ARRAY
 
     @Test fun next_val(){
         fun check(b1:ByteArray?, b2:ByteArray?){
-            assertArrayEquals(b1, Serializer.BYTE_ARRAY.nextValue(b2))
+            assertArrayEquals(b1, Serializers.BYTE_ARRAY.nextValue(b2))
         }
 
         check(byteArrayOf(1,1), byteArrayOf(1,0))
@@ -412,24 +412,24 @@ class Serializer_BYTE_ARRAY: GroupSerializerTest<ByteArray>(){
 
 class Serializer_BYTE_ARRAY_DELTA: GroupSerializerTest<ByteArray>(){
     override fun randomValue() = TT.randomByteArray(random.nextInt(50))
-    override val serializer = Serializer.BYTE_ARRAY_DELTA
+    override val serializer = Serializers.BYTE_ARRAY_DELTA
 }
 
 class Serializer_BYTE_ARRAY_DELTA2: GroupSerializerTest<ByteArray>(){
     override fun randomValue() = TT.randomByteArray(random.nextInt(50))
-    override val serializer = Serializer.BYTE_ARRAY_DELTA2
+    override val serializer = Serializers.BYTE_ARRAY_DELTA2
 }
 
 class Serializer_BYTE_ARRAY_NOSIZE: SerializerTest<ByteArray>(){
     override fun randomValue() = TT.randomByteArray(random.nextInt(50))
-    override val serializer = Serializer.BYTE_ARRAY_NOSIZE
+    override val serializer = Serializers.BYTE_ARRAY_NOSIZE
 
 }
 
 
 class Serializer_BYTE: GroupSerializerTest<Byte>(){
     override fun randomValue() = random.nextInt().toByte()
-    override val serializer = Serializer.BYTE
+    override val serializer = Serializers.BYTE
 }
 
 class Serializer_CHAR_ARRAY: GroupSerializerTest<CharArray>(){
@@ -440,10 +440,10 @@ class Serializer_CHAR_ARRAY: GroupSerializerTest<CharArray>(){
         }
         return ret
     }
-    override val serializer = Serializer.CHAR_ARRAY
+    override val serializer = Serializers.CHAR_ARRAY
 
     @Test fun prefix_submap(){
-        val map = BTreeMap.make(keySerializer = serializer, valueSerializer = Serializer.STRING)
+        val map = BTreeMap.make(keySerializer = serializer, valueSerializer = Serializers.STRING)
         for(i in 'a'..'f') for(j in 'a'..'f') {
             map.put(charArrayOf(i, j), "$i-$j")
         }
@@ -514,10 +514,10 @@ class Serializer_INT_ARRAY: GroupSerializerTest<IntArray>(){
         }
         return ret
     }
-    override val serializer = Serializer.INT_ARRAY
+    override val serializer = Serializers.INT_ARRAY
 
     @Test fun prefix_submap(){
-        val map = BTreeMap.make(keySerializer = serializer, valueSerializer = Serializer.STRING)
+        val map = BTreeMap.make(keySerializer = serializer, valueSerializer = Serializers.STRING)
         for(i in 1..10) for(j in 1..10) {
             map.put(intArrayOf(i, j), "$i-$j")
         }
@@ -589,10 +589,10 @@ class Serializer_LONG_ARRAY: GroupSerializerTest<LongArray>(){
         }
         return ret
     }
-    override val serializer = Serializer.LONG_ARRAY
+    override val serializer = Serializers.LONG_ARRAY
 
     @Test fun prefix_submap(){
-        val map = BTreeMap.make(keySerializer = serializer, valueSerializer = Serializer.STRING)
+        val map = BTreeMap.make(keySerializer = serializer, valueSerializer = Serializers.STRING)
         for(i in 1L..10L) for(j in 1L..10L) {
             map.put(longArrayOf(i, j), "$i-$j")
         }
@@ -663,13 +663,13 @@ class Serializer_DOUBLE_ARRAY: GroupSerializerTest<DoubleArray>(){
         }
         return ret
     }
-    override val serializer = Serializer.DOUBLE_ARRAY
+    override val serializer = Serializers.DOUBLE_ARRAY
 }
 
 
 class Serializer_JAVA: GroupSerializerTest<Any>(){
     override fun randomValue() = TT.randomString(10)
-    override val serializer = Serializer.JAVA
+    override val serializer = Serializers.JAVA
 
     internal class Object2 : Serializable
 
@@ -690,18 +690,18 @@ class Serializer_JAVA: GroupSerializerTest<Any>(){
     }
 
     @Test fun clone1(){
-        val v = TT.clone(Object2(), Serializer.JAVA)
+        val v = TT.clone(Object2(), Serializers.JAVA)
         assertTrue(v is Object2)
     }
 
     @Test fun clone2(){
-        val v = TT.clone(CollidingObject("111"), Serializer.JAVA)
+        val v = TT.clone(CollidingObject("111"), Serializers.JAVA)
         assertTrue(v is CollidingObject)
         assertSerEquals("111", v.value)
     }
 
     @Test fun clone3(){
-        val v = TT.clone(ComparableCollidingObject("111"), Serializer.JAVA)
+        val v = TT.clone(ComparableCollidingObject("111"), Serializers.JAVA)
         assertTrue(v is ComparableCollidingObject)
         assertSerEquals("111", v.value)
 
@@ -713,7 +713,7 @@ class Serializer_JAVA: GroupSerializerTest<Any>(){
 
 class Serializer_ELSA: GroupSerializerTest<Any>(){
     override fun randomValue() = TT.randomString(10)
-    override val serializer = Serializer.ELSA
+    override val serializer = Serializers.ELSA
 
     internal class Object2 : Serializable
 
@@ -734,18 +734,18 @@ class Serializer_ELSA: GroupSerializerTest<Any>(){
     }
 
     @Test fun clone1(){
-        val v = TT.clone(Object2(), Serializer.ELSA)
+        val v = TT.clone(Object2(), Serializers.ELSA)
         assertTrue(v is Object2)
     }
 
     @Test fun clone2(){
-        val v = TT.clone(CollidingObject("111"), Serializer.ELSA)
+        val v = TT.clone(CollidingObject("111"), Serializers.ELSA)
         assertTrue(v is CollidingObject)
         assertSerEquals("111", v.value)
     }
 
     @Test fun clone3(){
-        val v = TT.clone(ComparableCollidingObject("111"), Serializer.ELSA)
+        val v = TT.clone(ComparableCollidingObject("111"), Serializers.ELSA)
         assertTrue(v is ComparableCollidingObject)
         assertSerEquals("111", v.value)
 
@@ -766,12 +766,12 @@ class Serializer_DB_default: GroupSerializerTest<Any?>(){
 
 class Serializer_UUID: GroupSerializerTest<UUID>(){
     override fun randomValue() = UUID(random.nextLong(), random.nextLong())
-    override val serializer = Serializer.UUID
+    override val serializer = Serializers.UUID
 }
 
 class Serializer_FLOAT: GroupSerializerTest<Float>(){
     override fun randomValue() = random.nextFloat()
-    override val serializer = Serializer.FLOAT
+    override val serializer = Serializers.FLOAT
 }
 
 class Serializer_FLOAT_ARRAY: GroupSerializerTest<FloatArray>(){
@@ -782,19 +782,19 @@ class Serializer_FLOAT_ARRAY: GroupSerializerTest<FloatArray>(){
         }
         return ret
     }
-    override val serializer = Serializer.FLOAT_ARRAY
+    override val serializer = Serializers.FLOAT_ARRAY
 }
 
 
 
 class Serializer_DOUBLE: GroupSerializerTest<Double>(){
     override fun randomValue() = random.nextDouble()
-    override val serializer = Serializer.DOUBLE
+    override val serializer = Serializers.DOUBLE
 }
 
 class Serializer_SHORT: GroupSerializerTest<Short>(){
     override fun randomValue() = random.nextInt().toShort()
-    override val serializer = Serializer.SHORT
+    override val serializer = Serializers.SHORT
 }
 
 class Serializer_SHORT_ARRAY: GroupSerializerTest<ShortArray>(){
@@ -805,10 +805,10 @@ class Serializer_SHORT_ARRAY: GroupSerializerTest<ShortArray>(){
         }
         return ret
     }
-    override val serializer = Serializer.SHORT_ARRAY
+    override val serializer = Serializers.SHORT_ARRAY
 
     @Test fun prefix_submap(){
-        val map = BTreeMap.make(keySerializer = serializer, valueSerializer = Serializer.STRING)
+        val map = BTreeMap.make(keySerializer = serializer, valueSerializer = Serializers.STRING)
         for(i in 1..10) for(j in 1..10) {
             map.put(shortArrayOf(i.toShort(), j.toShort()), "$i-$j")
         }
@@ -873,33 +873,33 @@ class Serializer_SHORT_ARRAY: GroupSerializerTest<ShortArray>(){
 
 class Serializer_BIG_INTEGER: GroupSerializerTest<BigInteger>(){
     override fun randomValue() = BigInteger(random.nextInt(50), random)
-    override val serializer = Serializer.BIG_INTEGER
+    override val serializer = Serializers.BIG_INTEGER
 }
 
 class Serializer_BIG_DECIMAL: GroupSerializerTest<BigDecimal>(){
     override fun randomValue() = BigDecimal(BigInteger(random.nextInt(50), random), random.nextInt(100))
-    override val serializer = Serializer.BIG_DECIMAL
+    override val serializer = Serializers.BIG_DECIMAL
 }
 
 class Serializer_DATE: GroupSerializerTest<Date>(){
     override fun randomValue() = Date(random.nextLong())
-    override val serializer = Serializer.DATE
+    override val serializer = Serializers.DATE
 }
 
 
 class SerializerCompressionWrapperTest(): GroupSerializerTest<ByteArray>(){
     override fun randomValue() = TT.randomByteArray(random.nextInt(1000))
 
-    override val serializer = SerializerCompressionWrapper(Serializer.BYTE_ARRAY as GroupSerializer<ByteArray>)
+    override val serializer = SerializerCompressionWrapper(Serializers.BYTE_ARRAY as GroupSerializer<ByteArray>)
 
     @Test
     fun compression_wrapper() {
         var b = ByteArray(100)
         Random().nextBytes(b)
-        assertTrue(Serializer.BYTE_ARRAY.equals(b, TT.clone(b, serializer)))
+        assertTrue(Serializers.BYTE_ARRAY.equals(b, TT.clone(b, serializer)))
 
         b = Arrays.copyOf(b, 10000)
-        assertTrue(Serializer.BYTE_ARRAY.equals(b, TT.clone(b, serializer)))
+        assertTrue(Serializers.BYTE_ARRAY.equals(b, TT.clone(b, serializer)))
 
         val out = DataOutput2()
         serializer.serialize(out, b)
@@ -910,11 +910,11 @@ class SerializerCompressionWrapperTest(): GroupSerializerTest<ByteArray>(){
 
 class Serializer_DeflateWrapperTest(): GroupSerializerTest<ByteArray>() {
     override fun randomValue() = TT.randomByteArray(random.nextInt(1000))
-    override val serializer = SerializerCompressionDeflateWrapper(Serializer.BYTE_ARRAY as GroupSerializer<ByteArray>)
+    override val serializer = SerializerCompressionDeflateWrapper(Serializers.BYTE_ARRAY as GroupSerializer<ByteArray>)
 
 
     @Test fun deflate_wrapper() {
-        val c = SerializerCompressionDeflateWrapper(Serializer.BYTE_ARRAY  as GroupSerializer<ByteArray>, -1,
+        val c = SerializerCompressionDeflateWrapper(Serializers.BYTE_ARRAY as GroupSerializer<ByteArray>, -1,
                 byteArrayOf(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 23, 4, 5, 6, 7, 8, 9, 65, 2))
 
         val b = byteArrayOf(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4, 5, 6, 3, 3, 3, 3, 35, 6, 67, 7, 3, 43, 34)
@@ -928,10 +928,10 @@ class Serializer_DeflateWrapperTest(): GroupSerializerTest<ByteArray>() {
 open class Serializer_Array(): GroupSerializerTest<Array<Any>>(){
     override fun randomValue() = Array<Any>(random.nextInt(30), { TT.randomString(random.nextInt(30))})
 
-    override val serializer = SerializerArray(Serializer.STRING as Serializer<Any>)
+    override val serializer = SerializerArray(Serializers.STRING as Serializer<Any>)
 
     @Test fun array() {
-        val s: Serializer<Array<Any>> = SerializerArray(Serializer.INTEGER as Serializer<Any>)
+        val s: Serializer<Array<Any>> = SerializerArray(Serializers.INTEGER as Serializer<Any>)
 
         val a:Array<Any> = arrayOf(1, 2, 3, 4)
 
@@ -945,7 +945,7 @@ class Serializer_DeltaArray(): Serializer_Array(){
 
     //TODO more tests with common prefix
 
-    override val serializer = SerializerArrayDelta(Serializer.STRING as Serializer<Any>)
+    override val serializer = SerializerArrayDelta(Serializers.STRING as Serializer<Any>)
 
 
 }
@@ -956,11 +956,11 @@ class Serializer_ArrayTuple(): GroupSerializerTest<Array<Any>>(){
 
     override fun randomValue() = arrayOf(intArrayOf(random.nextInt()), longArrayOf(random.nextLong()))
 
-    override val serializer = SerializerArrayTuple(Serializer.INT_ARRAY, Serializer.LONG_ARRAY)
+    override val serializer = SerializerArrayTuple(Serializers.INT_ARRAY, Serializers.LONG_ARRAY)
 
 
     @Test fun prefix_submap(){
-        val map = BTreeMap.make(keySerializer = SerializerArrayTuple(Serializer.INTEGER, Serializer.LONG), valueSerializer = Serializer.STRING)
+        val map = BTreeMap.make(keySerializer = SerializerArrayTuple(Serializers.INTEGER, Serializers.LONG), valueSerializer = Serializers.STRING)
         for(i in 1..10) for(j in 1L..10)
             map.put(arrayOf(i as Any,j as Any),"$i-$j")
 
@@ -973,7 +973,7 @@ class Serializer_ArrayTuple(): GroupSerializerTest<Array<Any>>(){
     }
 
     @Test fun prefix_comparator(){
-        val s = SerializerArrayTuple(Serializer.INTEGER, Serializer.INTEGER)
+        val s = SerializerArrayTuple(Serializers.INTEGER, Serializers.INTEGER)
         assertEquals(-1, s.compare(arrayOf(-1), arrayOf(1)))
         assertEquals(1, s.compare(arrayOf(2), arrayOf(1, null)))
         assertEquals(-1, s.compare(arrayOf(1), arrayOf(1, null)))
@@ -993,10 +993,10 @@ class Serializer_ArrayTuple(): GroupSerializerTest<Array<Any>>(){
 
 class SerializerUtilsTest(){
     @Test fun lookup(){
-        assertEquals(Serializer.LONG, SerializerUtils.serializerForClass(Long::class.java))
-        assertEquals(Serializer.LONG_ARRAY, SerializerUtils.serializerForClass(LongArray::class.java))
-        assertEquals(Serializer.UUID, SerializerUtils.serializerForClass(UUID::class.java))
-        assertEquals(Serializer.STRING, SerializerUtils.serializerForClass(String::class.java))
+        assertEquals(Serializers.LONG, SerializerUtils.serializerForClass(Long::class.java))
+        assertEquals(Serializers.LONG_ARRAY, SerializerUtils.serializerForClass(LongArray::class.java))
+        assertEquals(Serializers.UUID, SerializerUtils.serializerForClass(UUID::class.java))
+        assertEquals(Serializers.STRING, SerializerUtils.serializerForClass(String::class.java))
         assertNull(SerializerUtils.serializerForClass(Serializer::class.java))
     }
 

@@ -4,12 +4,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.mapdb.*;
 import org.mapdb.serializer.GroupSerializer;
+import org.mapdb.serializer.Serializer;
 import org.mapdb.util.DataIO;
 import org.mapdb.util.Utils;
 
 import java.io.IOException;
 import java.io.ObjectStreamException;
-import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListSet;

@@ -4,6 +4,8 @@ package org.mapdb
 
 import org.junit.Assert.*
 import org.junit.Test
+import org.mapdb.serializer.Serializer
+import org.mapdb.serializer.Serializers
 import java.util.*
 
 /**
@@ -69,22 +71,22 @@ class DBSerTest{
         val other = arrayOf(
                 db,
                 db.defaultSerializer,
-                Serializer.CHAR, Serializer.STRING_ORIGHASH , Serializer.STRING, Serializer.STRING_DELTA,
-                Serializer.STRING_DELTA2, Serializer.STRING_INTERN, Serializer.STRING_ASCII, Serializer.STRING_NOSIZE,
-                Serializer.LONG, Serializer.LONG_PACKED, Serializer.LONG_DELTA, Serializer.INTEGER,
-                Serializer.INTEGER_PACKED, Serializer.INTEGER_DELTA, Serializer.BOOLEAN, Serializer.RECID,
-                Serializer.RECID_ARRAY, Serializer.SERIALIZER_UNSUPPORTED, Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY_DELTA,
-                Serializer.BYTE_ARRAY_DELTA2, Serializer.BYTE_ARRAY_NOSIZE, Serializer.CHAR_ARRAY, Serializer.INT_ARRAY,
-                Serializer.LONG_ARRAY, Serializer.DOUBLE_ARRAY, Serializer.JAVA, Serializer.ELSA, Serializer.UUID,
-                Serializer.BYTE, Serializer.FLOAT, Serializer.DOUBLE, Serializer.SHORT, Serializer.SHORT_ARRAY,
-                Serializer.FLOAT_ARRAY, Serializer.BIG_INTEGER, Serializer.BIG_DECIMAL, Serializer.CLASS,
-                Serializer.DATE,
+                Serializers.CHAR, Serializers.STRING_ORIGHASH, Serializers.STRING, Serializers.STRING_DELTA,
+                Serializers.STRING_DELTA2, Serializers.STRING_INTERN, Serializers.STRING_ASCII, Serializers.STRING_NOSIZE,
+                Serializers.LONG, Serializers.LONG_PACKED, Serializers.LONG_DELTA, Serializers.INTEGER,
+                Serializers.INTEGER_PACKED, Serializers.INTEGER_DELTA, Serializers.BOOLEAN, Serializers.RECID,
+                Serializers.RECID_ARRAY, Serializers.SERIALIZER_UNSUPPORTED, Serializers.BYTE_ARRAY, Serializers.BYTE_ARRAY_DELTA,
+                Serializers.BYTE_ARRAY_DELTA2, Serializers.BYTE_ARRAY_NOSIZE, Serializers.CHAR_ARRAY, Serializers.INT_ARRAY,
+                Serializers.LONG_ARRAY, Serializers.DOUBLE_ARRAY, Serializers.JAVA, Serializers.ELSA, Serializers.UUID,
+                Serializers.BYTE, Serializers.FLOAT, Serializers.DOUBLE, Serializers.SHORT, Serializers.SHORT_ARRAY,
+                Serializers.FLOAT_ARRAY, Serializers.BIG_INTEGER, Serializers.BIG_DECIMAL, Serializers.CLASS,
+                Serializers.DATE,
                 Collections.EMPTY_LIST,
                 Collections.EMPTY_SET,
                 Collections.EMPTY_MAP,
-                Serializer.SQL_DATE,
-                Serializer.SQL_TIME,
-                Serializer.SQL_TIMESTAMP
+                Serializers.SQL_DATE,
+                Serializers.SQL_TIME,
+                Serializers.SQL_TIMESTAMP
         )
 
         singletons.forEachIndexed { i, singleton ->

@@ -3,7 +3,6 @@ package org.mapdb.serializer;
 import org.mapdb.CC;
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
-import org.mapdb.Serializer;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;

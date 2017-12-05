@@ -2,6 +2,7 @@ package org.mapdb.issues;
 
 import org.junit.Test;
 import org.mapdb.*;
+import org.mapdb.serializer.Serializers;
 import org.mapdb.tree.BTreeMap;
 
 import static org.junit.Assert.assertEquals;
@@ -19,8 +20,8 @@ public class Issue743Test {
                 .make();
 
         DBConcurrentNavigableMap<Integer,String> testMap = db.treeMap("test",
-                Serializer.INTEGER,
-                Serializer.JAVA )
+                Serializers.INTEGER,
+                Serializers.JAVA )
                 .counterEnable()
                 .createOrOpen();
 
@@ -57,8 +58,8 @@ public class Issue743Test {
                 .make();
 
         BTreeMap<Long,String> testMap = (BTreeMap<Long, String>) db.treeMap("test2",
-                Serializer.LONG,
-                Serializer.STRING )
+                Serializers.LONG,
+                Serializers.STRING )
                 .counterEnable().createOrOpen();
 
         int cnt = 3000;

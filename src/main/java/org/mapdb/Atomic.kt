@@ -23,6 +23,9 @@
  */
 package org.mapdb
 
+import org.mapdb.serializer.Serializer
+import org.mapdb.serializer.Serializers
+
 /**
  *
  *
@@ -122,7 +125,7 @@ object Atomic {
          * @return the current value
          */
         fun get(): Int {
-            return store.get(recid, Serializer.INTEGER)!!
+            return store.get(recid, Serializers.INTEGER)!!
         }
 
         /**
@@ -131,7 +134,7 @@ object Atomic {
          * @param newValue the new value
          */
         fun set(newValue: Int) {
-            store.update(recid, newValue, Serializer.INTEGER)
+            store.update(recid, newValue, Serializers.INTEGER)
         }
 
 
@@ -166,7 +169,7 @@ object Atomic {
          * * the actual value was not equal to the expected value.
          */
         fun compareAndSet(expect: Int, update: Int): kotlin.Boolean {
-            return store.compareAndSwap(recid, expect, update, Serializer.INTEGER)
+            return store.compareAndSwap(recid, expect, update, Serializers.INTEGER)
         }
 
 
@@ -344,7 +347,7 @@ object Atomic {
         }
 
         //TODO ensure that PACKED provides real perf boost, ie is not negative
-        private val serializer = if(!notNegative) Serializer.LONG else Serializer.LONG_PACKED
+        private val serializer = if(!notNegative) Serializers.LONG else Serializers.LONG_PACKED
 
         /**
          * Gets the current value.
@@ -556,7 +559,7 @@ object Atomic {
          * @return the current value
          */
         fun get(): kotlin.Boolean {
-            return store.get(recid, Serializer.BOOLEAN)!!
+            return store.get(recid, Serializers.BOOLEAN)!!
         }
 
         /**
@@ -571,7 +574,7 @@ object Atomic {
          * * the actual value was not equal to the expected value.
          */
         fun compareAndSet(expect: kotlin.Boolean, update: kotlin.Boolean): kotlin.Boolean {
-            return store.compareAndSwap(recid, expect, update, Serializer.BOOLEAN)
+            return store.compareAndSwap(recid, expect, update, Serializers.BOOLEAN)
         }
 
 
@@ -581,7 +584,7 @@ object Atomic {
          * @param newValue the new value
          */
         fun set(newValue: kotlin.Boolean) {
-            store.update(recid, newValue, Serializer.BOOLEAN)
+            store.update(recid, newValue, Serializers.BOOLEAN)
         }
 
 
@@ -643,7 +646,7 @@ object Atomic {
          * @return the current value
          */
         fun get(): kotlin.String?{
-            return store.get(recid, Serializer.STRING_NOSIZE)
+            return store.get(recid, Serializers.STRING_NOSIZE)
         }
 
         /**
@@ -658,7 +661,7 @@ object Atomic {
          * * the actual value was not equal to the expected value.
          */
         fun compareAndSet(expect: kotlin.String?, update: kotlin.String?): kotlin.Boolean {
-            return store.compareAndSwap(recid, expect, update, Serializer.STRING_NOSIZE)
+            return store.compareAndSwap(recid, expect, update, Serializers.STRING_NOSIZE)
         }
 
 
@@ -668,7 +671,7 @@ object Atomic {
          * @param newValue the new value
          */
         fun set(newValue: kotlin.String?) {
-            store.update(recid, newValue, Serializer.STRING_NOSIZE)
+            store.update(recid, newValue, Serializers.STRING_NOSIZE)
         }
 
 

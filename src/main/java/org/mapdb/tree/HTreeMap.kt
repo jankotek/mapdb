@@ -5,6 +5,8 @@ import org.eclipse.collections.api.map.primitive.MutableLongLongMap
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.mapdb.*
 import org.mapdb.queue.*
+import org.mapdb.serializer.Serializer
+import org.mapdb.serializer.Serializers
 import org.mapdb.store.*
 import org.mapdb.util.*
 import java.io.Closeable
@@ -17,8 +19,8 @@ import java.util.function.BiConsumer
  * Concurrent HashMap which uses IndexTree for hash table
  */
 class HTreeMap<K,V>(
-        override val keySerializer:Serializer<K>,
-        override val valueSerializer:Serializer<V>,
+        override val keySerializer: Serializer<K>,
+        override val valueSerializer: Serializer<V>,
         val valueInline:Boolean,
         val concShift: Int,
         val dirShift: Int,
@@ -53,9 +55,9 @@ class HTreeMap<K,V>(
         /** constructor with default values */
         fun <K,V> make(
                 @Suppress("UNCHECKED_CAST")
-                keySerializer:Serializer<K> = Serializer.ELSA as Serializer<K>,
+                keySerializer: Serializer<K> = Serializers.ELSA as Serializer<K>,
                 @Suppress("UNCHECKED_CAST")
-                valueSerializer:Serializer<V> = Serializer.ELSA as Serializer<V>,
+                valueSerializer: Serializer<V> = Serializers.ELSA as Serializer<V>,
                 valueInline:Boolean = false,
                 concShift: Int = CC.HTREEMAP_CONC_SHIFT,
                 dirShift: Int = CC.HTREEMAP_DIR_SHIFT,
@@ -167,7 +169,7 @@ class HTreeMap<K,V>(
     }
 
 
-    private fun leafValueInlineSerializer() = object: Serializer<Array<Any>>{
+    private fun leafValueInlineSerializer() = object: Serializer<Array<Any>> {
         override fun serialize(out: DataOutput2, value: kotlin.Array<Any>) {
             out.packInt(value.size)
             for(i in 0 until value.size step 3) {
@@ -196,7 +198,7 @@ class HTreeMap<K,V>(
         }
     }
 
-    private fun leafKeySetSerializer() = object: Serializer<Array<Any>>{
+    private fun leafKeySetSerializer() = object: Serializer<Array<Any>> {
         override fun serialize(out: DataOutput2, value: kotlin.Array<Any>) {
             out.packInt(value.size)
             for(i in 0 until value.size step 3) {
@@ -225,7 +227,7 @@ class HTreeMap<K,V>(
 
 
 
-    private fun leafValueExternalSerializer() = object: Serializer<Array<Any>>{
+    private fun leafValueExternalSerializer() = object: Serializer<Array<Any>> {
         override fun serialize(out: DataOutput2, value: Array<Any>) {
             out.packInt(value.size)
             for(i in 0 until value.size step 3) {
@@ -256,7 +258,7 @@ class HTreeMap<K,V>(
 
 
     //TODO Expiration QueueID is part of leaf, remove it if expiration is disabled!
-    protected val leafSerializer:Serializer<Array<Any>> =
+    protected val leafSerializer: Serializer<Array<Any>> =
             if(!hasValues)
                 leafKeySetSerializer()
             else if(valueInline)

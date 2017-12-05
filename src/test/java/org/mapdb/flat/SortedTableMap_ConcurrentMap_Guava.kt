@@ -1,6 +1,7 @@
 package org.mapdb.flat
 
 import org.mapdb.*
+import org.mapdb.serializer.Serializers
 import org.mapdb.tree.guavaTests.ConcurrentMapInterfaceTest
 import java.util.concurrent.ConcurrentMap
 
@@ -27,8 +28,8 @@ class SortedTableMap_ConcurrentMap_Guava:
 
     override fun makeEmptyMap(): ConcurrentMap<Int, String>? {
         val consumer = SortedTableMap.createFromSink(
-                keySerializer = Serializer.INTEGER,
-                valueSerializer = Serializer.STRING,
+                keySerializer = Serializers.INTEGER,
+                valueSerializer = Serializers.STRING,
                 volume = CC.DEFAULT_MEMORY_VOLUME_FACTORY.makeVolume(null, false)
             )
         return consumer.create()
@@ -36,8 +37,8 @@ class SortedTableMap_ConcurrentMap_Guava:
 
     override fun makePopulatedMap(): ConcurrentMap<Int, String>? {
         val consumer = SortedTableMap.createFromSink(
-                keySerializer = Serializer.INTEGER,
-                valueSerializer = Serializer.STRING,
+                keySerializer = Serializers.INTEGER,
+                valueSerializer = Serializers.STRING,
                 volume = CC.DEFAULT_MEMORY_VOLUME_FACTORY.makeVolume(null, false)
             )
         for(i in 1..100){

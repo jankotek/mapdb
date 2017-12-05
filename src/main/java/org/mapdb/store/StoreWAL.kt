@@ -3,6 +3,7 @@ package org.mapdb.store
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.eclipse.collections.impl.map.mutable.primitive.*
 import org.mapdb.*
+import org.mapdb.serializer.Serializer
 import org.mapdb.store.StoreDirectJava.*
 import org.mapdb.util.*
 import org.mapdb.util.DataIO.*

@@ -2,7 +2,7 @@ package org.mapdb.serializer
 
 import org.junit.Assert.*
 import org.junit.Test
-import org.mapdb.Serializer
+import org.mapdb.serializer.Serializers
 import org.mapdb.TT
 import java.util.*
 
@@ -11,7 +11,7 @@ class SerializerArrayTest {
     @Test
     fun subtype() {
         val s = arrayOf("aa", "bb")
-        val ser = SerializerArray(Serializer.STRING, String::class.java)
+        val ser = SerializerArray(Serializers.STRING, String::class.java)
 
         val s2 = ser.clone(s)
         assertTrue(Arrays.equals(s, s2))
@@ -20,23 +20,23 @@ class SerializerArrayTest {
     @Test fun array_hashCode(){
         val data = HashMap<Serializer<*>, Any>()
 
-        data[Serializer.BYTE_ARRAY] = byteArrayOf(1)
-        data[Serializer.BYTE_ARRAY_DELTA] = byteArrayOf(1)
-        data[Serializer.BYTE_ARRAY_DELTA2] = byteArrayOf(1)
-        data[Serializer.BYTE_ARRAY_NOSIZE] = byteArrayOf(1)
+        data[Serializers.BYTE_ARRAY] = byteArrayOf(1)
+        data[Serializers.BYTE_ARRAY_DELTA] = byteArrayOf(1)
+        data[Serializers.BYTE_ARRAY_DELTA2] = byteArrayOf(1)
+        data[Serializers.BYTE_ARRAY_NOSIZE] = byteArrayOf(1)
 
-        data[Serializer.CHAR_ARRAY] = charArrayOf(1.toChar())
+        data[Serializers.CHAR_ARRAY] = charArrayOf(1.toChar())
 
-        data[Serializer.SHORT_ARRAY] = shortArrayOf(1)
+        data[Serializers.SHORT_ARRAY] = shortArrayOf(1)
 
-        data[Serializer.INT_ARRAY] = intArrayOf(1)
+        data[Serializers.INT_ARRAY] = intArrayOf(1)
 
-        data[Serializer.LONG_ARRAY] = longArrayOf(1)
-        data[Serializer.RECID_ARRAY] = longArrayOf(1)
+        data[Serializers.LONG_ARRAY] = longArrayOf(1)
+        data[Serializers.RECID_ARRAY] = longArrayOf(1)
 
-        data[Serializer.DOUBLE_ARRAY] = doubleArrayOf(1.0)
+        data[Serializers.DOUBLE_ARRAY] = doubleArrayOf(1.0)
 
-        data[Serializer.FLOAT_ARRAY] = floatArrayOf(1.0F)
+        data[Serializers.FLOAT_ARRAY] = floatArrayOf(1.0F)
 
         //check all static fields are included in map
        Serializer::class.java.fields

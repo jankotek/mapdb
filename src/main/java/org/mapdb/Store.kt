@@ -1,5 +1,7 @@
 package org.mapdb
 
+import org.mapdb.serializer.Serializer
+
 
 /**
  * Stores records

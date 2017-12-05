@@ -1,6 +1,6 @@
 package org.mapdb.tuple;
 
-import org.mapdb.Serializer;
+import org.mapdb.serializer.Serializers;
 
 import java.util.Comparator;
 
@@ -24,11 +24,11 @@ public final class Tuple {
     }
 
 
-    static final Comparator<Tuple2> TUPLE2_COMPARATOR = new Tuple2Serializer(Serializer.ELSA,Serializer.ELSA);
-    static final Comparator<Tuple3> TUPLE3_COMPARATOR = new Tuple3Serializer(Serializer.ELSA,Serializer.ELSA,Serializer.ELSA);
-    static final Comparator<Tuple4> TUPLE4_COMPARATOR = new Tuple4Serializer(Serializer.ELSA,Serializer.ELSA,Serializer.ELSA,Serializer.ELSA);
-    static final Comparator<Tuple5> TUPLE5_COMPARATOR = new Tuple5Serializer(Serializer.ELSA,Serializer.ELSA,Serializer.ELSA,Serializer.ELSA,Serializer.ELSA);
-    static final Comparator<Tuple6> TUPLE6_COMPARATOR = new Tuple6Serializer(Serializer.ELSA,Serializer.ELSA,Serializer.ELSA,Serializer.ELSA,Serializer.ELSA,Serializer.ELSA);
+    static final Comparator<Tuple2> TUPLE2_COMPARATOR = new Tuple2Serializer(Serializers.ELSA, Serializers.ELSA);
+    static final Comparator<Tuple3> TUPLE3_COMPARATOR = new Tuple3Serializer(Serializers.ELSA, Serializers.ELSA, Serializers.ELSA);
+    static final Comparator<Tuple4> TUPLE4_COMPARATOR = new Tuple4Serializer(Serializers.ELSA, Serializers.ELSA, Serializers.ELSA, Serializers.ELSA);
+    static final Comparator<Tuple5> TUPLE5_COMPARATOR = new Tuple5Serializer(Serializers.ELSA, Serializers.ELSA, Serializers.ELSA, Serializers.ELSA, Serializers.ELSA);
+    static final Comparator<Tuple6> TUPLE6_COMPARATOR = new Tuple6Serializer(Serializers.ELSA, Serializers.ELSA, Serializers.ELSA, Serializers.ELSA, Serializers.ELSA, Serializers.ELSA);
 
 
     /** positive infinity object. Is larger than anything else. Used in tuple comparators.

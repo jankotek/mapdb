@@ -5,6 +5,7 @@ import org.eclipse.collections.impl.stack.mutable.primitive.LongArrayStack
 import org.junit.Assert.*
 import org.junit.Test
 import org.mapdb.*
+import org.mapdb.serializer.Serializers
 import org.mapdb.util.lockRead
 import org.mapdb.volume.RandomAccessFileVol
 import java.io.*
@@ -35,7 +36,7 @@ class StoreTrivialTest : StoreReopenTest() {
 
     @Test fun headerType2(){
         val s = openStore(file)
-        s.put(11L, Serializer.LONG)
+        s.put(11L, Serializers.LONG)
         s.commit()
         s.close()
         val vol = RandomAccessFileVol.FACTORY.makeVolume(file.path+".0.d", true)
@@ -84,7 +85,7 @@ class StoreTrivialTest : StoreReopenTest() {
         val m2 = File(file.toString()+".2"+StoreTrivialTx.COMMIT_MARKER_SUFFIX)
 
 
-        s.put(1L, Serializer.LONG)
+        s.put(1L, Serializers.LONG)
 
         assertTrue(!f0.exists())
         assertTrue(!m0.exists())
@@ -136,9 +137,9 @@ class StoreTrivialTest : StoreReopenTest() {
     @Test fun delete_after_close(){
         val dir = TT.tempDir()
         val store = StoreTrivialTx(file=File(dir.path,"aa"),deleteFilesAfterClose = true)
-        store.put(11, Serializer.INTEGER)
+        store.put(11, Serializers.INTEGER)
         store.commit()
-        store.put(11, Serializer.INTEGER)
+        store.put(11, Serializers.INTEGER)
         store.commit()
         assertNotEquals(0, dir.listFiles().size)
         store.close()
@@ -147,14 +148,14 @@ class StoreTrivialTest : StoreReopenTest() {
 
     @Test fun compact(){
         val store = StoreTrivial()
-        val r1 = store.put("aa", Serializer.STRING)
+        val r1 = store.put("aa", Serializers.STRING)
         assertEquals(r1, 1)
-        val r2 = store.put("aa", Serializer.STRING)
+        val r2 = store.put("aa", Serializers.STRING)
         assertEquals(r2, 2)
         assertEquals(store.maxRecid, 2)
         assertTrue(store.freeRecids.isEmpty)
 
-        store.delete(r2, Serializer.STRING)
+        store.delete(r2, Serializers.STRING)
         assertEquals(store.freeRecids.size(),1)
         assertEquals(store.maxRecid, 2)
 
@@ -162,7 +163,7 @@ class StoreTrivialTest : StoreReopenTest() {
         assertEquals(store.freeRecids.size(),0)
         assertEquals(store.maxRecid, 1)
 
-        store.delete(r1, Serializer.STRING)
+        store.delete(r1, Serializers.STRING)
         assertEquals(store.freeRecids.size(),1)
         assertEquals(store.maxRecid, 1)
 

@@ -1,6 +1,7 @@
 package org.mapdb;
 
 import org.junit.Test;
+import org.mapdb.serializer.Serializers;
 import org.mapdb.util.DataIO;
 import org.mapdb.volume.SingleByteArrayVol;
 import org.mapdb.volume.Volume;
@@ -161,7 +162,7 @@ public class DataIOTest {
 
     @Test public void testHexaConversion(){
         byte[] b = new byte[]{11,112,11,0,39,90};
-        assertTrue(Serializer.BYTE_ARRAY.equals(b, DataIO.fromHexa(DataIO.toHexa(b))));
+        assertTrue(Serializers.BYTE_ARRAY.equals(b, DataIO.fromHexa(DataIO.toHexa(b))));
     }
 
     @Test public void packLong() throws IOException {

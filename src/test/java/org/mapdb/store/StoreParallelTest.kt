@@ -5,6 +5,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 import org.mapdb.*
+import org.mapdb.serializer.Serializers
 
 /**
  * Tests if store is thread safe
@@ -57,12 +58,12 @@ class StoreParallelTest(val maker:()->Store){
         val executor = TT.executor(threadCount)
         while(System.currentTimeMillis()<end){
             val store = maker()
-            val recids = (0..100).map{store.put(it.toLong(), Serializer.LONG)}
+            val recids = (0..100).map{store.put(it.toLong(), Serializers.LONG)}
             TT.forkExecutor(executor, threadCount){
-                recids.forEach { store.update(it, -1, Serializer.LONG) }
+                recids.forEach { store.update(it, -1, Serializers.LONG) }
             }
             recids.forEach {
-                assertEquals(-1L, store.get(it, Serializer.LONG))
+                assertEquals(-1L, store.get(it, Serializers.LONG))
             }
 
             store.close()
@@ -81,14 +82,14 @@ class StoreParallelTest(val maker:()->Store){
         val executor = TT.executor(threadCount)
         while(System.currentTimeMillis()<end){
             val store = maker()
-            val recids = (0..100).map{store.put(100, Serializer.LONG)}
+            val recids = (0..100).map{store.put(100, Serializers.LONG)}
             TT.forkExecutor(executor, threadCount){
                 recids.forEach {
-                    assertTrue(store.compareAndSwap(it, 100, 100, Serializer.LONG))
+                    assertTrue(store.compareAndSwap(it, 100, 100, Serializers.LONG))
                 }
             }
             recids.forEach {
-                assertEquals(100L, store.get(it, Serializer.LONG))
+                assertEquals(100L, store.get(it, Serializers.LONG))
             }
 
             store.close()
@@ -107,17 +108,17 @@ class StoreParallelTest(val maker:()->Store){
         while(System.currentTimeMillis()<end){
             val store = maker()
             val recids = (0..100).map{
-                store.put(100L, Serializer.LONG)
+                store.put(100L, Serializers.LONG)
             }
             store.commit()
             TT.forkExecutor(executor, threadCount){
                 recids.forEach {
-                    store.update(it, it, Serializer.LONG)
+                    store.update(it, it, Serializers.LONG)
                     store.commit()
                 }
             }
             recids.forEach {
-                assertEquals(it, store.get(it, Serializer.LONG))
+                assertEquals(it, store.get(it, Serializers.LONG))
             }
 
             store.close()
@@ -134,16 +135,16 @@ class StoreParallelTest(val maker:()->Store){
         val executor = TT.executor(threadCount)
         while(System.currentTimeMillis()<end){
             val store = maker() as StoreTx
-            val recids = (0..100).map{store.put(100L, Serializer.LONG)}
+            val recids = (0..100).map{store.put(100L, Serializers.LONG)}
             store.commit()
             TT.forkExecutor(executor, threadCount){
                 recids.forEach {
-                    store.update(it, it, Serializer.LONG)
+                    store.update(it, it, Serializers.LONG)
                     store.rollback()
                 }
             }
             recids.forEach {
-                assertEquals(100L, store.get(it, Serializer.LONG))
+                assertEquals(100L, store.get(it, Serializers.LONG))
             }
 
             store.close()

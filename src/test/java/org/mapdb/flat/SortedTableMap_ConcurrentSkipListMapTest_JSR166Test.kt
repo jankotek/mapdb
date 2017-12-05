@@ -1,7 +1,8 @@
 package org.mapdb.flat
 
 import org.mapdb.CC
-import org.mapdb.Serializer
+import org.mapdb.serializer.Serializer
+import org.mapdb.serializer.Serializers
 import org.mapdb.tree.jsr166Tests.ConcurrentSkipListMapTest
 import org.mapdb.tree.jsr166Tests.JSR166TestCase
 import java.util.*
@@ -16,8 +17,8 @@ class SortedTableMap_ConcurrentSkipListMapTest_JSR166Test() : ConcurrentSkipList
 
     override fun map5(): ConcurrentNavigableMap<*, *>? {
         val consumer = SortedTableMap.createFromSink(
-                keySerializer = Serializer.INTEGER,
-                valueSerializer = Serializer.STRING_INTERN,
+                keySerializer = Serializers.INTEGER,
+                valueSerializer = Serializers.STRING_INTERN,
                 volume = CC.DEFAULT_MEMORY_VOLUME_FACTORY.makeVolume(null, false))
         consumer.put(Pair(JSR166TestCase.one, "A"))
         consumer.put(Pair(JSR166TestCase.two, "B"))
@@ -29,8 +30,8 @@ class SortedTableMap_ConcurrentSkipListMapTest_JSR166Test() : ConcurrentSkipList
 
     override fun emptyMap(): ConcurrentNavigableMap<Int, String>? {
         return SortedTableMap.createFromSink(
-                keySerializer = Serializer.INTEGER,
-                valueSerializer = Serializer.STRING_INTERN,
+                keySerializer = Serializers.INTEGER,
+                valueSerializer = Serializers.STRING_INTERN,
                 volume = CC.DEFAULT_MEMORY_VOLUME_FACTORY.makeVolume(null, false))
         .create()
     }
@@ -69,8 +70,8 @@ class SortedTableMap_ConcurrentSkipListMapTest_JSR166Test() : ConcurrentSkipList
 
     override fun populatedIntMap(limit: Int): NavigableMap<Int, Int>? {
         val consumer = SortedTableMap.createFromSink(
-                keySerializer = Serializer.INTEGER,
-                valueSerializer = Serializer.INTEGER,
+                keySerializer = Serializers.INTEGER,
+                valueSerializer = Serializers.INTEGER,
                 volume = CC.DEFAULT_MEMORY_VOLUME_FACTORY.makeVolume(null, false))
 
         var i = 0

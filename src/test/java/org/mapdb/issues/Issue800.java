@@ -1,7 +1,7 @@
 package org.mapdb.issues;
 
 import org.junit.Test;
-import org.mapdb.Serializer;
+import org.mapdb.serializer.Serializers;
 import org.mapdb.flat.SortedTableMap;
 import org.mapdb.TT;
 import org.mapdb.volume.MappedFileVol;
@@ -18,8 +18,8 @@ public class Issue800 {
         SortedTableMap.Sink<byte[], byte[]> sink =
                 SortedTableMap.create(
                     vol,
-                    Serializer.BYTE_ARRAY,
-                    Serializer.BYTE_ARRAY)
+                    Serializers.BYTE_ARRAY,
+                    Serializers.BYTE_ARRAY)
                 .createFromSink();
 
         for(int b = 0; b<100; b++) {
@@ -29,8 +29,8 @@ public class Issue800 {
 
         SortedTableMap<byte[], byte[]> stm = SortedTableMap.open(
                 MappedFileVol.FACTORY.makeVolume(file, true),
-                Serializer.BYTE_ARRAY,
-                Serializer.BYTE_ARRAY);
+                Serializers.BYTE_ARRAY,
+                Serializers.BYTE_ARRAY);
 
         // producing a subMap that is 'after' all keys will cause trouble:
 

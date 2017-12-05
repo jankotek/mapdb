@@ -1,10 +1,8 @@
 package org.mapdb.issues;
 
 import org.junit.Test;
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
-import org.mapdb.Serializer;
-import org.mapdb.TT;
+import org.mapdb.*;
+import org.mapdb.serializer.Serializers;
 import org.mapdb.tree.HTreeMap;
 
 import java.io.File;
@@ -30,8 +28,8 @@ public class Issue746Test {
                 .make();
         HTreeMap map = (HTreeMap) db
                 .hashMap("map")
-                .keySerializer(Serializer.STRING)
-                .valueSerializer(Serializer.JAVA)
+                .keySerializer(Serializers.STRING)
+                .valueSerializer(Serializers.JAVA)
                 .createOrOpen();
         //Putting data in
 //        System.out.println("Storing data");

@@ -1,7 +1,7 @@
 package org.mapdb.tree;
 
 import org.mapdb.DBMaker;
-import org.mapdb.Serializer;
+import org.mapdb.serializer.Serializers;
 
 import java.util.NavigableMap;
 
@@ -10,7 +10,7 @@ public class BTreeMapNavigableSubMapExclusiveTest extends BTreeMapNavigable2Test
     public static class Outside extends BTreeMapNavigableSubMapExclusiveTest{
         @Override protected NavigableMap<Integer, String> newMap() {
             return DBMaker.memoryDB().make()
-                    .treeMap("map", Serializer.INTEGER, Serializer.STRING)
+                    .treeMap("map", Serializers.INTEGER, Serializers.STRING)
                     //TODO enable once values outside nodes work
                     //.valuesOutsideNodesEnable()
                     .create();

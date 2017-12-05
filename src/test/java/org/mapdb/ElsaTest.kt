@@ -2,6 +2,8 @@ package org.mapdb
 
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.mapdb.serializer.Serializer
+import org.mapdb.serializer.Serializers
 import java.io.Externalizable
 import java.io.ObjectInput
 import java.io.ObjectOutput
@@ -38,7 +40,7 @@ class ElsaTest{
 
     @Test fun sizeSerializable(){
         val my = ElsaTestMyClass()
-        val javaSize = size(Serializer.JAVA, my)
+        val javaSize = size(Serializers.JAVA, my)
         val defSize = size(DBMaker.memoryDB().make().defaultSerializer, my)
         val regDB = DBMaker.memoryDB().make()
         regDB.defaultSerializerRegisterClass(ElsaTestMyClass::class.java)
@@ -53,7 +55,7 @@ class ElsaTest{
 
     @Test fun sizeExtern(){
         val my = ElsaTestExternalizable()
-        val javaSize = size(Serializer.JAVA, my)
+        val javaSize = size(Serializers.JAVA, my)
         val defSize = size(DBMaker.memoryDB().make().defaultSerializer, my)
         val regDB = DBMaker.memoryDB().make()
         regDB.defaultSerializerRegisterClass(ElsaTestExternalizable::class.java)

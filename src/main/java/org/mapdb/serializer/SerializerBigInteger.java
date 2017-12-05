@@ -2,7 +2,7 @@ package org.mapdb.serializer;
 
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
-import org.mapdb.Serializer;
+import org.mapdb.serializer.Serializers;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -13,12 +13,12 @@ import java.math.BigInteger;
 public class SerializerBigInteger extends GroupSerializerObjectArray<BigInteger> {
     @Override
     public void serialize(DataOutput2 out, BigInteger value) throws IOException {
-        BYTE_ARRAY.serialize(out, value.toByteArray());
+        Serializers.BYTE_ARRAY.serialize(out, value.toByteArray());
     }
 
     @Override
     public BigInteger deserialize(DataInput2 in, int available) throws IOException {
-        return new BigInteger(BYTE_ARRAY.deserialize(in, available));
+        return new BigInteger(Serializers.BYTE_ARRAY.deserialize(in, available));
     }
 
     @Override

@@ -1,6 +1,7 @@
 package org.mapdb.util
 
 import org.mapdb.*
+import org.mapdb.serializer.Serializer
 import java.io.File
 import java.nio.file.Path
 import java.util.*

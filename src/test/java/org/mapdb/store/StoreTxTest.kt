@@ -3,6 +3,7 @@ package org.mapdb.store
 import org.mapdb.*
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.mapdb.serializer.Serializers
 
 abstract class StoreTxTest{
 
@@ -10,10 +11,10 @@ abstract class StoreTxTest{
 
     @Test fun rollback_void(){
         val s = open()
-        val recid = s.put("aaa", Serializer.STRING)
+        val recid = s.put("aaa", Serializers.STRING)
         s.rollback()
         TT.assertFailsWith(DBException.GetVoid::class.java){
-            s.get(recid, Serializer.STRING)
+            s.get(recid, Serializers.STRING)
         }
         s.close()
     }
@@ -21,11 +22,11 @@ abstract class StoreTxTest{
 
     @Test fun rollback_change(){
         val s = open()
-        val recid = s.put("aaa", Serializer.STRING)
+        val recid = s.put("aaa", Serializers.STRING)
         s.commit()
-        s.update(recid, "bbb", Serializer.STRING)
+        s.update(recid, "bbb", Serializers.STRING)
         s.rollback()
-        assertEquals("aaa", s.get(recid, Serializer.STRING))
+        assertEquals("aaa", s.get(recid, Serializers.STRING))
         s.close()
     }
 }

@@ -46,7 +46,7 @@ package org.mapdb.tree;
 
 import junit.framework.TestCase;
 import org.mapdb.DBMaker;
-import org.mapdb.Serializer;
+import org.mapdb.serializer.Serializers;
 
 import java.util.*;
 import java.util.Map.Entry;
@@ -79,12 +79,12 @@ public class BTreeMapNavigableTest extends TestCase {
 
 
     protected NavigableMap<String, String> newMap() {
-            return DBMaker.memoryDB().make().treeMap("map", Serializer.STRING, Serializer.STRING).create();
+            return DBMaker.memoryDB().make().treeMap("map", Serializers.STRING, Serializers.STRING).create();
     }
 
     public static class Outside extends BTreeMapNavigableTest{
         @Override protected NavigableMap<String, String> newMap() {
-            return DBMaker.memoryDB().make().treeMap("map", Serializer.STRING, Serializer.STRING)
+            return DBMaker.memoryDB().make().treeMap("map", Serializers.STRING, Serializers.STRING)
 					//TODO reenable once valuesOutsideNodes work
 					//.valuesOutsideNodesEnable()
 					.create();

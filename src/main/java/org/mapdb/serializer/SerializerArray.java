@@ -4,7 +4,6 @@ import org.jetbrains.annotations.NotNull;
 import org.mapdb.DB;
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
-import org.mapdb.Serializer;
 
 import java.io.IOException;
 import java.lang.reflect.Array;

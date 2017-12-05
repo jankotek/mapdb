@@ -8,6 +8,8 @@ import org.fest.reflect.core.Reflection
 import org.junit.*
 import org.junit.Assert.*
 import org.mapdb.*
+import org.mapdb.serializer.Serializer
+import org.mapdb.serializer.Serializers
 import org.mapdb.store.*
 import org.mapdb.tree.BTreeMapJava.*
 import java.io.NotSerializableException
@@ -19,10 +21,10 @@ import java.util.concurrent.atomic.AtomicInteger
 @Suppress("UNCHECKED_CAST")
 class BTreeMapTest {
 
-    val keyser = Serializer.ELSA
+    val keyser = Serializers.ELSA
     val COMPARATOR = keyser
 
-    val BTreeMap<*,*>.nodeSerializer:Serializer<Node>
+    val BTreeMap<*,*>.nodeSerializer: Serializer<Node>
         get() = Reflection.method("getNodeSerializer").`in`(this).invoke() as Serializer<Node>
 
 
@@ -212,7 +214,7 @@ class BTreeMapTest {
         )
 
         val map = BTreeMap.make<Int, Int>()
-        val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
+        val rootRecid = map.store.get(map.rootRecidRecid, Serializers.RECID)!!
         map.store.update(rootRecid, node, map.nodeSerializer)
 
         assertEquals(null, map[19])
@@ -240,7 +242,7 @@ class BTreeMapTest {
                 arrayOf(2, 3, 4, 5)
         )
 
-        val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
+        val rootRecid = map.store.get(map.rootRecidRecid, Serializers.RECID)!!
         map.store.update(rootRecid, node1, map.nodeSerializer)
 
         assertEquals(null, map[19])
@@ -275,7 +277,7 @@ class BTreeMapTest {
         )
 
 
-        val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
+        val rootRecid = map.store.get(map.rootRecidRecid, Serializers.RECID)!!
         map.store.update(rootRecid, node1, map.nodeSerializer)
 
         for (i in 2..9) {
@@ -296,7 +298,7 @@ class BTreeMapTest {
         )
 
         val map = BTreeMap.make<Int, Int>()
-        val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
+        val rootRecid = map.store.get(map.rootRecidRecid, Serializers.RECID)!!
         map.store.update(rootRecid, node, map.nodeSerializer)
 
         assertEquals(null, map[10])
@@ -328,7 +330,7 @@ class BTreeMapTest {
                 arrayOf(2, 3, 4, 5)
         )
 
-        val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
+        val rootRecid = map.store.get(map.rootRecidRecid, Serializers.RECID)!!
         map.store.update(rootRecid, node1, map.nodeSerializer)
 
         assertEquals(null, map[10])
@@ -365,7 +367,7 @@ class BTreeMapTest {
         )
 
 
-        val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
+        val rootRecid = map.store.get(map.rootRecidRecid, Serializers.RECID)!!
         map.store.update(rootRecid, node1, map.nodeSerializer)
 
         assertEquals(null, map[10])
@@ -409,7 +411,7 @@ class BTreeMapTest {
                 arrayOf(50, 70),
                 longArrayOf(recid1, recid2, recid3)
         )
-        val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
+        val rootRecid = map.store.get(map.rootRecidRecid, Serializers.RECID)!!
         map.store.update(rootRecid, dir, map.nodeSerializer)
 
         for (i in 2..9) {
@@ -454,7 +456,7 @@ class BTreeMapTest {
                     arrayOf(50, 70),
                     longArrayOf(recid1, recid2, recid3)
             )
-            val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
+            val rootRecid = map.store.get(map.rootRecidRecid, Serializers.RECID)!!
             map.store.update(rootRecid, dir, map.nodeSerializer)
             map.leftEdges.clear()
             map.leftEdges.addAll(map.loadLeftEdges())
@@ -473,8 +475,8 @@ class BTreeMapTest {
             return
 
         val map = BTreeMap.make(
-                keySerializer = Serializer.INTEGER,
-                valueSerializer = Serializer.INTEGER,
+                keySerializer = Serializers.INTEGER,
+                valueSerializer = Serializers.INTEGER,
                 maxNodeSize = 8
         )
 
@@ -497,8 +499,8 @@ class BTreeMapTest {
             return
 
         val map = BTreeMap.make(
-                keySerializer = Serializer.INTEGER,
-                valueSerializer = Serializer.INTEGER,
+                keySerializer = Serializers.INTEGER,
+                valueSerializer = Serializers.INTEGER,
                 maxNodeSize = 8
         )
 
@@ -522,8 +524,8 @@ class BTreeMapTest {
             return
 
         val map = BTreeMap.make(
-                keySerializer = Serializer.INTEGER,
-                valueSerializer = Serializer.INTEGER,
+                keySerializer = Serializers.INTEGER,
+                valueSerializer = Serializers.INTEGER,
                 maxNodeSize = 8
         )
 
@@ -561,8 +563,8 @@ class BTreeMapTest {
 
     @Test fun iterate() {
         val map = BTreeMap.make(
-                keySerializer = Serializer.INTEGER,
-                valueSerializer = Serializer.INTEGER,
+                keySerializer = Serializers.INTEGER,
+                valueSerializer = Serializers.INTEGER,
                 maxNodeSize = 8
         )
 
@@ -596,8 +598,8 @@ class BTreeMapTest {
             return
 
         val map = BTreeMap.make(
-                keySerializer = Serializer.INTEGER,
-                valueSerializer = Serializer.INTEGER,
+                keySerializer = Serializers.INTEGER,
+                valueSerializer = Serializers.INTEGER,
                 maxNodeSize = 8
         )
 
@@ -652,7 +654,7 @@ class BTreeMapTest {
         map.store.update(
                 map.rootRecidRecid,
                 nodeRecid,
-                Serializer.RECID
+                Serializers.RECID
         )
 
         var iter = map.descendingLeafIterator(null)
@@ -700,7 +702,7 @@ class BTreeMapTest {
                 arrayOf(50, 70),
                 longArrayOf(recid1, recid2, recid3)
         )
-        val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
+        val rootRecid = map.store.get(map.rootRecidRecid, Serializers.RECID)!!
         map.store.update(rootRecid, dir, map.nodeSerializer)
         map.leftEdges.clear()
         map.leftEdges.addAll(map.loadLeftEdges())
@@ -757,7 +759,7 @@ class BTreeMapTest {
                 arrayOf(50),
                 longArrayOf(recid1, recid2)
         )
-        val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
+        val rootRecid = map.store.get(map.rootRecidRecid, Serializers.RECID)!!
         map.store.update(rootRecid, dir, map.nodeSerializer)
         map.leftEdges.clear()
         map.leftEdges.addAll(map.loadLeftEdges())
@@ -839,7 +841,7 @@ class BTreeMapTest {
                 arrayOf(50, 70),
                 longArrayOf(recid1, recid2, recid3)
         )
-        val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
+        val rootRecid = map.store.get(map.rootRecidRecid, Serializers.RECID)!!
         map.store.update(rootRecid, dir, map.nodeSerializer)
         map.leftEdges.clear()
         map.leftEdges.addAll(map.loadLeftEdges())
@@ -879,8 +881,8 @@ class BTreeMapTest {
             return
 
         val map = BTreeMap.make(
-                keySerializer = Serializer.BYTE_ARRAY,
-                valueSerializer = Serializer.BYTE_ARRAY)
+                keySerializer = Serializers.BYTE_ARRAY,
+                valueSerializer = Serializers.BYTE_ARRAY)
         for(b1 in Byte.MIN_VALUE..Byte.MAX_VALUE)
         for(b2 in Byte.MIN_VALUE..Byte.MAX_VALUE){
             val b = byteArrayOf(b1.toByte(),b2.toByte())
@@ -924,8 +926,8 @@ class BTreeMapTest {
     @Test
     fun issue695(){
         val sink = DBMaker.memoryDB().make().treeMap("a",
-                Serializer.BYTE_ARRAY,
-                Serializer.STRING).createFromSink()
+                Serializers.BYTE_ARRAY,
+                Serializers.STRING).createFromSink()
         TT.assertFailsWith(DBException.NotSorted::class.java) {
             for (key in 120L..131) {
                 sink.put(BigInteger.valueOf(key).toByteArray(), "value" + key)
@@ -936,18 +938,18 @@ class BTreeMapTest {
 
     @Test fun external_value(){
         val b = BTreeMap.make(
-                keySerializer = Serializer.INTEGER,
-                valueSerializer = Serializer.STRING,
+                keySerializer = Serializers.INTEGER,
+                valueSerializer = Serializers.STRING,
                 valueInline = false)
         b.put(1, "1")
 
-        val rootRecid = b.store.get(b.rootRecidRecid, Serializer.RECID)!!
+        val rootRecid = b.store.get(b.rootRecidRecid, Serializers.RECID)!!
         val node = b.store.get(rootRecid, b.nodeSerializer)!!
         assertArrayEquals(arrayOf(1), b.keySerializer.valueArrayToArray(node.keys))
         //value is long array
-        assertEquals(1, Serializer.RECID.valueArraySize(node.values))
-        val valueRecid = Serializer.RECID.valueArrayGet(node.values, 0)
-        val value = b.store.get(valueRecid, Serializer.STRING)
+        assertEquals(1, Serializers.RECID.valueArraySize(node.values))
+        val valueRecid = Serializers.RECID.valueArrayGet(node.values, 0)
+        val value = b.store.get(valueRecid, Serializers.STRING)
         assertEquals("1", value)
     }
 
@@ -1053,7 +1055,7 @@ class BTreeMapTest {
         val counter = AtomicInteger()
         var m:BTreeMap<String,String>? = null;
         var rootRecid = 0L
-        m = db.treeMap("name", Serializer.STRING, Serializer.STRING)
+        m = db.treeMap("name", Serializers.STRING, Serializers.STRING)
                 .modificationListener(object : MapModificationListener<String,String> {
                     override fun modify(key: String, oldValue: String?, newValue: String?, triggered: Boolean) {
                         assertTrue(m!!.locks.get(rootRecid) == Thread.currentThread().id)
@@ -1062,7 +1064,7 @@ class BTreeMapTest {
                     }
                 })
                 .create() as BTreeMap
-        rootRecid = db.store.get(m.rootRecidRecid, Serializer.RECID)!!
+        rootRecid = db.store.get(m.rootRecidRecid, Serializers.RECID)!!
 
         m.put("aa", "aa")
         m.put("aa", "bb")
@@ -1080,7 +1082,7 @@ class BTreeMapTest {
 
     @Test fun concurrent_last_key() {
         val db = DBMaker.memoryDB().make()
-        val m = db.treeMap("name", Serializer.INTEGER, Serializer.INTEGER).create()
+        val m = db.treeMap("name", Serializers.INTEGER, Serializers.INTEGER).create()
 
         //fill
         val c = 1000000 * TT.testScale()
@@ -1103,7 +1105,7 @@ class BTreeMapTest {
 
     @Test fun concurrent_first_key() {
         val db = DBMaker.memoryDB().make()
-        val m = db.treeMap("name", Serializer.INTEGER, Serializer.INTEGER).create()
+        val m = db.treeMap("name", Serializers.INTEGER, Serializers.INTEGER).create()
 
         //fill
         val c = 1000000 * TT.testScale()
@@ -1133,7 +1135,7 @@ class BTreeMapTest {
 
 
         /* Creates maps */
-        val map1 = db1.treeMap("column1", Serializer.INTEGER, Serializer.INTEGER).create()
+        val map1 = db1.treeMap("column1", Serializers.INTEGER, Serializers.INTEGER).create()
 
         /* Inserts initial values in maps */
         for (i in 0..numberOfRecords - 1) {
@@ -1166,7 +1168,7 @@ class BTreeMapTest {
 
 
         /* Creates maps */
-        val map1 = db1.treeSet("column1",Serializer.INTEGER).create()
+        val map1 = db1.treeSet("column1", Serializers.INTEGER).create()
 
         /* Inserts initial values in maps */
         for (i in 0..numberOfRecords - 1) {
@@ -1197,7 +1199,7 @@ class BTreeMapTest {
 
 
         /* Creates maps */
-        val map1 = db1.treeMap("column1", Serializer.INTEGER, Serializer.INTEGER).create()
+        val map1 = db1.treeMap("column1", Serializers.INTEGER, Serializers.INTEGER).create()
 
         /* Inserts initial values in maps */
         for (i in 0..numberOfRecords - 1) {
@@ -1230,7 +1232,7 @@ class BTreeMapTest {
 
 
         /* Creates maps */
-        val map1 = db1.treeSet("column1", Serializer.INTEGER).create()
+        val map1 = db1.treeSet("column1", Serializers.INTEGER).create()
 
         /* Inserts initial values in maps */
         for (i in 0..numberOfRecords - 1) {
@@ -1257,7 +1259,7 @@ class BTreeMapTest {
     @Test fun randomStructuralCheck() {
         val r = Random()
         val map = DBMaker.memoryDB().make().treeMap("aa")
-                .keySerializer(Serializer.INTEGER).valueSerializer(Serializer.INTEGER).create()
+                .keySerializer(Serializers.INTEGER).valueSerializer(Serializers.INTEGER).create()
 
         val max = 100000 * TT.testScale()
 
@@ -1279,8 +1281,8 @@ class BTreeMapTest {
             val f = TT.tempFile()
             var db = DBMaker.fileDB(f).fileMmapEnableIfSupported().make()
             var m = db.treeMap("map").maxNodeSize(i)
-                    .keySerializer(Serializer.INTEGER)
-                    .valueSerializer(Serializer.INTEGER).create()
+                    .keySerializer(Serializers.INTEGER)
+                    .valueSerializer(Serializers.INTEGER).create()
 
             for (j in 0..max - 1) {
                 m.put(j, j)
@@ -1288,7 +1290,7 @@ class BTreeMapTest {
 
             db.close()
             db = DBMaker.fileDB(f).fileDeleteAfterClose().fileMmapEnableIfSupported().make()
-            m = db.treeMap("map", Serializer.INTEGER, Serializer.INTEGER).open()
+            m = db.treeMap("map", Serializers.INTEGER, Serializers.INTEGER).open()
 
             for (j in 0..max - 1) {
                 assertEquals(j, m.get(j))
@@ -1307,8 +1309,8 @@ class BTreeMapTest {
         val db = DBMaker.memoryDB().closeOnJvmShutdown().make()
 
         val id2entry = db.treeMap("id2entry")
-                .valueSerializer(Serializer.BYTE_ARRAY)
-                .keySerializer(Serializer.LONG).valuesOutsideNodesEnable()
+                .valueSerializer(Serializers.BYTE_ARRAY)
+                .keySerializer(Serializers.LONG).valuesOutsideNodesEnable()
                 .create()
 
         val store = db.store as StoreDirect
@@ -1377,7 +1379,7 @@ class BTreeMapTest {
         val m:MutableMap<Int,Int> = DBMaker
                 .memoryDB()
                 .make()
-                .treeMap("map", Serializer.INTEGER, Serializer.INTEGER)
+                .treeMap("map", Serializers.INTEGER, Serializers.INTEGER)
                 .createOrOpen()
 
         for (i in 0..9999) {
@@ -1394,7 +1396,7 @@ class BTreeMapTest {
 
     @Test
     fun serialize_set_clone() {
-        val m = DBMaker.memoryDB().make().treeSet("map", Serializer.INTEGER).createOrOpen()
+        val m = DBMaker.memoryDB().make().treeSet("map", Serializers.INTEGER).createOrOpen()
         for (i in 0..999) {
             m.add(i)
         }
@@ -1408,11 +1410,11 @@ class BTreeMapTest {
 
     @Test fun external_value_null_after_delete(){
         val map = BTreeMap.make(
-                keySerializer = Serializer.INTEGER,
-                valueSerializer = Serializer.INTEGER,
+                keySerializer = Serializers.INTEGER,
+                valueSerializer = Serializers.INTEGER,
                 valueInline = false)
         map.put(1,1);
-        val rootRecid = map.store.get(map.rootRecidRecid, Serializer.RECID)!!
+        val rootRecid = map.store.get(map.rootRecidRecid, Serializers.RECID)!!
         val rootNode = map.store.get(rootRecid, map.nodeSerializer)!!
         val valueRecid =  rootNode.children[0]
 
@@ -1423,10 +1425,10 @@ class BTreeMapTest {
 
 
     @Test fun treemap_comparator(){
-        val comparator = Serializer.INTEGER.reversed()
+        val comparator = Serializers.INTEGER.reversed()
 
         val map = DBMaker.memoryDB().make()
-                .treeMap("aa",Serializer.INTEGER, Serializer.INTEGER)
+                .treeMap("aa", Serializers.INTEGER, Serializers.INTEGER)
                 .comparator(comparator)
                 .create()
         assert(comparator === map.comparator())
@@ -1440,10 +1442,10 @@ class BTreeMapTest {
 
 
     @Test fun  treeset_comparator(){
-        val comparator = Serializer.INTEGER.reversed()
+        val comparator = Serializers.INTEGER.reversed()
 
         val set = DBMaker.memoryDB().make()
-                .treeSet("aa",Serializer.INTEGER)
+                .treeSet("aa", Serializers.INTEGER)
                 .comparator(comparator)
                 .create()
         assert(comparator === set.comparator())

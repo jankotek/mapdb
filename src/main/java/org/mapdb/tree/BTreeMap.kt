@@ -6,6 +6,7 @@ import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.eclipse.collections.impl.stack.mutable.primitive.LongArrayStack
 import org.mapdb.*
 import org.mapdb.serializer.GroupSerializer
+import org.mapdb.serializer.Serializers
 import org.mapdb.store.StoreTrivial
 import org.mapdb.tree.BTreeMapJava.*
 import org.mapdb.util.Utils
@@ -87,14 +88,14 @@ class BTreeMap<K,V>(
     companion object {
         fun <K, V> make(
                 @Suppress("UNCHECKED_CAST")
-                keySerializer: GroupSerializer<K> = Serializer.ELSA as GroupSerializer<K>,
+                keySerializer: GroupSerializer<K> = Serializers.ELSA as GroupSerializer<K>,
                 @Suppress("UNCHECKED_CAST")
-                valueSerializer: GroupSerializer<V> = Serializer.ELSA as GroupSerializer<V>,
+                valueSerializer: GroupSerializer<V> = Serializers.ELSA as GroupSerializer<V>,
 
                 store: Store = StoreTrivial(),
                 valueInline: Boolean = true,
                 //insert recid of new empty node
-                rootRecidRecid: Long = putEmptyRoot(store, keySerializer, if(valueInline) valueSerializer else Serializer.RECID),
+                rootRecidRecid: Long = putEmptyRoot(store, keySerializer, if(valueInline) valueSerializer else Serializers.RECID),
                 maxNodeSize: Int =  CC.BTREEMAP_MAX_NODE_SIZE,
                 comparator: Comparator<K> = keySerializer,
                 isThreadSafe:Boolean = true,
@@ -122,7 +123,7 @@ class BTreeMap<K,V>(
                             Node(LEFT + RIGHT, 0L, keySerializer.valueArrayEmpty(),
                                     valueSerializer.valueArrayEmpty()),
                             NodeSerializer(keySerializer, keySerializer, valueSerializer)),
-                    Serializer.RECID)
+                    Serializers.RECID)
         }
 
 
@@ -203,7 +204,7 @@ class BTreeMap<K,V>(
     private val modificationListenersEmpty = modificationListeners == null || modificationListeners.isEmpty()
 
     protected val valueNodeSerializer:GroupSerializer<Any> = {
-        val s = if (valueInline) this.valueSerializer else Serializer.RECID
+        val s = if (valueInline) this.valueSerializer else Serializers.RECID
         @Suppress("UNCHECKED_CAST")
         s as GroupSerializer<Any>
     }()
@@ -213,7 +214,7 @@ class BTreeMap<K,V>(
     private val counter:Atomic.Long? = if(counterRecid>0) Atomic.Long(store, counterRecid, true) else null
 
     protected val rootRecid: Long
-        get() = store.get(rootRecidRecid, Serializer.RECID)
+        get() = store.get(rootRecidRecid, Serializers.RECID)
                 ?: throw DBException.DataCorruption("Root Recid not found");
 
     /** recids of left-most nodes in tree */
@@ -464,7 +465,7 @@ class BTreeMap<K,V>(
                     unlock(current)
                     lock(rootRecidRecid)
                     val newRootRecid = store.put(R, nodeSerializer)
-                    store.update(rootRecidRecid, newRootRecid, Serializer.RECID)
+                    store.update(rootRecidRecid, newRootRecid, Serializers.RECID)
                     leftEdges.add(newRootRecid)
                     unlock(rootRecidRecid)
 

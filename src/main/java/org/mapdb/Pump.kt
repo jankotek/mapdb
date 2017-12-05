@@ -3,6 +3,7 @@ package org.mapdb
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.mapdb.tree.BTreeMapJava.*
 import org.mapdb.serializer.GroupSerializer
+import org.mapdb.serializer.Serializers
 import org.mapdb.tree.BTreeMapJava
 import java.util.*
 
@@ -61,7 +62,7 @@ object Pump{
             var nextLeafLink = 0L
 
             val nodeSer = NodeSerializer(keySerializer, comparator,
-                    if(valueInline)valueSerializer else Serializer.RECID)
+                    if(valueInline)valueSerializer else Serializers.RECID)
 
             fun nodeValues():Any {
                 return if(!hasValues) keys.size
@@ -183,7 +184,7 @@ object Pump{
                 //is leaf the only node?
                 if(leftEdgeLeaf!=0){
                     //yes, close
-                    rootRecidRecid = store.put(nextLeafLink, Serializer.RECID)
+                    rootRecidRecid = store.put(nextLeafLink, Serializers.RECID)
                     return
                 }
 
@@ -208,7 +209,7 @@ object Pump{
                     }
                     childFromLowerLevel = dir.nextDirLink;
                 }
-                rootRecidRecid = store.put(childFromLowerLevel, Serializer.RECID)
+                rootRecidRecid = store.put(childFromLowerLevel, Serializers.RECID)
           }
         }
     }

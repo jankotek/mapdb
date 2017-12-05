@@ -2,9 +2,11 @@ package org.mapdb.issues
 
 import org.junit.Test
 import org.mapdb.*
+import org.mapdb.serializer.Serializer
+import org.mapdb.serializer.Serializers
 import java.util.*
 
-class Issue769_Map_putOnly : Serializer<String>{
+class Issue769_Map_putOnly : Serializer<String> {
 
     val ser = ArrayList<String>()
     val deser = ArrayList<String>()
@@ -22,7 +24,7 @@ class Issue769_Map_putOnly : Serializer<String>{
 
     @Test fun hashMap(){
         val m = DBMaker.memoryDB().make()
-                .hashMap("map", Serializer.INTEGER, this)
+                .hashMap("map", Serializers.INTEGER, this)
                 .create()
 
         check(m)
@@ -30,7 +32,7 @@ class Issue769_Map_putOnly : Serializer<String>{
 
     @Test fun treeMap(){
         val m = DBMaker.memoryDB().make()
-                .treeMap("map", Serializer.INTEGER, this)
+                .treeMap("map", Serializers.INTEGER, this)
                 .valuesOutsideNodesEnable()
                 .create()
 

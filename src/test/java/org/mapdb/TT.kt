@@ -2,6 +2,8 @@ package org.mapdb
 
 import org.junit.Assert.*
 import org.junit.Test
+import org.mapdb.serializer.Serializer
+import org.mapdb.serializer.Serializers
 import org.mapdb.util.DataIO
 import java.io.*
 import java.util.*
@@ -33,7 +35,7 @@ object TT{
             val bytes = randomByteArray(random.nextInt(100),seed=random.nextInt());
             store.put(
                     bytes,
-                    Serializer.BYTE_ARRAY_NOSIZE);
+                    Serializers.BYTE_ARRAY_NOSIZE);
         }
     }
 
@@ -294,7 +296,7 @@ class TTTest{
 
     @Test fun clone2(){
         val s = "djwqoidjioqwdjiqw 323423";
-        assertEquals(s, TT.clone(s, Serializer.STRING))
+        assertEquals(s, TT.clone(s, Serializers.STRING))
         assertEquals(s, TT.cloneJavaSerialization(s))
     }
 

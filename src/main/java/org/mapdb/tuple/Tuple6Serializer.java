@@ -4,7 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.mapdb.DB;
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
-import org.mapdb.Serializer;
+import org.mapdb.serializer.Serializer;
 import org.mapdb.serializer.GroupSerializerObjectArray;
 
 import java.io.IOException;

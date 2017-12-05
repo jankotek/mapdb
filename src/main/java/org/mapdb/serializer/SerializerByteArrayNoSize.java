@@ -2,11 +2,10 @@ package org.mapdb.serializer;
 
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
-import org.mapdb.Serializer;
+import org.mapdb.serializer.Serializers;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Comparator;
 
 /**
  * Created by jan on 2/28/16.
@@ -37,7 +36,7 @@ public class SerializerByteArrayNoSize implements Serializer<byte[]> {
 
     @Override
     public int hashCode(byte[] bytes, int seed) {
-        return BYTE_ARRAY.hashCode(bytes, seed);
+        return Serializers.BYTE_ARRAY.hashCode(bytes, seed);
     }
 
     @Override

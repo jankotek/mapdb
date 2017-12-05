@@ -6,6 +6,7 @@ import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.junit.Assert.*
 import org.junit.Test
 import org.mapdb.*
+import org.mapdb.serializer.Serializers
 import org.mapdb.store.StoreDirectJava.*
 import org.mapdb.util.DataIO
 import org.mapdb.util.DataIO.*
@@ -61,12 +62,12 @@ class StoreDirectTest:StoreDirectAbstractTest(){
         val s = openStore()
         val recids = LongHashSet()
         for(i in 0..count){
-            val recid = s.put(ByteArray(arraySize), Serializer.BYTE_ARRAY_NOSIZE)
+            val recid = s.put(ByteArray(arraySize), Serializers.BYTE_ARRAY_NOSIZE)
             recids.add(recid)
         }
 
         recids.forEach { recid->
-            s.delete(recid, Serializer.BYTE_ARRAY_NOSIZE)
+            s.delete(recid, Serializers.BYTE_ARRAY_NOSIZE)
         }
 
         assertTrue( Math.abs(count*arraySize - s.getFreeSize())<div)
@@ -83,12 +84,12 @@ class StoreDirectTest:StoreDirectAbstractTest(){
         val recids = LongHashSet()
         s.getFreeSize()
         for (i in 0..count) {
-            val recid = s.put(ByteArray(arraySize), Serializer.BYTE_ARRAY_NOSIZE)
+            val recid = s.put(ByteArray(arraySize), Serializers.BYTE_ARRAY_NOSIZE)
             recids.add(recid)
         }
 
         recids.forEach { recid ->
-            s.delete(recid, Serializer.BYTE_ARRAY_NOSIZE)
+            s.delete(recid, Serializers.BYTE_ARRAY_NOSIZE)
         }
 
         assertTrue(Math.abs(count * arraySize - s.getFreeSize()) < div)
@@ -111,7 +112,7 @@ class StoreDirectTest:StoreDirectAbstractTest(){
     @Test fun checksum(){
         val vol = SingleByteArrayVol(1024*1024*2)
         val store = StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol,false), checksum=false)
-        store.put(11, Serializer.INTEGER)
+        store.put(11, Serializers.INTEGER)
         store.commit()
         store.close()
 
@@ -140,7 +141,7 @@ class StoreDirectTest:StoreDirectAbstractTest(){
     @Test fun checksum_enable(){
         val vol = SingleByteArrayVol(1024*1024*2)
         val store = StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol,false), checksum=true)
-        store.put(11, Serializer.LONG)
+        store.put(11, Serializers.LONG)
         store.commit()
         store.close()
         //checksum is not enabled
@@ -460,7 +461,7 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
 
         val db = DBMaker.memoryDB().make()
         val store = db.store as StoreDirect
-        val map = db.hashMap("map",Serializer.LONG, Serializer.BYTE_ARRAY).create()
+        val map = db.hashMap("map", Serializers.LONG, Serializers.BYTE_ARRAY).create()
 
         for(i in 0..10) for(key in 1L .. 10000){
             map.put(key, ByteArray(800))
@@ -480,10 +481,10 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
         val random = Random()
         for(i in 1..1000){
             val string = TT.randomByteArray(size = random.nextInt(100000), seed=random.nextInt())
-            val recid = store.put(string, Serializer.BYTE_ARRAY_NOSIZE)
+            val recid = store.put(string, Serializers.BYTE_ARRAY_NOSIZE)
             ref.put(recid,string)
         }
-        val nullRecid = store.put(null, Serializer.BYTE_ARRAY_NOSIZE);
+        val nullRecid = store.put(null, Serializers.BYTE_ARRAY_NOSIZE);
 
         store.compact()
         store.verify()
@@ -494,19 +495,19 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
         }
 
         ref.forEachKeyValue { key, value ->
-            val value2 = store.get(key, Serializer.BYTE_ARRAY_NOSIZE)
+            val value2 = store.get(key, Serializers.BYTE_ARRAY_NOSIZE)
             assertTrue(Arrays.equals(value,value2))
         }
 
-        assertNull(store.get(nullRecid,Serializer.BYTE_ARRAY_NOSIZE))
+        assertNull(store.get(nullRecid, Serializers.BYTE_ARRAY_NOSIZE))
     }
 
     @Test open fun delete_after_close(){
         val dir = TT.tempDir()
         val store = StoreDirect.make(dir.path+"/aa", fileDeleteAfterClose = true)
-        store.put(11, Serializer.INTEGER)
+        store.put(11, Serializers.INTEGER)
         store.commit()
-        store.put(11, Serializer.INTEGER)
+        store.put(11, Serializers.INTEGER)
         store.commit()
         assertNotEquals(0, dir.listFiles().size)
         store.close()
@@ -517,10 +518,10 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
         val store = openStore()
 
         assertEquals(CC.PAGE_SIZE, store.volume.length())
-        store.put("aa", Serializer.STRING)
+        store.put("aa", Serializers.STRING)
         store.commit()
         assertEquals(1*CC.PAGE_SIZE, store.volume.length())
-        store.put("aaaaaaaaaa", Serializer.STRING)
+        store.put("aaaaaaaaaa", Serializers.STRING)
         store.commit()
         assertEquals(2*CC.PAGE_SIZE, store.volume.length())
         store.close()
@@ -544,7 +545,7 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
 
         check()
 
-        store.put(1, Serializer.INTEGER)
+        store.put(1, Serializers.INTEGER)
         store.commit()
 
         check()
@@ -573,33 +574,33 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
             var store = openStore(f)
 
             var b = TT.randomByteArray(size,1)
-            val recid = store.put(b, Serializer.BYTE_ARRAY_NOSIZE)
-            assertArrayEquals(b, store.get(recid, Serializer.BYTE_ARRAY_NOSIZE))
+            val recid = store.put(b, Serializers.BYTE_ARRAY_NOSIZE)
+            assertArrayEquals(b, store.get(recid, Serializers.BYTE_ARRAY_NOSIZE))
 
             store.commit()
-            assertArrayEquals(b, store.get(recid, Serializer.BYTE_ARRAY_NOSIZE))
+            assertArrayEquals(b, store.get(recid, Serializers.BYTE_ARRAY_NOSIZE))
             store.verify()
 
             //update same size
             b = TT.randomByteArray(size,2)
-            store.update(recid, b, Serializer.BYTE_ARRAY_NOSIZE)
-            assertArrayEquals(b, store.get(recid, Serializer.BYTE_ARRAY_NOSIZE))
+            store.update(recid, b, Serializers.BYTE_ARRAY_NOSIZE)
+            assertArrayEquals(b, store.get(recid, Serializers.BYTE_ARRAY_NOSIZE))
             store.commit()
-            assertArrayEquals(b, store.get(recid, Serializer.BYTE_ARRAY_NOSIZE))
+            assertArrayEquals(b, store.get(recid, Serializers.BYTE_ARRAY_NOSIZE))
             store.verify()
 
 
             //read after reopen
             store.close()
             store = openStore(f)
-            assertArrayEquals(b, store.get(recid, Serializer.BYTE_ARRAY_NOSIZE))
+            assertArrayEquals(b, store.get(recid, Serializers.BYTE_ARRAY_NOSIZE))
             store.verify()
 
             //CAS the same size
             val b2 = TT.randomByteArray(size,3)
-            assertFalse(store.compareAndSwap(recid, b2, TT.randomByteArray(2,4), Serializer.BYTE_ARRAY_NOSIZE))
-            assertTrue(store.compareAndSwap(recid, b, b2, Serializer.BYTE_ARRAY_NOSIZE))
-            assertArrayEquals(b2, store.get(recid, Serializer.BYTE_ARRAY_NOSIZE))
+            assertFalse(store.compareAndSwap(recid, b2, TT.randomByteArray(2,4), Serializers.BYTE_ARRAY_NOSIZE))
+            assertTrue(store.compareAndSwap(recid, b, b2, Serializers.BYTE_ARRAY_NOSIZE))
+            assertArrayEquals(b2, store.get(recid, Serializers.BYTE_ARRAY_NOSIZE))
             store.verify()
 
             store.close()
@@ -621,44 +622,44 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
 
         for(a1 in arrays) for(a2 in arrays){
             val store = openStore()
-            var recid = store.put(a1, Serializer.BYTE_ARRAY_NOSIZE)
+            var recid = store.put(a1, Serializers.BYTE_ARRAY_NOSIZE)
 
             fun eq(b:ByteArray) {
-                assertTrue(Arrays.equals(b, store.get(recid, Serializer.BYTE_ARRAY_NOSIZE)))
+                assertTrue(Arrays.equals(b, store.get(recid, Serializers.BYTE_ARRAY_NOSIZE)))
                 store.verify()
                 store.commit()
-                assertTrue(Arrays.equals(b, store.get(recid, Serializer.BYTE_ARRAY_NOSIZE)))
+                assertTrue(Arrays.equals(b, store.get(recid, Serializers.BYTE_ARRAY_NOSIZE)))
                 store.verify()
             }
             eq(a1)
 
-            store.update(recid, a2, Serializer.BYTE_ARRAY_NOSIZE)
+            store.update(recid, a2, Serializers.BYTE_ARRAY_NOSIZE)
             eq(a2)
 
-            assertTrue(store.compareAndSwap(recid, a2, a1, Serializer.BYTE_ARRAY_NOSIZE))
+            assertTrue(store.compareAndSwap(recid, a2, a1, Serializers.BYTE_ARRAY_NOSIZE))
             eq(a1)
 
-            store.delete(recid, Serializer.BYTE_ARRAY_NOSIZE)
+            store.delete(recid, Serializers.BYTE_ARRAY_NOSIZE)
             TT.assertFailsWith(DBException.GetVoid::class.java){
-                    store.get(recid, Serializer.BYTE_ARRAY_NOSIZE)
+                    store.get(recid, Serializers.BYTE_ARRAY_NOSIZE)
             }
             store.verify()
             store.commit()
             TT.assertFailsWith(DBException.GetVoid::class.java){
-                store.get(recid, Serializer.BYTE_ARRAY_NOSIZE)
+                store.get(recid, Serializers.BYTE_ARRAY_NOSIZE)
             }
             store.verify()
 
             //update from preallocation
             recid = store.preallocate()
-            assertNull(store.get(recid, Serializer.BYTE_ARRAY_NOSIZE))
-            store.update(recid, a1, Serializer.BYTE_ARRAY_NOSIZE)
+            assertNull(store.get(recid, Serializers.BYTE_ARRAY_NOSIZE))
+            store.update(recid, a1, Serializers.BYTE_ARRAY_NOSIZE)
             eq(a1)
 
             //cas from preallication
             recid = store.preallocate()
-            assertNull(store.get(recid, Serializer.BYTE_ARRAY_NOSIZE))
-            assertTrue(store.compareAndSwap(recid, null, a1, Serializer.BYTE_ARRAY_NOSIZE))
+            assertNull(store.get(recid, Serializers.BYTE_ARRAY_NOSIZE))
+            assertTrue(store.compareAndSwap(recid, null, a1, Serializers.BYTE_ARRAY_NOSIZE))
             eq(a1)
             store.close()
         }
@@ -738,7 +739,7 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
     @Test fun header_checksum_bypass(){
         val vol = ByteArrayVol()
         val store = StoreDirect.make(volumeFactory = VolumeFactory.wrap(vol, false), checksumHeaderBypass = false)
-        store.put(111, Serializer.INTEGER)
+        store.put(111, Serializers.INTEGER)
         store.commit()
 
         //corrupt header
@@ -753,7 +754,7 @@ abstract class StoreDirectAbstractTest:StoreReopenTest() {
     @Test fun headers(){
         val f = TT.tempFile()
         val store = openStore(f)
-        store.put(TT.randomByteArray(1000000),Serializer.BYTE_ARRAY)
+        store.put(TT.randomByteArray(1000000), Serializers.BYTE_ARRAY)
 
         val raf = RandomAccessFile(f.path, "r");
         raf.seek(0)

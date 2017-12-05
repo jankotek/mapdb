@@ -6,6 +6,8 @@ import org.fest.reflect.core.Reflection
 import org.junit.*
 import org.junit.Assert.*
 import org.mapdb.*
+import org.mapdb.serializer.Serializer
+import org.mapdb.serializer.Serializers
 import org.mapdb.store.StoreOnHeap
 import org.mapdb.util.SingleEntryReadWriteSegmentedLock
 import org.mapdb.volume.SingleByteArrayVol
@@ -39,7 +41,7 @@ class HTreeMapTest{
 
     @Test fun hashAssertion(){
         @Suppress("UNCHECKED_CAST")
-        val map = HTreeMap.make<ByteArray,Int>(keySerializer = Serializer.ELSA as Serializer<ByteArray>)
+        val map = HTreeMap.make<ByteArray,Int>(keySerializer = Serializers.ELSA as Serializer<ByteArray>)
 
         try {
             for (i in 1..100)
@@ -49,7 +51,7 @@ class HTreeMapTest{
             assertTrue(e.message!!.contains("hash"))
         }
 
-        val map2 = HTreeMap.make<Any,Int>(keySerializer = Serializer.ELSA,
+        val map2 = HTreeMap.make<Any,Int>(keySerializer = Serializers.ELSA,
                 stores = arrayOf(StoreOnHeap()), concShift = 0)
 
         class NotSerializable{
@@ -80,7 +82,7 @@ class HTreeMapTest{
     }
 
     @Test fun test_hash_collision() {
-        val m = HTreeMap.make(keySerializer = HTreeMap_GuavaTest.singleHashSerializer, valueSerializer = Serializer.INTEGER, concShift = 0)
+        val m = HTreeMap.make(keySerializer = HTreeMap_GuavaTest.singleHashSerializer, valueSerializer = Serializers.INTEGER, concShift = 0)
 
         for (i in 0..19) {
             m.put(i, i + 100)
@@ -102,7 +104,7 @@ class HTreeMapTest{
     }
 
     @Test fun delete_removes_recids(){
-        val m = HTreeMap.make(keySerializer = HTreeMap_GuavaTest.singleHashSerializer, valueSerializer = Serializer.INTEGER, concShift = 0)
+        val m = HTreeMap.make(keySerializer = HTreeMap_GuavaTest.singleHashSerializer, valueSerializer = Serializers.INTEGER, concShift = 0)
 
         fun countRecids() = m.stores[0].getAllRecids().asSequence().count()
 
@@ -121,7 +123,7 @@ class HTreeMapTest{
     }
 
     @Test fun delete_removes_recids_dir_collapse(){
-        val sequentialHashSerializer = object :Serializer<Int>{
+        val sequentialHashSerializer = object : Serializer<Int> {
             override fun deserialize(input: DataInput2, available: Int): Int? {
                 return input.readInt()
             }
@@ -135,7 +137,7 @@ class HTreeMapTest{
             }
         }
 
-        val m = HTreeMap.make(keySerializer = sequentialHashSerializer, valueSerializer = Serializer.INTEGER, concShift = 0)
+        val m = HTreeMap.make(keySerializer = sequentialHashSerializer, valueSerializer = Serializers.INTEGER, concShift = 0)
 
         fun countRecids() = m.stores[0].getAllRecids().asSequence().count()
 
@@ -155,7 +157,7 @@ class HTreeMapTest{
     }
 
     @Test fun clear(){
-        val m = HTreeMap.make(keySerializer = Serializer.INTEGER, valueSerializer = Serializer.INTEGER)
+        val m = HTreeMap.make(keySerializer = Serializers.INTEGER, valueSerializer = Serializers.INTEGER)
         val recidCount = m.stores[0].getAllRecids().asSequence().count()
         for(i in 1 .. 10000)
             m.put(i, i);
@@ -171,7 +173,7 @@ class HTreeMapTest{
 
         val db = DBMaker.memoryDB().make()
 
-        val m = db.hashMap("test", Serializer.LONG, Serializer.LONG)
+        val m = db.hashMap("test", Serializers.LONG, Serializers.LONG)
                 .expireAfterUpdate(100).expireAfterCreate(100).create()
         val time = System.currentTimeMillis()
         var counter: Long = 0
@@ -188,7 +190,7 @@ class HTreeMapTest{
 
         val db = DBMaker.memoryDB().make()
 
-        val m = db.hashMap("test", Serializer.LONG, Serializer.LONG).expireMaxSize(10000).create()
+        val m = db.hashMap("test", Serializers.LONG, Serializers.LONG).expireMaxSize(10000).create()
         val time = System.currentTimeMillis()
         var counter: Long = 0
         while (time + 5000 > System.currentTimeMillis()) {
@@ -205,7 +207,7 @@ class HTreeMapTest{
             return
 
         val m = DBMaker.memoryDB().make()
-                .hashMap("test", Serializer.INT_ARRAY, Serializer.INTEGER).create()
+                .hashMap("test", Serializers.INT_ARRAY, Serializers.INTEGER).create()
 
 
         var i = 0
@@ -228,7 +230,7 @@ class HTreeMapTest{
         val counter = AtomicInteger()
         var m:HTreeMap<String,String>? = null
         var seg:Int? = null
-        m = db.hashMap("name", Serializer.STRING, Serializer.STRING)
+        m = db.hashMap("name", Serializers.STRING, Serializers.STRING)
             .modificationListener(MapModificationListener { _, _, _, _ ->
                 for (i in 0..m!!.locks!!.segmentCount - 1) {
                     assertEquals(seg == i,
@@ -260,7 +262,7 @@ class HTreeMapTest{
 
         val max = 1e6.toInt()
 
-        val m = DBMaker.memoryDB().make().hashSet("test", Serializer.INTEGER).create()
+        val m = DBMaker.memoryDB().make().hashSet("test", Serializers.INTEGER).create()
 
         for (i in 0..max - 1) {
             m.add(i)
@@ -314,7 +316,7 @@ class HTreeMapTest{
         val EXPIRE_TIME = 3L
         val MAX_GB_SIZE = 1e7.toLong()
 
-        val m = db.hashMap("cache", Serializer.INTEGER, Serializer.INTEGER)
+        val m = db.hashMap("cache", Serializers.INTEGER, Serializers.INTEGER)
                 .expireMaxSize(MAX_ITEM_SIZE).counterEnable()
                 .expireAfterCreate(EXPIRE_TIME, TimeUnit.SECONDS)
                 .expireAfterUpdate(EXPIRE_TIME, TimeUnit.SECONDS)
@@ -357,7 +359,7 @@ class HTreeMapTest{
     fun inconsistentHash() {
         val db = DBMaker.memoryDB().make()
 
-        val m = db.hashMap("test", Serializer.ELSA, Serializer.INTEGER).create()
+        val m = db.hashMap("test", Serializers.ELSA, Serializers.INTEGER).create()
 
         var i = 0
         while (i < 1e50){
@@ -375,7 +377,7 @@ class HTreeMapTest{
         val volume = SingleByteArrayVol(size)
         val db = DBMaker.volumeDB(volume, false).make()
         val map = db
-            .hashMap("map", Serializer.LONG, Serializer.BYTE_ARRAY)
+            .hashMap("map", Serializers.LONG, Serializers.BYTE_ARRAY)
             .expireAfterCreate()
             .expireStoreSize((size*0.7).toLong())
             .expireExecutor(TT.executor())
@@ -398,7 +400,7 @@ class HTreeMapTest{
         val db = DBMaker.memoryDB().make()
         val counter = AtomicInteger()
         var m:HTreeMap<String,String>? = null;
-        m = db.hashMap("name", Serializer.STRING, Serializer.STRING)
+        m = db.hashMap("name", Serializers.STRING, Serializers.STRING)
                 .modificationListener(object : MapModificationListener<String,String> {
                     override fun modify(key: String, oldValue: String?, newValue: String?, triggered: Boolean) {
                         val segment = m!!.hashToSegment(m!!.hash(key))
@@ -421,7 +423,7 @@ class HTreeMapTest{
     }
 
     @Test fun calculateCollisions(){
-        val map = DBMaker.heapDB().make().hashMap("name", Serializer.LONG, Serializer.LONG).createOrOpen() as HTreeMap
+        val map = DBMaker.heapDB().make().hashMap("name", Serializers.LONG, Serializers.LONG).createOrOpen() as HTreeMap
         for(i in 0L until 1000)
             map[i] = i
         val (collision, size) = map.calculateCollisionSize()
@@ -430,13 +432,13 @@ class HTreeMapTest{
     }
 
     @Test fun calculateCollisions2(){
-        val ser2 = object: Serializer<Long> by Serializer.LONG{
+        val ser2 = object: Serializer<Long> by Serializers.LONG {
             override fun hashCode(a: Long, seed: Int): Int {
                 return 0
             }
         }
 
-        val map = DBMaker.heapDB().make().hashMap("name", ser2, Serializer.LONG).createOrOpen() as HTreeMap
+        val map = DBMaker.heapDB().make().hashMap("name", ser2, Serializers.LONG).createOrOpen() as HTreeMap
         for(i in 0L until 1000)
             map[i] = i
         val (collision, size) = map.calculateCollisionSize()
@@ -452,7 +454,7 @@ class HTreeMapTest{
         var keyDeserCount = 0
         var stopValDeser = false
 
-        val keyser = object: Serializer<Int> by Serializer.INTEGER{
+        val keyser = object: Serializer<Int> by Serializers.INTEGER {
             override fun deserialize(input: DataInput2, available: Int): Int {
                 keyDeserCount++
                 return input.readInt()
@@ -460,7 +462,7 @@ class HTreeMapTest{
         }
 
 
-        val valser = object: Serializer<Int> by Serializer.INTEGER{
+        val valser = object: Serializer<Int> by Serializers.INTEGER {
             override fun deserialize(input: DataInput2, available: Int): Int {
                 assert(!stopValDeser)
                 return input.readInt()

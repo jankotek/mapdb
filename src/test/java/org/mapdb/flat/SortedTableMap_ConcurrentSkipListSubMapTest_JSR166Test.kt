@@ -1,7 +1,7 @@
 package org.mapdb.flat
 
 import org.mapdb.CC
-import org.mapdb.Serializer
+import org.mapdb.serializer.Serializers
 import org.mapdb.tree.jsr166Tests.ConcurrentSkipListSubMapTest
 import org.mapdb.tree.jsr166Tests.JSR166Test
 import java.util.concurrent.ConcurrentNavigableMap
@@ -13,8 +13,8 @@ class SortedTableMap_ConcurrentSkipListSubMapTest_JSR166Test()
 
     protected override fun map5(): ConcurrentNavigableMap<*, *>? {
         val consumer = SortedTableMap.createFromSink(
-                keySerializer = Serializer.INTEGER,
-                valueSerializer = Serializer.STRING_INTERN,
+                keySerializer = Serializers.INTEGER,
+                valueSerializer = Serializers.STRING_INTERN,
                 volume = CC.DEFAULT_MEMORY_VOLUME_FACTORY.makeVolume(null, false))
         consumer.put(Pair(JSR166Test.zero, "Z"))
         consumer.put(Pair(JSR166Test.one, "A"))
@@ -32,8 +32,8 @@ class SortedTableMap_ConcurrentSkipListSubMapTest_JSR166Test()
 
     protected override fun dmap5(): ConcurrentNavigableMap<*, *>? {
         val consumer = SortedTableMap.createFromSink(
-                keySerializer = Serializer.INTEGER,
-                valueSerializer = Serializer.STRING_INTERN,
+                keySerializer = Serializers.INTEGER,
+                valueSerializer = Serializers.STRING_INTERN,
                 volume = CC.DEFAULT_MEMORY_VOLUME_FACTORY.makeVolume(null, false))
         consumer.put(Pair(JSR166Test.m5, "E"))
         consumer.put(Pair(JSR166Test.m4, "D"))
@@ -50,8 +50,8 @@ class SortedTableMap_ConcurrentSkipListSubMapTest_JSR166Test()
 
     override fun emptyMap(): ConcurrentNavigableMap<Int, String>? {
         return SortedTableMap.createFromSink(
-                keySerializer = Serializer.INTEGER,
-                valueSerializer = Serializer.STRING_INTERN,
+                keySerializer = Serializers.INTEGER,
+                valueSerializer = Serializers.STRING_INTERN,
                 volume = CC.DEFAULT_MEMORY_VOLUME_FACTORY.makeVolume(null, false))
                 .create()
     }

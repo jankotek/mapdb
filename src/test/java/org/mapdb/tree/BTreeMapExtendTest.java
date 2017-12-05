@@ -19,7 +19,7 @@ package org.mapdb.tree;
 
 import junit.framework.TestCase;
 import org.mapdb.DBMaker;
-import org.mapdb.Serializer;
+import org.mapdb.serializer.Serializers;
 
 import java.util.*;
 import java.util.Map.Entry;
@@ -67,14 +67,14 @@ public class BTreeMapExtendTest extends TestCase {
     Object objArray[] = new Object[1000];
 
     protected BTreeMap newBTreeMap() {
-        return (BTreeMap) DBMaker.memoryDB().make().treeMap("Test", Serializer.STRING, Serializer.INTEGER).create();
+        return (BTreeMap) DBMaker.memoryDB().make().treeMap("Test", Serializers.STRING, Serializers.INTEGER).create();
     }
 
 
     public static class Outside extends BTreeMapExtendTest{
         @Override protected BTreeMap newBTreeMap() {
             return (BTreeMap) DBMaker.memoryDB().make()
-                    .treeMap("Test", Serializer.STRING, Serializer.INTEGER)
+                    .treeMap("Test", Serializers.STRING, Serializers.INTEGER)
                     //TODO enable this once external values are supported
                     // .valuesOutsideNodesEnable()
                     .create();

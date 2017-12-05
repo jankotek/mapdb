@@ -7,7 +7,7 @@ package org.mapdb.tree;
  */
 
 import org.mapdb.DBMaker;
-import org.mapdb.Serializer;
+import org.mapdb.serializer.Serializers;
 import org.mapdb.TT;
 import org.mapdb.tree.jsr166Tests.JSR166TestCase;
 
@@ -37,7 +37,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      */
     private NavigableSet<Integer> populatedSet(int n) {
         NavigableSet q = DBMaker.memoryDB().make().
-                treeSet("test").serializer(Serializer.INTEGER).createOrOpen();
+                treeSet("test").serializer(Serializers.INTEGER).createOrOpen();
 
         assertTrue(q.isEmpty());
         for (int i = n-1; i >= 0; i-=2)
@@ -54,7 +54,7 @@ public class BTreeSet2Test extends JSR166TestCase {
      */
     private NavigableSet set5() {
         NavigableSet q = DBMaker.memoryDB().make().
-                treeSet("test").serializer(Serializer.INTEGER).createOrOpen();
+                treeSet("test").serializer(Serializers.INTEGER).createOrOpen();
         assertTrue(q.isEmpty());
         q.add(one);
         q.add(two);
@@ -705,7 +705,7 @@ public class BTreeSet2Test extends JSR166TestCase {
 
     static NavigableSet<Integer> newSet(Class cl) throws Exception {
         NavigableSet result = DBMaker.memoryDB().make().
-                treeSet("test").serializer(Serializer.INTEGER).createOrOpen();
+                treeSet("test").serializer(Serializers.INTEGER).createOrOpen();
 
         //(NavigableSet<Integer>) cl.newInstance();
         assertEquals(0, result.size());

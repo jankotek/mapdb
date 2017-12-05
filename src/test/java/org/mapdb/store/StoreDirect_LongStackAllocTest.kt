@@ -6,6 +6,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 import org.mapdb.*
+import org.mapdb.serializer.Serializers
 import org.mapdb.volume.MappedFileVol
 import java.util.*
 
@@ -86,7 +87,7 @@ class StoreDirect_LongStackAllocTest(
             var periodRecid:Long = 0
             if( i % data.period == 0) {
                 ba = TT.randomByteArray(data.periodSize, seed = r.nextInt())
-                periodRecid = store.put(ba,Serializer.BYTE_ARRAY_NOSIZE)
+                periodRecid = store.put(ba, Serializers.BYTE_ARRAY_NOSIZE)
             }
 
             var size2 = r.nextInt(1600)
@@ -99,22 +100,22 @@ class StoreDirect_LongStackAllocTest(
                 val sizeOld = recids.get(recid)
 
                 //compare old
-                val old = store.get(recid, Serializer.BYTE_ARRAY_NOSIZE)!!
+                val old = store.get(recid, Serializers.BYTE_ARRAY_NOSIZE)!!
                 assertEquals(sizeOld, old.size)
                 TT.assertAllZero(old)
 
-                store.update(recid, ByteArray(size2), Serializer.BYTE_ARRAY_NOSIZE)
+                store.update(recid, ByteArray(size2), Serializers.BYTE_ARRAY_NOSIZE)
                 recids.put(recid, size2)
             }else{
                 //do insert instead
-                val recid = store.put(ByteArray(size2), Serializer.BYTE_ARRAY_NOSIZE)
+                val recid = store.put(ByteArray(size2), Serializers.BYTE_ARRAY_NOSIZE)
                 recids.put(recid, size2)
             }
 
             if(ba!=null){
-                val ba2 = store.get(periodRecid, Serializer.BYTE_ARRAY_NOSIZE)
+                val ba2 = store.get(periodRecid, Serializers.BYTE_ARRAY_NOSIZE)
                 assertTrue(Arrays.equals(ba, ba2))
-                store.delete(periodRecid, Serializer.BYTE_ARRAY_NOSIZE)
+                store.delete(periodRecid, Serializers.BYTE_ARRAY_NOSIZE)
             }
 
             if(store.fileTail>1024*1024*512)
@@ -123,7 +124,7 @@ class StoreDirect_LongStackAllocTest(
 
         store.verify()
         recids.forEachKeyValue { recid, size ->
-            val old = store.get(recid, Serializer.BYTE_ARRAY_NOSIZE)!!
+            val old = store.get(recid, Serializers.BYTE_ARRAY_NOSIZE)!!
             assertEquals(size, old.size)
             TT.assertAllZero(old)
         }

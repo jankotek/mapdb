@@ -1,8 +1,7 @@
 package org.mapdb;
 
 import org.junit.Test;
-import org.mapdb.tree.BTreeMap;
-import org.mapdb.tree.HTreeMap;
+import org.mapdb.serializer.Serializers;
 import org.mapdb.tuple.Tuple2;
 import org.mapdb.tuple.Tuple2Serializer;
 
@@ -30,24 +29,24 @@ public class DBGenericsTest {
 
     @Test public void treemap_2(){
         DBConcurrentNavigableMap<Long,String> m;
-        m = db.treeMap("a", Serializer.LONG, Serializer.STRING).maxNodeSize(11).create();
-        m = db.treeMap("a", Serializer.LONG, Serializer.STRING).maxNodeSize(11).createOrOpen();
-        m = db.treeMap("a", Serializer.LONG, Serializer.STRING).maxNodeSize(11).open();
+        m = db.treeMap("a", Serializers.LONG, Serializers.STRING).maxNodeSize(11).create();
+        m = db.treeMap("a", Serializers.LONG, Serializers.STRING).maxNodeSize(11).createOrOpen();
+        m = db.treeMap("a", Serializers.LONG, Serializers.STRING).maxNodeSize(11).open();
     }
 
     @Test public void treemap_3(){
         DBConcurrentNavigableMap<Long,String> m;
-        m = db.treeMap("a").keySerializer(Serializer.LONG).valueSerializer(Serializer.STRING).maxNodeSize(11).create();
-        m = db.treeMap("a").keySerializer(Serializer.LONG).valueSerializer(Serializer.STRING).maxNodeSize(11).createOrOpen();
-        m = db.treeMap("a").keySerializer(Serializer.LONG).valueSerializer(Serializer.STRING).maxNodeSize(11).open();
+        m = db.treeMap("a").keySerializer(Serializers.LONG).valueSerializer(Serializers.STRING).maxNodeSize(11).create();
+        m = db.treeMap("a").keySerializer(Serializers.LONG).valueSerializer(Serializers.STRING).maxNodeSize(11).createOrOpen();
+        m = db.treeMap("a").keySerializer(Serializers.LONG).valueSerializer(Serializers.STRING).maxNodeSize(11).open();
     }
 
 
     @Test public void treemap_4(){
         DBConcurrentNavigableMap<Tuple2<String,Long>,String> m;
-        m = db.treeMap("a", new Tuple2Serializer(db.getDefaultSerializer(), Serializer.LONG), Serializer.STRING).maxNodeSize(11).create();
-        m = db.treeMap("a", new Tuple2Serializer(db.getDefaultSerializer(), Serializer.LONG), Serializer.STRING).maxNodeSize(11).createOrOpen();
-        m = db.treeMap("a", new Tuple2Serializer(db.getDefaultSerializer(), Serializer.LONG), Serializer.STRING).maxNodeSize(11).open();
+        m = db.treeMap("a", new Tuple2Serializer(db.getDefaultSerializer(), Serializers.LONG), Serializers.STRING).maxNodeSize(11).create();
+        m = db.treeMap("a", new Tuple2Serializer(db.getDefaultSerializer(), Serializers.LONG), Serializers.STRING).maxNodeSize(11).createOrOpen();
+        m = db.treeMap("a", new Tuple2Serializer(db.getDefaultSerializer(), Serializers.LONG), Serializers.STRING).maxNodeSize(11).open();
     }
 
 ///////////////////////
@@ -71,15 +70,15 @@ public class DBGenericsTest {
 
     @Test public void hashmap_2(){
         DBConcurrentMap<Long,String> m;
-        m = db.hashMap("a", Serializer.LONG, Serializer.STRING).valueInline().create();
-        m = db.hashMap("a", Serializer.LONG, Serializer.STRING).valueInline().createOrOpen();
-        m = db.hashMap("a", Serializer.LONG, Serializer.STRING).valueInline().open();
+        m = db.hashMap("a", Serializers.LONG, Serializers.STRING).valueInline().create();
+        m = db.hashMap("a", Serializers.LONG, Serializers.STRING).valueInline().createOrOpen();
+        m = db.hashMap("a", Serializers.LONG, Serializers.STRING).valueInline().open();
     }
 
     @Test public void hashmap_3(){
         DBConcurrentMap<Long,String> m;
-        m = db.hashMap("a").keySerializer(Serializer.LONG).valueSerializer(Serializer.STRING).valueInline().create();
-        m = db.hashMap("a").keySerializer(Serializer.LONG).valueSerializer(Serializer.STRING).valueInline().createOrOpen();
-        m = db.hashMap("a").keySerializer(Serializer.LONG).valueSerializer(Serializer.STRING).valueInline().open();
+        m = db.hashMap("a").keySerializer(Serializers.LONG).valueSerializer(Serializers.STRING).valueInline().create();
+        m = db.hashMap("a").keySerializer(Serializers.LONG).valueSerializer(Serializers.STRING).valueInline().createOrOpen();
+        m = db.hashMap("a").keySerializer(Serializers.LONG).valueSerializer(Serializers.STRING).valueInline().open();
     }
 }

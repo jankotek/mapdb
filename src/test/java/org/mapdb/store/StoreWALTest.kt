@@ -2,10 +2,8 @@ package org.mapdb.store
 
 import org.junit.Assert.*
 import org.junit.Test
-import org.mapdb.CC
-import org.mapdb.DBException
-import org.mapdb.Serializer
-import org.mapdb.TT
+import org.mapdb.*
+import org.mapdb.serializer.Serializers
 import java.io.File
 import java.io.RandomAccessFile
 
@@ -26,9 +24,9 @@ class StoreWALTest: StoreDirectAbstractTest() {
     @Test override fun delete_after_close(){
         val dir = TT.tempDir()
         val store = StoreWAL.make(dir.path+"/aa", fileDeleteAfterClose = true)
-        store.put(11, Serializer.INTEGER)
+        store.put(11, Serializers.INTEGER)
         store.commit()
-        store.put(11, Serializer.INTEGER)
+        store.put(11, Serializers.INTEGER)
         store.commit()
         assertNotEquals(0, dir.listFiles().size)
         store.close()
@@ -54,7 +52,7 @@ class StoreWALTest: StoreDirectAbstractTest() {
     @Test fun headers2(){
         val f = TT.tempFile()
         val store = openStore(f)
-        store.put(TT.randomByteArray(1000000),Serializer.BYTE_ARRAY)
+        store.put(TT.randomByteArray(1000000), Serializers.BYTE_ARRAY)
 
         val raf = RandomAccessFile(f.path, "r");
         raf.seek(0)
@@ -78,27 +76,27 @@ class StoreWALTest: StoreDirectAbstractTest() {
         for(size in sizes) {
             val store = openStore()
             store.commit()
-            val recid = store.put(ByteArray(size), Serializer.BYTE_ARRAY_NOSIZE)
+            val recid = store.put(ByteArray(size), Serializers.BYTE_ARRAY_NOSIZE)
             assertTrue(0 < store.cacheRecords.map { it.size() }.sum())
-            store.update(recid, null, Serializer.BYTE_ARRAY_NOSIZE)
+            store.update(recid, null, Serializers.BYTE_ARRAY_NOSIZE)
             assertTrue(0 == store.cacheRecords.map { it.size() }.sum())
         }
 
         for(size in sizes) {
             val store = openStore()
             store.commit()
-            val recid = store.put(ByteArray(size), Serializer.BYTE_ARRAY_NOSIZE)
+            val recid = store.put(ByteArray(size), Serializers.BYTE_ARRAY_NOSIZE)
             assertTrue(0 < store.cacheRecords.map { it.size() }.sum())
-            store.update(recid, ByteArray(1), Serializer.BYTE_ARRAY_NOSIZE)
+            store.update(recid, ByteArray(1), Serializers.BYTE_ARRAY_NOSIZE)
             assertTrue(0 == store.cacheRecords.map { it.size() }.sum())
         }
 
         for(size in sizes) {
             val store = openStore();
             store.commit()
-            val recid = store.put(ByteArray(size), Serializer.BYTE_ARRAY_NOSIZE)
+            val recid = store.put(ByteArray(size), Serializers.BYTE_ARRAY_NOSIZE)
             assertTrue(0 < store.cacheRecords.map { it.size() }.sum())
-            store.delete(recid, Serializer.BYTE_ARRAY_NOSIZE)
+            store.delete(recid, Serializers.BYTE_ARRAY_NOSIZE)
             assertTrue(0 == store.cacheRecords.map { it.size() }.sum())
         }
 
@@ -106,9 +104,9 @@ class StoreWALTest: StoreDirectAbstractTest() {
             val store = openStore();
             store.commit()
             val v = ByteArray(size)
-            val recid = store.put(v, Serializer.BYTE_ARRAY_NOSIZE)
+            val recid = store.put(v, Serializers.BYTE_ARRAY_NOSIZE)
             assertTrue(0 < store.cacheRecords.map { it.size() }.sum())
-            store.compareAndSwap(recid, v, null, Serializer.BYTE_ARRAY_NOSIZE)
+            store.compareAndSwap(recid, v, null, Serializers.BYTE_ARRAY_NOSIZE)
             assertTrue(0 == store.cacheRecords.map { it.size() }.sum())
         }
 

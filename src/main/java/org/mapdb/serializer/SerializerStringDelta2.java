@@ -660,16 +660,16 @@ public class SerializerStringDelta2 implements  GroupSerializer<String> {
 
     @Override
     public void serialize(@NotNull DataOutput2 out, @NotNull String value) throws IOException {
-        Serializer.STRING.serialize(out, value);
+        Serializers.STRING.serialize(out, value);
     }
 
     @Override
     public String deserialize(@NotNull DataInput2 input, int available) throws IOException {
-        return Serializer.STRING.deserialize(input, available);
+        return Serializers.STRING.deserialize(input, available);
     }
 
     @Override
     public int hashCode(@NotNull String s, int seed) {
-        return Serializer.STRING.hashCode(s, seed);
+        return Serializers.STRING.hashCode(s, seed);
     }
 }

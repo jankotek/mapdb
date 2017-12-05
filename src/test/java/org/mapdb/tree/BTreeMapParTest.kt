@@ -3,6 +3,7 @@ package org.mapdb.tree
 import org.mapdb.*
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.mapdb.serializer.Serializers
 
 class BTreeMapParTest {
 
@@ -18,7 +19,7 @@ class BTreeMapParTest {
             return
 
 
-        val m = DBMaker.memoryDB().make().treeMap("test").valueSerializer(Serializer.LONG).keySerializer(Serializer.LONG).createOrOpen()
+        val m = DBMaker.memoryDB().make().treeMap("test").valueSerializer(Serializers.LONG).keySerializer(Serializers.LONG).createOrOpen()
 
         TT.fork(threadNum, {core->
                 var n: Long = core.toLong()

@@ -1,6 +1,7 @@
 package org.mapdb;
 
 import junit.framework.TestCase;
+import org.mapdb.serializer.Serializers;
 
 public class AtomicVarTest extends TestCase {
 
@@ -11,7 +12,7 @@ public class AtomicVarTest extends TestCase {
     @Override
     protected void setUp() throws Exception {
         db = DBMaker.memoryDB().make();
-        ai = db.atomicVar("test", Serializer.STRING, "test").create();
+        ai = db.atomicVar("test", Serializers.STRING, "test").create();
     }
 
     @Override
@@ -31,7 +32,7 @@ public class AtomicVarTest extends TestCase {
      * default constructed initializes to empty string
      */
     public void testConstructor2() {
-        Atomic.Var<String> ai = db.atomicVar("test2", Serializer.STRING).create();
+        Atomic.Var<String> ai = db.atomicVar("test2", Serializers.STRING).create();
         assertEquals(null, ai.get());
     }
 
