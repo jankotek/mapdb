@@ -695,7 +695,8 @@ open class DB(
                     if (!triggered && newVal == null && oldVal != null) {
                         //removal, also remove from overflow map
                         val oldVal2 = expireOverflow.remove(key)
-                        if (oldVal2 != null && _valueSerializer.equals(oldVal, oldVal2)) {
+                        //TODO replace defaultHasher with comparator for values
+                        if (oldVal2 != null && _valueSerializer.defaultHasher().equals(oldVal, oldVal2)) {
                             Utils.LOG.warning { "Key also removed from overflow Map, but value in overflow Map differs" }
                         }
                     } else if (triggered && newVal == null) {
@@ -1151,7 +1152,7 @@ open class DB(
                  db.nameCatalogPutClass(catalog, name + Keys.comparator, _comparator!!)
 
              val rootRecidRecid2 = _rootRecidRecid
-                     ?: BTreeMap.putEmptyRoot(db.store, _keySerializer , _valueSerializer)
+                     ?: BTreeMap.putEmptyRoot(db.store, _keySerializer , _comparator?:_keySerializer.defaultHasher(), _valueSerializer)
              catalog[name + Keys.rootRecidRecid] = rootRecidRecid2.toString()
 
              val counterRecid2 =
@@ -1167,7 +1168,7 @@ open class DB(
                      rootRecidRecid = rootRecidRecid2,
                      store = db.store,
                      maxNodeSize = _maxNodeSize,
-                     comparator = _comparator?:_keySerializer,
+                     comparator = _comparator?:_keySerializer.defaultHasher(),
                      isThreadSafe = db.isThreadSafe,
                      counterRecid = counterRecid2,
                      hasValues = hasValues,
@@ -1199,7 +1200,7 @@ open class DB(
                      }
 
              val comparator:Comparator<K> =
-                     db.nameCatalogGetClass(catalog, name + Keys.comparator) ?: (_comparator ?:_keySerializer)
+                     db.nameCatalogGetClass(catalog, name + Keys.comparator) ?: (_comparator ?:_keySerializer.defaultHasher())
 
              val counterRecid2 = catalog[name + Keys.counterRecid]!!.toLong()
              _maxNodeSize = catalog[name + Keys.maxNodeSize]!!.toInt()
@@ -1315,7 +1316,7 @@ open class DB(
                     store = db.store,
                     keySerializer = _keySerializer,
                     valueSerializer = _valueSerializer,
-                    comparator = _comparator?:_keySerializer,
+                    comparator = _comparator?:_keySerializer.defaultHasher(),
                     dirNodeSize = _maxNodeSize *3/4,
                     leafNodeSize = _maxNodeSize *3/4,
                     valueInline = _valueInline
@@ -1393,7 +1394,7 @@ open class DB(
                     store = db.store,
                     keySerializer = _keySerializer,
                     valueSerializer = _valueSerializer,
-                    comparator = _comparator?:_keySerializer,
+                    comparator = _comparator?:_keySerializer.defaultHasher(),
                     dirNodeSize = _maxNodeSize *3/4,
                     leafNodeSize = _maxNodeSize *3/4,
                     hasValues = false

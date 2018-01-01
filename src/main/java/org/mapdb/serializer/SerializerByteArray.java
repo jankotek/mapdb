@@ -1,7 +1,8 @@
 package org.mapdb.serializer;
 
-import net.jpountz.xxhash.XXHash32;
 import org.mapdb.*;
+import org.mapdb.hasher.Hasher;
+import org.mapdb.hasher.Hashers;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -11,8 +12,6 @@ import java.util.Comparator;
  * Created by jan on 2/28/16.
  */
 public class SerializerByteArray implements GroupSerializer<byte[]> {
-
-    private static final XXHash32 HASHER = CC.HASH_FACTORY.hash32();
 
     @Override
     public void serialize(DataOutput2 out, byte[] value) throws IOException {
@@ -30,35 +29,18 @@ public class SerializerByteArray implements GroupSerializer<byte[]> {
 
 
     @Override
+    public Hasher<byte[]> defaultHasher() {
+        return Hashers.BYTE_ARRAY;
+    }
+
+    @Override
     public boolean isTrusted() {
         return true;
     }
 
     @Override
-    public boolean equals(byte[] a1, byte[] a2) {
-        return Arrays.equals(a1, a2);
-    }
-
-    public int hashCode(byte[] bytes, int seed) {
-        return HASHER.hash(bytes, 0, bytes.length, seed);
-    }
-
-    @Override
-    public int compare(byte[] o1, byte[] o2) {
-        if (o1 == o2) return 0;
-        final int len = Math.min(o1.length, o2.length);
-        for (int i = 0; i < len; i++) {
-            int b1 = o1[i] & 0xFF;
-            int b2 = o2[i] & 0xFF;
-            if (b1 != b2)
-                return b1 - b2;
-        }
-        return o1.length - o2.length;
-    }
-
-    @Override
     public int valueArraySearch(Object keys, byte[] key) {
-        return Arrays.binarySearch((byte[][])keys, key, Serializers.BYTE_ARRAY);
+        return Arrays.binarySearch((byte[][])keys, key, Hashers.BYTE_ARRAY);
     }
 
     @Override

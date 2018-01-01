@@ -8,6 +8,7 @@ import org.fest.reflect.core.Reflection
 import org.junit.*
 import org.junit.Assert.*
 import org.mapdb.elsa.ElsaSerializerPojo
+import org.mapdb.hasher.Hashers
 import org.mapdb.queue.QueueLong
 import org.mapdb.serializer.GroupSerializerObjectArray
 import org.mapdb.serializer.Serializer
@@ -1345,7 +1346,7 @@ class DBTest{
         val f = TT.tempFile()
 
         var db = DBMaker.fileDB(f).make()
-        val comp = Serializers.INTEGER.reversed()
+        val comp = Hashers.JAVA.reversed() as Comparator<Int>
         var set = db.treeSet("aa", Serializers.INTEGER).comparator(comp).createOrOpen()
         assert(comp === set.comparator())
         db.close()

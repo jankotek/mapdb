@@ -2,6 +2,8 @@ package org.mapdb.serializer;
 
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
+import org.mapdb.hasher.Hasher;
+import org.mapdb.hasher.Hashers;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -33,28 +35,7 @@ public class SerializerFloatArray extends GroupSerializerObjectArray<float[]> {
     }
 
     @Override
-    public boolean equals(float[] a1, float[] a2) {
-        return Arrays.equals(a1, a2);
-    }
-
-    @Override
-    public int hashCode(float[] floats, int seed) {
-        for (float element : floats)
-            seed = (-1640531527) * seed + Float.floatToIntBits(element);
-        return seed;
-    }
-
-    @Override
-    public int compare(float[] o1, float[] o2) {
-        if (o1 == o2) return 0;
-        final int len = Math.min(o1.length, o2.length);
-        for (int i = 0; i < len; i++) {
-            if (o1[i] == o2[i])
-                continue;
-            if (o1[i] > o2[i])
-                return 1;
-            return -1;
-        }
-        return SerializerUtils.compareInt(o1.length, o2.length);
+    public Hasher<float[]> defaultHasher() {
+        return Hashers.FLOAT_ARRAY;
     }
 }

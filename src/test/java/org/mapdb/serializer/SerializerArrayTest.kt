@@ -48,19 +48,19 @@ class SerializerArrayTest {
 
         data.forEach{ ser, value ->
             val ser2 = ser as Serializer<Any>
-            val hash0 = ser2.hashCode(value, 0)
-            val hash1 = ser2.hashCode(value, 1)
+            val hash0 = ser2.defaultHasher().hashCode(value, 0)
+            val hash1 = ser2.defaultHasher().hashCode(value, 1)
 
             assertNotEquals(hash0, System.identityHashCode(value))
             if(!ser.toString().contains("SerializerCharArray"))
                 assertNotEquals(hash0, hash1)
 
             val cloned = TT.clone(value, ser2)
-            assertEquals(0, ser2.compare(value, cloned))
+            assertEquals(0, ser2.defaultHasher().compare(value, cloned))
 
-            assertEquals(hash0, ser2.hashCode(cloned, 0))
+            assertEquals(hash0, ser2.defaultHasher().hashCode(cloned, 0))
 
-            assertTrue(ser2.equals(value, cloned))
+            assertTrue(ser2.defaultHasher().equals(value, cloned))
         }
     }
 

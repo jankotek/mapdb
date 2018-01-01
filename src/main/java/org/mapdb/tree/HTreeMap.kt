@@ -5,6 +5,7 @@ import org.eclipse.collections.api.map.primitive.MutableLongLongMap
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.mapdb.*
 import org.mapdb.queue.*
+import org.mapdb.hasher.Hasher
 import org.mapdb.serializer.Serializer
 import org.mapdb.serializer.Serializers
 import org.mapdb.store.*
@@ -113,6 +114,10 @@ class HTreeMap<K,V>(
         @JvmField protected val QUEUE_UPDATE=2L
         @JvmField protected val QUEUE_GET=3L
     }
+
+
+    private val keyHasher: Hasher<K> = keySerializer.defaultHasher()
+    private val valueHasher: Hasher<V> = valueSerializer.defaultHasher()
 
     private val segmentCount = 1.shl(concShift)
 
@@ -280,7 +285,8 @@ class HTreeMap<K,V>(
 
 
     protected fun hash(key:K):Int{
-        return keySerializer.hashCode(key, 0)
+        //FIXME seed is zero?
+        return keyHasher.hashCode(key, 0)
     }
     protected fun hashToIndex(hash:Int) = DataIO.intToLong(hash) and indexMask
     protected fun hashToSegment(hash:Int) = hash.ushr(levels*dirShift) and concMask
@@ -384,7 +390,7 @@ class HTreeMap<K,V>(
             @Suppress("UNCHECKED_CAST")
             val oldKey = leaf[i] as K
 
-            if (keySerializer.equals(oldKey, key)) {
+            if (keyHasher.equals(oldKey, key)) {
                 //match found, update existing value
                 val oldVal =
                         if(noValueExpand && modificationListenersEmpty) null
@@ -501,7 +507,7 @@ class HTreeMap<K,V>(
             @Suppress("UNCHECKED_CAST")
             val oldKey = leaf[i] as K
 
-            if (keySerializer.equals(oldKey, key)) {
+            if (keyHasher.equals(oldKey, key)) {
                 if (!evicted && leaf[i + 2] != 0L) {
                     //if entry is evicted, queue will be updated at other place, so no need to remove queue in that case
                     val queue = expireQueueFor(segment, leaf[i + 2] as Long)
@@ -657,7 +663,7 @@ class HTreeMap<K,V>(
             @Suppress("UNCHECKED_CAST")
             val oldKey = leaf[i] as K
 
-            if (keySerializer.equals(oldKey, key)) {
+            if (keyHasher.equals(oldKey, key)) {
 
                 if (expireGetQueues != null) {
                     leaf = getprotectedQueues(expireGetQueues, i, leaf, leafRecid, segment, store)
@@ -785,7 +791,7 @@ class HTreeMap<K,V>(
                 expireEvictSegment(segment)
 
             val oldValue = getprotected(hash, key, updateQueue = false)
-            if (oldValue != null && valueSerializer.equals(oldValue, value)) {
+            if (oldValue != null && valueHasher.equals(oldValue, value)) {
                 removeProtected(hash, key, evicted = false, retTrue = false)
                 return true
             } else {
@@ -817,7 +823,7 @@ class HTreeMap<K,V>(
                 expireEvictSegment(segment)
 
             val valueIn = getprotected(hash, key, updateQueue = false);
-            if (valueIn != null && valueSerializer.equals(valueIn, oldValue)) {
+            if (valueIn != null && valueHasher.equals(valueIn, oldValue)) {
                 putProtected(hash, key, newValue, false, true);
                 return true;
             } else {
@@ -991,7 +997,7 @@ class HTreeMap<K,V>(
                     ?: return false
             val value = element.value
                     ?: return false
-            return valueSerializer.equals(value,v)
+            return valueHasher.equals(value,v)
         }
 
         override fun isEmpty(): Boolean {
@@ -1164,7 +1170,8 @@ class HTreeMap<K,V>(
             private var valueCached:V? = valueOrig;
 
             override fun hashCode(): Int {
-                return keySerializer.hashCode(this.key!!, hashSeed) xor valueSerializer.hashCode(this.value!!, hashSeed)
+                //TODO validate hash code seed here?
+                return keyHasher.hashCode(this.key!!, hashSeed) xor valueHasher.hashCode(this.value!!, hashSeed)
             }
             override fun setValue(newValue: V): V {
                 valueCached = null;
@@ -1182,8 +1189,8 @@ class HTreeMap<K,V>(
                 try{
 
                     return okey!=null && ovalue!=null
-                            && keySerializer.equals(key, okey)
-                            && valueSerializer.equals(this.value!!, ovalue)
+                            && keyHasher.equals(key, okey)
+                            && valueHasher.equals(this.value!!, ovalue)
                 }catch(e:ClassCastException) {
                     return false
                 }

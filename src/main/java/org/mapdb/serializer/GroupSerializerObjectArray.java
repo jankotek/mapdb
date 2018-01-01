@@ -64,7 +64,7 @@ public abstract class GroupSerializerObjectArray<A> implements GroupSerializer<A
     }
 
     @Override public  int valueArraySearch(Object keys, A key){
-        return Arrays.binarySearch((Object[])keys, key, (Comparator<Object>)this);
+        return Arrays.binarySearch((Object[])keys, key, (Comparator<Object>)this.defaultHasher());
     }
 
     @Override public Object[] valueArrayToArray(Object vals){

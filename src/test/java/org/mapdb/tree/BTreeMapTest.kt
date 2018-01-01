@@ -8,6 +8,7 @@ import org.fest.reflect.core.Reflection
 import org.junit.*
 import org.junit.Assert.*
 import org.mapdb.*
+import org.mapdb.hasher.Hashers
 import org.mapdb.serializer.Serializer
 import org.mapdb.serializer.Serializers
 import org.mapdb.store.*
@@ -22,7 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger
 class BTreeMapTest {
 
     val keyser = Serializers.ELSA
-    val COMPARATOR = keyser
+    val COMPARATOR = keyser.defaultHasher()
 
     val BTreeMap<*,*>.nodeSerializer: Serializer<Node>
         get() = Reflection.method("getNodeSerializer").`in`(this).invoke() as Serializer<Node>
@@ -1425,7 +1426,7 @@ class BTreeMapTest {
 
 
     @Test fun treemap_comparator(){
-        val comparator = Serializers.INTEGER.reversed()
+        val comparator = Hashers.JAVA.reversed()
 
         val map = DBMaker.memoryDB().make()
                 .treeMap("aa", Serializers.INTEGER, Serializers.INTEGER)
@@ -1442,7 +1443,7 @@ class BTreeMapTest {
 
 
     @Test fun  treeset_comparator(){
-        val comparator = Serializers.INTEGER.reversed()
+        val comparator = Hashers.JAVA.reversed() as Comparator<Int>
 
         val set = DBMaker.memoryDB().make()
                 .treeSet("aa", Serializers.INTEGER)

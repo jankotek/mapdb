@@ -27,7 +27,7 @@ class Issue778Test {
                 .keySerializer(ser)
                 .createOrOpen() as BTreeMap<Array<Any>, String>
 
-        val ref = TreeMap<Array<Any>, String>(ser as Comparator<Array<Any>>)
+        val ref = TreeMap<Array<Any>, String>(ser.defaultHasher() as Comparator<Array<Any>>)
 
         for (i in 0..99) {
             val counter = i

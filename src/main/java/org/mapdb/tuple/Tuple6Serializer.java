@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.mapdb.DB;
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
+import org.mapdb.hasher.Hasher;
 import org.mapdb.serializer.Serializer;
 import org.mapdb.serializer.GroupSerializerObjectArray;
 
@@ -32,7 +33,7 @@ import static org.mapdb.tuple.Tuple.hiIfNull;
  * @param <C> third tuple value
  */
 public class Tuple6Serializer<A,B,C,D,E,F> extends GroupSerializerObjectArray<Tuple6<A,B,C,D,E,F>>
-        implements Serializable, DB.DBAware {
+        implements Serializable, DB.DBAware, Hasher<Tuple6<A,B,C,D,E,F>> {
 
     private static final long serialVersionUID = 3666600849149868404L;
     protected Comparator<A> aComparator;
@@ -61,7 +62,7 @@ public class Tuple6Serializer<A,B,C,D,E,F> extends GroupSerializerObjectArray<Tu
             Serializer<A> aSerializer, Serializer<B> bSerializer, Serializer<C> cSerializer, Serializer<D> dSerializer, Serializer<E> eSerializer,Serializer<F> fSerializer){
         this(
              aSerializer, bSerializer, cSerializer, dSerializer, eSerializer, fSerializer,
-             aSerializer, bSerializer, cSerializer, dSerializer, eSerializer, fSerializer
+             aSerializer.defaultHasher(), bSerializer.defaultHasher(), cSerializer.defaultHasher(), dSerializer.defaultHasher(), eSerializer.defaultHasher(), fSerializer.defaultHasher()
         );
     }
     /**
@@ -308,12 +309,12 @@ public class Tuple6Serializer<A,B,C,D,E,F> extends GroupSerializerObjectArray<Tu
 
     @Override
     public int hashCode(@NotNull Tuple6<A, B, C, D, E, F> o, int seed) {
-        seed =  -1640531527 * seed + aSerializer.hashCode(o.a, seed);
-        seed =  -1640531527 * seed + bSerializer.hashCode(o.b, seed);
-        seed =  -1640531527 * seed + cSerializer.hashCode(o.c, seed);
-        seed =  -1640531527 * seed + dSerializer.hashCode(o.d, seed);
-        seed =  -1640531527 * seed + eSerializer.hashCode(o.e, seed);
-        seed =  -1640531527 * seed + fSerializer.hashCode(o.f, seed);
+        seed =  -1640531527 * seed + aSerializer.defaultHasher().hashCode(o.a, seed);
+        seed =  -1640531527 * seed + bSerializer.defaultHasher().hashCode(o.b, seed);
+        seed =  -1640531527 * seed + cSerializer.defaultHasher().hashCode(o.c, seed);
+        seed =  -1640531527 * seed + dSerializer.defaultHasher().hashCode(o.d, seed);
+        seed =  -1640531527 * seed + eSerializer.defaultHasher().hashCode(o.e, seed);
+        seed =  -1640531527 * seed + fSerializer.defaultHasher().hashCode(o.f, seed);
         return seed;
     }
 
@@ -337,5 +338,11 @@ public class Tuple6Serializer<A,B,C,D,E,F> extends GroupSerializerObjectArray<Tu
     @Override
     public Tuple6<A, B, C, D, E, F> nextValue(Tuple6<A, B, C, D, E, F> v) {
         return new Tuple6(hiIfNull(v.a), hiIfNull(v.b), hiIfNull(v.c), hiIfNull(v.d), hiIfNull(v.e), hiIfNull(v.f));
+    }
+
+    @Override
+    public Hasher<Tuple6<A, B, C, D, E, F>> defaultHasher() {
+        //TODO separate class
+        return this;
     }
 }

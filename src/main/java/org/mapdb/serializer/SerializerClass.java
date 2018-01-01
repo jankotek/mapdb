@@ -3,6 +3,8 @@ package org.mapdb.serializer;
 import org.mapdb.DBException;
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
+import org.mapdb.hasher.Hasher;
+import org.mapdb.hasher.Hashers;
 
 import java.io.IOException;
 
@@ -42,13 +44,7 @@ public class SerializerClass extends GroupSerializerObjectArray<Class<?>> {
     }
 
     @Override
-    public boolean equals(Class<?> a1, Class<?> a2) {
-        return a1 == a2 || (a1.toString().equals(a2.toString()));
-    }
-
-    @Override
-    public int hashCode(Class<?> aClass, int seed) {
-        //class does not override identity hash code
-        return aClass.toString().hashCode();
+    public Hasher<Class<?>> defaultHasher() {
+        return Hashers.CLASS;
     }
 }

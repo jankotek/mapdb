@@ -1,6 +1,7 @@
 package org.mapdb.util
 
 import org.mapdb.*
+import org.mapdb.hasher.Hasher
 import org.mapdb.serializer.Serializer
 import java.io.File
 import java.nio.file.Path
@@ -65,7 +66,7 @@ object Utils {
 
 
 
-    @JvmStatic fun  <V> iterableEquals(serializer: Serializer<V>, col: Iterable<V>, other: Any?): Boolean {
+    @JvmStatic fun  <V> iterableEquals(hasher: Hasher<V>, col: Iterable<V>, other: Any?): Boolean {
         if(col === other)
             return true
         if(other==null || other !is Iterable<*>)
@@ -76,16 +77,16 @@ object Utils {
         while(iter1.hasNext()){
             if(!iter2.hasNext())
                 return false
-            if(!serializer.equals(iter1.next(), iter2.next() as V))
+            if(!hasher.equals(iter1.next(), iter2.next() as V))
                 return false
         }
         return !iter2.hasNext()
     }
 
-    @JvmStatic fun <V> iterableHashCode(ser: Serializer<V>, collection: Iterable<V>): Int {
+    @JvmStatic fun <V> iterableHashCode(hasher: Hasher<V>, collection: Iterable<V>): Int {
         var h = 0
         for(e in collection){
-            h += DataIO.intHash(ser.hashCode(e, 0))
+            h += DataIO.intHash(hasher.hashCode(e, 0))
         }
         return h
     }

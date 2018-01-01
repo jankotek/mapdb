@@ -2,6 +2,8 @@ package org.mapdb.serializer;
 
 import org.jetbrains.annotations.NotNull;
 import org.mapdb.*;
+import org.mapdb.hasher.Hasher;
+import org.mapdb.hasher.Hashers;
 import org.mapdb.util.DataIO;
 
 import java.io.IOException;
@@ -13,27 +15,32 @@ import java.util.Comparator;
  * <p/>
  * It takes array of serializes in constructor parameter. All tuples (arrays) must have the same size.
  */
-public class SerializerArrayTuple implements GroupSerializer<Object[]>, DB.DBAware {
+public class SerializerArrayTuple implements GroupSerializer<Object[]>, DB.DBAware,
+        Hasher<Object[]> //TODO separate class
+{
 
     protected final Serializer[] ser;
-    protected final Comparator[] comp;
+    protected final Hasher[] hashers;
     protected final int size;
 
     public SerializerArrayTuple(int size) {
         this.size = size;
         ser = new Serializer[size];
-        comp = new Comparator[size];
+        hashers = new Hasher[size];
     }
 
-    public SerializerArrayTuple(Serializer[] serializers, Comparator[] comparators) {
+    public SerializerArrayTuple(Serializer[] serializers, Hasher[] hashers) {
         this.ser = serializers.clone();
-        this.comp = comparators.clone();
+        this.hashers = hashers.clone();
         this.size = ser.length;
     }
 
     public SerializerArrayTuple(Serializer... serializers) {
         this.ser = serializers.clone();
-        this.comp = ser;
+        this.hashers = new Hasher[ser.length];
+        for(int i=0;i<ser.length;i++){
+            this.hashers[i] = ser[i].defaultHasher();
+        }
         this.size = ser.length;
     }
 
@@ -82,7 +89,7 @@ public class SerializerArrayTuple implements GroupSerializer<Object[]>, DB.DBAwa
 
     @Override
     public int valueArraySearch(Object keys, Object[] key) {
-        return Arrays.binarySearch(valueArrayToArray(keys), key, (Serializer)this);
+        return Arrays.binarySearch(valueArrayToArray(keys), key, (Hasher)this);
     }
 
     @Override
@@ -170,7 +177,7 @@ public class SerializerArrayTuple implements GroupSerializer<Object[]>, DB.DBAwa
         if(a1.length!=a2.length)
             return false;
         for(int i=0;i<a1.length;i++){
-            if(!ser[i%size].equals(a1[i],a2[i]))
+            if(!hashers[i%size].equals(a1[i],a2[i]))
                 return false;
         }
         return true;
@@ -190,7 +197,7 @@ public class SerializerArrayTuple implements GroupSerializer<Object[]>, DB.DBAwa
                 return 1;
             if(a2==null)
                 return -1;
-            int res = comp[i].compare(a1, a2);
+            int res = hashers[i].compare(a1, a2);
             if(res!=0)
                 return res;
         }
@@ -202,7 +209,7 @@ public class SerializerArrayTuple implements GroupSerializer<Object[]>, DB.DBAwa
         if(CC.PARANOID && objects.length%size!=0)
             throw new AssertionError();
         for(int i=0;i<objects.length;i++){
-            seed+= DataIO.intHash(ser[i].hashCode(objects[i],seed));
+            seed+= 31*hashers[i].hashCode(objects[i],seed); //TODO better multiplier
         }
         return seed;
     }
@@ -220,8 +227,13 @@ public class SerializerArrayTuple implements GroupSerializer<Object[]>, DB.DBAwa
         for(int i=0; i<size; i++){
             if(ser[i]==null)
                 ser[i] = db.getDefaultSerializer();
-            if(comp[i]==null)
-                comp[i] = db.getDefaultSerializer();
+            if(hashers[i]==null)
+                hashers[i] = Hashers.JAVA;
         }
+    }
+
+    @Override
+    public Hasher<Object[]> defaultHasher() {
+        return this;
     }
 }

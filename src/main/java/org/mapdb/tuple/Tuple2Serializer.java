@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.mapdb.DB;
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
+import org.mapdb.hasher.Hasher;
 import org.mapdb.serializer.Serializer;
 import org.mapdb.serializer.GroupSerializerObjectArray;
 
@@ -31,7 +32,7 @@ import static org.mapdb.tuple.Tuple.hiIfNull;
  * @param <B> second tuple value
  */
 public final class Tuple2Serializer<A,B> extends GroupSerializerObjectArray<Tuple2<A,B>>
-        implements Serializable, DB.DBAware {
+        implements Serializable, DB.DBAware, Hasher<Tuple2<A,B>> {
 
     private static final long serialVersionUID = 2183804367032891772L;
     protected Comparator<A> aComparator;
@@ -52,7 +53,7 @@ public final class Tuple2Serializer<A,B> extends GroupSerializerObjectArray<Tupl
             Serializer<A> aSerializer, Serializer<B> bSerializer){
         this(
                 aSerializer, bSerializer,
-                aSerializer, bSerializer
+                aSerializer.defaultHasher(), bSerializer.defaultHasher()
         );
     }
     /**
@@ -168,15 +169,15 @@ public final class Tuple2Serializer<A,B> extends GroupSerializerObjectArray<Tupl
 
     @Override
     public int hashCode(@NotNull Tuple2<A, B> o, int seed) {
-        seed =  -1640531527 * seed + aSerializer.hashCode(o.a, seed);
-        seed =  -1640531527 * seed + bSerializer.hashCode(o.b, seed);
+        seed =  -1640531527 * seed + aSerializer.defaultHasher().hashCode(o.a, seed);
+        seed =  -1640531527 * seed + bSerializer.defaultHasher().hashCode(o.b, seed);
         return seed;
     }
 
     @Override
     public void callbackDB(@NotNull DB db) {
-        if(aComparator==null) aComparator = (Comparator<A>) db.getDefaultSerializer();
-        if(bComparator==null) bComparator = (Comparator<B>) db.getDefaultSerializer();
+        if(aComparator==null) aComparator = (Comparator<A>) db.getDefaultSerializer().defaultHasher();
+        if(bComparator==null) bComparator = (Comparator<B>) db.getDefaultSerializer().defaultHasher();
         if(aSerializer==null) aSerializer = (Serializer<A>) db.getDefaultSerializer();
         if(bSerializer==null) bSerializer = (Serializer<B>) db.getDefaultSerializer();
     }
@@ -184,5 +185,11 @@ public final class Tuple2Serializer<A,B> extends GroupSerializerObjectArray<Tupl
     @Override
     public Tuple2<A, B> nextValue(Tuple2<A, B> v) {
         return new Tuple2(hiIfNull(v.a), hiIfNull(v.b));
+    }
+
+    @Override
+    public Hasher<Tuple2<A, B>> defaultHasher() {
+        //TODO separate class
+        return this;
     }
 }

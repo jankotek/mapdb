@@ -757,7 +757,8 @@ class StoreDirect(
             if (old !== null && expectedOldRecord === null)
                 return false
 
-            if (old !== expectedOldRecord && !serializer.equals(old!!, expectedOldRecord!!))
+            //TODO custom hasher
+            if (old !== expectedOldRecord && !serializer.defaultHasher().equals(old!!, expectedOldRecord!!))
                 return false
 
             val di = serialize(newRecord, serializer, recid);

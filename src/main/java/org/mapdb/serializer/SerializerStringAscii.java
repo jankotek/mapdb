@@ -3,6 +3,8 @@ package org.mapdb.serializer;
 import org.jetbrains.annotations.NotNull;
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
+import org.mapdb.hasher.Hasher;
+import org.mapdb.hasher.Hashers;
 import org.mapdb.serializer.Serializers;
 
 import java.io.IOException;
@@ -36,8 +38,8 @@ public class SerializerStringAscii extends GroupSerializerObjectArray<String> {
     }
 
     @Override
-    public int hashCode(@NotNull String s, int seed) {
-        return Serializers.STRING.hashCode(s, seed);
+    public Hasher<String> defaultHasher() {
+        return Hashers.STRING;
     }
 
     //        @Override

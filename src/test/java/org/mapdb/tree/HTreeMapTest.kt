@@ -6,6 +6,8 @@ import org.fest.reflect.core.Reflection
 import org.junit.*
 import org.junit.Assert.*
 import org.mapdb.*
+import org.mapdb.hasher.Hasher
+import org.mapdb.hasher.Hashers
 import org.mapdb.serializer.Serializer
 import org.mapdb.serializer.Serializers
 import org.mapdb.store.StoreOnHeap
@@ -132,8 +134,20 @@ class HTreeMapTest{
                 out.writeInt(value)
             }
 
-            override fun hashCode(a: Int, seed: Int): Int {
-                return a
+            override fun defaultHasher(): Hasher<Int> {
+                return object:Hasher<Int> {
+                    override fun equals(first: Int?, second: Int?): Boolean {
+                        return Hashers.JAVA.equals(first, second)
+                    }
+
+                    override fun compare(o1: Int?, o2: Int?): Int {
+                        return Hashers.JAVA.compare(o1, o2)
+                    }
+
+                    override fun hashCode(o: Int, seed: Int): Int {
+                        return o
+                    }
+                }
             }
         }
 
@@ -433,8 +447,22 @@ class HTreeMapTest{
 
     @Test fun calculateCollisions2(){
         val ser2 = object: Serializer<Long> by Serializers.LONG {
-            override fun hashCode(a: Long, seed: Int): Int {
-                return 0
+
+            override fun defaultHasher(): Hasher<Long> {
+                return object:Hasher<Long>{
+                    override fun hashCode(o: Long, seed: Int): Int {
+                        return 0;
+                    }
+
+                    override fun compare(o1: Long?, o2: Long?): Int {
+                        throw AssertionError()
+                    }
+
+                    override fun equals(first: Long?, second: Long?): Boolean {
+                        return first==second
+                    }
+
+                }
             }
         }
 

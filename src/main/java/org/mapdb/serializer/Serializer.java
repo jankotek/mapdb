@@ -19,11 +19,11 @@ import org.jetbrains.annotations.NotNull;
 import org.mapdb.CC;
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
-import org.mapdb.serializer.*;
+import org.mapdb.hasher.Hasher;
+import org.mapdb.hasher.Hashers;
 import org.mapdb.util.DataIO;
 
 import java.io.*;
-import java.util.*;
 
 /**
  * This interface specifies how Java Objects are serialized and de-serialized
@@ -37,7 +37,7 @@ import java.util.*;
  * @author Jan Kotek
  */
 //TODO annotate static serializers as non nullable
-public interface Serializer<A /*extends Comparable<? super A>*/> extends Comparator<A> {
+public interface Serializer<A>{
 
 
 
@@ -93,6 +93,11 @@ public interface Serializer<A /*extends Comparable<? super A>*/> extends Compara
      */
     A deserialize(@NotNull DataInput2 input, int available) throws IOException;
 
+
+    default Hasher<A> defaultHasher(){
+        return Hashers.JAVA;
+    }
+
     /**
      * Returns the fixed size of the serialized form in bytes or -1 if the size
      * is not fixed (e.g. for Strings).
@@ -130,43 +135,6 @@ public interface Serializer<A /*extends Comparable<? super A>*/> extends Compara
      */
     default boolean isTrusted() {
         return false;
-    }
-
-    @Override
-    default int compare(A first, A second) {
-        return ((Comparable) first).compareTo(second);
-    }
-
-    /**
-     * Returns if the first and second arguments are equal to each other.
-     * Consequently, if both arguments are {@code null}, {@code true} is
-     * returned and if exactly one argument is {@code null}, {@code false} is
-     * returned.
-     *
-     * @param first an object
-     * @param second another object to be compared with the first object for
-     * equality
-     *
-     * @return if the first and second arguments are equal to each other
-     * @see Object#equals(Object)
-     */
-    default boolean equals(A first, A second) {
-        return Objects.equals(first, second);
-    }
-
-    /**
-     * Returns a hash code of a given non-null argument. The output of the
-     * method is affected by the given seed, allowing protection against crafted
-     * hash attacks and to provide a better distribution of hashes.
-     *
-     * @param o an object
-     * @param seed used to "scramble" the
-     * @return a hash code of a non-null argument
-     * @see Object#hashCode
-     * @throws NullPointerException if the provided object is null
-     */
-    default int hashCode(@NotNull A o, int seed) {
-        return DataIO.intHash(o.hashCode() + seed);
     }
 
     /**

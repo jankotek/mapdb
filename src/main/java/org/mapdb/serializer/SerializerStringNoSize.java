@@ -2,6 +2,8 @@ package org.mapdb.serializer;
 
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
+import org.mapdb.hasher.Hasher;
+import org.mapdb.hasher.Hashers;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -36,6 +38,12 @@ public class SerializerStringNoSize implements Serializer<String> {
     @Override
     public boolean needsAvailableSizeHint() {
         return true;
+    }
+
+
+    @Override
+    public Hasher<String> defaultHasher() {
+        return Hashers.STRING;
     }
 
 }

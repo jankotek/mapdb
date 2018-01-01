@@ -3,6 +3,7 @@ package org.mapdb.volume
 import org.junit.Assert.*
 import org.junit.Test
 import org.mapdb.*
+import org.mapdb.hasher.Hashers
 import org.mapdb.serializer.Serializers
 import org.mapdb.util.DataIO
 import java.io.*
@@ -140,7 +141,7 @@ class VolumeSingleTest(val fab: Function1<String, Volume>) {
         val b2 = ByteArray(size)
         vol.getDataInputOverlap(offset, size).readFully(b2, 0, size)
 
-        assertTrue(Serializers.BYTE_ARRAY.equals(b, b2))
+        assertTrue(Hashers.BYTE_ARRAY.equals(b, b2))
     }
 
 

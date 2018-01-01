@@ -3,7 +3,8 @@ package org.mapdb.serializer;
 import org.jetbrains.annotations.NotNull;
 import static org.mapdb.serializer.SerializerStringDelta2.ByteArrayKeys;
 
-import org.mapdb.serializer.Serializers;
+import org.mapdb.hasher.Hasher;
+import org.mapdb.hasher.Hashers;
 import org.mapdb.util.DataIO;
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
@@ -21,7 +22,7 @@ public class SerializerByteArrayDelta2 implements GroupSerializer<byte[]> {
     @Override
     public int valueArraySearch(Object keys, byte[] key) {
         Object[] v = valueArrayToArray(keys);
-        return Arrays.binarySearch(v, key, (Comparator)this);
+        return Arrays.binarySearch(v, key, (Comparator)this.defaultHasher());
     }
 
     @Override
@@ -158,22 +159,12 @@ public class SerializerByteArrayDelta2 implements GroupSerializer<byte[]> {
     }
 
     @Override
-    public int compare(byte[] o1, byte[] o2) {
-        return Serializers.BYTE_ARRAY.compare(o1, o2);
-    }
-
-    @Override
-    public boolean equals(byte[] a1, byte[] a2) {
-        return Serializers.BYTE_ARRAY.equals(a1, a2);
-    }
-
-    @Override
-    public int hashCode(@NotNull byte[] bytes, int seed) {
-        return Serializers.BYTE_ARRAY.hashCode(bytes, seed);
-    }
-
-    @Override
     public boolean isTrusted() {
         return true;
+    }
+
+    @Override
+    public Hasher<byte[]> defaultHasher() {
+        return Hashers.BYTE_ARRAY;
     }
 }

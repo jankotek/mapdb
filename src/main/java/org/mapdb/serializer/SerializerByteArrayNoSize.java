@@ -2,6 +2,8 @@ package org.mapdb.serializer;
 
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
+import org.mapdb.hasher.Hasher;
+import org.mapdb.hasher.Hashers;
 import org.mapdb.serializer.Serializers;
 
 import java.io.IOException;
@@ -30,31 +32,12 @@ public class SerializerByteArrayNoSize implements Serializer<byte[]> {
     }
 
     @Override
-    public boolean equals(byte[] a1, byte[] a2) {
-        return Arrays.equals(a1, a2);
-    }
-
-    @Override
-    public int hashCode(byte[] bytes, int seed) {
-        return Serializers.BYTE_ARRAY.hashCode(bytes, seed);
-    }
-
-    @Override
     public boolean needsAvailableSizeHint() {
         return true;
     }
 
     @Override
-    public int compare(byte[] o1, byte[] o2) {
-        if (o1 == o2) return 0;
-        final int len = Math.min(o1.length, o2.length);
-        for (int i = 0; i < len; i++) {
-            int b1 = o1[i] & 0xFF;
-            int b2 = o2[i] & 0xFF;
-            if (b1 != b2)
-                return b1 - b2;
-        }
-        return o1.length - o2.length;
+    public Hasher<byte[]> defaultHasher() {
+        return Hashers.BYTE_ARRAY;
     }
-
 }

@@ -4,6 +4,8 @@ import org.jetbrains.annotations.NotNull;
 import org.mapdb.DB;
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
+import org.mapdb.hasher.ArrayHasher;
+import org.mapdb.hasher.Hasher;
 
 import java.io.IOException;
 import java.lang.reflect.Array;
@@ -23,6 +25,8 @@ public class SerializerArray<T> extends GroupSerializerObjectArray<T[]> implemen
 
     private static final long serialVersionUID = -982394293898234253L;
     protected Serializer<T> serializer;
+
+    protected Hasher hasher;
     protected final Class<T> componentType;
 
 
@@ -53,6 +57,7 @@ public class SerializerArray<T> extends GroupSerializerObjectArray<T[]> implemen
         this.componentType = componentType!=null
                 ? componentType
                 : (Class<T>)Object.class;
+       this.hasher = new ArrayHasher(serializer.defaultHasher());
     }
 
 //        /** used for deserialization */
@@ -87,28 +92,6 @@ public class SerializerArray<T> extends GroupSerializerObjectArray<T[]> implemen
         return serializer.isTrusted();
     }
 
-    @Override
-    public boolean equals(T[] a1, T[] a2) {
-        if (a1 == a2)
-            return true;
-        if (a1 == null || a1.length != a2.length)
-            return false;
-
-        for (int i = 0; i < a1.length; i++) {
-            if (!serializer.equals(a1[i], a2[i]))
-                return false;
-        }
-        return true;
-    }
-
-    @Override
-    public int hashCode(T[] objects, int seed) {
-        seed += objects.length;
-        for (T a : objects) {
-            seed = (-1640531527) * seed + serializer.hashCode(a, seed);
-        }
-        return seed;
-    }
 
     @Override
     public boolean equals(Object o) {
@@ -124,32 +107,14 @@ public class SerializerArray<T> extends GroupSerializerObjectArray<T[]> implemen
 
 
     @Override
-    public int compare(Object[] o1, Object[] o2) {
-        int len = Math.min(o1.length, o2.length);
-        int r;
-        for (int i = 0; i < len; i++) {
-            Object a1 = o1[i];
-            Object a2 = o2[i];
-
-            if (a1 == a2) { //this case handles both nulls
-                r = 0;
-            } else if (a1 == null) {
-                r = 1; //null is positive infinity, always greater than anything else
-            } else if (a2 == null) {
-                r = -1;
-            } else {
-                r = serializer.compare((T) a1, (T) a2);
-                ;
-            }
-            if (r != 0)
-                return r;
-        }
-        return SerializerUtils.compareInt(o1.length, o2.length);
-    }
-
-    @Override
     public void callbackDB(@NotNull DB db) {
         if(this.serializer==null)
             this.serializer = (Serializer<T>) db.getDefaultSerializer();
+    }
+
+
+    @Override
+    public Hasher<T[]> defaultHasher() {
+        return (Hasher<T[]>) hasher;
     }
 }

@@ -136,7 +136,8 @@ class SortedTableMap<K,V>(
 
                 override fun put(e: Pair<K, V>) {
                     if(oldKey!=null){
-                        if(keySerializer.compare(oldKey,e.first)>=0)
+                        //TODO take comparator as a parameter
+                        if(keySerializer.defaultHasher().compare(oldKey,e.first)>=0)
                             throw DBException.NotSorted()
                     }
                     oldKey = e.first
@@ -253,7 +254,7 @@ class SortedTableMap<K,V>(
 
     override val isThreadSafe = true
 
-    val comparator = keySerializer
+    val comparator = keySerializer.defaultHasher()
 
     val sizeLong = volume.getLong(SIZE_OFFSET)
     val pageCount = volume.getLong(PAGE_COUNT_OFFSET)
@@ -295,7 +296,8 @@ class SortedTableMap<K,V>(
             throw NullPointerException()
         val iter = valueIterator()
         while (iter.hasNext()) {
-            if (valueSerializer.equals(value, iter.next())) {
+            //TODO custom value comparator
+            if (valueSerializer.defaultHasher().equals(value, iter.next())) {
                 return true
             }
         }
@@ -632,7 +634,8 @@ class SortedTableMap<K,V>(
 
         override fun contains(element: MutableMap.MutableEntry<K, V>): Boolean {
             val value = this@SortedTableMap[element.key]
-            return value!=null && this@SortedTableMap.valueSerializer.equals(value, element.value)
+            //TODO custom value hasher
+            return value!=null && this@SortedTableMap.valueSerializer.defaultHasher().equals(value, element.value)
         }
 
 
@@ -778,7 +781,7 @@ class SortedTableMap<K,V>(
      *   NavigableMap methods
      */
     override fun comparator(): Comparator<in K>? {
-        return keySerializer //TODO custom comparator
+        return keySerializer.defaultHasher() //TODO custom comparator
     }
 
     override fun firstKey2(): K? {
@@ -1157,7 +1160,7 @@ class SortedTableMap<K,V>(
 
                 @Suppress("UNCHECKED_CAST")
                 val nextKey = nodeKeys[nodePos] as K
-                if(keySerializer.compare(nextKey, lo2)<loComp){
+                if(comparator.compare(nextKey, lo2)<loComp){
                     //high bound is lower, than key, cancel next node
                     this.nodeKeys = null
                     this.nodePos = -1
@@ -1383,7 +1386,7 @@ class SortedTableMap<K,V>(
 
                 @Suppress("UNCHECKED_CAST")
                 val nextKey = nodeKeys[nodePos] as K
-                if(keySerializer.compare(nextKey, lo2)<loComp){
+                if(comparator.compare(nextKey, lo2)<loComp){
                     //high bound is lower, than key, cancel next node
                     this.nodeKeys = null
                     this.nodePos = -1
@@ -1640,7 +1643,7 @@ class SortedTableMap<K,V>(
 
                 @Suppress("UNCHECKED_CAST")
                 val nextKey = nodeKeys[nodePos] as K
-                if(keySerializer.compare(nextKey, lo2)<loComp){
+                if(comparator.compare(nextKey, lo2)<loComp){
                     //high bound is lower, than key, cancel next node
                     this.nodeKeys = null
                     this.nodePos = -1
@@ -1697,7 +1700,7 @@ class SortedTableMap<K,V>(
                             continue@keysLoop
                         }
                         @Suppress("UNCHECKED_CAST")
-                        if(keySerializer.compare(keys[pos] as K, lo)>comp){
+                        if(comparator.compare(keys[pos] as K, lo)>comp){
                             //end iteration
                             nodePos = pos
                             checkHiBound()
@@ -1737,7 +1740,7 @@ class SortedTableMap<K,V>(
 
                 @Suppress("UNCHECKED_CAST")
                 val nextKey = nodeKeys[nodePos] as K
-                if(keySerializer.compare(hi2, nextKey)<hiComp){
+                if(comparator.compare(hi2, nextKey)<hiComp){
                     //high bound is lower, than key, cancel next node
                     this.nodeKeys = null
                     this.nodePos = -1
@@ -1788,7 +1791,7 @@ class SortedTableMap<K,V>(
                             continue@keysLoop
                         }
                         @Suppress("UNCHECKED_CAST")
-                        if(keySerializer.compare(keys[pos] as K, lo)>comp){
+                        if(comparator.compare(keys[pos] as K, lo)>comp){
                             //end iteration
                             nodePos = pos
                             checkHiBound()
@@ -1825,7 +1828,7 @@ class SortedTableMap<K,V>(
 
                 @Suppress("UNCHECKED_CAST")
                 val nextKey = nodeKeys[nodePos] as K
-                if(keySerializer.compare(hi2, nextKey)<hiComp){
+                if(comparator.compare(hi2, nextKey)<hiComp){
                     //high bound is lower, than key, cancel next node
                     this.nodeKeys = null
                     this.nodePos = -1
@@ -1881,7 +1884,7 @@ class SortedTableMap<K,V>(
                             continue@keysLoop
                         }
                         @Suppress("UNCHECKED_CAST")
-                        if(keySerializer.compare(keys[pos] as K, lo)>comp){
+                        if(comparator.compare(keys[pos] as K, lo)>comp){
                             //end iteration
                             nodePos = pos
                             checkHiBound()
@@ -1920,7 +1923,7 @@ class SortedTableMap<K,V>(
 
                 @Suppress("UNCHECKED_CAST")
                 val nextKey = nodeKeys[nodePos] as K
-                if(keySerializer.compare(hi2, nextKey)<hiComp){
+                if(comparator.compare(hi2, nextKey)<hiComp){
                     //high bound is lower, than key, cancel next node
                     this.nodeKeys = null
                     this.nodePos = -1

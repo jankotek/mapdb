@@ -6,6 +6,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 import org.mapdb.*
+import org.mapdb.hasher.Hasher
+import org.mapdb.hasher.Hashers
 import org.mapdb.serializer.GroupSerializer
 import org.mapdb.serializer.Serializers
 import org.mapdb.store.*
@@ -62,12 +64,9 @@ class BTreeMap_ConcurrentMap_GuavaTest(
 
                     if(otherComparator && generic!=null && generic.not())
                         keySer = object: GroupSerializer<Int> by keySer{
-                            override fun compare(o1: Int?, o2: Int?): Int {
-                                throw AssertionError()
-                            }
 
-                            override fun equals(a1: Int?, a2: Int?): Boolean {
-                                throw AssertionError()
+                            override fun defaultHasher(): Hasher<Int> {
+                                return Hashers.FAIL as Hasher<Int>
                             }
                         }
 
@@ -75,7 +74,7 @@ class BTreeMap_ConcurrentMap_GuavaTest(
                             if(generic) Serializers.ELSA as GroupSerializer<String> else Serializers.STRING
                         }
                     BTreeMap.make(keySerializer = keySer, valueSerializer = valSer,
-                            comparator = if(otherComparator) Serializers.ELSA as Comparator<Int> else keySer,
+                            comparator = if(otherComparator) Serializers.ELSA as Comparator<Int> else keySer.defaultHasher(),
                             store = store, maxNodeSize =  nodeSize, isThreadSafe = isThreadSafe,
                             counterRecid = counterRecid, valueInline = valueInline)
                 }))

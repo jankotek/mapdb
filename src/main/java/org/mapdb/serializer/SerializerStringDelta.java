@@ -1,6 +1,8 @@
 package org.mapdb.serializer;
 
 import org.mapdb.*;
+import org.mapdb.hasher.Hasher;
+import org.mapdb.hasher.Hashers;
 import org.mapdb.util.DataIO;
 
 import java.io.IOException;
@@ -78,6 +80,12 @@ public class SerializerStringDelta extends SerializerString{
                 out.packInt(b[i]);
             }
         }
+    }
+
+
+    @Override
+    public Hasher<String> defaultHasher() {
+        return Hashers.STRING;
     }
 
 

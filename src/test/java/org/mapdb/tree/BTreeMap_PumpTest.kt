@@ -4,6 +4,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 import org.mapdb.*
+import org.mapdb.hasher.Hasher
+import org.mapdb.hasher.Hashers
 import org.mapdb.serializer.GroupSerializer
 import org.mapdb.serializer.Serializers
 import org.mapdb.store.StoreTrivial
@@ -60,17 +62,20 @@ class BTreeMap_PumpTest(
 //                            fail()
 //                        }
 
-                            override fun compare(first: Int?, second: Int?): Int {
-                                shouldFail("should not be used")
-                            }
+//                        override fun valueArraySearch(keys: Any?, key: Int?, comparator: Comparator<*>?): Int {
+//                            fail()
+//                        }
+
 
                             override fun valueArraySearch(keys: Any?, key: Int?): Int {
                                 shouldFail("should not be used")
                             }
 
-//                        override fun valueArraySearch(keys: Any?, key: Int?, comparator: Comparator<*>?): Int {
-//                            fail()
-//                        }
+
+                            override fun defaultHasher(): Hasher<Int> {
+                                return Hashers.FAIL as Hasher<Int>
+
+                            }
                         }
                     } else Serializers.INTEGER
 
@@ -79,7 +84,7 @@ class BTreeMap_PumpTest(
                             else db.treeMap("aa", keySer, Serializers.STRING)
 
 
-                    val comparator = Serializers.INTEGER
+                    val comparator = Hashers.JAVA as Comparator<Int>
 
                     m.comparator(comparator)
 

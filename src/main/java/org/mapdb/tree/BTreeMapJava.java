@@ -491,7 +491,8 @@ public class BTreeMapJava {
 
         @Override
         public int hashCode() {
-            return Utils.iterableHashCode(serializer, this);
+            //TODO use keyHasher
+            return Utils.iterableHashCode(serializer.defaultHasher(), this);
         }
 
         @Override
@@ -608,7 +609,8 @@ public class BTreeMapJava {
             if(key == null) return false;
             V1 v = m.get(key);
             //$DELAY$
-            return v != null && valueSerializer.equals(v,e.getValue());
+            //TODO custom value hasher
+            return v != null && valueSerializer.defaultHasher().equals(v,e.getValue());
         }
         @Override
         public boolean remove(Object o) {
@@ -739,7 +741,8 @@ public class BTreeMapJava {
             if(value==null) throw new NullPointerException();
             Iterator<V> i = valueIterator();
             while(i.hasNext()){
-                if(m.getValueSerializer().equals((V)value,i.next()))
+                //TODO custom value hasher
+                if(m.getValueSerializer().defaultHasher().equals((V)value,i.next()))
                     return true;
             }
             return false;
@@ -1206,7 +1209,8 @@ public class BTreeMapJava {
             if(value==null) throw new NullPointerException();
             Iterator<V> i = valueIterator();
             while(i.hasNext()){
-                if(m.getValueSerializer().equals((V) value,i.next()))
+                //TODO custom value hasher
+                if(m.getValueSerializer().defaultHasher().equals((V) value,i.next()))
                     return true;
             }
             return false;

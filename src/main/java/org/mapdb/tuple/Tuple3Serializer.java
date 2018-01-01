@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.mapdb.DB;
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
+import org.mapdb.hasher.Hasher;
 import org.mapdb.serializer.Serializer;
 import org.mapdb.serializer.GroupSerializerObjectArray;
 
@@ -32,7 +33,7 @@ import static org.mapdb.tuple.Tuple.hiIfNull;
  * @param <C> third tuple value
  */
 public class Tuple3Serializer<A,B,C> extends GroupSerializerObjectArray<Tuple3<A,B,C>> 
-        implements Serializable, DB.DBAware {
+        implements Serializable, DB.DBAware, Hasher<Tuple3<A,B,C>> {
 
     private static final long serialVersionUID = 2932442956138713885L;
     protected Comparator<A> aComparator;
@@ -56,7 +57,7 @@ public class Tuple3Serializer<A,B,C> extends GroupSerializerObjectArray<Tuple3<A
             Serializer<A> aSerializer, Serializer<B> bSerializer, Serializer<C> cSerializer){
         this(
                 aSerializer, bSerializer, cSerializer,
-                aSerializer, bSerializer, cSerializer
+                aSerializer.defaultHasher(), bSerializer.defaultHasher(), cSerializer.defaultHasher()
         );
     }
     /**
@@ -204,18 +205,18 @@ public class Tuple3Serializer<A,B,C> extends GroupSerializerObjectArray<Tuple3<A
 
     @Override
     public int hashCode(@NotNull Tuple3<A, B, C> o, int seed) {
-        seed =  -1640531527 * seed + aSerializer.hashCode(o.a, seed);
-        seed =  -1640531527 * seed + bSerializer.hashCode(o.b, seed);
-        seed =  -1640531527 * seed + cSerializer.hashCode(o.c, seed);
+        seed =  -1640531527 * seed + aSerializer.defaultHasher().hashCode(o.a, seed);
+        seed =  -1640531527 * seed + bSerializer.defaultHasher().hashCode(o.b, seed);
+        seed =  -1640531527 * seed + cSerializer.defaultHasher().hashCode(o.c, seed);
         return seed;
     }
 
 
     @Override
     public void callbackDB(@NotNull DB db) {
-        if(aComparator==null) aComparator = (Comparator<A>) db.getDefaultSerializer();
-        if(bComparator==null) bComparator = (Comparator<B>) db.getDefaultSerializer();
-        if(cComparator==null) cComparator = (Comparator<C>) db.getDefaultSerializer();
+        if(aComparator==null) aComparator = (Comparator<A>) db.getDefaultSerializer().defaultHasher();
+        if(bComparator==null) bComparator = (Comparator<B>) db.getDefaultSerializer().defaultHasher();
+        if(cComparator==null) cComparator = (Comparator<C>) db.getDefaultSerializer().defaultHasher();
         if(aSerializer==null) aSerializer = (Serializer<A>) db.getDefaultSerializer();
         if(bSerializer==null) bSerializer = (Serializer<B>) db.getDefaultSerializer();
         if(cSerializer==null) cSerializer = (Serializer<C>) db.getDefaultSerializer();
@@ -224,5 +225,11 @@ public class Tuple3Serializer<A,B,C> extends GroupSerializerObjectArray<Tuple3<A
     @Override
     public Tuple3<A, B, C> nextValue(Tuple3<A, B, C> v) {
         return new Tuple3(hiIfNull(v.a), hiIfNull(v.b), hiIfNull(v.c));
+    }
+
+    @Override
+    public Hasher<Tuple3<A, B, C>> defaultHasher() {
+        //TODO separate class
+        return this;
     }
 }

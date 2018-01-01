@@ -2,6 +2,8 @@ package org.mapdb.serializer;
 
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
+import org.mapdb.hasher.Hasher;
+import org.mapdb.hasher.Hashers;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -33,32 +35,6 @@ public class SerializerShortArray extends GroupSerializerObjectArray<short[]> {
     }
 
     @Override
-    public boolean equals(short[] a1, short[] a2) {
-        return Arrays.equals(a1, a2);
-    }
-
-    @Override
-    public int hashCode(short[] shorts, int seed) {
-        for (short element : shorts)
-            seed = (-1640531527) * seed + element;
-        return seed;
-    }
-
-    @Override
-    public int compare(short[] o1, short[] o2) {
-        if (o1 == o2) return 0;
-        final int len = Math.min(o1.length, o2.length);
-        for (int i = 0; i < len; i++) {
-            if (o1[i] == o2[i])
-                continue;
-            if (o1[i] > o2[i])
-                return 1;
-            return -1;
-        }
-        return SerializerUtils.compareInt(o1.length, o2.length);
-    }
-
-    @Override
     public short[] nextValue(short[] value) {
         value = value.clone();
 
@@ -73,5 +49,10 @@ public class SerializerShortArray extends GroupSerializerObjectArray<short[]> {
             value[i] = (short) (b1+1);
             return value;
         }
+    }
+
+    @Override
+    public Hasher<short[]> defaultHasher() {
+        return Hashers.SHORT_ARRAY;
     }
 }

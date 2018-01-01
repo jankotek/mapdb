@@ -27,8 +27,8 @@ abstract class SerializerTest<E> {
     val arraySize = 10 + TT.testScale() * 100
 
     fun assertSerEquals(v1: Any?, v2: Any?) {
-        assertTrue(serializer.equals(v1 as E, v2 as E))
-        assertEquals(serializer.hashCode(v1, 0), serializer.hashCode(v2, 0))
+        assertTrue(serializer.defaultHasher().equals(v1 as E, v2 as E))
+        assertEquals(serializer.defaultHasher().hashCode(v1, 0), serializer.defaultHasher().hashCode(v2, 0))
     }
 
 
@@ -44,7 +44,7 @@ abstract class SerializerTest<E> {
     fun randomNotEquals(){
         // two random values should not be equal,
         // test will eventually timeout if they are always equal
-        while(serializer.equals(randomValue(), randomValue())){
+        while(serializer.defaultHasher().equals(randomValue(), randomValue())){
 
         }
     }
@@ -53,7 +53,7 @@ abstract class SerializerTest<E> {
     fun randomNotEqualHashCode(){
         //two random values should not have equal hash code,
         // test will eventually timeout if they are always equal
-        while(serializer.hashCode(randomValue(),0) == serializer.hashCode(randomValue(),0)){
+        while(serializer.defaultHasher().hashCode(randomValue(),0) == serializer.defaultHasher().hashCode(randomValue(),0)){
 
         }
     }
@@ -78,7 +78,7 @@ abstract class SerializerTest<E> {
         for (i in 0..max) {
             val v1 = randomValue()
             val v2 = randomValue()
-            serializer.compare(v1, v2)
+            serializer.defaultHasher().compare(v1, v2)
         }
     }
 
@@ -97,18 +97,18 @@ abstract class GroupSerializerTest<E>:SerializerTest<E>(){
         for (i in 0..max) {
             v.add(randomValue())
         }
-        Collections.sort(v, serializer)
+        Collections.sort(v, serializer.defaultHasher())
         val keys = serializer2.valueArrayFromArray(v.toArray())
 
         fun check(keys:Any?, binary:ByteArray, e:E, diPos:Int){
             val v1 = serializer2.valueArraySearch(keys, e)
-            val v2 = serializer2.valueArraySearch(keys, e, serializer)
-            val v3 = Arrays.binarySearch(serializer2.valueArrayToArray(keys), e as Any, serializer as Comparator<Any>)
+            val v2 = serializer2.valueArraySearch(keys, e, serializer.defaultHasher())
+            val v3 = Arrays.binarySearch(serializer2.valueArrayToArray(keys), e as Any, serializer.defaultHasher() as Comparator<Any>)
 
             assertEquals(v1, v3);
             assertEquals(v1, v2);
             val di = DataInput2.ByteArray(binary);
-            val v4 = serializer2.valueArrayBinarySearch(e, di, v.size, serializer)
+            val v4 = serializer2.valueArrayBinarySearch(e, di, v.size, serializer.defaultHasher())
             assertEquals(diPos, di.pos)
             assertEquals(v1, v4)
         }
@@ -141,8 +141,8 @@ abstract class GroupSerializerTest<E>:SerializerTest<E>(){
             val v2 = serializer2.valueArrayGet(keys, i)
             val v3 = serializer2.valueArrayBinaryGet(DataInput2.ByteArray(out.buf), max.toInt(), i)
 
-            assertTrue(serializer.equals(v1, v2))
-            assertTrue(serializer.equals(v1, v3))
+            assertTrue(serializer.defaultHasher().equals(v1, v2))
+            assertTrue(serializer.defaultHasher().equals(v1, v3))
         }
 
     }
@@ -232,7 +232,7 @@ abstract class GroupSerializerTest<E>:SerializerTest<E>(){
     @Test fun btreemap(){
         val ser = serializer as GroupSerializer<Any>
         val map = BTreeMap.make(keySerializer = ser, valueSerializer = Serializers.INTEGER)
-        val set = TreeSet(ser);
+        val set = TreeSet(ser.defaultHasher());
         for(i in 1..100)
             set.add(randomValue() as Any)
         set.forEach { map.put(it,1) }
@@ -241,7 +241,7 @@ abstract class GroupSerializerTest<E>:SerializerTest<E>(){
 
         while(iter1.hasNext()){
             assertTrue(iter2.hasNext())
-            assertTrue(ser.equals(iter1.next(),iter2.next()))
+            assertTrue(ser.defaultHasher().equals(iter1.next(),iter2.next()))
         }
         assertFalse(iter2.hasNext())
     }
@@ -896,10 +896,10 @@ class SerializerCompressionWrapperTest(): GroupSerializerTest<ByteArray>(){
     fun compression_wrapper() {
         var b = ByteArray(100)
         Random().nextBytes(b)
-        assertTrue(Serializers.BYTE_ARRAY.equals(b, TT.clone(b, serializer)))
+        assertTrue(Serializers.BYTE_ARRAY.defaultHasher().equals(b, TT.clone(b, serializer)))
 
         b = Arrays.copyOf(b, 10000)
-        assertTrue(Serializers.BYTE_ARRAY.equals(b, TT.clone(b, serializer)))
+        assertTrue(Serializers.BYTE_ARRAY.defaultHasher().equals(b, TT.clone(b, serializer)))
 
         val out = DataOutput2()
         serializer.serialize(out, b)

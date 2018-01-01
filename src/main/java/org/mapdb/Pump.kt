@@ -36,7 +36,7 @@ object Pump{
             store:Store,
             keySerializer:GroupSerializer<K>,
             valueSerializer:GroupSerializer<V>,
-            comparator:Comparator<K> = keySerializer,
+            comparator:Comparator<K> = keySerializer.defaultHasher(),
             leafNodeSize:Int = CC.BTREEMAP_MAX_NODE_SIZE*3/4,
             dirNodeSize:Int = CC.BTREEMAP_MAX_NODE_SIZE*3/4,
             hasValues:Boolean=true,
