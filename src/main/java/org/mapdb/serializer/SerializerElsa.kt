@@ -7,7 +7,7 @@ import org.mapdb.elsa.ElsaSerializerPojo
 /**
  * Uses Elsa serialization: http://www.github.com/jankotek/elsa
  */
-class SerializerElsa :GroupSerializerObjectArray<Any?>(){
+class SerializerElsa :Serializer<Any?>{
 
     protected val ser = ElsaSerializerPojo()
 

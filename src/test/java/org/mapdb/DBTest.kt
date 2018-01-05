@@ -351,7 +351,7 @@ class DBTest{
         }
         val map = db.treeMap("aa", Serializers.BIG_DECIMAL, unresolvable).create()
 
-        assertEquals(Serializers.BIG_DECIMAL, map.keySerializer)
+        assertEquals(Serializers.wrapGroupSerializer(Serializers.BIG_DECIMAL), map.keySerializer)
         assertEquals(unresolvable, map.valueSerializer)
 
         val nameCatalog = db.nameCatalogLoad()

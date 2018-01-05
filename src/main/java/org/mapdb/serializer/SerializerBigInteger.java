@@ -10,7 +10,7 @@ import java.math.BigInteger;
 /**
  * Created by jan on 2/28/16.
  */
-public class SerializerBigInteger extends GroupSerializerObjectArray<BigInteger> {
+public class SerializerBigInteger implements Serializer<BigInteger> {
     @Override
     public void serialize(DataOutput2 out, BigInteger value) throws IOException {
         Serializers.BYTE_ARRAY.serialize(out, value.toByteArray());

@@ -2,6 +2,7 @@ package org.mapdb.serializer
 
 import org.mapdb.DataInput2
 import org.mapdb.DataOutput2
+import org.mapdb.hasher.Hasher
 
 /**
  * Wraps `Serializer` into `GroupSerializer`.
@@ -32,5 +33,39 @@ data class GroupSerializerWrapper<A>(val ser: Serializer<A>):GroupSerializerObje
                 GroupSerializerWrapper(serializer as Serializer<V>)
             }
         }
+    }
+
+
+    //TODO all those method needed?
+    override fun defaultHasher(): Hasher<A> {
+        return ser.defaultHasher()
+    }
+
+    override fun fixedSize(): Int {
+        return ser.fixedSize()
+    }
+
+    override fun isTrusted(): Boolean {
+        return ser.isTrusted()
+    }
+
+    override fun needsAvailableSizeHint(): Boolean {
+        return ser.needsAvailableSizeHint()
+    }
+
+    override fun deserializeFromLong(input: Long, available: Int): A {
+        return ser.deserializeFromLong(input, available)
+    }
+
+    override fun clone(value: A): A {
+        return ser.clone(value)
+    }
+
+    override fun isQuick(): Boolean {
+        return ser.isQuick()
+    }
+
+    override fun nextValue(value: A): A {
+        return ser.nextValue(value)
     }
 }

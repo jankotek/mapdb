@@ -7,6 +7,7 @@ import org.eclipse.collections.impl.stack.mutable.primitive.LongArrayStack
 import org.mapdb.*
 import org.mapdb.serializer.GroupSerializer
 import org.mapdb.hasher.Hasher
+import org.mapdb.serializer.Serializer
 import org.mapdb.serializer.Serializers
 import org.mapdb.store.StoreTrivial
 import org.mapdb.tree.BTreeMapJava.*
@@ -88,15 +89,19 @@ class BTreeMap<K,V>(
     companion object {
         fun <K, V> make(
                 @Suppress("UNCHECKED_CAST")
-                keySerializer: GroupSerializer<K> = Serializers.ELSA as GroupSerializer<K>,
+                keySerializer: Serializer<K> = Serializers.ELSA as Serializer<K>,
                 @Suppress("UNCHECKED_CAST")
-                valueSerializer: GroupSerializer<V> = Serializers.ELSA as GroupSerializer<V>,
+                valueSerializer: Serializer<V> = Serializers.ELSA as Serializer<V>,
 
                 store: Store = StoreTrivial(),
                 valueInline: Boolean = true,
                 //insert recid of new empty node
                 comparator: Comparator<K> = keySerializer.defaultHasher(),
-                rootRecidRecid: Long = putEmptyRoot(store, keySerializer, comparator, if(valueInline) valueSerializer else Serializers.RECID),
+                rootRecidRecid: Long = putEmptyRoot(
+                        store,
+                        Serializers.wrapGroupSerializer(keySerializer),
+                        comparator,
+                        if(valueInline) Serializers.wrapGroupSerializer(valueSerializer) else Serializers.RECID),
                 maxNodeSize: Int =  CC.BTREEMAP_MAX_NODE_SIZE,
                 isThreadSafe:Boolean = true,
                 counterRecid:Long=0L,
@@ -104,8 +109,8 @@ class BTreeMap<K,V>(
                 modificationListeners: Array<MapModificationListener<K,V>>? = null
         ) =
                 BTreeMap(
-                        keySerializer = keySerializer,
-                        valueSerializer = valueSerializer,
+                        keySerializer = Serializers.wrapGroupSerializer(keySerializer),
+                        valueSerializer = Serializers.wrapGroupSerializer(valueSerializer),
                         store = store,
                         valueInline = valueInline,
                         rootRecidRecid = rootRecidRecid,

@@ -12,7 +12,8 @@ import java.io.IOException;
 /**
  * Created by jan on 2/28/16.
  */
-public class SerializerStringAscii extends GroupSerializerObjectArray<String> {
+//TODO use byte[] for wrapper
+public class SerializerStringAscii implements Serializer<String> {
     @Override
     public void serialize(DataOutput2 out, String value) throws IOException {
         int size = value.length();

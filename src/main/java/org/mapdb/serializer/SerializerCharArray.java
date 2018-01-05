@@ -11,7 +11,7 @@ import java.util.Arrays;
 /**
  * Created by jan on 2/28/16.
  */
-public class SerializerCharArray extends GroupSerializerObjectArray<char[]> {
+public class SerializerCharArray implements Serializer<char[]> {
 
     @Override
     public void serialize(DataOutput2 out, char[] value) throws IOException {

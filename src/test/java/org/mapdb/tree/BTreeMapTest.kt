@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger
 @Suppress("UNCHECKED_CAST")
 class BTreeMapTest {
 
-    val keyser = Serializers.ELSA
+    val keyser = Serializers.wrapGroupSerializer(Serializers.ELSA)
     val COMPARATOR = keyser.defaultHasher()
 
     val BTreeMap<*,*>.nodeSerializer: Serializer<Node>

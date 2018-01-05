@@ -80,9 +80,4 @@ public interface GroupSerializer<A> extends Serializer<A> {
     }
 
 
-    /** returns value+1, or null if there is no bigger value. */
-    default A nextValue(A value){
-        throw new UnsupportedOperationException("Next Value not supported");
-    }
-
 }

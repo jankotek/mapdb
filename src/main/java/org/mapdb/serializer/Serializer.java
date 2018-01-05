@@ -182,6 +182,14 @@ public interface Serializer<A>{
         return false;
     }
 
+
+    //TODO remove this method
+    /** returns value+1, or null if there is no bigger value. */
+    default A nextValue(A value){
+        throw new UnsupportedOperationException("Next Value not supported");
+    }
+
+
 //
 // TODO code from 2.0, perhaps it will be useful, do performance benchmarks etc
 //    /**

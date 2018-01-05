@@ -8,7 +8,8 @@ import java.io.IOException;
 /**
  * Single byte serializer
  */
-public class SerializerByte extends GroupSerializerObjectArray<Byte> {
+//TODO optimize
+public class SerializerByte implements Serializer<Byte> {
     @Override
     public void serialize(DataOutput2 out, Byte value) throws IOException {
         out.writeByte(value);

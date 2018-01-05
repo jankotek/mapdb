@@ -87,7 +87,7 @@ abstract class SerializerTest<E> {
 
 abstract class GroupSerializerTest<E>:SerializerTest<E>(){
     val serializer2:GroupSerializer<E>
-        get() = serializer as  GroupSerializer<E>
+        get() = Serializers.wrapGroupSerializer(serializer)
 
 
 
@@ -230,11 +230,11 @@ abstract class GroupSerializerTest<E>:SerializerTest<E>(){
     }
 
     @Test fun btreemap(){
-        val ser = serializer as GroupSerializer<Any>
+        val ser = Serializers.wrapGroupSerializer(serializer)
         val map = BTreeMap.make(keySerializer = ser, valueSerializer = Serializers.INTEGER)
         val set = TreeSet(ser.defaultHasher());
         for(i in 1..100)
-            set.add(randomValue() as Any)
+            set.add(randomValue())
         set.forEach { map.put(it,1) }
         val iter1 = set.iterator()
         val iter2 = map.keys.iterator()

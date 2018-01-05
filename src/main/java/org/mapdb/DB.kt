@@ -265,7 +265,7 @@ open class DB(
      * Default serializer used if collection does not specify specialized serializer.
      * It uses Elsa Serializer.
      */
-    val defaultSerializer:GroupSerializer<Any?> = object: GroupSerializerObjectArray<Any?>() {
+    val defaultSerializer:Serializer<Any?> = object: Serializer<Any?>{
 
         override fun deserialize(input: DataInput2, available: Int): Any? {
             return elsaSerializer.deserialize(input)
@@ -1124,9 +1124,9 @@ open class DB(
          override fun awareItems() = arrayOf(_keySerializer, _valueSerializer, _valueLoader)
 
          @Suppress("UNCHECKED_CAST")
-         protected var _keySerializer:GroupSerializer<K> = db.defaultSerializer as GroupSerializer<K>
-         protected var _valueSerializer:GroupSerializer<V> =
-                 GroupSerializerWrapper.wrap(if(hasValues) db.defaultSerializer else BTreeMap.NO_VAL_SERIALIZER)
+         protected var _keySerializer:Serializer<K> = db.defaultSerializer as Serializer<K>
+         protected var _valueSerializer:Serializer<V> =
+                 (if(hasValues) db.defaultSerializer else BTreeMap.NO_VAL_SERIALIZER) as Serializer<V>
 
          protected var _maxNodeSize = CC.BTREEMAP_MAX_NODE_SIZE
          protected var _counterEnable: Boolean = false
@@ -1152,7 +1152,11 @@ open class DB(
                  db.nameCatalogPutClass(catalog, name + Keys.comparator, _comparator!!)
 
              val rootRecidRecid2 = _rootRecidRecid
-                     ?: BTreeMap.putEmptyRoot(db.store, _keySerializer , _comparator?:_keySerializer.defaultHasher(), _valueSerializer)
+                     ?: BTreeMap.putEmptyRoot(
+                     db.store,
+                     Serializers.wrapGroupSerializer(_keySerializer) ,
+                     _comparator?:_keySerializer.defaultHasher(),
+                     Serializers.wrapGroupSerializer(_valueSerializer))
              catalog[name + Keys.rootRecidRecid] = rootRecidRecid2.toString()
 
              val counterRecid2 =
@@ -1163,8 +1167,8 @@ open class DB(
              catalog[name + Keys.maxNodeSize] = _maxNodeSize.toString()
 
              val ret = BTreeMap(
-                     keySerializer = _keySerializer,
-                     valueSerializer = _valueSerializer,
+                     keySerializer = Serializers.wrapGroupSerializer(_keySerializer),
+                     valueSerializer = Serializers.wrapGroupSerializer(_valueSerializer),
                      rootRecidRecid = rootRecidRecid2,
                      store = db.store,
                      maxNodeSize = _maxNodeSize,
@@ -1194,7 +1198,7 @@ open class DB(
              _valueSerializer =
                      if(!hasValues) {
                          @Suppress("UNCHECKED_CAST")
-                         BTreeMap.NO_VAL_SERIALIZER as GroupSerializer<V>
+                         BTreeMap.NO_VAL_SERIALIZER as Serializer<V>
                      }else {
                          db.nameCatalogGetClass(catalog, name + Keys.valueSerializer) ?: _valueSerializer
                      }
@@ -1216,8 +1220,8 @@ open class DB(
 
              _valueInline = (catalog[name + Keys.valueInline]?:"true").toBoolean()
              val ret = BTreeMap(
-                     keySerializer = _keySerializer,
-                     valueSerializer = _valueSerializer,
+                     keySerializer = Serializers.wrapGroupSerializer(_keySerializer),
+                     valueSerializer = Serializers.wrapGroupSerializer(_valueSerializer),
                      rootRecidRecid = rootRecidRecid2,
                      store = db.store,
                      maxNodeSize = _maxNodeSize,
@@ -1244,7 +1248,7 @@ open class DB(
     ):BTreeMapMaker<K,V,DBConcurrentNavigableMap<K,V>>(db,name,hasValues=true){
 
         fun <A> keySerializer(keySerializer: Serializer<A>):TreeMapMaker<A,V>{
-            _keySerializer = GroupSerializerWrapper.wrap(keySerializer)
+            _keySerializer = keySerializer as Serializer<K>
             @Suppress("UNCHECKED_CAST")
             return this as TreeMapMaker<A, V>
         }
@@ -1252,7 +1256,7 @@ open class DB(
         fun <A> valueSerializer(valueSerializer: Serializer<A>):TreeMapMaker<K,A>{
             if(!hasValues)
                 throw DBException.WrongConfiguration("Set, no vals")
-            _valueSerializer = GroupSerializerWrapper.wrap(valueSerializer)
+            _valueSerializer = valueSerializer as Serializer<V>
             @Suppress("UNCHECKED_CAST")
             return this as TreeMapMaker<K, A>
         }
@@ -1357,7 +1361,7 @@ open class DB(
 
 
         fun <A> serializer(serializer: Serializer<A>):TreeSetMaker<A>{
-            this._keySerializer = GroupSerializerWrapper.wrap(serializer)
+            this._keySerializer = serializer as Serializer<E>
             @Suppress("UNCHECKED_CAST")
             return this as TreeSetMaker<A>
         }
@@ -1392,8 +1396,8 @@ open class DB(
 
             val consumer = Pump.treeMap(
                     store = db.store,
-                    keySerializer = _keySerializer,
-                    valueSerializer = _valueSerializer,
+                    keySerializer = Serializers.wrapGroupSerializer(_keySerializer),
+                    valueSerializer = Serializers.wrapGroupSerializer(_valueSerializer),
                     comparator = _comparator?:_keySerializer.defaultHasher(),
                     dirNodeSize = _maxNodeSize *3/4,
                     leafNodeSize = _maxNodeSize *3/4,

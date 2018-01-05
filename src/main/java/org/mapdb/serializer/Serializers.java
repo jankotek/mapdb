@@ -88,7 +88,7 @@ public class Serializers {
      *
      * @see Serializers#STRING_ORIGHASH
      */
-    public static final GroupSerializer<String> STRING_ASCII = new SerializerStringAscii();
+    public static final Serializer<String> STRING_ASCII = new SerializerStringAscii();
     /**
      * A predefined {@link Serializer} that handles non-null
      * {@link String Strings} whereby Strings are serialized to a UTF-8 encoded
@@ -231,7 +231,7 @@ public class Serializers {
      * Serializer, a {@link NullPointerException} will be thrown.
      *
      */
-    public static final GroupSerializer<long[]> RECID_ARRAY = new SerializerRecidArray();
+    public static final Serializer<long[]> RECID_ARRAY = new SerializerRecidArray();
     /**
      * A predefined {@link Serializer} that always throws an
      * {@link UnsupportedOperationException} when invoked.
@@ -253,15 +253,15 @@ public class Serializers {
     /**
      * Serializes {@code char[]} it adds header which contains size information
      */
-    public static final GroupSerializer<char[]> CHAR_ARRAY = new SerializerCharArray();
+    public static final Serializer<char[]> CHAR_ARRAY = new SerializerCharArray();
     /**
      * Serializes {@code int[]} it adds header which contains size information
      */
-    public static final GroupSerializer<int[]> INT_ARRAY = new SerializerIntArray();
+    public static final Serializer<int[]> INT_ARRAY = new SerializerIntArray();
     /**
      * Serializes {@code long[]} it adds header which contains size information
      */
-    public static final GroupSerializer<long[]> LONG_ARRAY = new SerializerLongArray();
+    public static final Serializer<long[]> LONG_ARRAY = new SerializerLongArray();
     /**
      * Serializes {@code double[]} it adds header which contains size
      * information
@@ -281,8 +281,8 @@ public class Serializers {
      *
      * @see java.io.Serializable
      */
-    public static final GroupSerializer JAVA = new SerializerJava();
-    public static final GroupSerializer ELSA = new SerializerElsa();
+    public static final Serializer JAVA = new SerializerJava();
+    public static final Serializer ELSA = new SerializerElsa();
     /**
      * Serializers {@link java.util.UUID} class
      */
@@ -298,7 +298,7 @@ public class Serializers {
      * {@link NullPointerException} will be thrown.
      *
      */
-    public static final GroupSerializer<Byte> BYTE = new SerializerByte();
+    public static final Serializer<Byte> BYTE = new SerializerByte();
     /**
      * A predefined {@link Serializer} that handles non-null
      * {@link Float Floats} whereby Floats are serialized to a 4 byte format.
@@ -340,7 +340,7 @@ public class Serializers {
      * {@link NullPointerException} will be thrown.
      *
      */
-    public static final GroupSerializer<Short> SHORT = new SerializerShort();
+    public static final Serializer<Short> SHORT = new SerializerShort();
 
 
     /**
@@ -350,7 +350,7 @@ public class Serializers {
      * If a {@code null} value is passed to the Serializer, a
      * {@link NullPointerException} will be thrown.
      */
-    public static final GroupSerializer<Character> CHAR = new SerializerChar();
+    public static final Serializer<Character> CHAR = new SerializerChar();
 
     /**
      * A predefined {@link Serializer} that handles non-null
@@ -402,16 +402,21 @@ public class Serializers {
 //            return Arrays.hashCode(booleans);
 //        }
 //    };
-    public static final GroupSerializer<short[]> SHORT_ARRAY = new SerializerShortArray();
-    public static final GroupSerializer<float[]> FLOAT_ARRAY = new SerializerFloatArray();
-    public static final GroupSerializer<BigInteger> BIG_INTEGER = new SerializerBigInteger();
-    public static final GroupSerializer<BigDecimal> BIG_DECIMAL = new SerializerBigDecimal();
-    public static final GroupSerializer<Class<?>> CLASS = new SerializerClass();
+    public static final Serializer<short[]> SHORT_ARRAY = new SerializerShortArray();
+    public static final Serializer<float[]> FLOAT_ARRAY = new SerializerFloatArray();
+    public static final Serializer<BigInteger> BIG_INTEGER = new SerializerBigInteger();
+    public static final Serializer<BigDecimal> BIG_DECIMAL = new SerializerBigDecimal();
+    public static final Serializer<Class<?>> CLASS = new SerializerClass();
     public static final GroupSerializer<Date> DATE = new SerializerDate();
     public static final GroupSerializer<java.sql.Date> SQL_DATE = new SerializerSqlDate();
     public static final GroupSerializer<java.sql.Time> SQL_TIME = new SerializerSqlTime();
     public static final GroupSerializer<java.sql.Timestamp> SQL_TIMESTAMP = new SerializerSqlTimestamp();
 
 
+    public static <A> GroupSerializer<A> wrapGroupSerializer(Serializer<A> ser){
+        if(ser instanceof GroupSerializer)
+            return (GroupSerializer<A>) ser;
+        return new GroupSerializerWrapper(ser);
+    }
 
 }

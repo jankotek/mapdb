@@ -12,7 +12,7 @@ import java.io.IOException;
  * Serialier for class. It takes a class loader as constructor param, by default it uses
  * {@code Thread.currentThread().getContextClassLoader()}
  */
-public class SerializerClass extends GroupSerializerObjectArray<Class<?>> {
+public class SerializerClass implements Serializer<Class<?>> {
 
     protected final ClassLoader classLoader;
 
