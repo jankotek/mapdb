@@ -5,6 +5,7 @@ import org.eclipse.collections.impl.stack.mutable.primitive.LongArrayStack
 import org.junit.Assert.*
 import org.junit.Test
 import org.mapdb.*
+import org.mapdb.serializer.Serializers
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.locks.ReadWriteLock
 
@@ -28,14 +29,14 @@ class StoreOnHeapTest{
 
     @Test fun compact(){
         val store = StoreOnHeap()
-        val r1 = store.put("aa", Serializer.STRING)
+        val r1 = store.put("aa", Serializers.STRING)
         assertEquals(r1, 1)
-        val r2 = store.put("aa", Serializer.STRING)
+        val r2 = store.put("aa", Serializers.STRING)
         assertEquals(r2, 2)
         assertEquals(store.maxRecid.get(), 2)
         assertTrue(store.freeRecids.isEmpty)
 
-        store.delete(r2, Serializer.STRING)
+        store.delete(r2, Serializers.STRING)
         assertEquals(store.freeRecids.size(),1)
         assertEquals(store.maxRecid.get(), 2)
 
@@ -43,7 +44,7 @@ class StoreOnHeapTest{
         assertEquals(store.freeRecids.size(),0)
         assertEquals(store.maxRecid.get(), 1)
 
-        store.delete(r1, Serializer.STRING)
+        store.delete(r1, Serializers.STRING)
         assertEquals(store.freeRecids.size(),1)
         assertEquals(store.maxRecid.get(), 1)
 

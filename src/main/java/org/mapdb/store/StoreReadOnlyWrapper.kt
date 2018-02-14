@@ -1,6 +1,7 @@
 package org.mapdb.store
 
 import org.mapdb.*
+import org.mapdb.serializer.Serializer
 
 /**
  * Wraps Store and throws `UnsupportedOperationException("Read-only")` on operations which would modify it

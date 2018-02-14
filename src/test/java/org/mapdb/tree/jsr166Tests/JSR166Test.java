@@ -9,10 +9,7 @@ package org.mapdb.tree.jsr166Tests;/*
 import junit.framework.*;
 import org.mapdb.TT;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -1664,17 +1661,33 @@ public abstract class JSR166Test extends org.junit.Assert{
         }
     }
 
+    byte[] serialBytes2(Object o) throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(bos);
+        oos.writeObject(o);
+        oos.flush();
+        oos.close();
+        return bos.toByteArray();
+    }
+
     @SuppressWarnings("unchecked")
     <T> T serialClone(T o) {
         try {
             ObjectInputStream ois = new ObjectInputStream
-                (new ByteArrayInputStream(serialBytes(o)));
+                    (new ByteArrayInputStream(serialBytes(o)));
             T clone = (T) ois.readObject();
             return clone;
         } catch (Throwable fail) {
             threadUnexpectedException(fail);
             return null;
         }
+    }
+    @SuppressWarnings("unchecked")
+    <T> T serialCloneNoCatch(T o) throws IOException, ClassNotFoundException {
+        ObjectInputStream ois = new ObjectInputStream
+                (new ByteArrayInputStream(serialBytes2(o)));
+        T clone = (T) ois.readObject();
+        return clone;
     }
 
     public void assertThrows(Class<? extends Throwable> expectedExceptionClass,

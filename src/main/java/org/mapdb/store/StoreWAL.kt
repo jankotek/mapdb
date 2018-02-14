@@ -3,6 +3,7 @@ package org.mapdb.store
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.eclipse.collections.impl.map.mutable.primitive.*
 import org.mapdb.*
+import org.mapdb.serializer.Serializer
 import org.mapdb.store.StoreDirectJava.*
 import org.mapdb.util.*
 import org.mapdb.util.DataIO.*
@@ -190,7 +191,8 @@ class StoreWAL(
             if (old !== null && expectedOldRecord === null)
                 return false;
 
-            if (old !== expectedOldRecord && !serializer.equals(old!!, expectedOldRecord!!))
+            //TODO custom hasher
+            if (old !== expectedOldRecord && !serializer.defaultHasher().equals(old!!, expectedOldRecord!!))
                 return false
 
             val di = serialize(newRecord, serializer, recid)

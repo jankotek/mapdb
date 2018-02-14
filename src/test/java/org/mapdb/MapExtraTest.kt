@@ -3,6 +3,7 @@ package org.mapdb
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.mapdb.serializer.Serializers
 import org.mapdb.tree.HTreeMap
 import java.util.*
 
@@ -55,7 +56,7 @@ abstract class MapExtraTest{
 
     class HTreeMapExtraTest:MapExtraTest(){
         override fun makeMap(): DBConcurrentMap<Int?, String?>  = HTreeMap.make(
-                keySerializer = Serializer.INTEGER, valueSerializer = Serializer.STRING)
+                keySerializer = Serializers.INTEGER, valueSerializer = Serializers.STRING)
 
     }
 

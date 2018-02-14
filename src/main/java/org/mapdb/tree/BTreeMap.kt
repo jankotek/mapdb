@@ -6,6 +6,9 @@ import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.eclipse.collections.impl.stack.mutable.primitive.LongArrayStack
 import org.mapdb.*
 import org.mapdb.serializer.GroupSerializer
+import org.mapdb.hasher.Hasher
+import org.mapdb.serializer.Serializer
+import org.mapdb.serializer.Serializers
 import org.mapdb.store.StoreTrivial
 import org.mapdb.tree.BTreeMapJava.*
 import org.mapdb.util.Utils
@@ -83,28 +86,31 @@ class BTreeMap<K,V>(
    BTreeMapJava.ConcurrentNavigableMap2<K,V>
 {
 
-
     companion object {
         fun <K, V> make(
                 @Suppress("UNCHECKED_CAST")
-                keySerializer: GroupSerializer<K> = Serializer.ELSA as GroupSerializer<K>,
+                keySerializer: Serializer<K> = Serializers.ELSA as Serializer<K>,
                 @Suppress("UNCHECKED_CAST")
-                valueSerializer: GroupSerializer<V> = Serializer.ELSA as GroupSerializer<V>,
+                valueSerializer: Serializer<V> = Serializers.ELSA as Serializer<V>,
 
                 store: Store = StoreTrivial(),
                 valueInline: Boolean = true,
                 //insert recid of new empty node
-                rootRecidRecid: Long = putEmptyRoot(store, keySerializer, if(valueInline) valueSerializer else Serializer.RECID),
+                comparator: Comparator<K> = keySerializer.defaultHasher(),
+                rootRecidRecid: Long = putEmptyRoot(
+                        store,
+                        Serializers.wrapGroupSerializer(keySerializer),
+                        comparator,
+                        if(valueInline) Serializers.wrapGroupSerializer(valueSerializer) else Serializers.RECID),
                 maxNodeSize: Int =  CC.BTREEMAP_MAX_NODE_SIZE,
-                comparator: Comparator<K> = keySerializer,
                 isThreadSafe:Boolean = true,
                 counterRecid:Long=0L,
                 hasValues:Boolean = true,
                 modificationListeners: Array<MapModificationListener<K,V>>? = null
         ) =
                 BTreeMap(
-                        keySerializer = keySerializer,
-                        valueSerializer = valueSerializer,
+                        keySerializer = Serializers.wrapGroupSerializer(keySerializer),
+                        valueSerializer = Serializers.wrapGroupSerializer(valueSerializer),
                         store = store,
                         valueInline = valueInline,
                         rootRecidRecid = rootRecidRecid,
@@ -116,13 +122,13 @@ class BTreeMap<K,V>(
                         modificationListeners = modificationListeners
                 )
 
-        internal fun <K, V> putEmptyRoot(store: Store, keySerializer: GroupSerializer<K>, valueSerializer: GroupSerializer<V>): Long {
+        internal fun <K, V> putEmptyRoot(store: Store, keySerializer: GroupSerializer<K>, comparator:Comparator<K>, valueSerializer: GroupSerializer<V>): Long {
             return store.put(
                     store.put(
                             Node(LEFT + RIGHT, 0L, keySerializer.valueArrayEmpty(),
                                     valueSerializer.valueArrayEmpty()),
-                            NodeSerializer(keySerializer, keySerializer, valueSerializer)),
-                    Serializer.RECID)
+                            NodeSerializer(keySerializer, comparator, valueSerializer)),
+                    Serializers.RECID)
         }
 
 
@@ -198,12 +204,16 @@ class BTreeMap<K,V>(
             throw IllegalArgumentException("maxNodeSize too small")
     }
 
+    private val valueHasher = valueSerializer.defaultHasher()
+    private val keyHasher = if(comparator is Hasher) comparator else keySerializer.defaultHasher()
+
+
     private val hasBinaryStore = store is StoreBinary
 
     private val modificationListenersEmpty = modificationListeners == null || modificationListeners.isEmpty()
 
     protected val valueNodeSerializer:GroupSerializer<Any> = {
-        val s = if (valueInline) this.valueSerializer else Serializer.RECID
+        val s = if (valueInline) this.valueSerializer else Serializers.RECID
         @Suppress("UNCHECKED_CAST")
         s as GroupSerializer<Any>
     }()
@@ -213,7 +223,7 @@ class BTreeMap<K,V>(
     private val counter:Atomic.Long? = if(counterRecid>0) Atomic.Long(store, counterRecid, true) else null
 
     protected val rootRecid: Long
-        get() = store.get(rootRecidRecid, Serializer.RECID)
+        get() = store.get(rootRecidRecid, Serializers.RECID)
                 ?: throw DBException.DataCorruption("Root Recid not found");
 
     /** recids of left-most nodes in tree */
@@ -464,7 +474,7 @@ class BTreeMap<K,V>(
                     unlock(current)
                     lock(rootRecidRecid)
                     val newRootRecid = store.put(R, nodeSerializer)
-                    store.update(rootRecidRecid, newRootRecid, Serializer.RECID)
+                    store.update(rootRecidRecid, newRootRecid, Serializers.RECID)
                     leftEdges.add(newRootRecid)
                     unlock(rootRecidRecid)
 
@@ -555,7 +565,7 @@ class BTreeMap<K,V>(
                 }
                 var keys = A.keys
                 var flags = A.flags.toInt()
-                if (expectedOldValue == null || (oldValueExpanded!=null && valueSerializer.equals(expectedOldValue, oldValueExpanded as V?))) {
+                if (expectedOldValue == null || (oldValueExpanded!=null && valueHasher.equals(expectedOldValue, oldValueExpanded as V?))) {
                     val values =
                             if (replaceWithValue == null) {
                                 //remove
@@ -986,7 +996,7 @@ class BTreeMap<K,V>(
                     ?: return false
             val value = element.value
                     ?: return false
-            return valueSerializer.equals(value, v)
+            return valueHasher.equals(value, v)
         }
 
         override fun isEmpty(): Boolean {
@@ -1032,7 +1042,7 @@ class BTreeMap<K,V>(
         override fun contains(element: V): Boolean {
             if (element == null)
                 throw NullPointerException()
-            return this.any { this@BTreeMap.valueSerializer.equals(element, it) }
+            return this.any { this@BTreeMap.valueHasher.equals(element, it) }
         }
 
         override fun remove(element: V): Boolean {
@@ -1040,7 +1050,7 @@ class BTreeMap<K,V>(
                 throw NullPointerException()
             val iter = iterator()
             while(iter.hasNext()){
-                if(valueSerializer.equals(element, iter.next())) {
+                if(valueHasher.equals(element, iter.next())) {
                     iter.remove()
                     return true
                 }
@@ -1049,11 +1059,11 @@ class BTreeMap<K,V>(
         }
 
         override fun equals(other: Any?): Boolean {
-            return Utils.iterableEquals(valueSerializer, this, other)
+            return Utils.iterableEquals(valueHasher, this, other)
         }
 
         override fun hashCode(): Int {
-            return Utils.iterableHashCode(valueSerializer, this)
+            return Utils.iterableHashCode(valueHasher, this)
         }
     }
 
@@ -1725,7 +1735,7 @@ class BTreeMap<K,V>(
             private var valueCached: V? = valueOrig;
 
             override fun hashCode(): Int {
-                return keySerializer.hashCode(this.key!!, 0) xor valueSerializer.hashCode(this.value!!, 0)
+                return keyHasher.hashCode(this.key!!, 0) xor valueHasher.hashCode(this.value!!, 0)
             }
 
             override fun setValue(newValue: V): V {
@@ -1745,7 +1755,7 @@ class BTreeMap<K,V>(
                 return okey!=null
                         && ovalue!=null
                         && comparator.compare(key,  okey)==0
-                        && valueSerializer.equals(this.value, ovalue)
+                        && valueHasher.equals(this.value, ovalue)
             }
 
             override fun toString(): String {
@@ -1869,7 +1879,7 @@ class BTreeMap<K,V>(
     fun prefixSubMap(prefix:K, inclusive:Boolean): ConcurrentNavigableMap<K, V>{
         if(prefix==null)
             throw NullPointerException()
-        if(comparator!=keySerializer)
+        if(comparator!=keySerializer.defaultHasher())
             throw UnsupportedOperationException("prefixSubMap is not supported with custom comparators")
         val hiKey = keySerializer.nextValue(prefix)
         return SubMap(this, prefix, inclusive, hiKey, false)

@@ -4,6 +4,7 @@ import org.junit.Assert
 import org.junit.Test
 import org.mapdb.*
 import org.mapdb.serializer.GroupSerializerObjectArray
+import org.mapdb.serializer.Serializers
 import org.mapdb.store.StoreTrivial
 import java.util.*
 
@@ -17,7 +18,7 @@ class DBTreeTest{
     @Test fun treeSet_Create(){
         val db = DB(store = StoreTrivial(), storeOpened = false, isThreadSafe = false)
 
-        val map = db.treeSet("aa", Serializer.BIG_DECIMAL)
+        val map = db.treeSet("aa", Serializers.BIG_DECIMAL)
                 .counterEnable()
                 .maxNodeSize(16)
                 .create()
@@ -26,7 +27,7 @@ class DBTreeTest{
 
         Assert.assertEquals(5, p.size)
         Assert.assertEquals("TreeSet", p["aa" + DB.Keys.type])
-        Assert.assertEquals("org.mapdb.Serializer#BIG_DECIMAL", p["aa" + DB.Keys.serializer])
+        Assert.assertEquals("org.mapdb.serializer.Serializers#BIG_DECIMAL", p["aa" + DB.Keys.serializer])
         Assert.assertEquals("16", p["aa" + DB.Keys.maxNodeSize])
         Assert.assertEquals(btreemap(map).rootRecidRecid.toString(), p["aa" + DB.Keys.rootRecidRecid])
         //TODO reenable once counter is done

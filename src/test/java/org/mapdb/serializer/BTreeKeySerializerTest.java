@@ -15,7 +15,7 @@ public class BTreeKeySerializerTest {
         DB db = DBMaker.memoryDB()
                 .make();
         Map m = db.treeMap("test")
-                .keySerializer(Serializer.LONG)
+                .keySerializer(Serializers.LONG)
                 .createOrOpen();
 
         for(long i = 0; i<1000;i++){
@@ -48,7 +48,7 @@ public class BTreeKeySerializerTest {
         };
 
         for(Object[] v:vals){
-            checkKeyClone(Serializer.LONG, v);
+            checkKeyClone(Serializers.LONG, v);
         }
     }
 
@@ -62,7 +62,7 @@ public class BTreeKeySerializerTest {
 
         for(int testDataIndex = 0; testDataIndex < SIZE; testDataIndex++){
            assertEquals("The returned data for the indexed key for GroupSerializer did not match the data for the key.",
-               (long)Serializer.LONG.valueArrayGet(testData, testDataIndex), testData[testDataIndex]);
+               (long) Serializers.LONG.valueArrayGet(testData, testDataIndex), testData[testDataIndex]);
         }
     }
 
@@ -75,7 +75,7 @@ public class BTreeKeySerializerTest {
         };
 
         for(Object[] v:vals){
-            checkKeyClone(Serializer.INTEGER, v);
+            checkKeyClone(Serializers.INTEGER, v);
         }
     }
 
@@ -89,7 +89,7 @@ public class BTreeKeySerializerTest {
 
         for(int i = 0; i < TEST_DATA_SIZE; i++){
             assertEquals("The returned data for the indexed key for GroupSerializer did not match the data for the key.", 
-                (long)Serializer.INTEGER.valueArrayGet(testData, i), testData[i]);
+                (long) Serializers.INTEGER.valueArrayGet(testData, i), testData[i]);
         }
     }
 
@@ -99,7 +99,7 @@ public class BTreeKeySerializerTest {
         DB db = DBMaker.memoryDB()
                 .make();
         Map m =  db.treeMap("test")
-                .keySerializer(Serializer.STRING)
+                .keySerializer(Serializers.STRING)
                 .createOrOpen();
 
 
@@ -120,7 +120,7 @@ public class BTreeKeySerializerTest {
         for(int i=0;i<100;i++)
             ids.add(java.util.UUID.randomUUID());
 
-        long[] vv = (long[]) Serializer.UUID.valueArrayFromArray(ids.toArray());
+        long[] vv = (long[]) Serializers.UUID.valueArrayFromArray(ids.toArray());
 
         int i=0;
         for(java.util.UUID u:ids){
@@ -130,24 +130,24 @@ public class BTreeKeySerializerTest {
 
         //clone
         DataOutput2 out = new DataOutput2();
-        Serializer.UUID.valueArraySerialize(out, vv);
+        Serializers.UUID.valueArraySerialize(out, vv);
 
         DataInput2 in = new DataInput2.ByteArray(out.copyBytes());
-        long[] nn = (long[]) Serializer.UUID.valueArrayDeserialize(in,  ids.size());
+        long[] nn = (long[]) Serializers.UUID.valueArrayDeserialize(in,  ids.size());
 
         assertArrayEquals(vv, nn);
 
         //test key addition
         java.util.UUID r = java.util.UUID.randomUUID();
         ids.add(10,r);
-        long[] vv2 = (long[]) Serializer.UUID.valueArrayPut(vv,10,r);
+        long[] vv2 = (long[]) Serializers.UUID.valueArrayPut(vv,10,r);
         i=0;
         for(java.util.UUID u:ids){
             assertEquals(u.getMostSignificantBits(),vv2[i++]);
             assertEquals(u.getLeastSignificantBits(),vv2[i++]);
         }
 
-        vv2 = (long[]) Serializer.UUID.valueArrayDeleteValue(vv2,10+1);
+        vv2 = (long[]) Serializers.UUID.valueArrayDeleteValue(vv2,10+1);
 
         assertArrayEquals(vv,vv2);
     }
@@ -187,9 +187,9 @@ public class BTreeKeySerializerTest {
     public void checkStringSerializers(ArrayList keys) throws IOException {
         Collections.sort(keys);
         //first check clone on both
-        checkKeyClone(Serializer.STRING,keys.toArray());
-        checkKeyClone(Serializer.STRING_DELTA,keys.toArray());
-        checkKeyClone(Serializer.STRING_DELTA2,keys.toArray());
+        checkKeyClone(Serializers.STRING,keys.toArray());
+        checkKeyClone(Serializers.STRING_DELTA,keys.toArray());
+        checkKeyClone(Serializers.STRING_DELTA2,keys.toArray());
 //    TODO compatible format between STRING DELTA SER?
 //        //now serializer and deserialize with other and compare
 //        {
@@ -218,9 +218,9 @@ public class BTreeKeySerializerTest {
         }
 
         //first check clone on both
-        checkKeyClone(Serializer.BYTE_ARRAY,keys.toArray());
-        checkKeyClone(Serializer.BYTE_ARRAY_DELTA,keys.toArray());
-        checkKeyClone(Serializer.BYTE_ARRAY_DELTA2,keys.toArray());
+        checkKeyClone(Serializers.BYTE_ARRAY,keys.toArray());
+        checkKeyClone(Serializers.BYTE_ARRAY_DELTA,keys.toArray());
+        checkKeyClone(Serializers.BYTE_ARRAY_DELTA2,keys.toArray());
 //    TODO compatible format between byte[] DELTA SER?
 //        //now serializer and deserialize with other and compare
 //        {
@@ -258,10 +258,10 @@ public class BTreeKeySerializerTest {
 
     void checkPrefixLen(int expected, Object... keys){
         SerializerStringDelta2.StringArrayKeys keys1 =
-                (SerializerStringDelta2.StringArrayKeys) Serializer.STRING_DELTA2.valueArrayFromArray(keys);
+                (SerializerStringDelta2.StringArrayKeys) Serializers.STRING_DELTA2.valueArrayFromArray(keys);
         assertEquals(expected, keys1.commonPrefixLen());
 
-        char[][] keys2 = (char[][]) Serializer.STRING_DELTA.valueArrayFromArray(keys);
+        char[][] keys2 = (char[][]) Serializers.STRING_DELTA.valueArrayFromArray(keys);
         assertEquals(expected, SerializerStringDelta.commonPrefixLen(keys2));
 
     }

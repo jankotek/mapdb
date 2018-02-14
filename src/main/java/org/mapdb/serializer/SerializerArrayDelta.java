@@ -2,7 +2,6 @@ package org.mapdb.serializer;
 
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
-import org.mapdb.Serializer;
 
 import java.io.IOException;
 
@@ -39,7 +38,8 @@ public class SerializerArrayDelta<T> extends SerializerArray<T> {
             //calculate number of entries equal with prevKey
             int len = Math.min(key.length, prevKey.length);
             int pos = 0;
-            while (pos < len && (key[pos] == prevKey[pos] || serializer.equals((T) key[pos], (T) prevKey[pos]))) {
+            //TODO defaultHasher should not be used bellow
+            while (pos < len && (key[pos] == prevKey[pos] || serializer.defaultHasher().equals((T) key[pos], (T) prevKey[pos]))) {
                 pos++;
             }
             out.packInt(pos);

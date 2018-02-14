@@ -6,6 +6,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import org.mapdb.*
 import org.mapdb.TT.assertFailsWith
+import org.mapdb.serializer.Serializers
 import java.util.*
 import java.util.concurrent.atomic.AtomicLong
 
@@ -19,8 +20,8 @@ abstract class StoreTest {
     @Test fun put_get() {
         val e = openStore()
         val l = 11231203099090L
-        val recid = e.put(l, Serializer.LONG)
-        assertEquals(l, e.get(recid, Serializer.LONG))
+        val recid = e.put(l, Serializers.LONG)
+        assertEquals(l, e.get(recid, Serializers.LONG))
         e.verify()
         e.close()
     }
@@ -29,16 +30,16 @@ abstract class StoreTest {
         val e = openStore()
         val b = TT.randomByteArray(1000000)
         Random().nextBytes(b)
-        val recid = e.put(b, Serializer.BYTE_ARRAY_NOSIZE)
-        assertTrue(Arrays.equals(b, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE)))
+        val recid = e.put(b, Serializers.BYTE_ARRAY_NOSIZE)
+        assertTrue(Arrays.equals(b, e.get(recid, Serializers.BYTE_ARRAY_NOSIZE)))
         e.verify()
         e.close()
     }
 
     @Test fun testSetGet() {
         val e = openStore()
-        val recid = e.put(10000.toLong(), Serializer.LONG)
-        val s2 = e.get(recid, Serializer.LONG)
+        val recid = e.put(10000.toLong(), Serializers.LONG)
+        val s2 = e.get(recid, Serializers.LONG)
         assertEquals(s2, java.lang.Long.valueOf(10000))
         e.verify()
         e.close()
@@ -48,7 +49,7 @@ abstract class StoreTest {
     @Test fun reserved_recids(){
         val e = openStore()
         for(expectedRecid in 1 .. CC.RECID_MAX_RESERVED){
-            val allocRecid = e.put(1, Serializer.INTEGER)
+            val allocRecid = e.put(1, Serializers.INTEGER)
             assertEquals(expectedRecid, allocRecid)
         }
         e.verify()
@@ -59,8 +60,8 @@ abstract class StoreTest {
     fun large_record() {
         val e = openStore()
         val b = TT.randomByteArray(100000)
-        val recid = e.put(b, Serializer.BYTE_ARRAY_NOSIZE)
-        val b2 = e.get(recid, Serializer.BYTE_ARRAY_NOSIZE)
+        val recid = e.put(b, Serializers.BYTE_ARRAY_NOSIZE)
+        val b2 = e.get(recid, Serializers.BYTE_ARRAY_NOSIZE)
         assertTrue(Arrays.equals(b, b2))
         e.verify()
         e.close()
@@ -69,9 +70,9 @@ abstract class StoreTest {
     @Test fun large_record_delete() {
         val e = openStore()
         val b = TT.randomByteArray(100000)
-        val recid = e.put(b, Serializer.BYTE_ARRAY_NOSIZE)
+        val recid = e.put(b, Serializers.BYTE_ARRAY_NOSIZE)
         e.verify()
-        e.delete(recid, Serializer.BYTE_ARRAY_NOSIZE)
+        e.delete(recid, Serializers.BYTE_ARRAY_NOSIZE)
         e.verify()
         e.close()
     }
@@ -81,20 +82,20 @@ abstract class StoreTest {
         val s = openStore()
 
         val b = TT.randomByteArray(200000)
-        val recid1 = s.put(b, Serializer.BYTE_ARRAY_NOSIZE)
+        val recid1 = s.put(b, Serializers.BYTE_ARRAY_NOSIZE)
         s.verify()
         val b2 = TT.randomByteArray(220000)
-        val recid2 = s.put(b2, Serializer.BYTE_ARRAY_NOSIZE)
+        val recid2 = s.put(b2, Serializers.BYTE_ARRAY_NOSIZE)
         s.verify()
 
-        assertTrue(Arrays.equals(b, s.get(recid1, Serializer.BYTE_ARRAY_NOSIZE)))
-        assertTrue(Arrays.equals(b2, s.get(recid2, Serializer.BYTE_ARRAY_NOSIZE)))
+        assertTrue(Arrays.equals(b, s.get(recid1, Serializers.BYTE_ARRAY_NOSIZE)))
+        assertTrue(Arrays.equals(b2, s.get(recid2, Serializers.BYTE_ARRAY_NOSIZE)))
 
-        s.delete(recid1, Serializer.BYTE_ARRAY_NOSIZE)
-        assertTrue(Arrays.equals(b2, s.get(recid2, Serializer.BYTE_ARRAY_NOSIZE)))
+        s.delete(recid1, Serializers.BYTE_ARRAY_NOSIZE)
+        assertTrue(Arrays.equals(b2, s.get(recid2, Serializers.BYTE_ARRAY_NOSIZE)))
         s.verify()
 
-        s.delete(recid2, Serializer.BYTE_ARRAY_NOSIZE)
+        s.delete(recid2, Serializers.BYTE_ARRAY_NOSIZE)
         s.verify()
 
         s.verify()
@@ -105,25 +106,25 @@ abstract class StoreTest {
         val s = openStore()
 
         var b = TT.randomByteArray(200000)
-        val recid1 = s.put(b, Serializer.BYTE_ARRAY_NOSIZE)
+        val recid1 = s.put(b, Serializers.BYTE_ARRAY_NOSIZE)
         s.verify()
         val b2 = TT.randomByteArray(220000)
-        val recid2 = s.put(b2, Serializer.BYTE_ARRAY_NOSIZE)
+        val recid2 = s.put(b2, Serializers.BYTE_ARRAY_NOSIZE)
         s.verify()
 
-        assertTrue(Arrays.equals(b, s.get(recid1, Serializer.BYTE_ARRAY_NOSIZE)))
-        assertTrue(Arrays.equals(b2, s.get(recid2, Serializer.BYTE_ARRAY_NOSIZE)))
+        assertTrue(Arrays.equals(b, s.get(recid1, Serializers.BYTE_ARRAY_NOSIZE)))
+        assertTrue(Arrays.equals(b2, s.get(recid2, Serializers.BYTE_ARRAY_NOSIZE)))
 
         b = TT.randomByteArray(210000)
-        s.update(recid1, b, Serializer.BYTE_ARRAY_NOSIZE);
-        assertTrue(Arrays.equals(b, s.get(recid1, Serializer.BYTE_ARRAY_NOSIZE)))
-        assertTrue(Arrays.equals(b2, s.get(recid2, Serializer.BYTE_ARRAY_NOSIZE)))
+        s.update(recid1, b, Serializers.BYTE_ARRAY_NOSIZE);
+        assertTrue(Arrays.equals(b, s.get(recid1, Serializers.BYTE_ARRAY_NOSIZE)))
+        assertTrue(Arrays.equals(b2, s.get(recid2, Serializers.BYTE_ARRAY_NOSIZE)))
         s.verify()
 
         b = TT.randomByteArray(28001)
-        s.update(recid1, b, Serializer.BYTE_ARRAY_NOSIZE);
-        assertTrue(Arrays.equals(b, s.get(recid1, Serializer.BYTE_ARRAY_NOSIZE)))
-        assertTrue(Arrays.equals(b2, s.get(recid2, Serializer.BYTE_ARRAY_NOSIZE)))
+        s.update(recid1, b, Serializers.BYTE_ARRAY_NOSIZE);
+        assertTrue(Arrays.equals(b, s.get(recid1, Serializers.BYTE_ARRAY_NOSIZE)))
+        assertTrue(Arrays.equals(b2, s.get(recid2, Serializers.BYTE_ARRAY_NOSIZE)))
         s.verify()
 
         s.close()
@@ -146,9 +147,9 @@ abstract class StoreTest {
         val e = openStore()
         val recid = e.preallocate()
         e.verify()
-        assertFalse(e.compareAndSwap(recid, 1L, 2L, Serializer.LONG))
-        assertTrue(e.compareAndSwap(recid, null, 2L, Serializer.LONG))
-        assertEquals(2L.toLong(), e.get(recid, Serializer.LONG))
+        assertFalse(e.compareAndSwap(recid, 1L, 2L, Serializers.LONG))
+        assertTrue(e.compareAndSwap(recid, null, 2L, Serializers.LONG))
+        assertEquals(2L.toLong(), e.get(recid, Serializers.LONG))
         e.verify()
         e.close()
     }
@@ -158,15 +159,15 @@ abstract class StoreTest {
         val recid = e.preallocate()
         e.verify()
         assertNull(e.get(recid, TT.Serializer_ILLEGAL_ACCESS))
-        e.update(recid, 1L, Serializer.LONG)
-        assertEquals(1L.toLong(), e.get(recid, Serializer.LONG))
-        e.delete(recid, Serializer.LONG)
+        e.update(recid, 1L, Serializers.LONG)
+        assertEquals(1L.toLong(), e.get(recid, Serializers.LONG))
+        e.delete(recid, Serializers.LONG)
         assertFailsWith(DBException.GetVoid::class.java) {
             assertNull(e.get(recid, TT.Serializer_ILLEGAL_ACCESS))
         }
         e.verify()
         assertFailsWith(DBException.GetVoid::class.java) {
-            e.update(recid, 1L, Serializer.LONG)
+            e.update(recid, 1L, Serializers.LONG)
         }
         e.verify()
         e.close()
@@ -174,12 +175,12 @@ abstract class StoreTest {
 
     @Test fun cas_delete() {
         val e = openStore()
-        val recid = e.put(1L, Serializer.LONG)
+        val recid = e.put(1L, Serializers.LONG)
         e.verify()
-        assertTrue(e.compareAndSwap(recid, 1L, null, Serializer.LONG))
+        assertTrue(e.compareAndSwap(recid, 1L, null, Serializers.LONG))
         assertNull(e.get(recid, TT.Serializer_ILLEGAL_ACCESS))
-        assertTrue(e.compareAndSwap(recid, null, 1L, Serializer.LONG))
-        assertEquals(1L, e.get(recid, Serializer.LONG))
+        assertTrue(e.compareAndSwap(recid, null, 1L, Serializers.LONG))
+        assertEquals(1L, e.get(recid, Serializers.LONG))
         e.verify()
         e.close()
     }
@@ -188,10 +189,10 @@ abstract class StoreTest {
     @Test fun cas_prealloc() {
         val e = openStore()
         val recid = e.preallocate()
-        assertTrue(e.compareAndSwap(recid, null, 1L, Serializer.LONG))
+        assertTrue(e.compareAndSwap(recid, null, 1L, Serializers.LONG))
         e.verify()
-        assertEquals(1L, e.get(recid, Serializer.LONG))
-        assertTrue(e.compareAndSwap(recid, 1L, null, Serializer.LONG))
+        assertEquals(1L, e.get(recid, Serializers.LONG))
+        assertTrue(e.compareAndSwap(recid, 1L, null, Serializers.LONG))
         e.verify()
         assertNull(e.get(recid, TT.Serializer_ILLEGAL_ACCESS))
         e.verify()
@@ -201,9 +202,9 @@ abstract class StoreTest {
     @Test fun cas_prealloc_delete() {
         val e = openStore()
         val recid = e.preallocate()
-        e.delete(recid, Serializer.LONG)
+        e.delete(recid, Serializers.LONG)
         assertFailsWith(DBException.GetVoid::class.java) {
-            assertTrue(e.compareAndSwap(recid, null, 1L, Serializer.LONG))
+            assertTrue(e.compareAndSwap(recid, null, 1L, Serializers.LONG))
         }
         e.verify()
         e.close()
@@ -212,17 +213,17 @@ abstract class StoreTest {
     @Test fun putGetUpdateDelete() {
         val e = openStore()
         var s = "aaaad9009"
-        val recid = e.put(s, Serializer.STRING)
+        val recid = e.put(s, Serializers.STRING)
 
-        assertEquals(s, e.get(recid, Serializer.STRING))
+        assertEquals(s, e.get(recid, Serializers.STRING))
 
         s = "da8898fe89w98fw98f9"
-        e.update(recid, s, Serializer.STRING)
-        assertEquals(s, e.get(recid, Serializer.STRING))
+        e.update(recid, s, Serializers.STRING)
+        assertEquals(s, e.get(recid, Serializers.STRING))
         e.verify()
-        e.delete(recid, Serializer.STRING)
+        e.delete(recid, Serializers.STRING)
         assertFailsWith(DBException.GetVoid::class.java) {
-            e.get(recid, Serializer.STRING)
+            e.get(recid, Serializers.STRING)
         }
         e.verify()
         e.close()
@@ -232,20 +233,20 @@ abstract class StoreTest {
     @Test fun nosize_array() {
         val e = openStore()
         var b = ByteArray(0)
-        val recid = e.put(b, Serializer.BYTE_ARRAY_NOSIZE)
-        assertTrue(Arrays.equals(b, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE)))
+        val recid = e.put(b, Serializers.BYTE_ARRAY_NOSIZE)
+        assertTrue(Arrays.equals(b, e.get(recid, Serializers.BYTE_ARRAY_NOSIZE)))
 
         b = byteArrayOf(1, 2, 3)
-        e.update(recid, b, Serializer.BYTE_ARRAY_NOSIZE)
-        assertTrue(Arrays.equals(b, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE)))
+        e.update(recid, b, Serializers.BYTE_ARRAY_NOSIZE)
+        assertTrue(Arrays.equals(b, e.get(recid, Serializers.BYTE_ARRAY_NOSIZE)))
         e.verify()
         b = byteArrayOf()
-        e.update(recid, b, Serializer.BYTE_ARRAY_NOSIZE)
-        assertTrue(Arrays.equals(b, e.get(recid, Serializer.BYTE_ARRAY_NOSIZE)))
+        e.update(recid, b, Serializers.BYTE_ARRAY_NOSIZE)
+        assertTrue(Arrays.equals(b, e.get(recid, Serializers.BYTE_ARRAY_NOSIZE)))
         e.verify()
-        e.delete(recid, Serializer.BYTE_ARRAY_NOSIZE)
+        e.delete(recid, Serializers.BYTE_ARRAY_NOSIZE)
         assertFailsWith(DBException.GetVoid::class.java) {
-            e.get(recid, Serializer.BYTE_ARRAY_NOSIZE)
+            e.get(recid, Serializers.BYTE_ARRAY_NOSIZE)
         }
         e.verify()
         e.close()
@@ -253,11 +254,11 @@ abstract class StoreTest {
 
     @Test fun get_deleted() {
         val e = openStore()
-        val recid = e.put(1L, Serializer.LONG)
+        val recid = e.put(1L, Serializers.LONG)
         e.verify()
-        e.delete(recid, Serializer.LONG)
+        e.delete(recid, Serializers.LONG)
         assertFailsWith(DBException.GetVoid::class.java) {
-            e.get(recid, Serializer.LONG)
+            e.get(recid, Serializers.LONG)
         }
         e.verify()
         e.close()
@@ -265,10 +266,10 @@ abstract class StoreTest {
 
     @Test fun update_deleted() {
         val e = openStore()
-        val recid = e.put(1L, Serializer.LONG)
-        e.delete(recid, Serializer.LONG)
+        val recid = e.put(1L, Serializers.LONG)
+        e.delete(recid, Serializers.LONG)
         assertFailsWith(DBException.GetVoid::class.java) {
-            e.update(recid, 2L, Serializer.LONG)
+            e.update(recid, 2L, Serializers.LONG)
         }
         e.verify()
         e.close()
@@ -276,10 +277,10 @@ abstract class StoreTest {
 
     @Test fun double_delete() {
         val e = openStore()
-        val recid = e.put(1L, Serializer.LONG)
-        e.delete(recid, Serializer.LONG)
+        val recid = e.put(1L, Serializers.LONG)
+        e.delete(recid, Serializers.LONG)
         assertFailsWith(DBException.GetVoid::class.java) {
-            e.delete(recid, Serializer.LONG)
+            e.delete(recid, Serializers.LONG)
         }
         e.verify()
         e.close()
@@ -291,15 +292,15 @@ abstract class StoreTest {
             return
 
         var e = openStore()
-        val recid = e.put("", Serializer.STRING)
-        assertEquals("", e.get(recid, Serializer.STRING))
+        val recid = e.put("", Serializers.STRING)
+        assertEquals("", e.get(recid, Serializers.STRING))
 
         for (i in 0..9999) {
             val s = TT.randomString(80000)
-            e.update(recid, s, Serializer.STRING)
-            assertEquals(s, e.get(recid, Serializer.STRING))
+            e.update(recid, s, Serializers.STRING)
+            assertEquals(s, e.get(recid, Serializers.STRING))
             e.commit()
-            assertEquals(s, e.get(recid, Serializer.STRING))
+            assertEquals(s, e.get(recid, Serializers.STRING))
         }
         e.verify()
         e.close()
@@ -308,13 +309,13 @@ abstract class StoreTest {
     @Test fun delete_reuse() {
         for(size in 1 .. 20){
             val e = openStore()
-            val recid = e.put(TT.randomString(size), Serializer.STRING)
-            e.delete(recid, Serializer.STRING)
+            val recid = e.put(TT.randomString(size), Serializers.STRING)
+            e.delete(recid, Serializers.STRING)
             assertFailsWith(DBException.GetVoid::class.java) {
                 e.get(recid, TT.Serializer_ILLEGAL_ACCESS)
             }
 
-            val recid2 = e.put(TT.randomString(size), Serializer.STRING)
+            val recid2 = e.put(TT.randomString(size), Serializers.STRING)
             assertEquals(recid, recid2)
             e.verify()
             e.close()
@@ -353,21 +354,21 @@ abstract class StoreTest {
         for (i in 0 until maxSize){
             val size = random.nextInt(maxRecSize)
             val b = TT.randomByteArray(size, random.nextInt())
-            val recid = s.put(b, Serializer.BYTE_ARRAY_NOSIZE)
+            val recid = s.put(b, Serializers.BYTE_ARRAY_NOSIZE)
             ref.put(recid, b)
         }
         s.verify()
 
         while(endTime>System.currentTimeMillis()){
             ref.forEachKeyValue { recid, record ->
-                val old = s.get(recid, Serializer.BYTE_ARRAY_NOSIZE)
+                val old = s.get(recid, Serializers.BYTE_ARRAY_NOSIZE)
                 assertTrue(Arrays.equals(record, old))
 
                 val size = random.nextInt(maxRecSize)
                 val b = TT.randomByteArray(size, random.nextInt())
                 ref.put(recid,b.clone())
-                s.update(recid, b, Serializer.BYTE_ARRAY_NOSIZE)
-                assertTrue(Arrays.equals(b, s.get(recid, Serializer.BYTE_ARRAY_NOSIZE)));
+                s.update(recid, b, Serializers.BYTE_ARRAY_NOSIZE)
+                assertTrue(Arrays.equals(b, s.get(recid, Serializers.BYTE_ARRAY_NOSIZE)));
             }
             s.verify()
             if(s is StoreWAL) {
@@ -386,20 +387,20 @@ abstract class StoreTest {
 
         val ntime = TT.nowPlusMinutes(1.0)
         var counter = AtomicLong(0);
-        val recid = s.put(0L, Serializer.LONG)
+        val recid = s.put(0L, Serializers.LONG)
         TT.fork(10){
             val random = Random();
             while(ntime>System.currentTimeMillis()){
                 val plus = random.nextInt(1000).toLong()
-                val v:Long = s.get(recid, Serializer.LONG)!!
-                if(s.compareAndSwap(recid, v, v+plus, Serializer.LONG)){
+                val v:Long = s.get(recid, Serializers.LONG)!!
+                if(s.compareAndSwap(recid, v, v+plus, Serializers.LONG)){
                     counter.addAndGet(plus);
                 }
             }
         }
 
         assertTrue(counter.get()>0)
-        assertEquals(counter.get(), s.get(recid, Serializer.LONG))
+        assertEquals(counter.get(), s.get(recid, Serializers.LONG))
     }
 
 
@@ -416,14 +417,14 @@ abstract class StoreTest {
             val recids = LongArrayList()
             for (i in 0..maxCount) {
                 val r = TT.randomByteArray(size, seed = i)
-                val recid = store.put(r, Serializer.BYTE_ARRAY_NOSIZE)
+                val recid = store.put(r, Serializers.BYTE_ARRAY_NOSIZE)
                 recids.add(recid)
             }
 
             fun verify() {
                //verify recids
                 recids.forEachWithIndex { recid, i ->
-                    val r = store.get(recid, Serializer.BYTE_ARRAY_NOSIZE)
+                    val r = store.get(recid, Serializers.BYTE_ARRAY_NOSIZE)
                     assertTrue(Arrays.equals(r, TT.randomByteArray(size, seed=i)))
                 }
             }

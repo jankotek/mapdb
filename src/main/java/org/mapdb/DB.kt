@@ -47,7 +47,7 @@ open class DB(
 
     companion object{
 
-        protected val NAME_CATALOG_SERIALIZER:Serializer<SortedMap<String, String>> = object:Serializer<SortedMap<String, String>>{
+        protected val NAME_CATALOG_SERIALIZER: Serializer<SortedMap<String, String>> = object: Serializer<SortedMap<String, String>> {
 
             override fun deserialize(input: DataInput2, available: Int): SortedMap<String, String>? {
                 val size = input.unpackInt()
@@ -220,35 +220,35 @@ open class DB(
 
     protected fun  <K> serializerForClass(clazz: Class<K>): Serializer<K> {
         val v = when(clazz){
-            Character.TYPE -> Serializer.CHAR
-            Char::class.java -> Serializer.CHAR
-            String::class.java -> Serializer.STRING
-            java.lang.Long.TYPE -> Serializer.LONG
-            Long::class.java -> Serializer.LONG
-            Integer.TYPE -> Serializer.INTEGER
-            Int::class.java -> Serializer.INTEGER
-            java.lang.Boolean.TYPE -> Serializer.BOOLEAN
-            Boolean::class.java -> Serializer.BOOLEAN
-            ByteArray::class.java -> Serializer.BYTE_ARRAY
-            CharArray::class.java -> Serializer.CHAR_ARRAY
-            IntArray::class.java -> Serializer.INT_ARRAY
-            LongArray::class.java -> Serializer.LONG_ARRAY
-            DoubleArray::class.java -> Serializer.DOUBLE_ARRAY
-            UUID::class.java -> Serializer.UUID
-            java.lang.Byte.TYPE -> Serializer.BYTE
-            Byte::class.java -> Serializer.BYTE
-            java.lang.Float.TYPE -> Serializer.FLOAT
-            Float::class.java -> Serializer.FLOAT
-            java.lang.Double.TYPE -> Serializer.DOUBLE
-            Double::class.java -> Serializer.DOUBLE
-            java.lang.Short.TYPE -> Serializer.SHORT
-            Short::class.java -> Serializer.SHORT
-            ShortArray::class.java -> Serializer.SHORT_ARRAY
-            FloatArray::class.java -> Serializer.FLOAT_ARRAY
-            BigDecimal::class.java -> Serializer.BIG_DECIMAL
-            BigInteger::class.java -> Serializer.BIG_INTEGER
-            Class::class.java -> Serializer.CLASS
-            Date::class.java -> Serializer.DATE
+            Character.TYPE -> Serializers.CHAR
+            Char::class.java -> Serializers.CHAR
+            String::class.java -> Serializers.STRING
+            java.lang.Long.TYPE -> Serializers.LONG
+            Long::class.java -> Serializers.LONG
+            Integer.TYPE -> Serializers.INTEGER
+            Int::class.java -> Serializers.INTEGER
+            java.lang.Boolean.TYPE -> Serializers.BOOLEAN
+            Boolean::class.java -> Serializers.BOOLEAN
+            ByteArray::class.java -> Serializers.BYTE_ARRAY
+            CharArray::class.java -> Serializers.CHAR_ARRAY
+            IntArray::class.java -> Serializers.INT_ARRAY
+            LongArray::class.java -> Serializers.LONG_ARRAY
+            DoubleArray::class.java -> Serializers.DOUBLE_ARRAY
+            UUID::class.java -> Serializers.UUID
+            java.lang.Byte.TYPE -> Serializers.BYTE
+            Byte::class.java -> Serializers.BYTE
+            java.lang.Float.TYPE -> Serializers.FLOAT
+            Float::class.java -> Serializers.FLOAT
+            java.lang.Double.TYPE -> Serializers.DOUBLE
+            Double::class.java -> Serializers.DOUBLE
+            java.lang.Short.TYPE -> Serializers.SHORT
+            Short::class.java -> Serializers.SHORT
+            ShortArray::class.java -> Serializers.SHORT_ARRAY
+            FloatArray::class.java -> Serializers.FLOAT_ARRAY
+            BigDecimal::class.java -> Serializers.BIG_DECIMAL
+            BigInteger::class.java -> Serializers.BIG_INTEGER
+            Class::class.java -> Serializers.CLASS
+            Date::class.java -> Serializers.DATE
             Tuple2::class.java -> Tuple2Serializer<Any?,Any?>(defaultSerializer)
             Tuple3::class.java -> Tuple3Serializer<Any?,Any?,Any?>(defaultSerializer)
             Tuple4::class.java -> Tuple4Serializer<Any?,Any?,Any?,Any?>(defaultSerializer)
@@ -265,7 +265,7 @@ open class DB(
      * Default serializer used if collection does not specify specialized serializer.
      * It uses Elsa Serializer.
      */
-    val defaultSerializer:GroupSerializer<Any?> = object: GroupSerializerObjectArray<Any?>() {
+    val defaultSerializer:Serializer<Any?> = object: Serializer<Any?>{
 
         override fun deserialize(input: DataInput2, available: Int): Any? {
             return elsaSerializer.deserialize(input)
@@ -310,7 +310,7 @@ open class DB(
 
 
             for(recid in 3L..CC.RECID_MAX_RESERVED){
-                val recid2 = store.put(null, Serializer.LONG_PACKED)
+                val recid2 = store.put(null, Serializers.LONG_PACKED)
                 if(recid!=recid2){
                     throw DBException.WrongConfiguration("Store does not support Reserved Recids: "+store.javaClass)
                 }
@@ -326,8 +326,8 @@ open class DB(
 
     init{
         //read all singleton from Serializer fields
-        Serializer::class.java.declaredFields.forEach { f ->
-            val name = Serializer::class.java.canonicalName + "#"+f.name
+        Serializers::class.java.declaredFields.forEach { f ->
+            val name = Serializers::class.java.canonicalName + "#"+f.name
             val obj = f.get(null)
             classSingletonCat.put(obj, name)
             classSingletonRev.put(name, obj)
@@ -359,22 +359,22 @@ open class DB(
         // it is storage format definition
         return arrayOf(
                 this@DB, this@DB.defaultSerializer,
-                Serializer.CHAR, Serializer.STRING_ORIGHASH , Serializer.STRING, Serializer.STRING_DELTA,
-                Serializer.STRING_DELTA2, Serializer.STRING_INTERN, Serializer.STRING_ASCII, Serializer.STRING_NOSIZE,
-                Serializer.LONG, Serializer.LONG_PACKED, Serializer.LONG_DELTA, Serializer.INTEGER,
-                Serializer.INTEGER_PACKED, Serializer.INTEGER_DELTA, Serializer.BOOLEAN, Serializer.RECID,
-                Serializer.RECID_ARRAY, Serializer.SERIALIZER_UNSUPPORTED, Serializer.BYTE_ARRAY, Serializer.BYTE_ARRAY_DELTA,
-                Serializer.BYTE_ARRAY_DELTA2, Serializer.BYTE_ARRAY_NOSIZE, Serializer.CHAR_ARRAY, Serializer.INT_ARRAY,
-                Serializer.LONG_ARRAY, Serializer.DOUBLE_ARRAY, Serializer.JAVA, Serializer.ELSA, Serializer.UUID,
-                Serializer.BYTE, Serializer.FLOAT, Serializer.DOUBLE, Serializer.SHORT, Serializer.SHORT_ARRAY,
-                Serializer.FLOAT_ARRAY, Serializer.BIG_INTEGER, Serializer.BIG_DECIMAL, Serializer.CLASS,
-                Serializer.DATE,
+                Serializers.CHAR, Serializers.STRING_ORIGHASH, Serializers.STRING, Serializers.STRING_DELTA,
+                Serializers.STRING_DELTA2, Serializers.STRING_INTERN, Serializers.STRING_ASCII, Serializers.STRING_NOSIZE,
+                Serializers.LONG, Serializers.LONG_PACKED, Serializers.LONG_DELTA, Serializers.INTEGER,
+                Serializers.INTEGER_PACKED, Serializers.INTEGER_DELTA, Serializers.BOOLEAN, Serializers.RECID,
+                Serializers.RECID_ARRAY, Serializers.SERIALIZER_UNSUPPORTED, Serializers.BYTE_ARRAY, Serializers.BYTE_ARRAY_DELTA,
+                Serializers.BYTE_ARRAY_DELTA2, Serializers.BYTE_ARRAY_NOSIZE, Serializers.CHAR_ARRAY, Serializers.INT_ARRAY,
+                Serializers.LONG_ARRAY, Serializers.DOUBLE_ARRAY, Serializers.JAVA, Serializers.ELSA, Serializers.UUID,
+                Serializers.BYTE, Serializers.FLOAT, Serializers.DOUBLE, Serializers.SHORT, Serializers.SHORT_ARRAY,
+                Serializers.FLOAT_ARRAY, Serializers.BIG_INTEGER, Serializers.BIG_DECIMAL, Serializers.CLASS,
+                Serializers.DATE,
                 Collections.EMPTY_LIST,
                 Collections.EMPTY_SET,
                 Collections.EMPTY_MAP,
-                Serializer.SQL_DATE,
-                Serializer.SQL_TIME,
-                Serializer.SQL_TIMESTAMP
+                Serializers.SQL_DATE,
+                Serializers.SQL_TIME,
+                Serializers.SQL_TIMESTAMP
         )
 
     }
@@ -587,10 +587,10 @@ open class DB(
 
             //clear collection
             when (obj) {
-                is Atomic.Boolean -> deleteRecid(Serializer.BOOLEAN)
-                is Atomic.Integer -> deleteRecid(Serializer.INTEGER)
-                is Atomic.Long -> deleteRecid(Serializer.LONG)
-                is Atomic.String -> deleteRecid(Serializer.STRING)
+                is Atomic.Boolean -> deleteRecid(Serializers.BOOLEAN)
+                is Atomic.Integer -> deleteRecid(Serializers.INTEGER)
+                is Atomic.Long -> deleteRecid(Serializers.LONG)
+                is Atomic.String -> deleteRecid(Serializers.STRING)
                 is Atomic.Var<*> -> deleteRecid(obj.serializer)
 
                 is MutableCollection<*> -> obj.clear()
@@ -654,9 +654,9 @@ open class DB(
         override fun awareItems() = arrayOf(_keySerializer, _valueSerializer, _valueLoader)
 
         @Suppress("UNCHECKED_CAST")
-        protected var _keySerializer:Serializer<K> = db.defaultSerializer as Serializer<K>
+        protected var _keySerializer: Serializer<K> = db.defaultSerializer as Serializer<K>
         @Suppress("UNCHECKED_CAST")
-        protected var _valueSerializer:Serializer<V> = db.defaultSerializer as Serializer<V>
+        protected var _valueSerializer: Serializer<V> = db.defaultSerializer as Serializer<V>
         protected var _valueInline = false
 
         protected var _concShift = CC.HTREEMAP_CONC_SHIFT
@@ -695,7 +695,8 @@ open class DB(
                     if (!triggered && newVal == null && oldVal != null) {
                         //removal, also remove from overflow map
                         val oldVal2 = expireOverflow.remove(key)
-                        if (oldVal2 != null && _valueSerializer.equals(oldVal, oldVal2)) {
+                        //TODO replace defaultHasher with comparator for values
+                        if (oldVal2 != null && _valueSerializer.defaultHasher().equals(oldVal, oldVal2)) {
                             Utils.LOG.warning { "Key also removed from overflow Map, but value in overflow Map differs" }
                         }
                     } else if (triggered && newVal == null) {
@@ -739,7 +740,7 @@ open class DB(
 
             val counterRecids = if (_counterEnable) {
                 val cr = LongArray(segmentCount, { segment ->
-                    stores[segment].put(0L, Serializer.LONG_PACKED)
+                    stores[segment].put(0L, Serializers.LONG_PACKED)
                 })
                 catalog[name + Keys.counterRecids] = LongArrayList.newListWith(*cr).makeString("", ",", "")
                 cr
@@ -761,9 +762,9 @@ open class DB(
             fun emptyLongQueue(segment: Int, qq: LongArrayList): QueueLong {
                 val store = stores[segment]
                 val q = store.put(null, QueueLong.Node.SERIALIZER);
-                val tailRecid = store.put(q, Serializer.RECID)
-                val headRecid = store.put(q, Serializer.RECID)
-                val headPrevRecid = store.put(0L, Serializer.RECID)
+                val tailRecid = store.put(q, Serializers.RECID)
+                val headRecid = store.put(q, Serializers.RECID)
+                val headPrevRecid = store.put(0L, Serializers.RECID)
                 qq.add(tailRecid)
                 qq.add(headRecid)
                 qq.add(headPrevRecid)
@@ -942,14 +943,14 @@ open class DB(
         storeFactory:(segment:Int)->Store = {_-> db.store}
     ):HTreeMapMaker<K,V,DBConcurrentMap<K,V>>(db,name,true,storeFactory){
 
-        fun <A> keySerializer(keySerializer:Serializer<A>):HashMapMaker<A,V>{
+        fun <A> keySerializer(keySerializer: Serializer<A>):HashMapMaker<A,V>{
             @Suppress("UNCHECKED_CAST")
             _keySerializer = keySerializer as Serializer<K>
             @Suppress("UNCHECKED_CAST")
             return this as HashMapMaker<A, V>
         }
 
-        fun <A> valueSerializer(valueSerializer:Serializer<A>):HashMapMaker<K,A>{
+        fun <A> valueSerializer(valueSerializer: Serializer<A>):HashMapMaker<K,A>{
             @Suppress("UNCHECKED_CAST")
             _valueSerializer = valueSerializer as Serializer<V>
             @Suppress("UNCHECKED_CAST")
@@ -1123,9 +1124,9 @@ open class DB(
          override fun awareItems() = arrayOf(_keySerializer, _valueSerializer, _valueLoader)
 
          @Suppress("UNCHECKED_CAST")
-         protected var _keySerializer:GroupSerializer<K> = db.defaultSerializer as GroupSerializer<K>
-         protected var _valueSerializer:GroupSerializer<V> =
-                 GroupSerializerWrapper.wrap(if(hasValues) db.defaultSerializer else BTreeMap.NO_VAL_SERIALIZER)
+         protected var _keySerializer:Serializer<K> = db.defaultSerializer as Serializer<K>
+         protected var _valueSerializer:Serializer<V> =
+                 (if(hasValues) db.defaultSerializer else BTreeMap.NO_VAL_SERIALIZER) as Serializer<V>
 
          protected var _maxNodeSize = CC.BTREEMAP_MAX_NODE_SIZE
          protected var _counterEnable: Boolean = false
@@ -1151,23 +1152,27 @@ open class DB(
                  db.nameCatalogPutClass(catalog, name + Keys.comparator, _comparator!!)
 
              val rootRecidRecid2 = _rootRecidRecid
-                     ?: BTreeMap.putEmptyRoot(db.store, _keySerializer , _valueSerializer)
+                     ?: BTreeMap.putEmptyRoot(
+                     db.store,
+                     Serializers.wrapGroupSerializer(_keySerializer) ,
+                     _comparator?:_keySerializer.defaultHasher(),
+                     Serializers.wrapGroupSerializer(_valueSerializer))
              catalog[name + Keys.rootRecidRecid] = rootRecidRecid2.toString()
 
              val counterRecid2 =
-                     if (_counterEnable) _counterRecid ?: db.store.put(0L, Serializer.LONG_PACKED)
+                     if (_counterEnable) _counterRecid ?: db.store.put(0L, Serializers.LONG_PACKED)
                      else 0L
              catalog[name + Keys.counterRecid] = counterRecid2.toString()
 
              catalog[name + Keys.maxNodeSize] = _maxNodeSize.toString()
 
              val ret = BTreeMap(
-                     keySerializer = _keySerializer,
-                     valueSerializer = _valueSerializer,
+                     keySerializer = Serializers.wrapGroupSerializer(_keySerializer),
+                     valueSerializer = Serializers.wrapGroupSerializer(_valueSerializer),
                      rootRecidRecid = rootRecidRecid2,
                      store = db.store,
                      maxNodeSize = _maxNodeSize,
-                     comparator = _comparator?:_keySerializer,
+                     comparator = _comparator?:_keySerializer.defaultHasher(),
                      isThreadSafe = db.isThreadSafe,
                      counterRecid = counterRecid2,
                      hasValues = hasValues,
@@ -1193,13 +1198,13 @@ open class DB(
              _valueSerializer =
                      if(!hasValues) {
                          @Suppress("UNCHECKED_CAST")
-                         BTreeMap.NO_VAL_SERIALIZER as GroupSerializer<V>
+                         BTreeMap.NO_VAL_SERIALIZER as Serializer<V>
                      }else {
                          db.nameCatalogGetClass(catalog, name + Keys.valueSerializer) ?: _valueSerializer
                      }
 
              val comparator:Comparator<K> =
-                     db.nameCatalogGetClass(catalog, name + Keys.comparator) ?: (_comparator ?:_keySerializer)
+                     db.nameCatalogGetClass(catalog, name + Keys.comparator) ?: (_comparator ?:_keySerializer.defaultHasher())
 
              val counterRecid2 = catalog[name + Keys.counterRecid]!!.toLong()
              _maxNodeSize = catalog[name + Keys.maxNodeSize]!!.toInt()
@@ -1215,8 +1220,8 @@ open class DB(
 
              _valueInline = (catalog[name + Keys.valueInline]?:"true").toBoolean()
              val ret = BTreeMap(
-                     keySerializer = _keySerializer,
-                     valueSerializer = _valueSerializer,
+                     keySerializer = Serializers.wrapGroupSerializer(_keySerializer),
+                     valueSerializer = Serializers.wrapGroupSerializer(_valueSerializer),
                      rootRecidRecid = rootRecidRecid2,
                      store = db.store,
                      maxNodeSize = _maxNodeSize,
@@ -1242,16 +1247,16 @@ open class DB(
             name:String
     ):BTreeMapMaker<K,V,DBConcurrentNavigableMap<K,V>>(db,name,hasValues=true){
 
-        fun <A> keySerializer(keySerializer:Serializer<A>):TreeMapMaker<A,V>{
-            _keySerializer = GroupSerializerWrapper.wrap(keySerializer)
+        fun <A> keySerializer(keySerializer: Serializer<A>):TreeMapMaker<A,V>{
+            _keySerializer = keySerializer as Serializer<K>
             @Suppress("UNCHECKED_CAST")
             return this as TreeMapMaker<A, V>
         }
 
-        fun <A> valueSerializer(valueSerializer:Serializer<A>):TreeMapMaker<K,A>{
+        fun <A> valueSerializer(valueSerializer: Serializer<A>):TreeMapMaker<K,A>{
             if(!hasValues)
                 throw DBException.WrongConfiguration("Set, no vals")
-            _valueSerializer = GroupSerializerWrapper.wrap(valueSerializer)
+            _valueSerializer = valueSerializer as Serializer<V>
             @Suppress("UNCHECKED_CAST")
             return this as TreeMapMaker<K, A>
         }
@@ -1315,7 +1320,7 @@ open class DB(
                     store = db.store,
                     keySerializer = _keySerializer,
                     valueSerializer = _valueSerializer,
-                    comparator = _comparator?:_keySerializer,
+                    comparator = _comparator?:_keySerializer.defaultHasher(),
                     dirNodeSize = _maxNodeSize *3/4,
                     leafNodeSize = _maxNodeSize *3/4,
                     valueInline = _valueInline
@@ -1332,7 +1337,7 @@ open class DB(
                     this@TreeMapMaker._rootRecidRecid = consumer.rootRecidRecid
                             ?: throw IllegalStateException()
                     this@TreeMapMaker._counterRecid =
-                            if(_counterEnable) db.store.put(consumer.counter, Serializer.LONG_PACKED)
+                            if(_counterEnable) db.store.put(consumer.counter, Serializers.LONG_PACKED)
                             else 0L
                     return this@TreeMapMaker.make2(create=true)
                 }
@@ -1355,8 +1360,8 @@ open class DB(
     ) :BTreeMapMaker<E, Boolean, DBNavigableSet<E>>(db,name,hasValues=false){
 
 
-        fun <A> serializer(serializer:Serializer<A>):TreeSetMaker<A>{
-            this._keySerializer = GroupSerializerWrapper.wrap(serializer)
+        fun <A> serializer(serializer: Serializer<A>):TreeSetMaker<A>{
+            this._keySerializer = serializer as Serializer<E>
             @Suppress("UNCHECKED_CAST")
             return this as TreeSetMaker<A>
         }
@@ -1391,9 +1396,9 @@ open class DB(
 
             val consumer = Pump.treeMap(
                     store = db.store,
-                    keySerializer = _keySerializer,
-                    valueSerializer = _valueSerializer,
-                    comparator = _comparator?:_keySerializer,
+                    keySerializer = Serializers.wrapGroupSerializer(_keySerializer),
+                    valueSerializer = Serializers.wrapGroupSerializer(_valueSerializer),
+                    comparator = _comparator?:_keySerializer.defaultHasher(),
                     dirNodeSize = _maxNodeSize *3/4,
                     leafNodeSize = _maxNodeSize *3/4,
                     hasValues = false
@@ -1410,7 +1415,7 @@ open class DB(
                     this@TreeSetMaker._rootRecidRecid = consumer.rootRecidRecid
                             ?: throw IllegalStateException()
                     this@TreeSetMaker._counterRecid =
-                            if(_counterEnable) db.store.put(consumer.counter, Serializer.LONG_PACKED)
+                            if(_counterEnable) db.store.put(consumer.counter, Serializers.LONG_PACKED)
                             else 0L
                     return this@TreeSetMaker.make2(create=true)
                 }
@@ -1460,7 +1465,7 @@ open class DB(
             _valueInline =true
         }
 
-        fun <A> serializer(serializer:Serializer<A>):HashSetMaker<A>{
+        fun <A> serializer(serializer: Serializer<A>):HashSetMaker<A>{
             @Suppress("UNCHECKED_CAST")
             _keySerializer = serializer as Serializer<E>
             @Suppress("UNCHECKED_CAST")
@@ -1651,7 +1656,7 @@ open class DB(
         override fun awareItems(): Array<Any?> = arrayOf()
 
         override fun create2(catalog: SortedMap<String, String>): Atomic.Integer {
-            val recid = db.store.put(value, Serializer.INTEGER)
+            val recid = db.store.put(value, Serializers.INTEGER)
             catalog[name+Keys.recid] = recid.toString()
             return Atomic.Integer(db.store, recid)
         }
@@ -1678,7 +1683,7 @@ open class DB(
         override fun awareItems(): Array<Any?> = arrayOf()
 
         override fun create2(catalog: SortedMap<String, String>): Atomic.Long {
-            val recid = db.store.put(value, Serializer.LONG)
+            val recid = db.store.put(value, Serializers.LONG)
             catalog[name+Keys.recid] = recid.toString()
             return Atomic.Long(db.store, recid, false) //TODO param for not negative
         }
@@ -1703,7 +1708,7 @@ open class DB(
         override fun awareItems(): Array<Any?> = arrayOf()
 
         override fun create2(catalog: SortedMap<String, String>): Atomic.Boolean {
-            val recid = db.store.put(value, Serializer.BOOLEAN)
+            val recid = db.store.put(value, Serializers.BOOLEAN)
             catalog[name+Keys.recid] = recid.toString()
             return Atomic.Boolean(db.store, recid)
         }
@@ -1730,7 +1735,7 @@ open class DB(
         override fun awareItems(): Array<Any?> = arrayOf()
 
         override fun create2(catalog: SortedMap<String, String>): Atomic.String {
-            val recid = db.store.put(value, Serializer.STRING_NOSIZE)
+            val recid = db.store.put(value, Serializers.STRING_NOSIZE)
             catalog[name+Keys.recid] = recid.toString()
             return Atomic.String(db.store, recid)
         }
@@ -1754,7 +1759,7 @@ open class DB(
     class AtomicVarMaker<E>(db:DB,
                             name:String,
                             @Suppress("UNCHECKED_CAST")
-                            protected val serializer:Serializer<E> = db.defaultSerializer as Serializer<E>,
+                            protected val serializer: Serializer<E> = db.defaultSerializer as Serializer<E>,
                             protected val value:E? = null):Maker<Atomic.Var<E>>(db,name, "AtomicVar"){
 
         override fun awareItems():Array<Any?> = arrayOf(serializer)
@@ -1783,9 +1788,9 @@ open class DB(
     }
 
     fun atomicVar(name:String) = atomicVar(name, defaultSerializer)
-    fun <E> atomicVar(name:String, serializer:Serializer<E> ) = AtomicVarMaker(this, name, serializer)
+    fun <E> atomicVar(name:String, serializer: Serializer<E>) = AtomicVarMaker(this, name, serializer)
     fun <E> atomicVar(name:String, clazz:Class<E> ) = AtomicVarMaker(this, name, serializerForClass(clazz))
-    fun <E> atomicVar(name:String, serializer:Serializer<E>, value:E? ) = AtomicVarMaker(this, name, serializer, value)
+    fun <E> atomicVar(name:String, serializer: Serializer<E>, value:E? ) = AtomicVarMaker(this, name, serializer, value)
 
     fun <E> atomicVar(name:String, clazz:Class<E>, value:E? ) = AtomicVarMaker(this, name, serializerForClass(clazz), value)
 
@@ -1850,7 +1855,7 @@ open class DB(
 
 
     class IndexTreeListMaker<E>(db:DB, name:String,
-            protected val serializer:Serializer<E>
+            protected val serializer: Serializer<E>
     ):Maker<IndexTreeList<E>>(db, name, "IndexTreeList"){
 
         private var _dirShift = CC.HTREEMAP_DIR_SHIFT
@@ -1880,7 +1885,7 @@ open class DB(
             catalog[name + Keys.removeCollapsesIndexTree] = _removeCollapsesIndexTree.toString()
             db.nameCatalogPutClass(catalog, name + Keys.serializer, serializer)
 
-            val counterRecid = db.store.put(0L, Serializer.LONG_PACKED)
+            val counterRecid = db.store.put(0L, Serializers.LONG_PACKED)
             catalog[name+Keys.counterRecid] = counterRecid.toString()
             val rootRecid = db.store.put(IndexTreeListJava.dirEmpty(), IndexTreeListJava.dirSer)
             catalog[name+Keys.rootRecid] = rootRecid.toString()
@@ -1926,7 +1931,7 @@ open class DB(
 
     fun <E> indexTreeList(name: String, clazz:Class<E>) = IndexTreeListMaker<E>(this, name, serializerForClass(clazz))
 
-    fun <E> indexTreeList(name: String, serializer:Serializer<E>) = IndexTreeListMaker<E>(this, name, serializer)
+    fun <E> indexTreeList(name: String, serializer: Serializer<E>) = IndexTreeListMaker<E>(this, name, serializer)
     fun indexTreeList(name: String) = IndexTreeListMaker<Any?>(this, name, defaultSerializer as Serializer<Any?>)
 
 

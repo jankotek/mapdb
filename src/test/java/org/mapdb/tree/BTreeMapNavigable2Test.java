@@ -2,7 +2,7 @@ package org.mapdb.tree;
 
 import junit.framework.TestCase;
 import org.mapdb.DBMaker;
-import org.mapdb.Serializer;
+import org.mapdb.serializer.Serializers;
 
 import java.util.*;
 
@@ -33,14 +33,14 @@ public  class BTreeMapNavigable2Test extends TestCase
     }
 
     protected NavigableMap<Integer, String> newMap() {
-        return DBMaker.memoryDB().make().treeMap("map", Serializer.INTEGER, Serializer.STRING).create();
+        return DBMaker.memoryDB().make().treeMap("map", Serializers.INTEGER, Serializers.STRING).create();
     }
 
 
     public static class Outside extends BTreeMapNavigable2Test{
         @Override protected NavigableMap<Integer, String> newMap() {
             return DBMaker.memoryDB().make()
-					.treeMap("map",Serializer.INTEGER, Serializer.STRING)
+					.treeMap("map", Serializers.INTEGER, Serializers.STRING)
 					//TODO enable external vals, once enabled
 			        // .valuesOutsideNodesEnable()
 					.create();

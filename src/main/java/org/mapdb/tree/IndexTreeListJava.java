@@ -2,6 +2,7 @@ package org.mapdb.tree;
 
 import org.mapdb.*;
 import org.mapdb.StoreBinaryGetLong;
+import org.mapdb.serializer.Serializer;
 
 import java.io.IOException;
 import java.util.Arrays;

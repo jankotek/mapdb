@@ -7,7 +7,7 @@ package org.mapdb.tree;
  */
 
 import org.mapdb.DBMaker;
-import org.mapdb.Serializer;
+import org.mapdb.serializer.Serializers;
 import org.mapdb.tree.jsr166Tests.JSR166TestCase;
 
 import java.io.Serializable;
@@ -45,7 +45,7 @@ public class BTreeMapSubSetTest extends JSR166TestCase {
 
     protected NavigableSet<Integer> newNavigableSet() {
         return DBMaker.memoryDB()
-                .make().treeSet("test").serializer(Serializer.INTEGER).createOrOpen();
+                .make().treeSet("test").serializer(Serializers.INTEGER).createOrOpen();
     }
 
     /*

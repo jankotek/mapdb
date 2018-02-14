@@ -2,7 +2,6 @@ package org.mapdb.serializer;
 
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
-import org.mapdb.Serializer;
 
 import java.io.IOException;
 import java.util.Comparator;
@@ -80,10 +79,5 @@ public interface GroupSerializer<A> extends Serializer<A> {
         return ret;
     }
 
-
-    /** returns value+1, or null if there is no bigger value. */
-    default A nextValue(A value){
-        throw new UnsupportedOperationException("Next Value not supported");
-    }
 
 }

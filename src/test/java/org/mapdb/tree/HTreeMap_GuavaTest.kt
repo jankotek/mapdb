@@ -1,8 +1,12 @@
 package org.mapdb.tree
 
+import org.junit.Assert
 import org.mapdb.*
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
+import org.mapdb.hasher.Hasher
+import org.mapdb.serializer.Serializer
+import org.mapdb.serializer.Serializers
 import org.mapdb.tree.guavaTests.ConcurrentMapInterfaceTest
 import java.io.IOException
 import java.util.*
@@ -29,9 +33,21 @@ class HTreeMap_GuavaTest(val mapMaker:(generic:Boolean)-> ConcurrentMap<Any?, An
                 out.writeInt(value)
             }
 
-            override fun hashCode(a: Int, seed: Int): Int {
-                //NOTE: fixed hash to generate collisions
-                return seed
+            override fun defaultHasher(): Hasher<Int> {
+                return object:Hasher<Int>{
+                    override fun hashCode(o: Int, seed: Int): Int {
+                        return 0
+                    }
+
+                    override fun compare(o1: Int?, o2: Int?): Int {
+                        throw AssertionError()
+                    }
+
+                    override fun equals(first: Int?, second: Int?): Boolean {
+                        return first == second
+                    }
+
+                }
             }
         }
 
@@ -67,7 +83,7 @@ class HTreeMap_GuavaTest(val mapMaker:(generic:Boolean)-> ConcurrentMap<Any?, An
                             }
 
                     val keySerializer =
-                            if (singleHash.not()) Serializer.INTEGER
+                            if (singleHash.not()) Serializers.INTEGER
                             else singleHashSerializer
 
                     if(inlineValue)
@@ -83,7 +99,7 @@ class HTreeMap_GuavaTest(val mapMaker:(generic:Boolean)-> ConcurrentMap<Any?, An
                         maker.counterEnable()
 
                     if(!generic)
-                        maker.keySerializer(keySerializer).valueSerializer(Serializer.STRING)
+                        maker.keySerializer(keySerializer).valueSerializer(Serializers.STRING)
 
                     if(!collapse)
                         maker.removeCollapsesIndexTreeDisable()

@@ -4,11 +4,13 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 import org.mapdb.*
+import org.mapdb.hasher.Hasher
+import org.mapdb.hasher.Hashers
 import org.mapdb.serializer.GroupSerializer
+import org.mapdb.serializer.Serializers
 import org.mapdb.store.StoreTrivial
 import java.io.IOException
 import java.util.*
-import kotlin.test.fail
 
 
 @RunWith(Parameterized::class)
@@ -50,9 +52,9 @@ class BTreeMap_PumpTest(
                     }
                     val keySer = if (otherComparator) {
                         // map should use Comparator for comparations, not this serializers
-                        object : GroupSerializer<Int> by Serializer.INTEGER {
+                        object : GroupSerializer<Int> by Serializers.INTEGER {
                             override fun valueArrayBinaryGet(input: DataInput2?, keysLen: Int, pos: Int): Int {
-                                fail()
+                                shouldFail("should not be used")
                             }
 
                             //TODO this needs more testing
@@ -60,26 +62,29 @@ class BTreeMap_PumpTest(
 //                            fail()
 //                        }
 
-                            override fun compare(first: Int?, second: Int?): Int {
-                                fail()
-                            }
-
-                            override fun valueArraySearch(keys: Any?, key: Int?): Int {
-                                fail()
-                            }
-
 //                        override fun valueArraySearch(keys: Any?, key: Int?, comparator: Comparator<*>?): Int {
 //                            fail()
 //                        }
+
+
+                            override fun valueArraySearch(keys: Any?, key: Int?): Int {
+                                shouldFail("should not be used")
+                            }
+
+
+                            override fun defaultHasher(): Hasher<Int> {
+                                return Hashers.FAIL as Hasher<Int>
+
+                            }
                         }
-                    } else Serializer.INTEGER
+                    } else Serializers.INTEGER
 
                     val m =
                             if (generic) db.treeMap("aa")
-                            else db.treeMap("aa", keySer, Serializer.STRING)
+                            else db.treeMap("aa", keySer, Serializers.STRING)
 
 
-                    val comparator = Serializer.INTEGER
+                    val comparator = Hashers.JAVA as Comparator<Int>
 
                     m.comparator(comparator)
 

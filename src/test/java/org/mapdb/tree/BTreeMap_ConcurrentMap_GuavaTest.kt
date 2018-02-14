@@ -6,7 +6,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 import org.mapdb.*
+import org.mapdb.hasher.Hasher
+import org.mapdb.hasher.Hashers
 import org.mapdb.serializer.GroupSerializer
+import org.mapdb.serializer.Serializers
 import org.mapdb.store.*
 import org.mapdb.tree.guavaTests.ConcurrentMapInterfaceTest
 import java.io.IOException
@@ -54,27 +57,24 @@ class BTreeMap_ConcurrentMap_GuavaTest(
                     }
 
                     val nodeSize = if(small) 4 else 32
-                    val counterRecid = if(counter) store.put(0L, Serializer.LONG_PACKED) else 0L
-                    var keySer:GroupSerializer<Int> = if(generic==null) Serializer.INTEGER else {
-                            if(generic) Serializer.ELSA as GroupSerializer<Int> else Serializer.INTEGER
+                    val counterRecid = if(counter) store.put(0L, Serializers.LONG_PACKED) else 0L
+                    var keySer:GroupSerializer<Int> = if(generic==null) Serializers.INTEGER else {
+                            if(generic) Serializers.wrapGroupSerializer(Serializers.ELSA) as GroupSerializer<Int> else Serializers.INTEGER
                         }
 
                     if(otherComparator && generic!=null && generic.not())
                         keySer = object: GroupSerializer<Int> by keySer{
-                            override fun compare(o1: Int?, o2: Int?): Int {
-                                throw AssertionError()
-                            }
 
-                            override fun equals(a1: Int?, a2: Int?): Boolean {
-                                throw AssertionError()
+                            override fun defaultHasher(): Hasher<Int> {
+                                return Hashers.FAIL as Hasher<Int>
                             }
                         }
 
-                    val valSer = if(generic==null) Serializer.INTEGER else{
-                            if(generic) Serializer.ELSA as GroupSerializer<String> else Serializer.STRING
+                    val valSer = if(generic==null) Serializers.INTEGER else{
+                            if(generic) Serializers.wrapGroupSerializer(Serializers.ELSA) else Serializers.STRING
                         }
                     BTreeMap.make(keySerializer = keySer, valueSerializer = valSer,
-                            comparator = if(otherComparator) Serializer.ELSA as Comparator<Int> else keySer,
+                            comparator = if(otherComparator) Serializers.ELSA as Comparator<Int> else keySer.defaultHasher(),
                             store = store, maxNodeSize =  nodeSize, isThreadSafe = isThreadSafe,
                             counterRecid = counterRecid, valueInline = valueInline)
                 }))

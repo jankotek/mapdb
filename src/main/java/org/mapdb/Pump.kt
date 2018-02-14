@@ -3,6 +3,8 @@ package org.mapdb
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.mapdb.tree.BTreeMapJava.*
 import org.mapdb.serializer.GroupSerializer
+import org.mapdb.serializer.Serializer
+import org.mapdb.serializer.Serializers
 import org.mapdb.tree.BTreeMapJava
 import java.util.*
 
@@ -33,14 +35,17 @@ object Pump{
 
     fun <K,V> treeMap(
             store:Store,
-            keySerializer:GroupSerializer<K>,
-            valueSerializer:GroupSerializer<V>,
-            comparator:Comparator<K> = keySerializer,
+            keySerializer: Serializer<K>,
+            valueSerializer:Serializer<V>,
+            comparator:Comparator<K> = keySerializer.defaultHasher(),
             leafNodeSize:Int = CC.BTREEMAP_MAX_NODE_SIZE*3/4,
             dirNodeSize:Int = CC.BTREEMAP_MAX_NODE_SIZE*3/4,
             hasValues:Boolean=true,
             valueInline:Boolean = true
     ): Sink<Pair<K,V>,Unit>{
+
+        val keySerializer2 = Serializers.wrapGroupSerializer(keySerializer)
+        val valueSerializer2 = Serializers.wrapGroupSerializer(valueSerializer)
 
         var prevKey:K? = null
 
@@ -60,14 +65,14 @@ object Pump{
             var leftEdgeLeaf = LEFT
             var nextLeafLink = 0L
 
-            val nodeSer = NodeSerializer(keySerializer, comparator,
-                    if(valueInline)valueSerializer else Serializer.RECID)
+            val nodeSer = NodeSerializer(keySerializer2, comparator,
+                    if(valueInline)valueSerializer2 else Serializers.RECID)
 
             fun nodeValues():Any {
                 return if(!hasValues) keys.size
                     else if(valueInline){
                         //values stored in node
-                        valueSerializer.valueArrayFromArray(values!!.toArray())
+                        valueSerializer2.valueArrayFromArray(values!!.toArray())
                     } else {
                         //each value in separate record
                         values!!.map{store.put(it, valueSerializer)}.toLongArray()
@@ -95,7 +100,7 @@ object Pump{
                 val node = BTreeMapJava.Node(
                         leftEdgeLeaf + LAST_KEY_DOUBLE,
                         link,
-                        keySerializer.valueArrayFromArray(keys.toArray()),
+                        keySerializer2.valueArrayFromArray(keys.toArray()),
                         nodeValues()
 
                 )
@@ -133,7 +138,7 @@ object Pump{
                     val dirNode = Node(
                             dir.leftEdge + DIR,
                             link2,
-                            keySerializer.valueArrayFromArray(dir.keys.toArray()),
+                            keySerializer2.valueArrayFromArray(dir.keys.toArray()),
                             dir.child.toArray()
                     )
                     //save dir
@@ -171,7 +176,7 @@ object Pump{
                 val endLeaf = BTreeMapJava.Node(
                     leftEdgeLeaf + RIGHT,
                     0L,
-                    keySerializer.valueArrayFromArray(keys.toArray()),
+                    keySerializer2.valueArrayFromArray(keys.toArray()),
                     nodeValues()
                 )
                 if(nextLeafLink==0L){
@@ -183,7 +188,7 @@ object Pump{
                 //is leaf the only node?
                 if(leftEdgeLeaf!=0){
                     //yes, close
-                    rootRecidRecid = store.put(nextLeafLink, Serializer.RECID)
+                    rootRecidRecid = store.put(nextLeafLink, Serializers.RECID)
                     return
                 }
 
@@ -197,7 +202,7 @@ object Pump{
                     val dirNode = Node(
                         dir.leftEdge + RIGHT + DIR,
                         0L,
-                        keySerializer.valueArrayFromArray(dir.keys.toArray()),
+                        keySerializer2.valueArrayFromArray(dir.keys.toArray()),
                         dir.child.toArray()
                     )
                     //save node
@@ -208,7 +213,7 @@ object Pump{
                     }
                     childFromLowerLevel = dir.nextDirLink;
                 }
-                rootRecidRecid = store.put(childFromLowerLevel, Serializer.RECID)
+                rootRecidRecid = store.put(childFromLowerLevel, Serializers.RECID)
           }
         }
     }

@@ -3,6 +3,7 @@ package org.mapdb.elsa;
 import org.fest.reflect.core.Reflection;
 import org.junit.Test;
 import org.mapdb.*;
+import org.mapdb.serializer.Serializer;
 
 import java.io.File;
 import java.io.IOException;

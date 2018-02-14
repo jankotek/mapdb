@@ -5,6 +5,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import org.mapdb.*
 import org.mapdb.TT.assertFailsWith
+import org.mapdb.serializer.Serializers
 import org.mapdb.util.DataIO
 import org.mapdb.volume.*
 import java.io.RandomAccessFile
@@ -49,8 +50,8 @@ class SortedTableMapTest{
     @Test fun header(){
         val volume = CC.DEFAULT_MEMORY_VOLUME_FACTORY.makeVolume(null, false)
         val consumer = SortedTableMap.createFromSink(
-                keySerializer = Serializer.INTEGER,
-                valueSerializer = Serializer.INTEGER,
+                keySerializer = Serializers.INTEGER,
+                valueSerializer = Serializers.INTEGER,
                 volume = volume
         )
         consumer.put(1,1)
@@ -61,8 +62,8 @@ class SortedTableMapTest{
 
     fun test(size:Int){
         val consumer = SortedTableMap.createFromSink(
-                keySerializer = Serializer.INTEGER,
-                valueSerializer = Serializer.INTEGER,
+                keySerializer = Serializers.INTEGER,
+                valueSerializer = Serializers.INTEGER,
                 volume = CC.DEFAULT_MEMORY_VOLUME_FACTORY.makeVolume(null, false)
         )
         for(i in 0 until size*3 step 3){
@@ -161,8 +162,8 @@ class SortedTableMapTest{
             return
 
         val consumer = SortedTableMap.createFromSink(
-                keySerializer = Serializer.INTEGER,
-                valueSerializer = Serializer.INTEGER,
+                keySerializer = Serializers.INTEGER,
+                valueSerializer = Serializers.INTEGER,
                 volume = CC.DEFAULT_MEMORY_VOLUME_FACTORY.makeVolume(null, false)
         )
         val size = 1e6.toInt()
@@ -213,8 +214,8 @@ class SortedTableMapTest{
         var volume = ByteArrayVol.FACTORY.makeVolume(null,false)
         val sink = SortedTableMap.create(
                 volume,
-                Serializer.BYTE_ARRAY,
-                Serializer.STRING).createFromSink()
+                Serializers.BYTE_ARRAY,
+                Serializers.STRING).createFromSink()
         TT.assertFailsWith(DBException.NotSorted::class.java) {
             for (key in 120L..131) {
                 sink.put(BigInteger.valueOf(key).toByteArray(), "value" + key)
@@ -226,7 +227,7 @@ class SortedTableMapTest{
     @Test fun headers2(){
         val f = TT.tempFile()
         val vol = RandomAccessFileVol.FACTORY.makeVolume(f.path, false)
-        val s =  SortedTableMap.create(vol, Serializer.LONG, Serializer.LONG).createFrom(HashMap())
+        val s =  SortedTableMap.create(vol, Serializers.LONG, Serializers.LONG).createFrom(HashMap())
         s.close()
         val raf = RandomAccessFile(f.path, "rw");
         raf.seek(0)
@@ -238,7 +239,7 @@ class SortedTableMapTest{
         raf.close()
         TT.assertFailsWith(DBException.NewMapDBFormat::class.java) {
             val vol2 = RandomAccessFileVol.FACTORY.makeVolume(f.path, false)
-            SortedTableMap.open(vol2, Serializer.LONG, Serializer.LONG)
+            SortedTableMap.open(vol2, Serializers.LONG, Serializers.LONG)
         }
         f.delete()
     }

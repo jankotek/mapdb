@@ -1,6 +1,7 @@
 package org.mapdb.serializer;
 
 import org.mapdb.*;
+import org.mapdb.hasher.Hasher;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -190,17 +191,7 @@ public final class SerializerCompressionWrapper<E> implements GroupSerializer<E>
     }
 
     @Override
-    public boolean equals(E a1, E a2) {
-        return serializer.equals(a1, a2);
-    }
-
-    @Override
-    public int hashCode(E e, int seed) {
-        return serializer.hashCode(e, seed);
-    }
-
-    @Override
-    public int compare(E o1, E o2) {
-        return serializer.compare(o1, o2);
+    public Hasher<E> defaultHasher() {
+        return serializer.defaultHasher();
     }
 }

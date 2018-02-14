@@ -2,6 +2,7 @@ package org.mapdb.tree
 
 import org.eclipse.collections.api.map.primitive.MutableLongLongMap
 import org.mapdb.*
+import org.mapdb.serializer.Serializer
 import org.mapdb.util.*
 import java.util.*
 import java.util.concurrent.locks.ReentrantReadWriteLock
@@ -12,7 +13,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
  */
 class IndexTreeList<E> (
         val store:Store,
-        val serializer:Serializer<E>,
+        val serializer: Serializer<E>,
         val map: MutableLongLongMap,
         counterRecid:Long,
         val isThreadSafe:Boolean

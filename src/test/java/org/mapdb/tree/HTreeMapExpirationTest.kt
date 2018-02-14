@@ -4,6 +4,7 @@ import org.fest.reflect.core.Reflection
 import org.junit.*
 import org.junit.Assert.*
 import org.mapdb.*
+import org.mapdb.serializer.Serializers
 import org.mapdb.volume.SingleByteArrayVol
 import java.util.*
 
@@ -134,7 +135,7 @@ class HTreeMapExpirationTest {
             return
 
         val map: HTreeMap<Int, Int> = HTreeMap.make(expireCreateTTL = 300, concShift = 4,
-                valueSerializer = Serializer.INTEGER, keySerializer = Serializer.INTEGER)
+                valueSerializer = Serializers.INTEGER, keySerializer = Serializers.INTEGER)
 
         val size = 10000
         TT.fork(16){
@@ -156,7 +157,7 @@ class HTreeMapExpirationTest {
             return
 
         val map: HTreeMap<Int, Int> = HTreeMap.make(expireUpdateTTL = 300, concShift = 4,
-                valueSerializer = Serializer.INTEGER, keySerializer = Serializer.INTEGER)
+                valueSerializer = Serializers.INTEGER, keySerializer = Serializers.INTEGER)
 
         val size = 10000
         TT.fork(16){
@@ -178,7 +179,7 @@ class HTreeMapExpirationTest {
             return
 
         val map: HTreeMap<Int, Int> = HTreeMap.make(expireGetTTL = 300, concShift = 4,
-                valueSerializer = Serializer.INTEGER, keySerializer = Serializer.INTEGER)
+                valueSerializer = Serializers.INTEGER, keySerializer = Serializers.INTEGER)
 
         val size = 10000
         TT.fork(16){
@@ -201,7 +202,7 @@ class HTreeMapExpirationTest {
             return
 
         val map = HTreeMap.make(expireCreateTTL = 300, concShift = 4,
-                valueSerializer = Serializer.INTEGER, keySerializer = Serializer.INTEGER,
+                valueSerializer = Serializers.INTEGER, keySerializer = Serializers.INTEGER,
                 expireExecutor = TT.executor(), expireExecutorPeriod = 100)
 
         for(i in 0 until 1000)
@@ -225,7 +226,7 @@ class HTreeMapExpirationTest {
             return
 
         val map = DBMaker.memoryDB().make()
-                .hashMap("aa", Serializer.INTEGER, Serializer.INTEGER)
+                .hashMap("aa", Serializers.INTEGER, Serializers.INTEGER)
                 .expireAfterCreate()
                 .expireMaxSize(1000)
                 .create() as HTreeMap
@@ -239,7 +240,7 @@ class HTreeMapExpirationTest {
             return
 
         val map = DBMaker.memoryDB().make()
-                .hashMap("aa", Serializer.INTEGER, Serializer.INTEGER)
+                .hashMap("aa", Serializers.INTEGER, Serializers.INTEGER)
                 .expireAfterCreate()
                 .expireMaxSize(1000)
                 .layout(0, 1.shl(4),4)
@@ -274,7 +275,7 @@ class HTreeMapExpirationTest {
                 .make()
 
         val map = db
-                .hashMap("map", Serializer.LONG, Serializer.BYTE_ARRAY)
+                .hashMap("map", Serializers.LONG, Serializers.BYTE_ARRAY)
                 .counterEnable()
                 .layout(0, 8,4)
                 .expireAfterCreate()
@@ -297,7 +298,7 @@ class HTreeMapExpirationTest {
 
         val db = DBMaker.memoryDB().make()
         val map = db
-                .hashMap("map", Serializer.INTEGER, Serializer.BYTE_ARRAY)
+                .hashMap("map", Serializers.INTEGER, Serializers.BYTE_ARRAY)
                 .counterEnable()
                 .layout(0, 8,4)
                 .expireAfterUpdate(5000)
@@ -336,7 +337,7 @@ class HTreeMapExpirationTest {
 
         val db = DBMaker.memoryDB().make()
         val map = db
-                .hashMap("map", Serializer.INTEGER, Serializer.BYTE_ARRAY)
+                .hashMap("map", Serializers.INTEGER, Serializers.BYTE_ARRAY)
                 .counterEnable()
                 .layout(0, 8,4)
                 .expireAfterUpdate(5000)
@@ -372,7 +373,7 @@ class HTreeMapExpirationTest {
 
         val db = DBMaker.memoryDB().make()
         val map = db
-                .hashMap("map", Serializer.INTEGER, Serializer.BYTE_ARRAY)
+                .hashMap("map", Serializers.INTEGER, Serializers.BYTE_ARRAY)
                 .counterEnable()
                 .layout(0, 8,4)
                 .expireAfterCreate()
@@ -388,13 +389,13 @@ class HTreeMapExpirationTest {
         assertEquals(1024*10, map.size)
 
         //insert 15MB into store, that should displace some entries
-        db.store.put(ByteArray(1024*1024*15), Serializer.BYTE_ARRAY)
+        db.store.put(ByteArray(1024*1024*15), Serializers.BYTE_ARRAY)
         map.expireEvict()
         assertTrue(map.size>0)
         assertTrue(map.size<1024*10)
 
         //insert another 15MB, map will become empty
-        db.store.put(ByteArray(1024*1024*15), Serializer.BYTE_ARRAY)
+        db.store.put(ByteArray(1024*1024*15), Serializers.BYTE_ARRAY)
         map.expireEvict()
         assertEquals(0, map.size)
     }
@@ -407,9 +408,9 @@ class HTreeMapExpirationTest {
             return
         val db = DBMaker.memoryDB().make()
 
-        val ondisk = db.hashMap("onDisk",Serializer.INTEGER,Serializer.STRING).create()
+        val ondisk = db.hashMap("onDisk", Serializers.INTEGER, Serializers.STRING).create()
 
-        val inmemory = db.hashMap("inmemory",Serializer.INTEGER,Serializer.STRING)
+        val inmemory = db.hashMap("inmemory", Serializers.INTEGER, Serializers.STRING)
                 .expireAfterCreate(1000)
                 .expireExecutor(TT.executor())
                 .expireExecutorPeriod(300)
@@ -447,8 +448,8 @@ class HTreeMapExpirationTest {
 
     @Test fun issue538_overflow_NPE1() {
         val db = DBMaker.memoryDB().make()
-        val m2 = db.hashMap("m2", Serializer.STRING,Serializer.LONG).create()
-        val m = db.hashMap("m", Serializer.STRING,Serializer.LONG)
+        val m2 = db.hashMap("m2", Serializers.STRING, Serializers.LONG).create()
+        val m = db.hashMap("m", Serializers.STRING, Serializers.LONG)
                 .expireOverflow(m2).create()
 
         assertNull(m["nonExistent"])
@@ -457,8 +458,8 @@ class HTreeMapExpirationTest {
 
     @Test fun issue538_overflow_NPE2() {
         val db = DBMaker.memoryDB().make()
-        val m2 = db.hashMap("m2", Serializer.STRING,Serializer.LONG).create()
-        val m = db.hashMap("m", Serializer.STRING,Serializer.LONG)
+        val m2 = db.hashMap("m2", Serializers.STRING, Serializers.LONG).create()
+        val m = db.hashMap("m", Serializers.STRING, Serializers.LONG)
                 .expireOverflow(m2).create()
 
         assertNull(m["nonExistent"])
@@ -470,7 +471,7 @@ class HTreeMapExpirationTest {
 
         val map2 = HashMap<Int,Int?>()
         val map1 = db
-                .hashMap("map", Serializer.INTEGER, Serializer.INTEGER)
+                .hashMap("map", Serializers.INTEGER, Serializers.INTEGER)
                 .expireAfterCreate(1000000)
                 .expireOverflow(map2)
                 .createOrOpen() as HTreeMap

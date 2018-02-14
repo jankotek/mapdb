@@ -2,7 +2,9 @@ package org.mapdb.serializer;
 
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
-import org.mapdb.Serializer;
+import org.mapdb.hasher.Hasher;
+import org.mapdb.hasher.Hashers;
+import org.mapdb.serializer.Serializers;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -53,7 +55,7 @@ public class SerializerString implements GroupSerializer<String> {
     @Override
     public int valueArraySearch(Object keys, String key) {
         char[] key2 = key.toCharArray();
-        return Arrays.binarySearch((char[][])keys, key2, CHAR_ARRAY);
+        return Arrays.binarySearch((char[][])keys, key2, Hashers.CHAR_ARRAY);
     }
 
     @Override
@@ -133,11 +135,8 @@ public class SerializerString implements GroupSerializer<String> {
         return vals2;
     }
 
-
     @Override
-    public int hashCode(String s, int seed) {
-        char[] c = s.toCharArray();
-        return CHAR_ARRAY.hashCode(c, seed);
+    public Hasher<String> defaultHasher() {
+        return Hashers.STRING;
     }
-
 }

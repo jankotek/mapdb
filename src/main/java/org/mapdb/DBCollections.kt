@@ -1,5 +1,6 @@
 package org.mapdb
 
+import org.mapdb.serializer.Serializer
 import org.mapdb.tree.BTreeMapJava
 import java.io.Closeable
 import java.util.*
@@ -70,9 +71,9 @@ interface DBConcurrentMap<K, V> : ConcurrentMap<K, V>,
 
     override fun forEach(action: BiConsumer<in K, in V>);
 
-    val keySerializer:Serializer<K>
+    val keySerializer: Serializer<K>
 
-    val valueSerializer:Serializer<V>
+    val valueSerializer: Serializer<V>
 
 
     /** Deletes key-value entry, returns true if the key was deleted, false if key was not present in map.

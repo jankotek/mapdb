@@ -4,12 +4,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.mapdb.*;
 import org.mapdb.serializer.GroupSerializer;
+import org.mapdb.serializer.Serializer;
 import org.mapdb.util.DataIO;
 import org.mapdb.util.Utils;
 
 import java.io.IOException;
 import java.io.ObjectStreamException;
-import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -396,7 +396,7 @@ public class BTreeMapJava {
 
     public static final class KeySet<E>
             extends AbstractSet<E>
-            implements DBNavigableSet<E>,Serializable {
+            implements DBNavigableSet<E>{
 
         protected final ConcurrentNavigableMap2<E,Object> m;
         private final boolean hasValues;
@@ -491,7 +491,8 @@ public class BTreeMapJava {
 
         @Override
         public int hashCode() {
-            return Utils.iterableHashCode(serializer, this);
+            //TODO use keyHasher
+            return Utils.iterableHashCode(serializer.defaultHasher(), this);
         }
 
         @Override
@@ -608,7 +609,8 @@ public class BTreeMapJava {
             if(key == null) return false;
             V1 v = m.get(key);
             //$DELAY$
-            return v != null && valueSerializer.equals(v,e.getValue());
+            //TODO custom value hasher
+            return v != null && valueSerializer.defaultHasher().equals(v,e.getValue());
         }
         @Override
         public boolean remove(Object o) {
@@ -739,7 +741,8 @@ public class BTreeMapJava {
             if(value==null) throw new NullPointerException();
             Iterator<V> i = valueIterator();
             while(i.hasNext()){
-                if(m.getValueSerializer().equals((V)value,i.next()))
+                //TODO custom value hasher
+                if(m.getValueSerializer().defaultHasher().equals((V)value,i.next()))
                     return true;
             }
             return false;
@@ -1206,7 +1209,8 @@ public class BTreeMapJava {
             if(value==null) throw new NullPointerException();
             Iterator<V> i = valueIterator();
             while(i.hasNext()){
-                if(m.getValueSerializer().equals((V) value,i.next()))
+                //TODO custom value hasher
+                if(m.getValueSerializer().defaultHasher().equals((V) value,i.next()))
                     return true;
             }
             return false;

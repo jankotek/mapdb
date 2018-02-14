@@ -4,8 +4,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
 import org.mapdb.DBMaker
-import org.mapdb.Serializer
 import org.mapdb.serializer.SerializerArrayDelta
+import org.mapdb.serializer.Serializers
 import org.mapdb.tree.BTreeMap
 import java.util.*
 
@@ -17,7 +17,7 @@ class Issue778Test {
         val db = DBMaker.heapDB()
                 .closeOnJvmShutdown().make()
 
-        val ser = SerializerArrayDelta(Serializer.STRING)
+        val ser = SerializerArrayDelta(Serializers.STRING)
         val m1 = db.treeMap("test")
                 .counterEnable()
                 .keySerializer(ser)
@@ -27,7 +27,7 @@ class Issue778Test {
                 .keySerializer(ser)
                 .createOrOpen() as BTreeMap<Array<Any>, String>
 
-        val ref = TreeMap<Array<Any>, String>(ser as Comparator<Array<Any>>)
+        val ref = TreeMap<Array<Any>, String>(ser.defaultHasher() as Comparator<Array<Any>>)
 
         for (i in 0..99) {
             val counter = i

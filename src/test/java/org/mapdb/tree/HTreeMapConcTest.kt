@@ -4,7 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
-import org.mapdb.Serializer
+import org.mapdb.serializer.Serializers
 import org.mapdb.TT
 import java.util.concurrent.ConcurrentMap
 
@@ -25,7 +25,7 @@ class HTreeMapConcTest(val mapMaker:(generic:Boolean)-> ConcurrentMap<Any?, Any?
     fun basicTest(){
         val map = mapMaker(false);
         var max = 10000;
-        if(map is HTreeMap && map.keySerializer == Serializer.INTEGER)
+        if(map is HTreeMap && map.keySerializer == Serializers.INTEGER)
             max += 1e6.toInt()*TT.testScale()
         val threadCount = 16
 

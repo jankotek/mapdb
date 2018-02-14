@@ -3,6 +3,7 @@ package org.mapdb.crash
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mapdb.*
+import org.mapdb.serializer.Serializers
 import org.mapdb.store.*
 import java.io.File
 
@@ -21,7 +22,7 @@ abstract class StoreCrashTest: CrashJVM(){
         while (true) {
             seed++;
             startSeed(seed)
-            store.update(recid, seed, Serializer.LONG)
+            store.update(recid, seed, Serializers.LONG)
             store.commit()
             commitSeed(seed)
         }
@@ -30,7 +31,7 @@ abstract class StoreCrashTest: CrashJVM(){
     override fun verifySeed(startSeed: Long, endSeed: Long, params:String): Long {
         val recid = params.toLong()
         val store = openStore(File(getTestDir(), "store"))
-        val seed = store.get(recid, Serializer.LONG)!!
+        val seed = store.get(recid, Serializers.LONG)!!
         store.close()
         assertTrue(seed<=startSeed)
         assertTrue(endSeed==-1L || seed>=endSeed);
@@ -44,7 +45,7 @@ abstract class StoreCrashTest: CrashJVM(){
             return
 
         val store = openStore(File(getTestDir(), "store"))
-        val recid = store.put(0L, Serializer.LONG)
+        val recid = store.put(0L, Serializers.LONG)
         store.commit()
         store.close()
         run(this, time = TT.testRuntime(6), params = recid.toString())

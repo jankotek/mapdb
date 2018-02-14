@@ -3,14 +3,17 @@ package org.mapdb.serializer;
 import org.jetbrains.annotations.NotNull;
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
-import org.mapdb.Serializer;
+import org.mapdb.hasher.Hasher;
+import org.mapdb.hasher.Hashers;
+import org.mapdb.serializer.Serializers;
 
 import java.io.IOException;
 
 /**
  * Created by jan on 2/28/16.
  */
-public class SerializerStringAscii extends GroupSerializerObjectArray<String> {
+//TODO use byte[] for wrapper
+public class SerializerStringAscii implements Serializer<String> {
     @Override
     public void serialize(DataOutput2 out, String value) throws IOException {
         int size = value.length();
@@ -36,8 +39,8 @@ public class SerializerStringAscii extends GroupSerializerObjectArray<String> {
     }
 
     @Override
-    public int hashCode(@NotNull String s, int seed) {
-        return STRING.hashCode(s, seed);
+    public Hasher<String> defaultHasher() {
+        return Hashers.STRING;
     }
 
     //        @Override

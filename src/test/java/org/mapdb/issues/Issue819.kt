@@ -3,7 +3,7 @@ package org.mapdb.issues
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.mapdb.DBMaker
-import org.mapdb.Serializer
+import org.mapdb.serializer.Serializers
 import org.mapdb.TestWithTempDir
 
 class Issue819: TestWithTempDir() {
@@ -11,7 +11,7 @@ class Issue819: TestWithTempDir() {
     @Test fun issue819(){
         val f = tempFile()
         var db = DBMaker.fileDB(f).make()
-        var m = db.hashMap("test", Serializer.INTEGER, Serializer.INTEGER)
+        var m = db.hashMap("test", Serializers.INTEGER, Serializers.INTEGER)
                 .layout(128, 10, 3).createOrOpen()
         for(i in 0 until 1000)
             m.put(i, i)
@@ -21,7 +21,7 @@ class Issue819: TestWithTempDir() {
 
         db.close()
         db = DBMaker.fileDB(f).make()
-        m = db.hashMap("test", Serializer.INTEGER, Serializer.INTEGER)
+        m = db.hashMap("test", Serializers.INTEGER, Serializers.INTEGER)
                 .open()
 
         for(i in 0 until 1000)
@@ -32,7 +32,7 @@ class Issue819: TestWithTempDir() {
     @Test fun issue819_counter(){
         val f = tempFile()
         var db = DBMaker.fileDB(f).make()
-        var m = db.hashMap("test", Serializer.INTEGER, Serializer.INTEGER)
+        var m = db.hashMap("test", Serializers.INTEGER, Serializers.INTEGER)
                 .counterEnable()
                 .layout(128, 10, 3).createOrOpen()
         for(i in 0 until 1000)
@@ -43,7 +43,7 @@ class Issue819: TestWithTempDir() {
 
         db.close()
         db = DBMaker.fileDB(f).make()
-        m = db.hashMap("test", Serializer.INTEGER, Serializer.INTEGER)
+        m = db.hashMap("test", Serializers.INTEGER, Serializers.INTEGER)
                 .counterEnable()
                 .open()
 

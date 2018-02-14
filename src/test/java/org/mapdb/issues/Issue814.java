@@ -1,11 +1,9 @@
 package org.mapdb.issues;
 
 import org.junit.Test;
-import org.mapdb.DB;
-import org.mapdb.DBConcurrentNavigableMap;
-import org.mapdb.DBMaker;
-import org.mapdb.Serializer;
+import org.mapdb.*;
 import org.mapdb.serializer.SerializerArrayDelta;
+import org.mapdb.serializer.Serializers;
 
 import java.util.Map;
 import java.util.Set;
@@ -17,8 +15,8 @@ public class Issue814 {
     public void issue814(){
         DB db = DBMaker.memoryDB().make();
         DBConcurrentNavigableMap<String[], String> treeMap = db.treeMap("preingest")
-                .keySerializer(new SerializerArrayDelta<>(Serializer.STRING))
-                .valueSerializer(Serializer.STRING).createOrOpen();
+                .keySerializer(new SerializerArrayDelta<>(Serializers.STRING))
+                .valueSerializer(Serializers.STRING).createOrOpen();
         //When getting a submap and getting the entrySet as follows:
 
         ConcurrentNavigableMap<String[], String> subMap = treeMap.

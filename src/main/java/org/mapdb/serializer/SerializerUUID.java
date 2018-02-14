@@ -2,7 +2,6 @@ package org.mapdb.serializer;
 
 import org.mapdb.DataInput2;
 import org.mapdb.DataOutput2;
-import org.mapdb.Serializer;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -33,23 +32,6 @@ public class SerializerUUID implements GroupSerializer<java.util.UUID> {
     public boolean isTrusted() {
         return true;
     }
-
-
-    @Override
-    public boolean equals(UUID a1, UUID a2) {
-        //on java6 equals method is not thread safe
-        return a1 == a2 || (a1 != null && a1.getLeastSignificantBits() == a2.getLeastSignificantBits()
-                && a1.getMostSignificantBits() == a2.getMostSignificantBits());
-    }
-
-    @Override
-    public int hashCode(UUID uuid, int seed) {
-        //on java6 uuid.hashCode is not thread safe. This is workaround
-        long a = uuid.getLeastSignificantBits() ^ uuid.getMostSignificantBits();
-        return ((int) (a >> 32)) ^ (int) a;
-
-    }
-
 
     @Override
     public int valueArraySearch(Object keys, UUID key) {

@@ -2,7 +2,7 @@ package org.mapdb.issues;
 
 import org.junit.Test;
 import org.mapdb.CC;
-import org.mapdb.Serializer;
+import org.mapdb.serializer.Serializers;
 import org.mapdb.flat.SortedTableMap;
 
 import java.util.Map;
@@ -18,8 +18,8 @@ public class Issue697 {
 
         SortedTableMap.Sink<Integer, String> sink = SortedTableMap.create(
                 CC.DEFAULT_MEMORY_VOLUME_FACTORY.makeVolume(null, false),
-                Serializer.INTEGER,
-                Serializer.STRING)
+                Serializers.INTEGER,
+                Serializers.STRING)
                 .createFromSink();
 
         for (int i = 0; i < 10; i++)

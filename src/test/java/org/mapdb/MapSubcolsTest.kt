@@ -2,6 +2,8 @@ package org.mapdb
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.mapdb.hasher.Hasher
+import org.mapdb.hasher.Hashers
 import org.mapdb.serializer.*
 import org.mapdb.tree.BTreeMap
 import java.util.*
@@ -15,15 +17,26 @@ abstract class MapSubcolsTest{
     var keyEqCount = 0
     var keyHashCount = 0
 
+
     val keyser = object: SerializerByteArray() {
-        override fun equals(first: ByteArray?, second: ByteArray?): Boolean {
-            keyEqCount++
-            return super.equals(first, second)
+        val hasher1 = object:Hasher<ByteArray> {
+            override fun compare(o1: ByteArray?, o2: ByteArray?): Int {
+                return Hashers.BYTE_ARRAY.compare(o1,o2)
+            }
+
+            override fun equals(first: ByteArray?, second: ByteArray?): Boolean {
+                keyEqCount++
+                return Hashers.BYTE_ARRAY.equals(first, second)
+            }
+
+            override fun hashCode(o: ByteArray, seed: Int): Int {
+                keyHashCount++
+                return Hashers.BYTE_ARRAY.hashCode(o, seed)
+            }
         }
 
-        override fun hashCode(o: ByteArray, seed: Int): Int {
-            keyHashCount++
-            return super.hashCode(o, seed)
+        override fun defaultHasher(): Hasher<ByteArray> {
+            return hasher1
         }
     }
 
@@ -31,14 +44,26 @@ abstract class MapSubcolsTest{
     var valHashCount = 0
 
     val valser = object: SerializerIntArray(){
-        override fun equals(first: IntArray?, second: IntArray?): Boolean {
-            valEqCount++
-            return super.equals(first, second)
+
+        val hasher1 = object:Hasher<IntArray> {
+            override fun compare(o1: IntArray?, o2: IntArray?): Int {
+                return Hashers.INT_ARRAY.compare(o1,o2)
+            }
+
+            override fun equals(first: IntArray?, second: IntArray?): Boolean {
+                valEqCount++
+                return Hashers.INT_ARRAY.equals(first, second)
+            }
+
+            override fun hashCode(o: IntArray, seed: Int): Int {
+                valHashCount++
+                return Hashers.INT_ARRAY.hashCode(o, seed)
+            }
+
         }
 
-        override fun hashCode(o: IntArray, seed: Int): Int {
-            valHashCount++
-            return super.hashCode(o, seed)
+        override fun defaultHasher(): Hasher<IntArray> {
+            return hasher1
         }
     }
 
@@ -62,7 +87,7 @@ abstract class MapSubcolsTest{
         map.put(byteArrayOf(2), intArrayOf(5))
         map.put(byteArrayOf(3), intArrayOf(6))
 
-        val keys = TreeSet<ByteArray>(keyser)
+        val keys = TreeSet<ByteArray>(keyser.defaultHasher())
         keys+=byteArrayOf(1)
         keys+=byteArrayOf(2)
         keys+=byteArrayOf(3)

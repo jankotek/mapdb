@@ -2,6 +2,7 @@ package org.mapdb.tree
 
 import org.mapdb.*
 import org.junit.Test
+import org.mapdb.serializer.Serializers
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -18,8 +19,8 @@ class HTreeMap_Expiration_Multithreaded {
 
         val db = DBMaker.memoryDB().make()
         val m = db.hashMap("aa")
-                .keySerializer(Serializer.UUID)
-                .valueSerializer(Serializer.BYTE_ARRAY)
+                .keySerializer(Serializers.UUID)
+                .valueSerializer(Serializers.BYTE_ARRAY)
                 .expireAfterCreate(20, TimeUnit.SECONDS)
                 .expireExecutor(TT.executor(3))
                 .create()
@@ -61,7 +62,7 @@ class HTreeMap_Expiration_Multithreaded {
 
         val db = DBMaker.memoryDB().make()
         val m = db
-                .hashMap("map", Serializer.JAVA, Serializer.JAVA)
+                .hashMap("map", Serializers.JAVA, Serializers.JAVA)
                 .expireAfterCreate(100)
                 .expireExecutor(TT.executor(1))
                 .expireExecutorPeriod(1)

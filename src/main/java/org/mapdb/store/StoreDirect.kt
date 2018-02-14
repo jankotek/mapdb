@@ -2,6 +2,8 @@ package org.mapdb.store
 
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.mapdb.*
+import org.mapdb.serializer.Serializer
+import org.mapdb.serializer.Serializers
 import org.mapdb.store.StoreDirectJava.*
 import org.mapdb.util.*
 import org.mapdb.util.DataIO.*
@@ -755,7 +757,8 @@ class StoreDirect(
             if (old !== null && expectedOldRecord === null)
                 return false
 
-            if (old !== expectedOldRecord && !serializer.equals(old!!, expectedOldRecord!!))
+            //TODO custom hasher
+            if (old !== expectedOldRecord && !serializer.defaultHasher().equals(old!!, expectedOldRecord!!))
                 return false
 
             val di = serialize(newRecord, serializer, recid);
@@ -814,7 +817,7 @@ class StoreDirect(
                         var data: ByteArray? = null;
                         var exist:Boolean;
                         try {
-                            data = getProtected(recid, Serializer.BYTE_ARRAY_NOSIZE)
+                            data = getProtected(recid, Serializers.BYTE_ARRAY_NOSIZE)
                             exist = true
                         } catch(e: Exception) {
                             //TODO better way to check for parity errors, EOF etc

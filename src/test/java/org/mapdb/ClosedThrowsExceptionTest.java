@@ -3,6 +3,7 @@ package org.mapdb;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mapdb.serializer.Serializers;
 
 import java.util.Map;
 
@@ -128,29 +129,29 @@ public abstract class ClosedThrowsExceptionTest {
 
     @Test(expected = IllegalStateException.class)
     public void closed_engine_get(){
-        long recid = db.getStore().put("aa",Serializer.STRING);
+        long recid = db.getStore().put("aa", Serializers.STRING);
         db.close();
-        db.getStore().get(recid,Serializer.STRING);
+        db.getStore().get(recid, Serializers.STRING);
     }
 
     @Test(expected = IllegalStateException.class)
     public void closed_engine_put(){
         db.close();
-        long recid = db.getStore().put("aa",Serializer.STRING);
+        long recid = db.getStore().put("aa", Serializers.STRING);
     }
 
     @Test(expected = IllegalStateException.class)
     public void closed_engine_update(){
-        long recid = db.getStore().put("aa",Serializer.STRING);
+        long recid = db.getStore().put("aa", Serializers.STRING);
         db.close();
-        db.getStore().update(recid, "aax", Serializer.STRING);
+        db.getStore().update(recid, "aax", Serializers.STRING);
     }
 
     @Test(expected = IllegalStateException.class)
     public void closed_engine_delete(){
-        long recid = db.getStore().put("aa",Serializer.STRING);
+        long recid = db.getStore().put("aa", Serializers.STRING);
         db.close();
-        db.getStore().delete(recid, Serializer.STRING);
+        db.getStore().delete(recid, Serializers.STRING);
     }
 
 }

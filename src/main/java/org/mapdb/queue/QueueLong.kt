@@ -3,6 +3,8 @@ package org.mapdb.queue
 
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.mapdb.*
+import org.mapdb.serializer.Serializer
+import org.mapdb.serializer.Serializers
 import org.mapdb.store.StoreTrivial
 import java.io.PrintStream
 
@@ -25,10 +27,10 @@ class QueueLong(
     companion object{
         fun make(
                 store: Store = StoreTrivial(),
-                tailRecid:Long = store.put(store.put(null, Node.SERIALIZER), Serializer.RECID),
+                tailRecid:Long = store.put(store.put(null, Node.SERIALIZER), Serializers.RECID),
                 //code bellow takes value from `tailRecid` and saves it as different record
-                headRecid:Long = store.put(store.get(tailRecid, Serializer.RECID), Serializer.RECID),
-                headPrevRecid:Long = store.put(0L, Serializer.RECID)
+                headRecid:Long = store.put(store.get(tailRecid, Serializers.RECID), Serializers.RECID),
+                headPrevRecid:Long = store.put(0L, Serializers.RECID)
         ) = QueueLong(store=store, tailRecid=tailRecid, headRecid = headRecid, headPrevRecid = headPrevRecid)
     }
 
@@ -41,16 +43,16 @@ class QueueLong(
         object SERIALIZER : Serializer<Node> {
 
             override fun serialize(out: DataOutput2, value: Node) {
-                Serializer.RECID.serialize(out, value.prevRecid)
-                Serializer.RECID.serialize(out, value.nextRecid)
+                Serializers.RECID.serialize(out, value.prevRecid)
+                Serializers.RECID.serialize(out, value.nextRecid)
                 out.packLong(value.timestamp)
                 out.packLong(value.value)
             }
 
             override fun deserialize(input: DataInput2, available: Int): Node? {
                 return Node(
-                    prevRecid = Serializer.RECID.deserialize(input, -1),
-                    nextRecid = Serializer.RECID.deserialize(input, -1),
+                    prevRecid = Serializers.RECID.deserialize(input, -1),
+                    nextRecid = Serializers.RECID.deserialize(input, -1),
                     timestamp = input.unpackLong(),
                     value = input.unpackLong()
                 )
@@ -60,16 +62,16 @@ class QueueLong(
     }
 
     var tail:Long
-        get() = store.get(tailRecid, Serializer.RECID)!!
-        set(value:Long) = store.update(tailRecid, value, Serializer.RECID)
+        get() = store.get(tailRecid, Serializers.RECID)!!
+        set(value:Long) = store.update(tailRecid, value, Serializers.RECID)
 
     var head:Long
-        get() = store.get(headRecid, Serializer.RECID)!!
-        set(value:Long) = store.update(headRecid, value, Serializer.RECID)
+        get() = store.get(headRecid, Serializers.RECID)!!
+        set(value:Long) = store.update(headRecid, value, Serializers.RECID)
 
     var headPrev:Long
-        get() = store.get(headPrevRecid, Serializer.RECID)!!
-        set(value:Long) = store.update(headPrevRecid, value, Serializer.RECID)
+        get() = store.get(headPrevRecid, Serializers.RECID)!!
+        set(value:Long) = store.update(headPrevRecid, value, Serializers.RECID)
 
 
     /** puts Node into queue, returns recid which represents this node */
@@ -124,7 +126,7 @@ class QueueLong(
             store.delete(tail2, Node.SERIALIZER)
             tail = curr.nextRecid
             //zero out headPrev if needed
-            store.compareAndSwap(headPrevRecid, tail2, 0L, Serializer.RECID)
+            store.compareAndSwap(headPrevRecid, tail2, 0L, Serializers.RECID)
             //fix prevRecid
             //TODO it should be possible to eliminate this step by comparing tail and node recid in #bump()
             val nextNode = store.get(curr.nextRecid, Node.SERIALIZER)

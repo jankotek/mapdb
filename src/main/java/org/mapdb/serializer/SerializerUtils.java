@@ -2,10 +2,6 @@ package org.mapdb.serializer;
 
 
 import java.util.HashMap;
-
-import org.mapdb.Serializer;
-import static org.mapdb.Serializer.*;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
@@ -18,38 +14,38 @@ public final class SerializerUtils {
     private static final Map<Class<?>, Serializer<?>> SERIALIZER_FOR_CLASS = new HashMap<>();
     
     static {       
-        put(char.class, CHAR);
-        put(Character.class, CHAR);
-        put(String.class, STRING);
-        put(long.class, LONG);
-        put(Long.class, LONG);
-        put(int.class, INTEGER);
-        put(Integer.class, INTEGER);
-        put(boolean.class, BOOLEAN);
-        put(Boolean.class, BOOLEAN);
-        put(byte[].class, BYTE_ARRAY);
-        put(char[].class, CHAR_ARRAY);
-        put(int[].class, INT_ARRAY);
-        put(long[].class, LONG_ARRAY);
-        put(double[].class, DOUBLE_ARRAY);
-        put(UUID.class, UUID);
-        put(byte.class, BYTE);
-        put(Byte.class, BYTE);
-        put(float.class, FLOAT);
-        put(Float.class, FLOAT);
-        put(double.class, DOUBLE);
-        put(Double.class, DOUBLE);
-        put(short.class, SHORT);
-        put(Short.class, SHORT);
-        put(short[].class, SHORT_ARRAY);
-        put(float[].class, FLOAT_ARRAY);
-        put(BigDecimal.class, BIG_DECIMAL);
-        put(BigInteger.class, BIG_INTEGER);
-        put(Class.class, CLASS);
-        put(Date.class, DATE);
-        put(java.sql.Date.class, SQL_DATE);
-        put(java.sql.Time.class, SQL_TIME);
-        put(java.sql.Timestamp.class, SQL_TIMESTAMP);
+        put(char.class, Serializers.CHAR);
+        put(Character.class, Serializers.CHAR);
+        put(String.class, Serializers.STRING);
+        put(long.class, Serializers.LONG);
+        put(Long.class, Serializers.LONG);
+        put(int.class, Serializers.INTEGER);
+        put(Integer.class, Serializers.INTEGER);
+        put(boolean.class, Serializers.BOOLEAN);
+        put(Boolean.class, Serializers.BOOLEAN);
+        put(byte[].class, Serializers.BYTE_ARRAY);
+        put(char[].class, Serializers.CHAR_ARRAY);
+        put(int[].class, Serializers.INT_ARRAY);
+        put(long[].class, Serializers.LONG_ARRAY);
+        put(double[].class, Serializers.DOUBLE_ARRAY);
+        put(UUID.class, Serializers.UUID);
+        put(byte.class, Serializers.BYTE);
+        put(Byte.class, Serializers.BYTE);
+        put(float.class, Serializers.FLOAT);
+        put(Float.class, Serializers.FLOAT);
+        put(double.class, Serializers.DOUBLE);
+        put(Double.class, Serializers.DOUBLE);
+        put(short.class, Serializers.SHORT);
+        put(Short.class, Serializers.SHORT);
+        put(short[].class, Serializers.SHORT_ARRAY);
+        put(float[].class, Serializers.FLOAT_ARRAY);
+        put(BigDecimal.class, Serializers.BIG_DECIMAL);
+        put(BigInteger.class, Serializers.BIG_INTEGER);
+        put(Class.class, Serializers.CLASS);
+        put(Date.class, Serializers.DATE);
+        put(java.sql.Date.class, Serializers.SQL_DATE);
+        put(java.sql.Time.class, Serializers.SQL_TIME);
+        put(java.sql.Timestamp.class, Serializers.SQL_TIMESTAMP);
     }
     
     // Make sure we are type safe!

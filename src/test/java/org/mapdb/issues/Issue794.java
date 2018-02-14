@@ -1,10 +1,8 @@
 package org.mapdb.issues;
 
 import org.junit.Test;
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
-import org.mapdb.Serializer;
-import org.mapdb.TT;
+import org.mapdb.*;
+import org.mapdb.serializer.Serializers;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -26,7 +24,7 @@ public class Issue794 {
     public void test() {
         DB db = DBMaker.memoryDB().closeOnJvmShutdown().make();
         DB.TreeMapSink<Long, DataPoint> sIds2DataPointSink =
-                db.treeMap("ids2DataPoint", Serializer.LONG, Serializer.ELSA).valuesOutsideNodesEnable().createFromSink();
+                db.treeMap("ids2DataPoint", Serializers.LONG, Serializers.ELSA).valuesOutsideNodesEnable().createFromSink();
         for (long i=0;i<limit;i++)
         {
             DataPoint point = new DataPoint();

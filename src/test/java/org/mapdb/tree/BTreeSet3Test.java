@@ -7,7 +7,7 @@ package org.mapdb.tree;
  */
 
 import org.mapdb.DBMaker;
-import org.mapdb.Serializer;
+import org.mapdb.serializer.Serializers;
 import org.mapdb.tree.jsr166Tests.JSR166TestCase;
 
 import java.util.*;
@@ -27,7 +27,7 @@ public class BTreeSet3Test extends JSR166TestCase {
      */
     private NavigableSet<Integer> populatedSet(int n) {
         NavigableSet<Integer> q =
-                DBMaker.memoryDB().make().treeSet("test").serializer(Serializer.INTEGER).createOrOpen();
+                DBMaker.memoryDB().make().treeSet("test").serializer(Serializers.INTEGER).createOrOpen();
         assertTrue(q.isEmpty());
 
         for (int i = n-1; i >= 0; i-=2)
@@ -47,7 +47,7 @@ public class BTreeSet3Test extends JSR166TestCase {
      */
     private NavigableSet set5() {
         NavigableSet q =
-                DBMaker.memoryDB().make().treeSet("test").serializer(Serializer.INTEGER).createOrOpen();
+                DBMaker.memoryDB().make().treeSet("test").serializer(Serializers.INTEGER).createOrOpen();
         assertTrue(q.isEmpty());
         q.add(one);
         q.add(two);
@@ -79,14 +79,14 @@ public class BTreeSet3Test extends JSR166TestCase {
 
     private static NavigableSet set0() {
         NavigableSet set =
-                DBMaker.memoryDB().make().treeSet("test").serializer(Serializer.INTEGER).createOrOpen();
+                DBMaker.memoryDB().make().treeSet("test").serializer(Serializers.INTEGER).createOrOpen();
         assertTrue(set.isEmpty());
         return set.tailSet(m1, true);
     }
 
     private static NavigableSet dset0() {
         NavigableSet set =
-                DBMaker.memoryDB().make().treeSet("test").serializer(Serializer.INTEGER).createOrOpen();
+                DBMaker.memoryDB().make().treeSet("test").serializer(Serializers.INTEGER).createOrOpen();
         assertTrue(set.isEmpty());
         return set;
     }
