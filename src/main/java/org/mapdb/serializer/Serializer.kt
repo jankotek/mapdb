@@ -1,12 +1,13 @@
 package org.mapdb.serializer
 
-import java.io.DataInput
-import java.io.DataOutput
+import org.mapdb.io.DataInput2
+import org.mapdb.io.DataOutput2
 
 /** Turns object instance into binary form and vice versa */
 interface Serializer<K>{
 
-    fun serialize(k:K, out: DataOutput)
+    fun serialize(out: DataOutput2, k:K)
 
-    fun deserialize(input:DataInput):K
+    fun deserialize(input: DataInput2):K
 }
+
