@@ -5,6 +5,9 @@ import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
 import org.junit.Assert.*
 import org.junit.Test
 import org.mapdb.*
+import org.mapdb.io.DataInput2
+import org.mapdb.io.DataOutput2
+import org.mapdb.serializer.Serializer
 import org.mapdb.serializer.Serializers
 import java.util.*
 import java.util.concurrent.atomic.AtomicLong
@@ -440,9 +443,77 @@ abstract class StoreTest {
         }
     }
 
+    @Test fun reentry(){
+        val store = openStore()
+
+        if(store is StoreOnHeap)
+            return // this store does not perform serialization
+
+        val recid = store.put("aa", Serializers.STRING)
+        val reentrySer1 = object: Serializer<String> {
+            override fun serialize(out: DataOutput2, k: String) {
+                out.writeUTF(k)
+                // that should fail
+                store.update(recid, Serializers.STRING, k)
+            }
+
+            override fun deserialize(input: DataInput2): String {
+                return input.readUTF()
+            }
+        }
+
+        val reentrySer2 = object: Serializer<String> {
+            override fun serialize(out: DataOutput2, k: String) {
+                out.writeUTF(k)
+             }
+
+            override fun deserialize(input: DataInput2): String {
+                val s = input.readUTF()
+                // that should fail
+                store.update(recid, Serializers.STRING, s)
+                return s
+            }
+        }
+
+        TT.assertFailsWith(DBException.StoreReentry::class){
+            store.put("aa", reentrySer1)
+            store.commit()
+        }
+
+        val recid2 = store.put("aa", Serializers.STRING)
+
+        TT.assertFailsWith(DBException.StoreReentry::class){
+            store.get(recid2, reentrySer2)
+        }
+
+        TT.assertFailsWith(DBException.StoreReentry::class){
+            store.update(recid2, reentrySer1, "bb")
+            store.commit()
+        }
+
+
+        TT.assertFailsWith(DBException.StoreReentry::class){
+            store.compareAndUpdate(recid2, reentrySer1, "aa", "bb")
+            store.commit()
+        }
+
+        TT.assertFailsWith(DBException.StoreReentry::class){
+            store.compareAndUpdate(recid2, reentrySer2, "aa", "bb")
+            store.commit()
+        }
+
+        TT.assertFailsWith(DBException.StoreReentry::class){
+            store.compareAndDelete(recid2, reentrySer2, "aa")
+            store.commit()
+        }
+
+    }
+
 }
 
 class StoreHeapTest : StoreTest() {
-    override fun openStore() = StoreOnHeap();
+    override fun openStore() = StoreOnHeap()
+
+
 }
 
