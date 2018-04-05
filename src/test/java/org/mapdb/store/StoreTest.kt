@@ -14,6 +14,8 @@ import java.util.*
 import java.util.concurrent.atomic.AtomicLong
 
 import io.kotlintest.*
+import java.io.ByteArrayOutputStream
+import java.nio.ByteBuffer
 
 /**
  * Tests contract on `Store` interface
@@ -432,7 +434,7 @@ abstract class StoreTest {
             }
 
             fun verify() {
-               //verify recids
+                //verify recids
                 recids.forEachWithIndex { recid, i ->
                     val r = store.get(recid, Serializers.BYTE_ARRAY_NOSIZE)
                     assertTrue(Arrays.equals(r, TT.randomByteArray(size, seed=i)))
@@ -468,7 +470,7 @@ abstract class StoreTest {
         val reentrySer2 = object: Serializer<String> {
             override fun serialize(out: DataOutput2, k: String) {
                 out.writeUTF(k)
-             }
+            }
 
             override fun deserialize(input: DataInput2): String {
                 val s = input.readUTF()
@@ -518,7 +520,7 @@ abstract class StoreTest {
 
         val max = 1000
 
-       val records = (0 until max).map{ n->
+        val records = (0 until max).map{ n->
             val recid = store.put(n, Serializers.INTEGER)
             Pair(recid, n)
         }
@@ -540,6 +542,27 @@ abstract class StoreTest {
             records[i].first shouldBe recid
             records[i].second shouldBe n
         }
+    }
+
+    @Test fun export_to_archive(){
+        val store = openStore()
+
+        val max = 1000
+
+        val records = (0 until max).map{ n->
+            val recid = store.put(n*1000, Serializers.INTEGER)
+            Pair(recid, n*1000)
+        }
+
+        val out = ByteArrayOutputStream()
+        StoreArchive.importFromStore(store, out)
+
+        val archive = StoreArchive(ByteBuffer.wrap(out.toByteArray()))
+
+        for((recid,n) in records){
+            archive.get(recid, Serializers.INTEGER) shouldBe n
+        }
+
     }
 }
 
