@@ -1,10 +1,7 @@
 package org.mapdb.store
 
-import org.eclipse.collections.api.list.primitive.LongList
-import org.eclipse.collections.api.list.primitive.MutableLongList
 import org.eclipse.collections.impl.factory.primitive.LongLists
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
-import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet
 import org.mapdb.DBException
 import org.mapdb.serializer.Serializer
 import org.mapdb.util.lockRead
@@ -12,23 +9,25 @@ import org.mapdb.util.lockWrite
 import java.util.concurrent.locks.ReadWriteLock
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
-class StoreOnHeap:MutableStore{
+class StoreOnHeap(
+        override val isThreadSafe:Boolean=true
+):MutableStore{
 
-    protected object NULL_RECORD:Object()
+    protected val NULL_RECORD = Pair(null, null)
 
 
-    protected val lock: ReadWriteLock? = ReentrantReadWriteLock()
+    protected val lock: ReadWriteLock? = if(isThreadSafe) ReentrantReadWriteLock() else null
 
-    protected val records: LongObjectHashMap<Any> = LongObjectHashMap.newMap()
+    protected val records: LongObjectHashMap<Pair<Any?,Serializer<*>?>> = LongObjectHashMap.newMap()
 
     protected val freeRecids = LongLists.mutable.empty()
 
     protected var maxRecid:Long = 0;
 
 
-    protected fun check(value:Any?):Any?{
+    protected fun check(value:Pair<Any?,Serializer<*>?>?):Any?{
         return if(value===NULL_RECORD) null
-        else value ?:throw DBException.RecidNotFound()
+            else value?.first ?:throw DBException.RecidNotFound()
     }
 
     override fun <K> get(recid: Long, serializer: Serializer<K>): K? {
@@ -54,7 +53,7 @@ class StoreOnHeap:MutableStore{
     override fun <K> put(record: K, serializer: Serializer<K>): Long {
         lock.lockWrite {
             val recid = preallocate2()
-            records.put(recid, record)
+            records.put(recid, Pair(record, serializer))
             return recid
         }
     }
@@ -63,7 +62,10 @@ class StoreOnHeap:MutableStore{
         lock.lockWrite {
             if(!records.containsKey(recid))
                 throw DBException.RecidNotFound()
-            records.put(recid, newRecord?:NULL_RECORD)
+            val newVal =
+                    if(newRecord==null) NULL_RECORD
+                    else Pair(newRecord,serializer)
+            records.put(recid, newVal)
         }
 
     }
@@ -74,7 +76,10 @@ class StoreOnHeap:MutableStore{
 
             if(oldRec!=expectedOldRecord)
                 return false
-            records.put(recid, newRecord?:NULL_RECORD)
+            val newVal =
+                    if(newRecord==null)NULL_RECORD
+                    else Pair(newRecord,serializer)
+            records.put(recid, newVal)
             return true
         }
     }
@@ -103,8 +108,6 @@ class StoreOnHeap:MutableStore{
 
     override fun commit() {
     }
-
-    override val isThreadSafe: Boolean = lock!=null
 
     override fun compact() {
     }

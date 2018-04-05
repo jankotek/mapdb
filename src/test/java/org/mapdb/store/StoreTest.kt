@@ -8,7 +8,6 @@ import org.mapdb.*
 import org.mapdb.serializer.Serializers
 import java.util.*
 import java.util.concurrent.atomic.AtomicLong
-import kotlin.test.assertFailsWith
 
 /**
  * Tests contract on `Store` interface
@@ -135,7 +134,7 @@ abstract class StoreTest {
     fun get_non_existent() {
         val e = openStore()
 
-        assertFailsWith(DBException.RecidNotFound::class) {
+        TT.assertFailsWith(DBException.RecidNotFound::class) {
             e.get(1, TT.Serializer_ILLEGAL_ACCESS)
         }
 
@@ -162,11 +161,11 @@ abstract class StoreTest {
         e.update(recid,  Serializers.LONG, 1L)
         assertEquals(1L.toLong(), e.get(recid, Serializers.LONG))
         e.delete(recid, Serializers.LONG)
-        assertFailsWith(DBException.RecidNotFound::class) {
+        TT.assertFailsWith(DBException.RecidNotFound::class) {
             assertNull(e.get(recid, TT.Serializer_ILLEGAL_ACCESS))
         }
         e.verify()
-        assertFailsWith(DBException.RecidNotFound::class) {
+        TT.assertFailsWith(DBException.RecidNotFound::class) {
             e.update(recid,  Serializers.LONG, 1L)
         }
         e.verify()
@@ -178,11 +177,11 @@ abstract class StoreTest {
         val recid = e.put(1L, Serializers.LONG)
         e.verify()
         assertTrue(e.compareAndDelete(recid, Serializers.LONG, 1L))
-        assertFailsWith(DBException.RecidNotFound::class) {
+        TT.assertFailsWith(DBException.RecidNotFound::class) {
             assertNull(e.get(recid, TT.Serializer_ILLEGAL_ACCESS))
         }
         e.verify()
-        assertFailsWith(DBException.RecidNotFound::class) {
+        TT.assertFailsWith(DBException.RecidNotFound::class) {
             e.update(recid,  Serializers.LONG, 1L)
         }
         e.verify()
@@ -207,7 +206,7 @@ abstract class StoreTest {
         val e = openStore()
         val recid = e.preallocate()
         e.delete(recid, Serializers.LONG)
-        assertFailsWith(DBException.RecidNotFound::class) {
+        TT.assertFailsWith(DBException.RecidNotFound::class) {
             assertTrue(e.compareAndUpdate(recid, Serializers.LONG, null, 1L))
         }
         e.verify()
@@ -226,7 +225,7 @@ abstract class StoreTest {
         assertEquals(s, e.get(recid, Serializers.STRING))
         e.verify()
         e.delete(recid, Serializers.STRING)
-        assertFailsWith(DBException.RecidNotFound::class) {
+        TT.assertFailsWith(DBException.RecidNotFound::class) {
             e.get(recid, Serializers.STRING)
         }
         e.verify()
@@ -249,7 +248,7 @@ abstract class StoreTest {
         assertTrue(Arrays.equals(b, e.get(recid, Serializers.BYTE_ARRAY_NOSIZE)))
         e.verify()
         e.delete(recid, Serializers.BYTE_ARRAY_NOSIZE)
-        assertFailsWith(DBException.RecidNotFound::class) {
+        TT.assertFailsWith(DBException.RecidNotFound::class) {
             e.get(recid, Serializers.BYTE_ARRAY_NOSIZE)
         }
         e.verify()
@@ -261,7 +260,7 @@ abstract class StoreTest {
         val recid = e.put(1L, Serializers.LONG)
         e.verify()
         e.delete(recid, Serializers.LONG)
-        assertFailsWith(DBException.RecidNotFound::class) {
+        TT.assertFailsWith(DBException.RecidNotFound::class) {
             e.get(recid, Serializers.LONG)
         }
         e.verify()
@@ -272,7 +271,7 @@ abstract class StoreTest {
         val e = openStore()
         val recid = e.put(1L, Serializers.LONG)
         e.delete(recid, Serializers.LONG)
-        assertFailsWith(DBException.RecidNotFound::class) {
+        TT.assertFailsWith(DBException.RecidNotFound::class) {
             e.update(recid, Serializers.LONG, 2L)
         }
         e.verify()
@@ -283,7 +282,7 @@ abstract class StoreTest {
         val e = openStore()
         val recid = e.put(1L, Serializers.LONG)
         e.delete(recid, Serializers.LONG)
-        assertFailsWith(DBException.RecidNotFound::class) {
+        TT.assertFailsWith(DBException.RecidNotFound::class) {
             e.delete(recid, Serializers.LONG)
         }
         e.verify()
@@ -315,7 +314,7 @@ abstract class StoreTest {
             val e = openStore()
             val recid = e.put(TT.randomString(size), Serializers.STRING)
             e.delete(recid, Serializers.STRING)
-            assertFailsWith(DBException.RecidNotFound::class) {
+            TT.assertFailsWith(DBException.RecidNotFound::class) {
                 e.get(recid, TT.Serializer_ILLEGAL_ACCESS)
             }
 

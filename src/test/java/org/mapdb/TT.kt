@@ -6,7 +6,6 @@ import org.mapdb.io.*
 import org.mapdb.serializer.Serializer
 import org.mapdb.serializer.Serializers
 import org.mapdb.store.MutableStore
-import org.mapdb.store.Store
 import java.io.*
 import java.util.*
 import java.util.concurrent.*
@@ -256,6 +255,24 @@ object TT{
         return field.get(obj) as E
     }
 
+    /**
+     * Catches expected exception, rethrows everything else.
+     *
+     * Compared to [kotlin.test.assertFailsWith] does not swallow wrong exceptions, better for debuging
+     *
+     */
+    fun <T : Throwable> assertFailsWith(exceptionClass: kotlin.reflect.KClass<T>, block: () -> Unit) {
+        try {
+            block()
+            fail("Expected exception ${exceptionClass}")
+        } catch (e: Throwable) {
+            if (exceptionClass.isInstance(e)) {
+                @Suppress("UNCHECKED_CAST")
+                return
+            }
+            throw e
+        }
+    }
 }
 
 class TTTest{

@@ -7,4 +7,6 @@ open class DBException(msg:String): RuntimeException(msg) {
     class StoreClosed(): DBException("Store was closed")
 
     class PointerChecksumBroken():DBException("data corrupted")
+
+    class WrongConfig(msg: String) : DBException(msg)
 }
