@@ -2,6 +2,7 @@ package org.mapdb.serializer
 
 import org.mapdb.io.DataInput2
 import org.mapdb.io.DataOutput2
+import org.mapdb.io.DataOutput2ByteArray
 
 object Serializers{
 
@@ -76,5 +77,12 @@ object Serializers{
             out.write(k)
         }
 
+    }
+
+    /** deserialize record into ByteArray using given serializer */
+    fun deserializeToByteArray(record: Any, serializer: Serializer<Any>): ByteArray {
+        val out = DataOutput2ByteArray()
+        serializer.serialize(out, record)
+        return out.copyBytes()
     }
 }

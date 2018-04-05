@@ -14,6 +14,13 @@ interface Store: Closeable{
     fun <K> get(recid:Long, serializer: Serializer<K>):K?
 
     override fun close()
+
+    /**
+     * Iterates over all records in store.
+     *
+     * Function takes recid and binary data
+     */
+    fun getAll(consumer:(Long, ByteArray?)->Unit)
 }
 
 /** Modifiable store */

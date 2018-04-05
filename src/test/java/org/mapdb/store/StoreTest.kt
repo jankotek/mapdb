@@ -5,12 +5,15 @@ import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
 import org.junit.Assert.*
 import org.junit.Test
 import org.mapdb.*
+import org.mapdb.io.DataIO
 import org.mapdb.io.DataInput2
 import org.mapdb.io.DataOutput2
 import org.mapdb.serializer.Serializer
 import org.mapdb.serializer.Serializers
 import java.util.*
 import java.util.concurrent.atomic.AtomicLong
+
+import io.kotlintest.*
 
 /**
  * Tests contract on `Store` interface
@@ -509,11 +512,42 @@ abstract class StoreTest {
 
     }
 
+
+    @Test fun recid_getAll_sorted(){
+        val store = openStore()
+
+        val max = 1000
+
+       val records = (0 until max).map{ n->
+            val recid = store.put(n, Serializers.INTEGER)
+            Pair(recid, n)
+        }
+
+        val records2 = ArrayList<Pair<Long, Int>>()
+        store.getAll{recid, data:ByteArray? ->
+            data!!.size shouldBe 4
+            val n = DataIO.getInt(data!!, 0)
+            records2+=Pair(recid, n)
+        }
+
+
+        records2.size shouldBe max
+        for(i in 0 until max){
+            val (recid, n) = records2[i]
+            n shouldBe i
+            store.get(recid, Serializers.INTEGER) shouldBe i
+
+            records[i].first shouldBe recid
+            records[i].second shouldBe n
+        }
+    }
 }
 
 class StoreHeapTest : StoreTest() {
     override fun openStore() = StoreOnHeap()
 
+
+    //TODO reentry failure tests for equals and hash methods
 
 }
 

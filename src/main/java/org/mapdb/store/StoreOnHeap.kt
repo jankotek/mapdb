@@ -4,6 +4,7 @@ import org.eclipse.collections.impl.factory.primitive.LongLists
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
 import org.mapdb.DBException
 import org.mapdb.serializer.Serializer
+import org.mapdb.serializer.Serializers
 import org.mapdb.util.lockRead
 import org.mapdb.util.lockWrite
 import java.util.concurrent.locks.ReadWriteLock
@@ -18,7 +19,7 @@ class StoreOnHeap(
 
     protected val lock: ReadWriteLock? = if(isThreadSafe) ReentrantReadWriteLock() else null
 
-    protected val records: LongObjectHashMap<Pair<Any?,Serializer<*>?>> = LongObjectHashMap.newMap()
+    protected val records: LongObjectHashMap<Pair<Any?,Serializer<Any>?>> = LongObjectHashMap.newMap()
 
     protected val freeRecids = LongLists.mutable.empty()
 
@@ -35,6 +36,20 @@ class StoreOnHeap(
             return check(records.get(recid)) as K?
         }
     }
+
+
+
+    override fun getAll(consumer: (Long, ByteArray?) -> Unit) {
+        lock.lockRead {
+            val recids = records.keySet().toSortedArray()
+            for(recid in recids){
+                val v = records.get(recid)!!
+                val data = if(v === NULL_RECORD) null else Serializers.deserializeToByteArray(v.first!!, v.second!!)
+                consumer(recid, data )
+            }
+        }
+    }
+
 
     protected fun preallocate2():Long{
         val recid =
@@ -53,7 +68,7 @@ class StoreOnHeap(
     override fun <K> put(record: K, serializer: Serializer<K>): Long {
         lock.lockWrite {
             val recid = preallocate2()
-            records.put(recid, Pair(record, serializer))
+            records.put(recid, Pair(record, serializer as Serializer<Any>))
             return recid
         }
     }
@@ -64,7 +79,7 @@ class StoreOnHeap(
                 throw DBException.RecidNotFound()
             val newVal =
                     if(newRecord==null) NULL_RECORD
-                    else Pair(newRecord,serializer)
+                    else Pair(newRecord,serializer as Serializer<Any>)
             records.put(recid, newVal)
         }
 
@@ -78,7 +93,7 @@ class StoreOnHeap(
                 return false
             val newVal =
                     if(newRecord==null)NULL_RECORD
-                    else Pair(newRecord,serializer)
+                    else Pair(newRecord,serializer as Serializer<Any>)
             records.put(recid, newVal)
             return true
         }

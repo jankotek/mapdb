@@ -34,8 +34,8 @@
     </scm>
 
     <properties>
-        <kotlin.version>1.2.0</kotlin.version>
-        <kotlin.plugin.version>1.2.0</kotlin.plugin.version>
+        <kotlin.version>1.2.30</kotlin.version>
+        <kotlin.plugin.version>1.2.30</kotlin.plugin.version>
 
         <java.target.version>1.8</java.target.version>
         <java.source.version>1.8</java.source.version>
@@ -138,6 +138,13 @@
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-reflect</artifactId>
             <version>${kotlin.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.kotlintest</groupId>
+            <artifactId>kotlintest-runner-junit5</artifactId>
+            <version>3.0.3</version>
             <scope>test</scope>
         </dependency>
 
