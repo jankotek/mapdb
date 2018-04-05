@@ -1,5 +1,7 @@
 package org.mapdb.io;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.mapdb.CC;
 import org.mapdb.DBException;
 
@@ -409,6 +411,18 @@ public final class DataIO {
     }
 
 
+    public static void readFully(@NotNull  FileChannel f, @NotNull ByteBuffer buf, long offset ) throws IOException {
+        int rem = buf.remaining();
+        while(rem>0) {
+            int read = f.read(buf, offset);
+            if(read<0)
+                throw new EOFException();
+            rem-=read;
+            offset+=read;
+        }
+    }
+
+
     public static void skipFully(InputStream in, long length) throws IOException {
         while ((length -= in.skip(length)) > 0);
     }
@@ -600,4 +614,10 @@ public final class DataIO {
         return true;
     }
 
+    @NotNull
+    public static int readInt(@NotNull FileChannel c, long offset) throws IOException {
+        ByteBuffer b = ByteBuffer.allocate(4);
+        readFully(c, b, offset);
+        return getInt(b.array(),0);
+    }
 }

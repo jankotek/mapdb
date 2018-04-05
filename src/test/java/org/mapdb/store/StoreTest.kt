@@ -14,6 +14,7 @@ import java.util.*
 import java.util.concurrent.atomic.AtomicLong
 
 import io.kotlintest.*
+import org.junit.Ignore
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 
@@ -448,7 +449,8 @@ abstract class StoreTest {
         }
     }
 
-    @Test fun reentry(){
+    @Test @Ignore
+    fun reentry(){
         val store = openStore()
 
         if(store is StoreOnHeap)

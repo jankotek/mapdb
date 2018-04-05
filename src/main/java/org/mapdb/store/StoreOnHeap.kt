@@ -44,7 +44,7 @@ class StoreOnHeap(
             val recids = records.keySet().toSortedArray()
             for(recid in recids){
                 val v = records.get(recid)!!
-                val data = if(v === NULL_RECORD) null else Serializers.deserializeToByteArray(v.first!!, v.second!!)
+                val data = if(v === NULL_RECORD) null else Serializers.serializeToByteArray(v.first!!, v.second!!)
                 consumer(recid, data )
             }
         }
@@ -59,6 +59,7 @@ class StoreOnHeap(
         records.put(recid, NULL_RECORD)
         return recid
     }
+
     override fun preallocate(): Long {
         lock.lockWrite {
             return preallocate2()

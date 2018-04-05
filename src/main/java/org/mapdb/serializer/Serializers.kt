@@ -79,10 +79,17 @@ object Serializers{
 
     }
 
-    /** deserialize record into ByteArray using given serializer */
-    fun deserializeToByteArray(record: Any, serializer: Serializer<Any>): ByteArray {
+    /** serialize record into ByteArray using given serializer */
+    fun <K> serializeToByteArray(record: K, serializer: Serializer<K>): ByteArray {
         val out = DataOutput2ByteArray()
         serializer.serialize(out, record)
         return out.copyBytes()
+    }
+
+
+    /** serialize record into ByteArray using given serializer */
+    fun <K> serializeToByteArrayNullable(record: K?, serializer: Serializer<K>): ByteArray? {
+        return if(record==null) null
+            else serializeToByteArray(record, serializer)
     }
 }
