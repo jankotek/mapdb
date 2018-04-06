@@ -11,6 +11,10 @@ public interface Issue888_JavaI {
     }
 
 
+    default int bb(){
+        return 1;
+    }
+
     class JJ implements Issue888_JavaI {
         @Override
         public int aa() {
@@ -26,11 +30,26 @@ public interface Issue888_JavaI {
             return 2;
         }
 
-        @Test public void testw(){
+        @Test public void test_override(){
             assertEquals(new JJ().aa(), 2);
             assertEquals(new JK().aa(), 2);
             assertEquals(new KJ().aa(), 2);
             assertEquals(new KK().aa(), 2);
+        }
+
+
+        @Test public void test_not_override(){
+            assertEquals(new JJ().bb(), 1);
+            assertEquals(new JK().bb(), 1);
+            assertEquals(new KJ().bb(), 1);
+            assertEquals(new KK().bb(), 1);
+        }
+
+
+        //FIXME this should not be here
+        @Override
+        public int bb() {
+            return 1;
         }
     }
 }
