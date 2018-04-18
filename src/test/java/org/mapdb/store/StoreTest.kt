@@ -1,29 +1,29 @@
 package org.mapdb.store
 
+import io.kotlintest.shouldBe
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
 import org.junit.Assert.*
+import org.junit.Ignore
 import org.junit.Test
-import org.mapdb.*
+import org.mapdb.DBException
+import org.mapdb.TT
 import org.mapdb.io.DataIO
 import org.mapdb.io.DataInput2
 import org.mapdb.io.DataOutput2
 import org.mapdb.serializer.Serializer
 import org.mapdb.serializer.Serializers
-import java.util.*
-import java.util.concurrent.atomic.AtomicLong
-
-import io.kotlintest.*
-import org.junit.Ignore
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
+import java.util.*
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Tests contract on `Store` interface
  */
 abstract class StoreTest {
 
-    abstract fun openStore(): MutableStore;
+    abstract fun openStore(): MutableStore
 
     @Test fun put_get() {
         val e = openStore()
@@ -569,7 +569,19 @@ abstract class StoreTest {
 }
 
 class StoreHeapTest : StoreTest() {
+
     override fun openStore() = StoreOnHeap()
+
+
+    //TODO reentry failure tests for equals and hash methods
+
+}
+
+
+
+class StoreOnHeapSerTest : StoreTest() {
+
+    override fun openStore() = StoreOnHeapSer()
 
 
     //TODO reentry failure tests for equals and hash methods
