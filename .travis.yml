@@ -1,11 +1,11 @@
 language: java
 cache:
   directories:
-  - $HOME/.m2
+  - $HOME/.gradle
 
 jdk:
   - oraclejdk8
 
 install: true
 
-script: mvn test
+script: gradle test
