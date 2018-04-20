@@ -8,4 +8,4 @@ jdk:
 
 install: true
 
-script: gradle test
+script: gradle test -v
