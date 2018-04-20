@@ -45,16 +45,3 @@ dependencies {
 
 
 }
-
-
-test {
-    useJUnitPlatform()
-
-
-    // Always run tests, even when nothing changed.
-    dependsOn 'cleanTest'
-
-    testLogging {
-        events "PASSED", "FAILED", "SKIPPED", "STANDARD_OUT", "STANDARD_ERROR"
-    }
-}
