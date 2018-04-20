@@ -1,11 +1,28 @@
 language: java
-cache:
-  directories:
-  - $HOME/.gradle
 
 jdk:
-  - oraclejdk8
+  - openjdk8
+  - oraclejdk9
+  - oraclejdk10
 
-install: true
+sudo: false
 
-script: gradle test -v
+before_cache:
+  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
+  - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
+
+before_install:
+  - sudo apt-get purge gradle
+  - sudo add-apt-repository ppa:cwchien/gradle -y
+  - sudo apt-get update -q
+  - sudo apt-get install gradle -y
+
+cache:
+  directories:
+    - $HOME/.gradle/caches/
+    - $HOME/.gradle/wrapper/
+    - $HOME/.m2/repository/
+
+install: /bin/true
+
+script: gradle test
