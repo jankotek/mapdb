@@ -1,7 +1,7 @@
 package org.mapdb.kotlin
 
+import org.junit.Assert.assertEquals
 import org.junit.Test
-import kotlin.test.assertEquals
 
 interface Issue888_KotlinI{
 

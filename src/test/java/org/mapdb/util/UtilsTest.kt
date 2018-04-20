@@ -2,8 +2,8 @@ package org.mapdb.util
 
 import org.junit.Test
 import org.mapdb.TT
+import org.mapdb.TT.assertFailsWith
 import java.util.concurrent.CountDownLatch
-import kotlin.test.assertFailsWith
 
 class UtilsTest{
 

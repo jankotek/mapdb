@@ -48,9 +48,9 @@ More [details](http://www.mapdb.org/support/).
 Development
 --------------------
 
-MapDB is written in Kotlin. You will need IntelliJ Idea 15 and newer to edit it.
+MapDB is written in Kotlin, you will need IntelliJ Idea.
 
-You can use Maven to build MapDB by issuing command `mvn install`.
+You can use Gradle to build MapDB.
 
 MapDB is extensively unit-tested.
 By default, only tiny fraction of all tests are executed, so build finishes under 10 minutes.

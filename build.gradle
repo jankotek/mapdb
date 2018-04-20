@@ -1,0 +1,60 @@
+buildscript {
+    ext.kotlin_version = '1.2.40'
+    ext.junit_version = '5.2.0-M1'
+    ext.ec_version = '9.1.0'
+
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath ("org.junit.platform:junit-platform-gradle-plugin:1.0.0")
+    }
+}
+
+
+apply plugin: "kotlin"
+apply plugin: 'org.junit.platform.gradle.plugin'
+
+
+sourceSets {
+    main.kotlin.srcDirs += 'src/main/java'
+    main.java.srcDirs += 'src/main/java'
+    test.kotlin.srcDirs += 'src/test/java'
+    test.java.srcDirs += 'src/test/java'
+}
+
+repositories {
+    mavenCentral()
+}
+
+
+dependencies {
+
+    compile "org.eclipse.collections:eclipse-collections-api:$ec_version"
+    compile "org.eclipse.collections:eclipse-collections:$ec_version"
+
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+
+    testCompile("io.kotlintest:kotlintest-runner-junit5:3.0.4")
+    testRuntime("org.junit.vintage:junit-vintage-engine:$junit_version")
+
+    testCompile("org.junit.jupiter:junit-jupiter-api:$junit_version")
+    testRuntime("org.junit.jupiter:junit-jupiter-engine:$junit_version")
+
+
+}
+
+
+test {
+    useJUnitPlatform()
+
+
+    // Always run tests, even when nothing changed.
+    dependsOn 'cleanTest'
+
+    testLogging {
+        events "PASSED", "FAILED", "SKIPPED", "STANDARD_OUT", "STANDARD_ERROR"
+    }
+}
