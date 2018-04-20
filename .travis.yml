@@ -11,12 +11,6 @@ before_cache:
   - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
   - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
 
-before_install:
-  - sudo apt-get purge gradle
-  - sudo add-apt-repository ppa:cwchien/gradle -y
-  - sudo apt-get update -q
-  - sudo apt-get install gradle -y
-
 cache:
   directories:
     - $HOME/.gradle/caches/
