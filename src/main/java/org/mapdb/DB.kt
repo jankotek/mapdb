@@ -7,12 +7,18 @@ import org.mapdb.store.Store
 import org.mapdb.store.StoreOnHeap
 import org.mapdb.store.StoreOnHeapSer
 import org.mapdb.util.getBooleanOrDefault
+import java.io.Closeable
 import java.util.*
 
 /** Main class for accessing MapDB */
-class DB(val store: Store) {
+class DB(val store: Store): Closeable {
 
     fun <E> linkedList(name: String, serializer: Serializer<E>) =  LinkedListMaker(db=this, serializer=serializer)
+
+    override fun close() {
+        store.close();
+    }
+
 
     companion object {
 
