@@ -261,7 +261,7 @@ object TT{
      * Compared to [kotlin.test.assertFailsWith] does not swallow wrong exceptions, better for debuging
      *
      */
-    fun <T : Throwable> assertFailsWith(exceptionClass: kotlin.reflect.KClass<T>, block: () -> Unit) {
+    inline fun <T : Throwable> assertFailsWith(exceptionClass: kotlin.reflect.KClass<T>, block: () -> Unit) {
         try {
             block()
             fail("Expected exception ${exceptionClass}")
@@ -271,6 +271,28 @@ object TT{
                 return
             }
             throw e
+        }
+    }
+
+
+    inline fun withTempFile(f:(file:File)->Unit){
+        val file = TT.tempFile()
+        file.delete();
+        try{
+            f(file)
+        }finally {
+            if(!file.delete())
+                file.deleteOnExit()
+        }
+    }
+
+
+    inline fun withTempDir(f:(dir:File)->Unit){
+        val dir = TT.tempDir()
+        try{
+            f(dir)
+        }finally {
+            dir.deleteRecursively()
         }
     }
 }
