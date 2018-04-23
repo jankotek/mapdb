@@ -99,7 +99,7 @@ class StoreOnHeapSer(
         lock.lockWrite {
             val oldRec = check(records.get(recid), serializer)
 
-            if(oldRec!=expectedOldRecord)
+            if(!serializer.equals(oldRec,expectedOldRecord))
                 return false
             records.put(recid, newVal)
             return true
@@ -110,7 +110,7 @@ class StoreOnHeapSer(
         lock.lockWrite {
             val oldRec = check(records.get(recid), serializer)
 
-            if(oldRec!=expectedOldRecord)
+            if(!serializer.equals(oldRec,expectedOldRecord))
                 return false
             records.remove(recid)
             freeRecids.add(recid)

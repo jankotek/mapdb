@@ -1,6 +1,7 @@
 package org.mapdb.serializer;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.mapdb.io.DataInput2;
 import org.mapdb.io.DataOutput2;
 
@@ -11,11 +12,11 @@ public interface Serializer<K>{
 
     K deserialize(@NotNull DataInput2 input);
 
-    default boolean equals(K k1, K k2){
-        return k1==k2 || k1.equals(k2);
+    default boolean equals(@Nullable K k1, @Nullable K k2){
+        return k1==k2 || (k1!=null && k1.equals(k2));
     }
 
-    default int hashCode(K k){
+    default int hashCode(@NotNull K k){
         return k.hashCode();
     }
 
