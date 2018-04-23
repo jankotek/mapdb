@@ -30,6 +30,17 @@ object Serializers{
     }
 
 
+    /** Serializer for recids (packed 6 bytes, extra parity bit) */
+    @JvmStatic val RECID = object:Serializer<Long>{
+        override fun serialize(k: Long, out: DataOutput2) {
+            out.writePackedRecid(k)
+        }
+
+        override fun deserialize(input: DataInput2): Long {
+            return input.readPackedLong()
+        }
+    }
+
     /** Serializer for [java.lang.String] */
     @JvmStatic val STRING = object:Serializer<String>{
         override fun serialize(k: String, out: DataOutput2) {

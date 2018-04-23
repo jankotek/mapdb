@@ -449,7 +449,8 @@ abstract class StoreTest {
         }
     }
 
-    @Test @Ignore
+//    @Test
+    //TODO reentry test with preprocessor in paranoid mode
     fun reentry(){
         val store = openStore()
 
@@ -572,9 +573,6 @@ class StoreHeapTest : StoreTest() {
 
     override fun openStore() = StoreOnHeap()
 
-
-    //TODO reentry failure tests for equals and hash methods
-
 }
 
 
@@ -582,9 +580,6 @@ class StoreHeapTest : StoreTest() {
 class StoreOnHeapSerTest : StoreTest() {
 
     override fun openStore() = StoreOnHeapSer()
-
-
-    //TODO reentry failure tests for equals and hash methods
 
 }
 

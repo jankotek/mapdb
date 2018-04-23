@@ -225,4 +225,17 @@ public class DataOutput2ByteArray extends OutputStream implements DataOutput2{
     public void writePackedLong(long value) throws IOException {
         writeLong(value);
     }
+
+    @Override
+    public void writeRecid(long recid) throws IOException {
+        //TODO 6 bytes
+        //TODO parity bit
+        writeLong(recid);
+    }
+
+    @Override
+    public void writePackedRecid(long recid) throws IOException {
+        //TODO parity bit
+        writePackedLong(recid);
+    }
 }

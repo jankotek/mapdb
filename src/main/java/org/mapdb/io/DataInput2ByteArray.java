@@ -3,7 +3,7 @@ package org.mapdb.io;
 import java.io.IOException;
 
 /** DataInput on top of {@code byte[]} */
-public final class DataInput2ByteArray extends DataInput2 {
+public final class DataInput2ByteArray implements DataInput2 {
     
     protected final byte[] buf;
     protected int pos;
