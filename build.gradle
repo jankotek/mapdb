@@ -13,7 +13,13 @@ buildscript {
     }
 }
 
+plugins {
+    id "org.jetbrains.dokka" version "0.9.16"
+}
 
+dokka{
+    jdkVersion = 8
+}
 apply plugin: "kotlin"
 apply plugin: 'org.junit.platform.gradle.plugin'
 
