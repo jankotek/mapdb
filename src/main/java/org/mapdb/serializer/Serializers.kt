@@ -9,7 +9,7 @@ object Serializers{
 
     /** Serializer for [java.lang.Integer] */
     @JvmStatic val INTEGER = object:Serializer<Int>{
-        override fun serialize(out: DataOutput2, k: Int) {
+        override fun serialize(k:Int, out: DataOutput2) {
             out.writeInt(k)
         }
 
@@ -20,7 +20,7 @@ object Serializers{
 
     /** Serializer for [java.lang.Long] */
     @JvmStatic val LONG = object:Serializer<Long>{
-        override fun serialize(out: DataOutput2, k: Long) {
+        override fun serialize(k: Long, out: DataOutput2) {
             out.writeLong(k)
         }
 
@@ -32,7 +32,7 @@ object Serializers{
 
     /** Serializer for [java.lang.String] */
     @JvmStatic val STRING = object:Serializer<String>{
-        override fun serialize(out: DataOutput2, k: String) {
+        override fun serialize(k: String, out: DataOutput2) {
             out.writeUTF(k)
         }
 
@@ -50,7 +50,7 @@ object Serializers{
             return b
         }
 
-        override fun serialize(out: DataOutput2, k: ByteArray) {
+        override fun serialize(k: ByteArray, out: DataOutput2) {
             out.writePackedInt(k.size)
             out.sizeHint(k.size)
             out.write(k)
@@ -72,7 +72,7 @@ object Serializers{
             return b
         }
 
-        override fun serialize(out: DataOutput2, k: ByteArray) {
+        override fun serialize(k: ByteArray, out: DataOutput2) {
             out.sizeHint(k.size)
             out.write(k)
         }
@@ -82,7 +82,7 @@ object Serializers{
     /** serialize record into ByteArray using given serializer */
     fun <K> serializeToByteArray(record: K, serializer: Serializer<K>): ByteArray {
         val out = DataOutput2ByteArray()
-        serializer.serialize(out, record)
+        serializer.serialize(record, out)
         return out.copyBytes()
     }
 

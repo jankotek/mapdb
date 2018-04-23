@@ -25,10 +25,10 @@ class LinkedList<E>(
     data class Node<E>(val prevRecid:Long, val nextRecid:Long, val e:E)
 
     val nodeSerializer: Serializer<Node<E>> = object:Serializer<Node<E>> {
-        override fun serialize(out: DataOutput2, k: Node<E>) {
+        override fun serialize(k: Node<E>, out: DataOutput2) {
             out.writePackedLong(k.prevRecid)
             out.writePackedLong(k.nextRecid)
-            serializer.serialize(out, k.e)
+            serializer.serialize(k.e, out)
         }
 
         override fun deserialize(input: DataInput2): Node<E> {

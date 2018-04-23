@@ -458,7 +458,7 @@ abstract class StoreTest {
 
         val recid = store.put("aa", Serializers.STRING)
         val reentrySer1 = object: Serializer<String> {
-            override fun serialize(out: DataOutput2, k: String) {
+            override fun serialize(k:String, out: DataOutput2) {
                 out.writeUTF(k)
                 // that should fail
                 store.update(recid, Serializers.STRING, k)
@@ -470,7 +470,7 @@ abstract class StoreTest {
         }
 
         val reentrySer2 = object: Serializer<String> {
-            override fun serialize(out: DataOutput2, k: String) {
+            override fun serialize(k:String, out: DataOutput2) {
                 out.writeUTF(k)
             }
 

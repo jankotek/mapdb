@@ -46,7 +46,8 @@ public interface Issue888_JavaI {
         }
 
 
-        //FIXME this should not be here
+        //See Issue 888, if this is removed, compilation fails
+        // for now we define all interfaces in java
         @Override
         public int bb() {
             return 1;
