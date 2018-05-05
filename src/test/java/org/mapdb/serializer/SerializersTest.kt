@@ -8,7 +8,7 @@ class SerializersTest : WordSpec({
 
 
     val sers = Serializers::class.java.fields
-            .filter { it.name != "INSTANCE" }
+            .filter { it.name != "INSTANCE" } //TODO remove this field from java
             .map { Pair(it.name, it.get(null) as Serializer<Any?>) }
 
     assert(sers.size > 0)
