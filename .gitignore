@@ -15,3 +15,4 @@ helper
 .gradle
 *.log
 gradlew*
+gradle/*
