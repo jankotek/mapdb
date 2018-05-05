@@ -25,6 +25,9 @@ class LinkedList<E>(
     data class Node<E>(val prevRecid:Long, val nextRecid:Long, val e:E)
 
     val nodeSerializer: Serializer<Node<E>> = object:Serializer<Node<E>> {
+
+        override fun serializedType() = Node::class.java
+
         override fun serialize(k: Node<E>, out: DataOutput2) {
             out.writePackedRecid(k.prevRecid)
             out.writePackedRecid(k.nextRecid)

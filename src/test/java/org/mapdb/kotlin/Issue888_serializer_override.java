@@ -26,6 +26,11 @@ public class Issue888_serializer_override {
         public Integer deserialize(@NotNull DataInput2 input) {
             return null;
         }
+
+        @Override
+        public Class serializedType() {
+            return Integer.class;
+        }
     }
 
     @Test public void ser_default_override(){

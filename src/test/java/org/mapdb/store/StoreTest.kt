@@ -4,7 +4,6 @@ import io.kotlintest.shouldBe
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
 import org.junit.Assert.*
-import org.junit.Ignore
 import org.junit.Test
 import org.mapdb.DBException
 import org.mapdb.TT
@@ -459,6 +458,10 @@ abstract class StoreTest {
 
         val recid = store.put("aa", Serializers.STRING)
         val reentrySer1 = object: Serializer<String> {
+
+            override fun serializedType() = String::class.java
+
+
             override fun serialize(k:String, out: DataOutput2) {
                 out.writeUTF(k)
                 // that should fail
@@ -471,6 +474,9 @@ abstract class StoreTest {
         }
 
         val reentrySer2 = object: Serializer<String> {
+
+            override fun serializedType() = String::class.java
+
             override fun serialize(k:String, out: DataOutput2) {
                 out.writeUTF(k)
             }

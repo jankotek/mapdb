@@ -1,5 +1,6 @@
 package org.mapdb
 
+import io.kotlintest.properties.Gen
 import org.junit.Assert.*
 import org.junit.Test
 import org.mapdb.io.*
@@ -20,7 +21,10 @@ object TT{
     val boolsTrue = booleanArrayOf(true)
     val boolsFalse = booleanArrayOf(false)
 
-    @JvmStatic fun randomByteArray(size: Int, seed: Int= Random().nextInt()): ByteArray {
+    val random = Random()
+
+    @JvmStatic
+    fun randomByteArray(size: Int, seed: Int = random.nextInt()): ByteArray {
         var randomSeed = seed
         val ret = ByteArray(size)
         for (i in ret.indices) {
@@ -96,6 +100,9 @@ object TT{
 
 
     object Serializer_ILLEGAL_ACCESS: Serializer<Any> {
+
+
+        override fun serializedType() = throw AssertionError("No access")
         override fun serialize(value: Any, out: DataOutput2) {
             throw AssertionError("Should not access this serializer")
         }
@@ -295,6 +302,29 @@ object TT{
             dir.deleteRecursively()
         }
     }
+
+
+    object byteArrayGen : Gen<ByteArray> {
+        override fun random(): Sequence<ByteArray> = generateSequence {
+            randomByteArray(random.nextInt(100))
+        }
+
+        override fun always(): Iterable<ByteArray> = listOf(
+                ByteArray(0), byteArrayOf(-1, -1), byteArrayOf(1, 2, 3), byteArrayOf(0))
+
+    }
+
+    fun genFor(cl: Class<*>?): Gen<Any> = when (cl) {
+
+        java.lang.Integer::class.java -> Gen.int()
+        java.lang.Long::class.java -> Gen.long()
+        java.lang.Double::class.java -> Gen.double()
+        java.lang.String::class.java -> Gen.string()
+        ByteArray::class.java -> byteArrayGen
+
+        else -> throw AssertionError("unknown class $cl")
+    }
+
 }
 
 class TTTest{
