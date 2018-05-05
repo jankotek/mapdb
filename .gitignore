@@ -14,3 +14,4 @@ helper
 *.log
 .gradle
 *.log
+gradlew*
