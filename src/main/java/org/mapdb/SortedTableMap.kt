@@ -706,7 +706,7 @@ class SortedTableMap<K,V>(
         throw UnsupportedOperationException("read-only")
     }
 
-    override fun remove(key: Any?, value: Any?): Boolean {
+    override fun remove(key: K, value: V): Boolean {
         throw UnsupportedOperationException("read-only")
     }
 

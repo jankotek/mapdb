@@ -3,6 +3,8 @@ package org.mapdb
 import org.eclipse.collections.api.LazyLongIterable
 import org.eclipse.collections.api.LongIterable
 import org.eclipse.collections.api.RichIterable
+import org.eclipse.collections.api.bag.MutableBag
+import org.eclipse.collections.api.bag.primitive.MutableLongBag
 import org.eclipse.collections.api.block.function.primitive.*
 import org.eclipse.collections.api.block.predicate.primitive.LongLongPredicate
 import org.eclipse.collections.api.block.predicate.primitive.LongPredicate
@@ -21,7 +23,10 @@ import org.eclipse.collections.api.set.primitive.ImmutableLongSet
 import org.eclipse.collections.api.set.primitive.LongSet
 import org.eclipse.collections.api.set.primitive.MutableLongSet
 import org.eclipse.collections.api.tuple.primitive.LongLongPair
+import org.eclipse.collections.impl.bag.mutable.HashBag
+import org.eclipse.collections.impl.bag.mutable.primitive.LongHashBag
 import org.eclipse.collections.impl.factory.Sets
+import org.eclipse.collections.impl.factory.primitive.LongLongMaps
 import org.eclipse.collections.impl.factory.primitive.LongSets
 import org.eclipse.collections.impl.lazy.AbstractLazyIterable
 import org.eclipse.collections.impl.lazy.primitive.LazyLongIterableAdapter
@@ -115,13 +120,13 @@ public class IndexTreeLongLongMap(
         treeClear(rootRecid, store, levels)
     }
 
-    override fun <V : Any?> collect(function: LongToObjectFunction<out V>): MutableCollection<V>? {
-        val ret = ArrayList<V>()
+    override fun <V : Any?> collect(function: LongToObjectFunction<out V>): MutableBag<V> {
+        val ret = HashBag<V>()
         forEachKeyValue { k, v ->
             val v = function.valueOf(v);
             ret.add(v)
         }
-        return ArrayListAdapter.adapt(ret)
+        return ret
     }
 
     private class Iterator(
@@ -174,8 +179,8 @@ public class IndexTreeLongLongMap(
         return Iterator(this@IndexTreeLongLongMap, 1)
     }
 
-    override fun reject(predicate: LongPredicate): MutableLongCollection? {
-        val ret = LongArrayList()
+    override fun reject(predicate: LongPredicate): MutableLongBag {
+        val ret = LongHashBag()
         forEachKeyValue { k, v ->
             if (!predicate.accept(v))
                 ret.add(v)
@@ -183,8 +188,8 @@ public class IndexTreeLongLongMap(
         return ret;
     }
 
-    override fun select(predicate: LongPredicate): MutableLongCollection? {
-        val ret = LongArrayList()
+    override fun select(predicate: LongPredicate): MutableLongBag {
+        val ret = LongHashBag()
         forEachKeyValue { k, v ->
             if (predicate.accept(v))
                 ret.add(v)
@@ -774,6 +779,19 @@ public class IndexTreeLongLongMap(
 
     override fun values(): MutableLongCollection {
         return values;
+    }
+
+    override fun flipUniqueValues(): MutableLongLongMap {
+
+        val result = LongLongMaps.mutable.empty()
+        forEachKeyValue { key, value ->
+            if (result.containsKey(value)) {
+                throw IllegalStateException("duplicate value")
+            } else {
+                result.put(value, key)
+            }
+        }
+        return result
     }
 
 }

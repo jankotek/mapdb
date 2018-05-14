@@ -863,7 +863,7 @@ class BTreeMap<K,V>(
         return put2(key, value, true)
     }
 
-    override fun remove(key: Any?, value: Any?): Boolean {
+    override fun remove(key: K, value: V): Boolean {
         if (key == null || value == null)
             throw NullPointerException()
         return removeOrReplace(key as K, value as V, null) != null
@@ -951,7 +951,7 @@ class BTreeMap<K,V>(
         override fun remove(element: MutableMap.MutableEntry<K, V?>?): Boolean {
             if (element == null || element.key == null || element.value == null)
                 throw NullPointerException()
-            return this@BTreeMap.remove(element.key as Any, element.value)
+            return this@BTreeMap.remove(element.key, element.value as V)
         }
 
 
@@ -1751,7 +1751,7 @@ class BTreeMap<K,V>(
     }
 
 
-    override fun forEach(action: BiConsumer<in K, in V>?) {
+    override fun forEach(action: BiConsumer<in K, in V>) {
         if (action == null)
             throw NullPointerException()
         var node = getNode(leftEdges.first)
@@ -1950,7 +1950,7 @@ class BTreeMap<K,V>(
         while (true) {
             val e = firstEntry()
                     ?: return null
-            if(remove(e.key, e.value))
+            if(remove(e.key, e.value as V))
                 return AbstractMap.SimpleImmutableEntry(e.key, e.value);
         }
     }
@@ -1959,7 +1959,7 @@ class BTreeMap<K,V>(
         while (true) {
             val e = lastEntry()
                     ?: return null
-            if(remove(e.key, e.value))
+            if(remove(e.key, e.value as V))
                 return AbstractMap.SimpleImmutableEntry(e.key, e.value);
         }
     }

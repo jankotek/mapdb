@@ -753,7 +753,7 @@ class HTreeMap<K,V>(
         }
     }
 
-    override fun remove(key: Any?, value: Any?): Boolean {
+    override fun remove(key: K, value: V): Boolean {
         if(key == null || value==null)
             throw NullPointerException()
 
@@ -945,7 +945,7 @@ class HTreeMap<K,V>(
         }
 
         override fun remove(element: MutableMap.MutableEntry<K?, V?>): Boolean {
-            return this@HTreeMap.remove(element.key as Any?, element.value)
+            return this@HTreeMap.remove(element.key as K, element.value as V)
         }
 
 

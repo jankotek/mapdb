@@ -569,11 +569,11 @@ public abstract class AbstractLongLongMapTestCase
     public void select_value()
     {
         LongLongMap map = this.newWithKeysValues(0L, 0L, 1L, 1L, 2L, 2L, 3L, 3L);
-        LongIterable actual1 = map.select(LongPredicates.greaterThan(1L));
+        LongIterable actual1 = map.select(LongPredicates.greaterThan(1L)).toList();
         Assert.assertTrue(
                 LongArrayList.newListWith(2L, 3L).equals(actual1)
                         || LongArrayList.newListWith(3L, 2L).equals(actual1));
-        LongIterable actual2 = map.select(LongPredicates.lessThan(2L));
+        LongIterable actual2 = map.select(LongPredicates.lessThan(2L)).toList();
         Assert.assertTrue(
                 LongArrayList.newListWith(0L, 1L).equals(actual2)
                         || LongArrayList.newListWith(1L, 0L).equals(actual2));
@@ -583,11 +583,11 @@ public abstract class AbstractLongLongMapTestCase
     public void reject_value()
     {
         LongLongMap map = this.newWithKeysValues(0L, 0L, 1L, 1L, 2L, 2L, 3L, 3L);
-        LongIterable actual1 = map.reject(LongPredicates.lessThan(2L));
+        LongIterable actual1 = map.reject(LongPredicates.lessThan(2L)).toList();
         Assert.assertTrue(
                 LongArrayList.newListWith(2L, 3L).equals(actual1)
                         || LongArrayList.newListWith(3L, 2L).equals(actual1));
-        LongIterable actual2 = map.reject(LongPredicates.greaterThan(1L));
+        LongIterable actual2 = map.reject(LongPredicates.greaterThan(1L)).toList();
         Assert.assertTrue(
                 LongArrayList.newListWith(0L, 1L).equals(actual2)
                         || LongArrayList.newListWith(1L, 0L).equals(actual2));
@@ -602,8 +602,8 @@ public abstract class AbstractLongLongMapTestCase
         RichIterable<Long> objects = map.collect(function);
 
         Assert.assertEquals(HashBag.newBagWith(1L, 2L, 3L, 4L), objects.toBag());
-        Assert.assertEquals(Lists.immutable.with(), this.getEmptyMap().collect(function));
-        Assert.assertEquals(Lists.immutable.with(2L), this.newWithKeysValues(1L, 1L).collect(function));
+        Assert.assertEquals(Lists.immutable.with(), this.getEmptyMap().collect(function).toList());
+        Assert.assertEquals(Lists.immutable.with(2L), this.newWithKeysValues(1L, 1L).collect(function).toList());
     }
 
     @Test

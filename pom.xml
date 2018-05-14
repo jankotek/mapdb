@@ -34,14 +34,14 @@
     </scm>
 
     <properties>
-        <kotlin.version>1.0.7</kotlin.version>
+        <kotlin.version>[1.2.41,1.2.90)</kotlin.version>
 
         <java.target.version>1.8</java.target.version>
         <java.source.version>1.8</java.source.version>
 
         <!--eclipse collections-->
-        <ec.version>[7.0.0,7.20.0)</ec.version>
-        <guava.version>[15.0,19.20)</guava.version>
+        <ec.version>[7.0.0,)</ec.version>
+        <guava.version>[15.0,)</guava.version>
 
         <elsa.version>3.0.0-M5</elsa.version>
 
@@ -129,9 +129,12 @@
             <plugin>
                 <artifactId>kotlin-maven-plugin</artifactId>
                 <groupId>org.jetbrains.kotlin</groupId>
-                <version>${kotlin.version}</version>
+                <version>1.2.41</version>
 
-                <configuration />
+                <configuration>
+                    <jvmTarget>1.8</jvmTarget>
+                </configuration>
+
                 <executions>
                     <execution>
                         <id>compile</id>
