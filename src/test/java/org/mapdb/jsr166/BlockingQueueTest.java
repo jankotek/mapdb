@@ -23,23 +23,6 @@ import junit.framework.TestSuite;
  * Contains "contract" tests applicable to all BlockingQueue implementations.
  */
 public abstract class BlockingQueueTest extends JSR166TestCase {
-    /*
-     * This is the start of an attempt to refactor the tests for the
-     * various related implementations of related interfaces without
-     * too much duplicated code.  junit does not really support such
-     * testing.  Here subclasses of TestCase not only contain tests,
-     * but also configuration information that describes the
-     * implementation class, most importantly how to instantiate
-     * instances.
-     */
-
-    /** Like suite(), but non-static */
-    public Test testSuite() {
-        // TODO: filter the returned tests using the configuration
-        // information provided by the subclass via protected methods.
-        return new TestSuite(this.getClass());
-    }
-
     //----------------------------------------------------------------
     // Configuration methods
     //----------------------------------------------------------------

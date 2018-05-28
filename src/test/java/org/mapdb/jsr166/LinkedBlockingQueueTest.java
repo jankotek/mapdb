@@ -36,24 +36,6 @@ public class LinkedBlockingQueueTest extends JSR166TestCase {
         }
     }
 
-    public static void main(String[] args) {
-        main(suite(), args);
-    }
-
-    public static Test suite() {
-        class Implementation implements CollectionImplementation {
-            public Class<?> klazz() { return LinkedBlockingQueue.class; }
-            public Collection emptyCollection() { return new LinkedBlockingQueue(); }
-            public Object makeElement(int i) { return i; }
-            public boolean isConcurrent() { return true; }
-            public boolean permitsNulls() { return false; }
-        }
-        return newTestSuite(LinkedBlockingQueueTest.class,
-                            new Unbounded().testSuite(),
-                            new Bounded().testSuite(),
-                            CollectionTest.testSuite(new Implementation()));
-    }
-
     /**
      * Returns a new queue of given size containing consecutive
      * Integers 0 ... n - 1.

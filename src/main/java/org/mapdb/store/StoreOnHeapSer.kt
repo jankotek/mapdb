@@ -88,8 +88,24 @@ class StoreOnHeapSer(
                 throw DBException.RecidNotFound()
             records.put(recid, newVal)
         }
-
     }
+
+
+    override fun <K> update(recid: Long, serializer: Serializer<K>, m: (K?) -> K?) {
+        lock.lockWrite {
+            if(!records.containsKey(recid))
+                throw DBException.RecidNotFound()
+
+            val oldRec = check(records.get(recid), serializer)
+            val newRec = m(oldRec)
+            val newVal =
+                    if(newRec==null) NULL_RECORD
+                    else Serializers.serializeToByteArray(newRec, serializer)
+
+            records.put(recid, newVal)
+        }
+    }
+
 
     override fun <K> compareAndUpdate(recid: Long, serializer: Serializer<K>, expectedOldRecord: K?, newRecord: K?): Boolean {
         val newVal =

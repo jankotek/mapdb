@@ -179,7 +179,7 @@ import junit.framework.TestSuite;
  *
  * </ul>
  */
-public class JSR166TestCase extends TestCase {
+public abstract class JSR166TestCase extends TestCase {
     private static final boolean useSecurityManager =
         Boolean.getBoolean("jsr166.useSecurityManager");
 
@@ -349,13 +349,6 @@ public class JSR166TestCase extends TestCase {
         }
     }
 
-    /**
-     * Runs all JSR166 unit tests using junit.textui.TestRunner.
-     */
-    public static void main(String[] args) {
-        main(suite(), args);
-    }
-
     static class PithyResultPrinter extends junit.textui.ResultPrinter {
         PithyResultPrinter(java.io.PrintStream writer) { super(writer); }
         long runTime;
@@ -384,50 +377,6 @@ public class JSR166TestCase extends TestCase {
         return runner;
     }
 
-    /**
-     * Runs all unit tests in the given test suite.
-     * Actual behavior influenced by jsr166.* system properties.
-     */
-    static void main(Test suite, String[] args) {
-        if (useSecurityManager) {
-            System.err.println("Setting a permissive security manager");
-            Policy.setPolicy(permissivePolicy());
-            System.setSecurityManager(new SecurityManager());
-        }
-        for (int i = 0; i < suiteRuns; i++) {
-            TestResult result = newPithyTestRunner().doRun(suite);
-            if (!result.wasSuccessful())
-                System.exit(1);
-            System.gc();
-            System.runFinalization();
-        }
-    }
-
-    public static TestSuite newTestSuite(Object... suiteOrClasses) {
-        TestSuite suite = new TestSuite();
-        for (Object suiteOrClass : suiteOrClasses) {
-            if (suiteOrClass instanceof TestSuite)
-                suite.addTest((TestSuite) suiteOrClass);
-            else if (suiteOrClass instanceof Class)
-                suite.addTest(new TestSuite((Class<?>) suiteOrClass));
-            else
-                throw new ClassCastException("not a test suite or class");
-        }
-        return suite;
-    }
-
-    public static void addNamedTestClasses(TestSuite suite,
-                                           String... testClassNames) {
-        for (String testClassName : testClassNames) {
-            try {
-                Class<?> testClass = Class.forName(testClassName);
-                Method m = testClass.getDeclaredMethod("suite");
-                suite.addTest(newTestSuite((Test)m.invoke(null)));
-            } catch (ReflectiveOperationException e) {
-                throw new AssertionError("Missing test class", e);
-            }
-        }
-    }
 
     public static final double JAVA_CLASS_VERSION;
     public static final String JAVA_SPECIFICATION_VERSION;
@@ -452,14 +401,6 @@ public class JSR166TestCase extends TestCase {
     public static boolean atLeastJava9()  { return JAVA_CLASS_VERSION >= 53.0; }
     public static boolean atLeastJava10() { return JAVA_CLASS_VERSION >= 54.0; }
     public static boolean atLeastJava11() { return JAVA_CLASS_VERSION >= 55.0; }
-
-    /**
-     * Collects all JSR166 unit tests as one suite.
-     */
-    public static Test suite() {
-        TestSuite suite = newTestSuite();
-        return suite;
-    }
 
     /** Returns list of junit-style test method names in given class. */
     public static ArrayList<String> testMethodNames(Class<?> testClass) {

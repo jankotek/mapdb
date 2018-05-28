@@ -83,6 +83,21 @@ class StoreOnHeap(
                     else Pair(newRecord,serializer as Serializer<Any>)
             records.put(recid, newVal)
         }
+    }
+
+
+    override fun <K> update(recid: Long, serializer: Serializer<K>, m: (K?) -> K?) {
+        lock.lockWrite {
+            if(!records.containsKey(recid))
+                throw DBException.RecidNotFound()
+            val oldRec = check(records.get(recid)) as K?
+            val newRecord = m(oldRec);
+
+            val newVal =
+                    if(newRecord==null) NULL_RECORD
+                    else Pair(newRecord,serializer as Serializer<Any>)
+            records.put(recid, newVal)
+        }
 
     }
 

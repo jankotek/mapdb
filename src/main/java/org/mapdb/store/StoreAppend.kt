@@ -89,20 +89,24 @@ class StoreAppend(
 
     override fun <K> get(recid: Long, serializer: Serializer<K>): K? {
         lock.lockRead {
-            val offset = offsets.getIfAbsent(recid, Long.MIN_VALUE)
-            if(offset==Long.MIN_VALUE)
-                throw DBException.RecidNotFound()
-
-            if(offset==0L)
-                return null
-
-            val (recid2, size) = readRecidSize(offset)
-            assert(recid==recid2)
-            val b = readRecord(offset+12, size)
-
-            val input = DataInput2ByteArray(b)
-            return serializer.deserialize(input)
+            return getNoLock(recid, serializer)
         }
+    }
+
+    private fun <K> getNoLock(recid: Long, serializer: Serializer<K>): K? {
+        val offset = offsets.getIfAbsent(recid, Long.MIN_VALUE)
+        if (offset == Long.MIN_VALUE)
+            throw DBException.RecidNotFound()
+
+        if (offset == 0L)
+            return null
+
+        val (recid2, size) = readRecidSize(offset)
+        assert(recid == recid2)
+        val b = readRecord(offset + 12, size)
+
+        val input = DataInput2ByteArray(b)
+        return serializer.deserialize(input)
     }
 
 
@@ -158,6 +162,15 @@ class StoreAppend(
         lock.lockWrite {
             if(!offsets.containsKey(recid))
                 throw DBException.RecidNotFound()
+            append(recid, serialized)
+        }
+    }
+
+    override fun <K> update(recid: Long, serializer: Serializer<K>, m: (K?) -> K?) {
+        lock.lockWrite {
+            val oldRec = getNoLock(recid, serializer)!!
+            val newRec = m(oldRec)
+            val serialized = Serializers.serializeToByteArrayNullable(newRec, serializer)
             append(recid, serialized)
         }
     }

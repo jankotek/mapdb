@@ -35,6 +35,14 @@ interface MutableStore:Store{
     /** update existing record with new value */
     fun <K> update(recid:Long, serializer: Serializer<K>, newRecord:K?)
 
+    fun <K> update(recid: Long, serializer: Serializer<K>, m: (K?)->K?)
+
+    fun <K> updateWeak(recid: Long, serializer: Serializer<K>, m: (K?)->K?){
+        val oldRec = get(recid, serializer)
+        val newRec = m(oldRec)
+        update(recid, serializer, newRec)
+    }
+
     /** atomically compares and swap records
      * @return true if compare was sucessfull and record was swapped, else false
      */
@@ -56,6 +64,7 @@ interface MutableStore:Store{
 
     //TODO bg operations?
     fun compact()
+
 
 }
 

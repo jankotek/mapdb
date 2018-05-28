@@ -45,7 +45,7 @@ import org.mapdb.jsr166.JSR166TestCase;
  * Contains tests applicable to all jdk8+ Collection implementations.
  * An extension of CollectionTest.
  */
-public class Collection8Test extends JSR166TestCase {
+public abstract class Collection8Test extends JSR166TestCase {
     final CollectionImplementation impl;
 
     /** Tests are parameterized by a Collection implementation. */

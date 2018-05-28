@@ -11,13 +11,6 @@ import java.util.Spliterator;
 import junit.framework.Test;
 
 public class LinkedBlockingQueue8Test extends JSR166TestCase {
-    public static void main(String[] args) {
-        main(suite(), args);
-    }
-
-    public static Test suite() {
-        return newTestSuite(LinkedBlockingQueue8Test.class);
-    }
 
     /**
      * Spliterator.getComparator always throws IllegalStateException
