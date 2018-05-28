@@ -7,10 +7,12 @@ import org.mapdb.store.MutableStore
 import org.mapdb.util.*
 import org.mapdb.util.RecidRecord
 import java.util.*
+import java.util.Spliterator.NONNULL
 import java.util.concurrent.BlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
 import java.util.concurrent.locks.ReentrantReadWriteLock
+import java.util.function.Consumer
 import kotlin.NoSuchElementException
 
 
@@ -58,73 +60,6 @@ class LinkedQueue<E> (
         return true
     }
 
-    override fun iterator(): MutableIterator<E> {
-        lock.lockRead {
-            return Iter(this)
-        }
-    }
-
-    class Iter<E>(val q: LinkedQueue<E>) : MutableIterator<E> {
-
-        val modCount = q.modCount;
-        var headRecid = q.head.get()
-
-        //used for delete
-        var headRecid2 = 0L
-        var headRecid3 = 0L
-
-        val iterLock = ReentrantLock() //protect variables, TODO use atomic CAS or Mutex instead of lock with memory barrier
-
-        override fun hasNext(): Boolean {
-            return headRecid!=0L
-        }
-
-        override fun next(): E {
-            iterLock.lock {
-                q.lock.lockRead {
-                    if (modCount != q.modCount)
-                        throw ConcurrentModificationException()
-                    if(headRecid==0L)
-                        throw NoSuchElementException()
-
-                    val node = q.store.get(headRecid, q.nodeSer)!!
-                    headRecid3 = headRecid2
-                    headRecid2 = headRecid
-                    headRecid = node.prevRecid
-
-                    return node.e
-                }
-            }
-        }
-
-        override fun remove() {
-            iterLock.lock{
-                if(headRecid2 == 0L)
-                    throw NoSuchElementException()
-                q.lock.lockWrite {
-                    if (modCount != q.modCount)
-                        throw ConcurrentModificationException()
-
-
-                    if(headRecid3==0L) {
-                        //deleted element is head of queue
-                        q.head.set(headRecid)
-
-                    }else{
-                        //delete in middle of queue
-                        q.store.updateWeak(headRecid3, q.nodeSer){oldNode->
-                            Node(headRecid, oldNode!!.e)
-                        }
-                    }
-
-                    //invalidate deleted element
-                    q.store.delete(headRecid2, q.nodeSer)
-                    headRecid2 = 0L
-                }
-            }
-        }
-
-    }
 
     override fun peek(): E? {
         lock.lockRead{
@@ -198,6 +133,7 @@ class LinkedQueue<E> (
                     modCount++
                     val node = store.get(headRecid, nodeSer)!!
                     head.set(node.prevRecid)
+                    store.delete(headRecid, nodeSer)
                     return node.e
                 }
                 notEmpty.await()
@@ -263,6 +199,161 @@ class LinkedQueue<E> (
 
     override fun remainingCapacity(): Int {
         return Integer.MAX_VALUE
+    }
+
+    override fun spliterator(): Spliterator<E> {
+        lock.lockRead {
+            return object : Spliterator<E> {
+
+                val iterLock = ReentrantLock()
+
+                var iterHead = 0L
+                var iterModCount:Long? = null
+
+
+                private fun checkModCount() {
+                    if(iterModCount==null) {
+                        iterModCount = modCount
+                        iterHead = head.get()
+                    }
+                    if (iterModCount != modCount)
+                        throw ConcurrentModificationException()
+                }
+
+
+                override fun estimateSize() = Long.MAX_VALUE
+
+                override fun characteristics() = NONNULL
+
+                override fun trySplit(): Spliterator<E>? = null
+
+                override fun tryAdvance(action: Consumer<in E>?): Boolean {
+                    iterLock.lock {
+                        lock.lockRead {
+                            checkModCount()
+
+                            if (iterHead == 0L)
+                                return false
+
+                            val node = store.get(iterHead, nodeSer)!!
+                            action!!.accept(node.e)
+                            iterHead = node.prevRecid
+                            return true
+                        }
+                    }
+                }
+
+                override fun forEachRemaining(action: Consumer<in E>?) {
+                    iterLock.lock {
+                        lock.lockRead {
+                            checkModCount()
+
+                            while (iterHead != 0L) {
+                                if (iterHead == 0L)
+                                    return;
+                                val node = store.get(iterHead, nodeSer)!!
+                                action!!.accept(node.e)
+                                iterHead = node.prevRecid
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    override fun iterator(): MutableIterator<E> {
+        lock.lockRead {
+            return object:MutableIterator<E> {
+
+                var iterModCount:Long? = null;
+                var iterHead = 0L
+
+                //used for delete
+                var iterHeadRecid2 = 0L
+                var iterHeadRecid3 = 0L
+
+                val iterLock = ReentrantLock() //protect variables, TODO use atomic CAS or Mutex instead of lock with memory barrier
+
+
+                private fun checkModCount() {
+                    if(iterModCount==null) {
+                        iterModCount = modCount
+                        iterHead = head.get()
+                    }
+                    if (iterModCount != modCount)
+                        throw ConcurrentModificationException()
+                }
+
+                override fun hasNext(): Boolean {
+                    iterLock.lock {
+                        lock.lockRead {
+                            checkModCount()
+                            return iterHead != 0L
+                        }
+                    }
+                }
+
+                override fun next(): E {
+                    iterLock.lock {
+                        lock.lockRead {
+                            checkModCount()
+                            if(iterHead==0L)
+                                throw NoSuchElementException()
+
+                            val node = store.get(iterHead, nodeSer)!!
+                            iterHeadRecid3 = iterHeadRecid2
+                            iterHeadRecid2 = iterHead
+                            iterHead = node.prevRecid
+
+                            return node.e
+                        }
+                    }
+                }
+
+                override fun remove() {
+                    iterLock.lock{
+                        if(iterHeadRecid2 == 0L)
+                            throw NoSuchElementException()
+                        lock.lockWrite {
+                            checkModCount()
+
+                            if(iterHeadRecid3==0L) {
+                                //deleted element is head of queue
+                                head.set(iterHead)
+                            }else{
+                                //delete in middle of queue
+                                store.updateWeak(iterHeadRecid3, nodeSer){ oldNode->
+                                    Node(iterHead, oldNode!!.e)
+                                }
+                            }
+
+                            //invalidate deleted element
+                            store.delete(iterHeadRecid2, nodeSer)
+                            iterHeadRecid2 = 0L
+                        }
+                    }
+                }
+
+                override fun forEachRemaining(action: Consumer<in E>) {
+                    iterLock.lock {
+                        lock.lockRead {
+                            checkModCount()
+
+                            while (iterHead != 0L) {
+                                if (iterHead == 0L)
+                                    return;
+                                val node = store.get(iterHead, nodeSer)!!
+                                action!!.accept(node.e)
+                                iterHead = node.prevRecid
+                            }
+                        }
+                    }
+                }
+
+            }
+        }
     }
 
 }

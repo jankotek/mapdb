@@ -8,7 +8,7 @@ import org.mapdb.serializer.Serializers
 import org.mapdb.store.StoreOnHeapSer
 import java.util.*
 import java.util.concurrent.BlockingQueue
-
+import java.util.concurrent.locks.LockSupport
 
 
 class LinkedQueue166Test: BlockingQueueTest() {
@@ -48,9 +48,82 @@ class LinkedQueueTest{
         iter2.next() shouldBe 3
         iter2.next() shouldBe 2
         iter2.next() shouldBe 1
-
     }
 
 
+    @Test fun concurrent_iter_forEach(){
+        if(TT.shortTest())
+            return
+
+        val q = newOnHeap()
+        q.put(1)
+        q.put(2)
+
+        TT.withBool{b->
+            TT.async{
+                while(b.get()){
+                    q.put(3)
+                    q.take()
+                }
+            }
+
+            for(i in 1 until 1e5.toInt()){
+                assert(q.isNotEmpty())
+
+                val iter = q.iterator()
+                LockSupport.parkNanos(100)
+                iter.forEachRemaining{i->
+
+                }
+            }
+        }
+    }
+
+
+
+    @Test
+    fun concurrent_spliter_forEach(){
+        if(TT.shortTest())
+            return
+        val q = newOnHeap()
+        q.put(1)
+        q.put(2)
+
+        TT.withBool{b->
+            TT.async{
+                while(b.get()){
+                    q.put(3)
+                    q.take()
+                }
+            }
+
+            for(i in 1 until 1e5.toInt()){
+                assert(q.isNotEmpty())
+
+                val iter = q.spliterator()
+                LockSupport.parkNanos(100)
+                iter.forEachRemaining{i->
+
+                }
+            }
+        }
+    }
+
+
+    @Test fun leak() {
+        if(TT.shortTest())
+            return
+
+        val q = newOnHeap()
+        q.put(1)
+        q.put(2)
+
+        for (i in 1 until 1e8.toInt()) {
+            q.put(3)
+            q.take()
+
+
+        }
+    }
 }
 

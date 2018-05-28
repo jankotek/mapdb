@@ -10,6 +10,7 @@ import org.mapdb.store.MutableStore
 import java.io.*
 import java.util.*
 import java.util.concurrent.*
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -323,6 +324,15 @@ object TT{
         ByteArray::class.java -> byteArrayGen
 
         else -> throw AssertionError("unknown class $cl")
+    }
+
+    inline fun withBool(run:(b: AtomicBoolean)->Unit) {
+        val b = AtomicBoolean(true)
+        try {
+            run.invoke(b)
+        }finally {
+            b.set(false)
+        }
     }
 
 }
