@@ -1003,9 +1003,7 @@ class HTreeMap<K,V>(
         }
     }
 
-    override val keys: KeySet<K> = KeySet(this as HTreeMap<K,Any?>)
-
-
+    override val keys: MutableSet<K> = KeySet(this as HTreeMap<K,Any?>)
 
     override val values: MutableCollection<V?> = object : AbstractCollection<V>(){
 

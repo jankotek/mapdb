@@ -1324,11 +1324,11 @@ open class DB(
         }
 
         override fun open2(catalog: SortedMap<String, String>): HTreeMap.KeySet<E> {
-            return maker.`%%%open2`(catalog).keys
+            return maker.`%%%open2`(catalog).keys as HTreeMap.KeySet<E>
         }
 
         override fun create2(catalog: SortedMap<String, String>): HTreeMap.KeySet<E> {
-            return maker.`%%%create2`(catalog).keys
+            return maker.`%%%create2`(catalog).keys as HTreeMap.KeySet<E>
         }
 
         override val type = "HashSet"
