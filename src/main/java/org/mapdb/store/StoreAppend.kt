@@ -147,8 +147,8 @@ class StoreAppend(
         return recid
     }
 
-    override fun <K> put(record: K, serializer: Serializer<K>): Long {
-        val serialized = Serializers.serializeToByteArray(record, serializer)
+    override fun <K> put(record: K?, serializer: Serializer<K>): Long {
+        val serialized = Serializers.serializeToByteArrayNullable(record, serializer)
         lock.lockWrite {
             val recid = preallocate2()
             append(recid, serialized)
@@ -166,7 +166,7 @@ class StoreAppend(
         }
     }
 
-    override fun <K> update(recid: Long, serializer: Serializer<K>, m: (K?) -> K?) {
+    override fun <K> updateAtomic(recid: Long, serializer: Serializer<K>, m: (K?) -> K?) {
         lock.lockWrite {
             val oldRec = getNoLock(recid, serializer)!!
             val newRec = m(oldRec)
@@ -253,6 +253,15 @@ class StoreAppend(
             appendRecidSize(recid,-2)
             offsets.removeKey(recid)
             freeRecids.add(recid)
+        }
+    }
+
+    override fun <E> getAndDelete(recid: Long, serializer: Serializer<E>): E? {
+        lock.lockWrite {
+            //TODO optimize
+            val ret = get(recid,serializer)
+            delete(recid, serializer)
+            return ret
         }
     }
 

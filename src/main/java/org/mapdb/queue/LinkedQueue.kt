@@ -40,7 +40,6 @@ class LinkedQueue<E> (
         }
 
         override fun serializedType() = Node::class.java
-
     }
 
     private val head = RecidRecord(store, rootRecid)
@@ -72,6 +71,14 @@ class LinkedQueue<E> (
         }
     }
 
+
+    private fun deleteHeadNode(headRecid:Long, node: Node<E>){
+        head.set(node.prevRecid)
+        store.delete(headRecid, nodeSer)
+    }
+
+
+
     override fun poll(): E? {
         lock.lockWrite{
             val headRecid = head.get()
@@ -80,32 +87,31 @@ class LinkedQueue<E> (
 
             modCount++
             val node = store.get(headRecid, nodeSer)!!
-            head.set(node.prevRecid)
-            store.delete(headRecid, nodeSer)
+            deleteHeadNode(headRecid, node)
             return node.e
         }
 
     }
 
+
     override fun poll(timeout: Long, unit: TimeUnit): E? {
-            lock.lockWrite {
-                var headRecid = head.get()
-                if(headRecid == 0L){
-                    //empty, await until not empty
-                    notEmpty.await(timeout, unit)
-                    headRecid = head.get()
-                }
-
-                if (headRecid == 0L) {
-                    return null;
-                }
-
-                modCount++
-                val node = store.get(headRecid, nodeSer)!!
-                head.set(node.prevRecid)
-                return node.e
+        lock.lockWrite {
+            var headRecid = head.get()
+            if(headRecid == 0L){
+                //empty, await until not empty
+                notEmpty.await(timeout, unit)
+                headRecid = head.get()
             }
 
+            if (headRecid == 0L) {
+                return null;
+            }
+
+            modCount++
+            val node = store.get(headRecid, nodeSer)!!
+            deleteHeadNode(headRecid, node)
+            return node.e
+        }
     }
 
     fun sizeLong():Long{
@@ -126,8 +132,8 @@ class LinkedQueue<E> (
 
 
     override fun take(): E? {
-        while(true) {
-            lock.lockWrite {
+        lock.lockWrite {
+            while(true) {
                 val headRecid = head.get()
                 if (headRecid != 0L) {
                     modCount++
@@ -139,6 +145,7 @@ class LinkedQueue<E> (
                 notEmpty.await()
             }
         }
+        throw InternalError()
     }
 
     override fun put(e: E?) {
@@ -180,6 +187,8 @@ class LinkedQueue<E> (
             throw NullPointerException()
         if(c==this)
             throw IllegalArgumentException()
+        if(maxElements<=0)
+            return 0
 
         lock.lockWrite {
             var counter = 0L

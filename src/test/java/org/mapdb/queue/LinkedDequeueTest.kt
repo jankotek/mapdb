@@ -2,33 +2,55 @@ package org.mapdb.queue
 
 import io.kotlintest.shouldBe
 import org.junit.Test
-import org.junit.jupiter.api.condition.EnabledIf
 import org.mapdb.TT
 import org.mapdb.jsr166.BlockingQueueTest
 import org.mapdb.serializer.Serializers
 import org.mapdb.store.StoreOnHeapSer
 import java.util.*
-import java.util.concurrent.BlockingQueue
+import java.util.concurrent.BlockingDeque
 import java.util.concurrent.locks.LockSupport
+import kotlin.NoSuchElementException
 
 
-class LinkedQueue166Test: BlockingQueueTest() {
+class LinkedDeueue166Test: BlockingQueueTest() {
 
-    override fun emptyCollection(): BlockingQueue<*> {
-        return LinkedQueueTest.newOnHeap()
+    override fun emptyCollection(): BlockingDeque<*> {
+        return LinkedDequeTest.newOnHeap()
     }
 }
 
-class LinkedQueueTest{
+class LinkedDequeTest{
 
     companion object {
-        fun newOnHeap():LinkedQueue<Int>{
+        fun newOnHeap():LinkedDeque<Int>{
             val store = StoreOnHeapSer()
-            val rootRecid = store.put(0L, Serializers.RECID)
-            return LinkedQueue(store, rootRecid, Serializers.INTEGER)
+            val headRecid = store.put(0L, Serializers.RECID)
+            val tailRecid = store.put(0L, Serializers.RECID)
+            val q =  LinkedDeque(store, headRecid, tailRecid, Serializers.INTEGER)
+            TT.installValidateReadWriteLock(q, "lock")
+            return q
         }
     }
 
+    @Test fun revertIter(){
+        val q = newOnHeap()
+        for(i in 1 .. 100)
+            q.add(i)
+
+        val iter = q.descendingIterator()
+        for(i in 1..100){
+            iter.hasNext() shouldBe true
+            iter.next() shouldBe i
+        }
+        iter.hasNext() shouldBe false
+        TT.assertFailsWith(NoSuchElementException::class){
+            iter.next()
+        }
+
+    }
+
+
+    //TODO some test methods are duplicated
     @Test fun failFastIter(){
         val q = newOnHeap()
         q.put(1)

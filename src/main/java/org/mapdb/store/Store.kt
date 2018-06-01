@@ -26,16 +26,16 @@ interface Store: Closeable{
 /** Modifiable store */
 interface MutableStore:Store{
 
-    /** allocates new null record, and returns its recid. It can be latter updated with `update()` or `cas` */
+    /** allocates new null record, and returns its recid. It can be latter updated with `updateAtomic()` or `cas` */
     fun preallocate():Long
 
     /** insert new record, returns recid under which record was stored */
-    fun <K> put(record:K, serializer:Serializer<K>):Long
+    fun <K> put(record:K?, serializer:Serializer<K>):Long
 
-    /** update existing record with new value */
+    /** updateAtomic existing record with new value */
     fun <K> update(recid:Long, serializer: Serializer<K>, newRecord:K?)
 
-    fun <K> update(recid: Long, serializer: Serializer<K>, m: (K?)->K?)
+    fun <K> updateAtomic(recid: Long, serializer: Serializer<K>, m: (K?)->K?)
 
     fun <K> updateWeak(recid: Long, serializer: Serializer<K>, m: (K?)->K?){
         val oldRec = get(recid, serializer)
@@ -65,6 +65,7 @@ interface MutableStore:Store{
     //TODO bg operations?
     fun compact()
 
+    fun <E> getAndDelete(recid: Long, serializer: Serializer<E>): E?
 
 }
 

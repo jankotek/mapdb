@@ -10,5 +10,7 @@ open class DBException(msg:String): RuntimeException(msg) {
 
     class WrongConfig(msg: String) : DBException(msg)
 
-    class StoreReentry(): DBException("Can not modify store during update")
+    class StoreReentry(): DBException("Can not modify store during updateAtomic")
+
+    class DataAssert():DBException("data corrupted")
 }

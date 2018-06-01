@@ -1,5 +1,6 @@
 package org.mapdb
 
+import com.google.common.base.Verify
 import io.kotlintest.properties.Gen
 import org.junit.Assert.*
 import org.junit.Test
@@ -12,6 +13,9 @@ import java.util.*
 import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.locks.Lock
+import java.util.concurrent.locks.ReadWriteLock
+import java.util.concurrent.locks.ReentrantReadWriteLock
 
 /**
  * Unit tests utils
@@ -263,6 +267,13 @@ object TT{
         return field.get(obj) as E
     }
 
+    fun reflectionSetField(obj:Any, newValue:Any?, name:String, clazz:Class<*> = obj.javaClass){
+        val field = clazz.getDeclaredField(name)
+        field.isAccessible = true
+        field.set(obj, newValue)
+    }
+
+
     /**
      * Catches expected exception, rethrows everything else.
      *
@@ -333,6 +344,25 @@ object TT{
         }finally {
             b.set(false)
         }
+    }
+
+    fun installValidateReadWriteLock(v:Validate, fieldName:String){
+        val origLock = reflectionGetField<ReadWriteLock>(v, fieldName, v.javaClass)
+
+        val writeVLock = object:Lock by origLock.writeLock(){
+            override fun unlock() {
+               origLock.writeLock().unlock()
+                v.validate()
+            }
+        }
+
+        val vLock = object:ReadWriteLock by origLock{
+            override fun writeLock(): Lock {
+                return writeVLock
+            }
+        }
+
+        reflectionSetField(v, vLock, fieldName, v.javaClass)
     }
 
 }

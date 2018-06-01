@@ -70,8 +70,10 @@ class StoreOnHeapSer(
         }
     }
 
-    override fun <K> put(record: K, serializer: Serializer<K>): Long {
-        val data = Serializers.serializeToByteArray(record, serializer)
+    override fun <K> put(record: K?, serializer: Serializer<K>): Long {
+        val data =
+                if(record==null) NULL_RECORD
+                else Serializers.serializeToByteArray(record, serializer)
         lock.lockWrite {
             val recid = preallocate2()
             records.put(recid, data)
@@ -91,7 +93,7 @@ class StoreOnHeapSer(
     }
 
 
-    override fun <K> update(recid: Long, serializer: Serializer<K>, m: (K?) -> K?) {
+    override fun <K> updateAtomic(recid: Long, serializer: Serializer<K>, m: (K?) -> K?) {
         lock.lockWrite {
             if(!records.containsKey(recid))
                 throw DBException.RecidNotFound()
@@ -140,6 +142,17 @@ class StoreOnHeapSer(
             freeRecids.add(recid)
         }
     }
+
+
+    override fun <E> getAndDelete(recid: Long, serializer: Serializer<E>): E? {
+        lock.lockWrite {
+            //TODO optimize
+            val ret = get(recid,serializer)
+            delete(recid, serializer)
+            return ret
+        }
+    }
+
 
     override fun verify() {
     }
