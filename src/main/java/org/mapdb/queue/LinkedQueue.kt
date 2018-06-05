@@ -232,7 +232,9 @@ class LinkedQueue<E> (
 
                 override fun estimateSize() = Long.MAX_VALUE
 
-                override fun characteristics() = NONNULL
+                override fun characteristics() = (Spliterator.CONCURRENT
+                        or Spliterator.NONNULL
+                        or Spliterator.ORDERED)
 
                 override fun trySplit(): Spliterator<E>? = null
 

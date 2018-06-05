@@ -13,11 +13,12 @@ import java.util.concurrent.BlockingDeque
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
 import java.util.function.Consumer
+import kotlin.NoSuchElementException
 
 class LinkedDeque<E>(
         private val store: MutableStore,
-        private val headRecid:Long,
-        private val tailRecid:Long,
+        headRecid:Long,
+        tailRecid:Long,
 
         private val serializer: Serializer<E>
     ):AbstractQueue<E>(), BlockingDeque<E>, Validate {
@@ -81,17 +82,6 @@ class LinkedDeque<E>(
     }
 
 
-    override fun peek(): E? {
-        lock.lockRead{
-            val headRecid = head.get()
-            if(headRecid==0L)
-                return null
-
-            val node = store.get(headRecid, nodeSer)!!
-            return node.e
-        }
-    }
-
 
     private fun deleteHeadNode(headRecid:Long, node:Node<E>){
         lock.assertWriteLock()
@@ -145,65 +135,92 @@ class LinkedDeque<E>(
     }
 
 
-    override fun peekLast(): E {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    override fun pollFirst(timeout: Long, unit: TimeUnit?): E? {
+        return poll(timeout, unit)
     }
+
+    override fun pollFirst(): E? {
+        return poll()
+    }
+
+
+    override fun pollLast(): E? {
+        lock.lockWrite{
+            val tailRecid = tail.get()
+            if(tailRecid==0L)
+                return null
+
+            modCount++
+            val node = store.get(tailRecid, nodeSer)!!
+            deleteHeadNode(tailRecid, node)
+            return node.e
+        }
+    }
+
+    override fun pollLast(timeout: Long, unit: TimeUnit?): E? {
+        lock.lockWrite {
+            var tailRecid = tail.get()
+            if(tailRecid == 0L){
+                //empty, await until not empty
+                notEmpty.await(timeout, unit)
+                tailRecid = tail.get()
+            }
+
+            if (tailRecid == 0L) {
+                return null;
+            }
+
+            modCount++
+            val node = store.get(tailRecid, nodeSer)!!
+            deleteHeadNode(tailRecid, node)
+            return node.e
+        }
+    }
+
+
 
     override fun addFirst(e: E) {
         put(e)
     }
 
     override fun offerLast(e: E): Boolean {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        putLast(e)
+        return true
     }
 
     override fun offerLast(e: E, timeout: Long, unit: TimeUnit?): Boolean {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        return offerLast(e);
     }
 
     override fun putFirst(e: E) {
         put(e)
     }
 
-    override fun removeFirst(): E {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+
+    override fun getFirst(): E {
+        return peekFirst()?:throw NoSuchElementException()
     }
 
-    override fun takeLast(): E {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+
+    override fun getLast(): E {
+        return peekLast()?:throw NoSuchElementException()
     }
 
-    override fun peekFirst(): E {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
 
-    override fun takeFirst(): E {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
 
     override fun offerFirst(e: E): Boolean {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        put(e)
+        return true
     }
 
     override fun offerFirst(e: E, timeout: Long, unit: TimeUnit?): Boolean {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        return offerFirst(e)
     }
 
-    override fun pollFirst(timeout: Long, unit: TimeUnit?): E {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
-    override fun pollFirst(): E {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
-    override fun removeFirstOccurrence(o: Any?): Boolean {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
 
 
     override fun push(e: E) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        put(e)
     }
 
     override fun take(): E {
@@ -222,20 +239,94 @@ class LinkedDeque<E>(
         throw InternalError()
     }
 
-    override fun getLast(): E {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+
+    override fun takeFirst(): E {
+        return take()
     }
 
-    override fun addLast(e: E) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    override fun takeLast(): E {
+        lock.lockWrite {
+            while(true) {
+                val tailRecid = tail.get()
+                if (tailRecid != 0L) {
+                    modCount++
+                    val node = store.get(tailRecid, nodeSer)!!
+                    removeNode(tailRecid) //TODO this can be much faster, delete Empty Head, set current head to null
+                    return node.e
+                }
+                notEmpty.await()
+            }
+        }
+        throw InternalError()
     }
 
-    override fun putLast(e: E) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+
+    override fun removeFirst(): E {
+        return pollFirst() ?: throw NoSuchElementException()
     }
 
-    override fun getFirst(): E {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    override fun removeLast(): E {
+        return pollLast() ?: throw NoSuchElementException()
+    }
+
+
+    override fun peek(): E? {
+        return peekFirst()
+    }
+
+
+    override fun peekFirst(): E? {
+        lock.lockRead {
+            val headRecid = head.get()
+            if(headRecid==0L)
+                return null
+            val node = store.get(headRecid, nodeSer)?:throw DBException.DataAssert()
+            return node.e
+        }
+    }
+
+
+    override fun peekLast(): E? {
+        lock.lockRead {
+            val tailRecid = head.get()
+            if(tailRecid==0L)
+                return null
+            val node = store.get(tailRecid, nodeSer)?:throw DBException.DataAssert()
+            return node.e
+        }
+    }
+
+    override fun addLast(e: E?) {
+        putLast(e)
+    }
+
+    override fun putLast(e: E?) {
+        e!!
+        lock.lockWrite {
+            val tailRecid = tail.get()
+            if(tailRecid == 0L){
+                //empty queue, insert new
+                dataAssert(head.get()==0L)
+                val node = Node(
+                        store.put(null, nodeSer),
+                        store.put(null, nodeSer),
+                        e);
+                val newTail = store.put(node, nodeSer)
+                head.set(newTail)
+                tail.set(newTail)
+            }else{
+                //not empty, update empty  node and update pointers
+                val oldTail = store.get(tailRecid, nodeSer)!!
+                val node = Node(
+                        nextRecid = tailRecid,
+                        prevRecid = store.put(null, nodeSer),
+                        e = e)
+                store.update(oldTail.prevRecid, nodeSer, node)
+                tail.set(oldTail.prevRecid)
+            }
+            modCount++
+            notEmpty.signal()
+        }
     }
 
     override fun put(e: E?) {
@@ -265,27 +356,35 @@ class LinkedDeque<E>(
             modCount++
             notEmpty.signal()
         }
-
     }
+
+
+
+    private fun removeOccurFromIter(iter: MutableIterator<E>, o: Any?): Boolean {
+        while (iter.hasNext()) {
+            val n = iter.next()
+            if (serializer.equals(n, o as E?))
+                return true
+        }
+        return false
+    }
+
+    override fun removeFirstOccurrence(o: Any?): Boolean {
+        if(o==null)
+            return false
+        return removeOccurFromIter(iterator(), o)
+    }
+
 
     override fun removeLastOccurrence(o: Any?): Boolean {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        if(o==null)
+            return false
+        return removeOccurFromIter(descendingIterator(), o)
     }
 
-    override fun removeLast(): E {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
-    override fun pollLast(timeout: Long, unit: TimeUnit?): E {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
-    override fun pollLast(): E {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
 
     override fun pop(): E {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        return removeFirst()
     }
 
 
@@ -398,7 +497,9 @@ class LinkedDeque<E>(
 
                 override fun estimateSize() = Long.MAX_VALUE
 
-                override fun characteristics() = Spliterator.NONNULL
+                override fun characteristics() = (Spliterator.CONCURRENT
+                        or Spliterator.NONNULL
+                        or Spliterator.ORDERED)
 
                 override fun trySplit(): Spliterator<E>? = null
 

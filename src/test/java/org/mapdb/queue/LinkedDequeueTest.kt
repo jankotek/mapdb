@@ -4,6 +4,9 @@ import io.kotlintest.shouldBe
 import org.junit.Test
 import org.mapdb.TT
 import org.mapdb.jsr166.BlockingQueueTest
+import org.mapdb.jsr166.LinkedBlockingDeque8Test
+import org.mapdb.jsr166.LinkedBlockingDequeTest
+import org.mapdb.jsr166.LinkedBlockingQueueTest
 import org.mapdb.serializer.Serializers
 import org.mapdb.store.StoreOnHeapSer
 import java.util.*
@@ -12,12 +15,32 @@ import java.util.concurrent.locks.LockSupport
 import kotlin.NoSuchElementException
 
 
-class LinkedDeueue166Test: BlockingQueueTest() {
+class LinkedDeueueBQ166Test: BlockingQueueTest() {
 
     override fun emptyCollection(): BlockingDeque<*> {
         return LinkedDequeTest.newOnHeap()
     }
 }
+
+
+class LinkedDeueueBDQ166Test: LinkedBlockingDequeTest() {
+
+    override fun newDeque(): BlockingDeque<Int> {
+        return LinkedDequeTest.newOnHeap()
+    }
+
+}
+
+
+class LinkedDeueueBDQ8166Test: LinkedBlockingDeque8Test() {
+
+    override fun newDeque(): BlockingDeque<Int> {
+        return LinkedDequeTest.newOnHeap()
+    }
+
+}
+
+
 
 class LinkedDequeTest{
 
