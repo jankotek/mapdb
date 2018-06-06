@@ -9,7 +9,6 @@ buildscript {
 
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath ("org.junit.platform:junit-platform-gradle-plugin:1.0.0")
     }
 }
 
@@ -21,12 +20,10 @@ dokka{
     jdkVersion = 8
 }
 apply plugin: "kotlin"
-apply plugin: 'org.junit.platform.gradle.plugin'
 
 
 compileKotlin {
     kotlinOptions {
-//        freeCompilerArgs = ['-Xenable-jvm-default']
         jvmTarget = '1.8'
     }
 }
@@ -43,6 +40,11 @@ repositories {
     mavenCentral()
 }
 
+
+test{
+    maxParallelForks = 5
+    maxHeapSize = '512m'
+}
 
 dependencies {
 
