@@ -13,6 +13,7 @@ import org.mapdb.io.DataOutput2
 import org.mapdb.serializer.Serializer
 import org.mapdb.serializer.Serializers
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.nio.ByteBuffer
 import java.util.*
 import java.util.concurrent.atomic.AtomicLong
@@ -56,7 +57,7 @@ abstract class StoreTest {
     @Test fun reserved_recids(){
         val e = openStore()
         for(expectedRecid in 1 .. Recids.RECID_MAX_RESERVED){
-            val allocRecid = e.put(1, Serializers.INTEGER)
+            val allocRecid = e.preallocate()
             assertEquals(expectedRecid, allocRecid)
         }
         e.verify()
@@ -571,21 +572,55 @@ abstract class StoreTest {
         for((recid,n) in records){
             archive.get(recid, Serializers.INTEGER) shouldBe n
         }
+    }
 
+    @Test fun empty(){
+        val store = openStore()
+        store.isEmpty() shouldBe true
+        val recid = store.put(1, Serializers.INTEGER)
+        store.isEmpty() shouldBe false
+
+        store.delete(recid, Serializers.INTEGER)
+        //TODO restore empty state when no data in store? perhaps not possible, so replace is 'isFresh()` (no data inserted yet)
+//        store.isEmpty() shouldBe true
+    }
+}
+
+abstract class FileStoreTest():StoreTest(){
+
+    abstract fun openStore(f: File):MutableStore
+
+    override fun openStore(): MutableStore {
+        val f = TT.tempFile()
+        return openStore(f)
+    }
+
+    @Test fun reopen(){
+        TT.withTempFile { f->
+            var s = openStore(f)
+            val recid = s.put("aa", Serializers.STRING)
+            s.commit()
+            s.close()
+
+            s = openStore(f)
+            s.get(recid,Serializers.STRING) shouldBe "aa"
+            s.close()
+        }
     }
 }
 
 class StoreHeapTest : StoreTest() {
-
     override fun openStore() = StoreOnHeap()
-
 }
-
-
 
 class StoreOnHeapSerTest : StoreTest() {
-
     override fun openStore() = StoreOnHeapSer()
-
 }
 
+class StoreOnHeapSerFileTest : FileStoreTest() {
+    override fun openStore(f: File) = StoreOnHeapSer(f)
+}
+
+class StoreAppendtest : FileStoreTest() {
+    override fun openStore(f:File) = StoreAppend(f.toPath())
+}

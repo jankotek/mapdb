@@ -102,4 +102,7 @@ class StoreArchive(val b: ByteBuffer):Store{
         }
     }
 
+    override fun isEmpty(): Boolean = recidCount == 0L
+
+
 }

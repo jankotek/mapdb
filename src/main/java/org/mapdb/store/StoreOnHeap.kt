@@ -158,4 +158,8 @@ class StoreOnHeap(
     override fun close() {
     }
 
+    override fun isEmpty(): Boolean {
+        return maxRecid == 0L
+    }
+
 }

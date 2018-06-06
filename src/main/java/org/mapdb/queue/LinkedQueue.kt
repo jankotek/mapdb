@@ -1,13 +1,14 @@
 package org.mapdb.queue
 
+import org.mapdb.DB
 import org.mapdb.io.DataInput2
 import org.mapdb.io.DataOutput2
 import org.mapdb.serializer.Serializer
+import org.mapdb.serializer.Serializers
 import org.mapdb.store.MutableStore
+import org.mapdb.store.Store
 import org.mapdb.util.*
-import org.mapdb.util.RecidRecord
 import java.util.*
-import java.util.Spliterator.NONNULL
 import java.util.concurrent.BlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
@@ -26,6 +27,24 @@ class LinkedQueue<E> (
     : AbstractQueue<E>(),
         BlockingQueue<E>{
 
+    companion object {
+
+        val formatFIFO = "LinkedQueueFIFO"
+        fun createWithParams(store:MutableStore, serializer: Serializer<*>): MutableMap<String, String> {
+            val ret = TreeMap<String,String>()
+            val rootRecid = store.put(0L, Serializers.RECID)
+            ret[DB.ParamNames.recid] = rootRecid.toString()
+            ret[DB.ParamNames.format] = formatFIFO
+            return ret
+        }
+
+        fun <T> openWithParams(store: Store, serializer:Serializer<T>, qp: Map<String, String>): Queue<T> {
+            val rootRecid = qp[DB.ParamNames.recid]!!.toLong()
+            dataAssert(qp[DB.ParamNames.format] == formatFIFO)
+            return LinkedQueue(store=store as MutableStore, rootRecid=rootRecid, serializer = serializer)
+        }
+
+    }
 
     private data class Node<E>(val prevRecid:Long, val e:E)
 

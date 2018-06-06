@@ -6,12 +6,15 @@ import org.mapdb.DBException
 import org.mapdb.io.DataInput2ByteArray
 import org.mapdb.serializer.Serializer
 import org.mapdb.serializer.Serializers
+import org.mapdb.util.dataAssert
 import org.mapdb.util.lockRead
 import org.mapdb.util.lockWrite
+import java.io.*
 import java.util.concurrent.locks.ReadWriteLock
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
 class StoreOnHeapSer(
+        val file: File? = null,
         override val isThreadSafe:Boolean=true
 ):MutableStore{
 
@@ -26,6 +29,32 @@ class StoreOnHeapSer(
 
     protected var maxRecid:Long = 0;
 
+    init{
+        if(file!=null && file.exists()){
+            //load from file
+            DataInputStream(DataInputStream(BufferedInputStream(file.inputStream()))).use { s ->
+                maxRecid = s.readLong()
+                val freeRecidCount = s.readInt()
+                val recCount = s.readInt()
+
+                for(i in 0 until freeRecidCount){
+                    val recid = s.readLong()
+                    freeRecids.add(recid)
+                }
+
+
+                for(i in 0 until recCount){
+                    val recid = s.readLong() //TODO use recid with parity
+                     val size = s.readInt()
+                    val ba = ByteArray(size)
+                    s.readFully(ba)
+                    val oldval = records.put(recid, ba)
+                    dataAssert(oldval==null)
+                }
+            }
+
+        }
+    }
 
     protected fun <E> check(value:ByteArray?, serializer:Serializer<E>):E?{
         return when {
@@ -158,6 +187,25 @@ class StoreOnHeapSer(
     }
 
     override fun commit() {
+        if(file==null)
+            return
+        lock.lockRead {
+            DataOutputStream(BufferedOutputStream(file.outputStream())).use { s ->
+                s.writeLong(maxRecid)
+                s.writeInt(freeRecids.size())
+                s.writeInt(records.size())
+
+                freeRecids.forEach{recid->
+                    s.writeLong(recid)
+                }
+
+                records.forEachKeyValue{recid,ba->
+                    s.writeLong(recid)
+                    s.writeInt(ba.size)
+                    s.write(ba)
+                }
+            }
+        }
     }
 
     override fun compact() {
@@ -166,5 +214,10 @@ class StoreOnHeapSer(
 
     override fun close() {
     }
+
+    override fun isEmpty(): Boolean {
+        return maxRecid == 0L
+    }
+
 
 }

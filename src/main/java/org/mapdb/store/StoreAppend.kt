@@ -23,19 +23,10 @@ class StoreAppend(
     ):MutableStore{
 
 
-    init{
-        val f = file.toFile()
-        assert(f.parentFile.canWrite())
-        assert(!f.exists())
-    }
-
     protected val c = FileChannel.open(file,
             StandardOpenOption.WRITE,
-            StandardOpenOption.CREATE_NEW,
+            StandardOpenOption.CREATE,
             StandardOpenOption.READ)
-    init{
-        DataIO.writeFully(c, ByteBuffer.allocate(8))
-    }
 
 
     protected val lock: ReadWriteLock? = if(isThreadSafe) ReentrantReadWriteLock() else null
@@ -47,7 +38,28 @@ class StoreAppend(
 
     protected var maxRecid:Long = 0
 
+    init{
+        val csize = c.size()
+        if(csize==0L) {
+            DataIO.writeFully(c, ByteBuffer.allocate(8))
+        }else{
+            var pos = 8L
+            //read record positions
+            while(pos<csize){
+                val offset = pos
+                val (recid, size) = readRecidSize(offset)
+                pos+=12 + Math.max(size,0)
 
+                offsets.put(recid,offset)
+                maxRecid = Math.max(recid, maxRecid)
+            }
+            //restore recids
+            for(recid in 1 until maxRecid){
+                if(!offsets.containsKey(recid))
+                    freeRecids.add(recid)
+            }
+        }
+    }
 
     protected fun readRecidSize(offset:Long):Pair<Long,Int>{
         val b = ByteBuffer.allocate(12)
@@ -278,6 +290,10 @@ class StoreAppend(
 
     override fun compact() {
 
+    }
+
+    override fun isEmpty(): Boolean {
+        return maxRecid == 0L
     }
 
 }

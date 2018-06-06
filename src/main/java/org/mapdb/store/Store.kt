@@ -21,6 +21,13 @@ interface Store: Closeable{
      * Function takes recid and binary data
      */
     fun getAll(consumer:(Long, ByteArray?)->Unit)
+
+
+    /**
+     * Returns true if store does not contain any data and no recids were allocated yet.
+     * Store is usually empty just after creation.
+     */
+    fun isEmpty():Boolean
 }
 
 /** Modifiable store */
@@ -71,6 +78,9 @@ interface MutableStore:Store{
 
 
 object Recids{
+
+    @JvmStatic val RECID_NAME_PARAMS = 1L
+
 
     @JvmStatic val RECID_MAX_RESERVED = 63L
 }
