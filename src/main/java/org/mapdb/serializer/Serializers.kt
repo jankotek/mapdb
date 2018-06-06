@@ -1,6 +1,7 @@
 package org.mapdb.serializer
 
 import org.mapdb.io.*
+import java.io.*
 import java.util.*
 
 object Serializers {
@@ -153,6 +154,31 @@ object Serializers {
         val aa = serializeToByteArray(a, ser)
         val bb = serializeToByteArray(b, ser)
         return Arrays.equals(aa, bb)
+
+    }
+
+
+    @JvmField val JAVA = object:Serializer<Any>{
+        override fun serialize(k: Any, out: DataOutput2) {
+            val b = ByteArrayOutputStream()
+            val b2 = ObjectOutputStream(b)
+            b2.writeObject(k)
+            b2.close()
+            val ba = b.toByteArray()
+            out.writePackedInt(ba.size)
+            out.write(ba)
+        }
+
+        override fun deserialize(input: DataInput2): Any {
+            val size = input.readPackedInt()
+            val ba = ByteArray(size)
+            input.readFully(ba)
+
+            val s = ObjectInputStream(ByteArrayInputStream(ba))
+            return s.readObject()
+        }
+
+        override fun serializedType(): Class<*>? = null
 
     }
 }

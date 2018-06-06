@@ -12,7 +12,7 @@ public interface Serializer<K>{
 
     K deserialize(@NotNull DataInput2 input);
 
-    Class serializedType();
+    @Nullable Class serializedType();
 
     default boolean equals(@Nullable K k1, @Nullable K k2){
         return k1==k2 || (k1!=null && k1.equals(k2));

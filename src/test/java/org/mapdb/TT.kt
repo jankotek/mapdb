@@ -326,6 +326,22 @@ object TT{
 
     }
 
+
+    data class TestPojo(val a:String, val b:String):Serializable
+
+    /** random generator of any type */
+    object anyGen: Gen<Any>{
+        override fun always(): Iterable<Any> {
+            return listOf(1,2, 4L, listOf(1,2,4), "aa", TestPojo("aa", "bb"))
+        }
+
+        override fun random(): Sequence<Any> =
+            generateSequence {
+                Math.random()
+            }
+
+    }
+
     fun genFor(cl: Class<*>?): Gen<Any> = when (cl) {
 
         java.lang.Integer::class.java -> Gen.int()
@@ -333,6 +349,7 @@ object TT{
         java.lang.Double::class.java -> Gen.double()
         java.lang.String::class.java -> Gen.string()
         ByteArray::class.java -> byteArrayGen
+        null -> anyGen // generic serializers
 
         else -> throw AssertionError("unknown class $cl")
     }
