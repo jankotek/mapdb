@@ -1,7 +1,10 @@
 buildscript {
+
+    //TODO wildcard for dep versions
     ext.kotlin_version = '1.2.40'
     ext.junit_version = '5.2.0-M1'
     ext.ec_version = '9.1.0'
+    ext.guava_version = '20.0'
 
     repositories {
         mavenCentral()
@@ -50,6 +53,8 @@ dependencies {
 
     compile "org.eclipse.collections:eclipse-collections-api:$ec_version"
     compile "org.eclipse.collections:eclipse-collections:$ec_version"
+
+    compile "com.google.guava:guava:$guava_version"
 
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
 

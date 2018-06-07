@@ -1,11 +1,12 @@
 package org.mapdb
 
 import io.kotlintest.specs.WordSpec
+import org.junit.Assert.assertTrue
 import org.mapdb.queue.LinkedQueue
 import org.mapdb.serializer.Serializer
 import org.mapdb.serializer.Serializers
 
-class DBUsabilityTest: WordSpec({
+class DBCollectionTest: WordSpec({
 
     for(a in adapters()){
         a.name should {
@@ -20,6 +21,15 @@ class DBUsabilityTest: WordSpec({
                         a.open(db, "name", Serializers.LONG)
                     }
                 }
+            }
+
+            "use the same instance"{
+                val db = DB.Maker.heapSer().make()
+                val c1 = a.open(db, "name", Serializers.INTEGER)
+                val c2 = a.open(db, "name", Serializers.INTEGER)
+                val c3 = a.open(db, "name", Serializers.INTEGER)
+
+                assertTrue(c1===c2 && c2===c3)
             }
         }
     }
