@@ -1,6 +1,5 @@
 package org.mapdb
 
-import com.google.common.base.Verify
 import io.kotlintest.properties.Gen
 import org.junit.Assert.*
 import org.junit.Test
@@ -15,7 +14,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReadWriteLock
-import java.util.concurrent.locks.ReentrantReadWriteLock
 
 /**
  * Unit tests utils
@@ -78,6 +76,13 @@ object TT{
                 return file
             }
         }
+    }
+
+    @JvmStatic fun tempNotExistFile():File{
+        val f = tempFile()
+        f.delete()
+        assertFalse(f.exists())
+        return f
     }
 
     @JvmStatic fun tempDir(): File {

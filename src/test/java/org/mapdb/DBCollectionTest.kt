@@ -1,8 +1,11 @@
 package org.mapdb
 
+import io.kotlintest.should
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.WordSpec
 import org.junit.Assert.assertTrue
+import org.mapdb.cli.Export
+import org.mapdb.cli.Import
 import org.mapdb.io.DataInput2
 import org.mapdb.io.DataInput2ByteArray
 import org.mapdb.io.DataOutput2ByteArray
@@ -50,7 +53,7 @@ class DBCollectionTest: WordSpec({
                 }
             }
 
-            "export/import"{
+            "export"{
                 val db1 = DB.Maker.heapSer().make()
                 val c1 = a.open(db1, "aa", Serializers.INTEGER)
 
@@ -66,15 +69,67 @@ class DBCollectionTest: WordSpec({
                 val c2 = a.import(db2, "aa", Serializers.INTEGER, input)
 
                 val all = a.getAll(c2).toList()
-
                 for(i in 1..100){
                     all[i-1] shouldBe i
                 }
             }
+
+            "cli export"{
+                TT.withTempFile { dbf ->
+                    var db = DB.Maker.appendFile(dbf).make()
+                    var c = a.open(db, "name", Serializers.INTEGER)
+                    for(i in 1..100)
+                        a.add(c, i)
+                    db.close()
+
+                    val outf = TT.tempNotExistFile()
+                    //export from cli
+                    Export.main(arrayOf("-d",dbf.path, "-o", outf.path, "-n","name"))
+
+                    outf.length() should {it>0L}
+
+                    db = DB.Maker.heapSer().make()
+                    val input = DataInput2ByteArray(outf.readBytes())
+                    c = a.import(db, "name2", Serializers.INTEGER, input )
+
+                    val all = a.getAll(c).toList()
+                    for(i in 1..100){
+                        all[i-1] shouldBe i
+                    }
+                }
+            }
+
+
+            "cli import"{
+                TT.withTempFile { dbf ->
+                    var db = DB.Maker.heapSer().make()
+                    var c = a.open(db, "name", Serializers.INTEGER)
+                    for(i in 1..100)
+                        a.add(c, i)
+
+                    val output = DataOutput2ByteArray()
+                    (c as Exporter).exportToDataOutput2(output)
+
+                    val outf = TT.tempFile()
+                    outf.writeBytes(output.copyBytes())
+
+                    //import from cli
+                    Import.main(arrayOf("-d",dbf.path, "-i", outf.path, "-n","name"))
+
+                    dbf.length() should {it>0L}
+
+                    db = DB.Maker.appendFile(dbf).make()
+                    c = a.open(db, "name", Serializers.INTEGER)
+
+                    val all = a.getAll(c).toList()
+                    for(i in 1..100){
+                        all[i-1] shouldBe i
+                    }
+                }
+            }
+
         }
     }
-
-
 
 }){
 

@@ -89,6 +89,11 @@ class DB(val store: Store): Closeable {
             return DB(store)
         }
 
+        fun readOnly(): DB.Maker {
+            //FIXME readme
+            return this
+        }
+
 
         companion object {
             fun appendFile(f: File): DB.Maker {
@@ -110,6 +115,8 @@ class DB(val store: Store): Closeable {
                 maker.props[ConfigKey.storeType.name] = ConfigVal.onHeapSer.name
                 return maker
             }
+
+
         }
     }
 
