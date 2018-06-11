@@ -1,12 +1,15 @@
 package org.mapdb.queue
 
 import org.mapdb.DB
+import org.mapdb.DBException
+import org.mapdb.Exporter
 import org.mapdb.io.DataInput2
 import org.mapdb.io.DataOutput2
 import org.mapdb.serializer.Serializer
 import org.mapdb.serializer.Serializers
 import org.mapdb.store.MutableStore
 import org.mapdb.store.Store
+import org.mapdb.store.StoreOnHeap
 import org.mapdb.util.*
 import java.util.*
 import java.util.concurrent.BlockingQueue
@@ -25,17 +28,38 @@ class LinkedQueue<E> (
         private val rootRecid:Long,
         private val serializer:Serializer<E>)
     : AbstractQueue<E>(),
-        BlockingQueue<E>{
+        BlockingQueue<E>, Exporter {
 
     companion object {
 
         val formatFIFO = "LinkedQueueFIFO"
-        fun createWithParams(store:MutableStore, serializer: Serializer<*>): MutableMap<String, String> {
+        fun createWithParams(store:MutableStore, serializer: Serializer<*>, importInput:DataInput2? = null): MutableMap<String, String> {
             val ret = TreeMap<String,String>()
-            val rootRecid = store.put(0L, Serializers.RECID)
+
+            val rootRecid:Long = if(importInput!=null){
+                import(serializer, importInput, store)
+            }else{
+                store.put(0L, Serializers.RECID)
+            }
             ret[DB.ParamNames.recid] = rootRecid.toString()
             ret[DB.ParamNames.format] = formatFIFO
+
             return ret
+        }
+
+        /** import, return headRecid */
+        private fun import(serializer: Serializer<*>, importInput: DataInput2, store: MutableStore):Long {
+            var prevRecid = 0L
+            //dummy queue
+            var q = LinkedQueue(store = StoreOnHeap(), rootRecid = 111L, serializer = serializer as Serializer<Any?>)
+            //create stack in cycle
+            while (importInput.availableMore()) {
+                val e = serializer.deserialize(importInput)
+                val n = Node(prevRecid, e)
+                prevRecid = store.put(n, q.nodeSer)
+            }
+            //create head
+            return store.put(prevRecid, Serializers.RECID)
         }
 
         fun <T> openWithParams(store: Store, serializer:Serializer<T>, qp: Map<String, String>): Queue<T> {
@@ -386,4 +410,17 @@ class LinkedQueue<E> (
         }
     }
 
+
+    override fun exportToDataOutput2(out: DataOutput2) {
+        //TODO format header
+        lock.lockRead {
+            var recid = head.get()
+
+            while(recid!=0L){
+                val node = store.get(recid, nodeSer) ?: throw DBException.DataAssert()
+                serializer.serialize(node.e, out)
+                recid = node.prevRecid
+            }
+        }
+    }
 }

@@ -11,6 +11,14 @@ public interface DataInput2 extends DataInput {
      */
     int available() throws IOException ;
 
+
+    /** returns true if more bytes are available for read
+     *
+     * TODO throws exception if output has no EOF info?
+     */
+    boolean availableMore()throws IOException;
+
+
     int readPackedInt() throws IOException ;
 
     long readPackedLong() throws IOException ;

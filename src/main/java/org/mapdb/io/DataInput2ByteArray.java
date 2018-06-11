@@ -93,6 +93,11 @@ public final class DataInput2ByteArray implements DataInput2 {
     }
 
     @Override
+    public boolean availableMore() throws IOException {
+        return available()>0;
+    }
+
+    @Override
     public int readPackedInt() throws IOException {
         return readInt();
     }
