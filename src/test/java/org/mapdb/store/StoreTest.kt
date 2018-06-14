@@ -542,7 +542,7 @@ abstract class StoreTest {
             records2+=Pair(recid, n)
         }
 
-
+//TODO check deleted records are excluded
         records2.size shouldBe max
         for(i in 0 until max){
             val (recid, n) = records2[i]
@@ -624,3 +624,4 @@ class StoreOnHeapSerFileTest : FileStoreTest() {
 class StoreAppendtest : FileStoreTest() {
     override fun openStore(f:File) = StoreAppend(f.toPath())
 }
+
