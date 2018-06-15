@@ -3,13 +3,14 @@ package org.mapdb.store
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap
 import org.mapdb.DBException
+import org.mapdb.io.DataIO
 import org.mapdb.io.DataInput2ByteArray
-import org.mapdb.io.DataOutput2ByteArray
 import org.mapdb.serializer.Serializer
 import org.mapdb.serializer.Serializers
 import org.mapdb.util.*
 import java.nio.ByteBuffer
 import java.nio.MappedByteBuffer
+import java.util.*
 
 class StoreDirect(
         private val b: ByteBuffer,
@@ -19,7 +20,19 @@ class StoreDirect(
 
     companion object {
         val blockSize:Long = 1024*1024
-        val maskOffset =  0x0000FFFFFFFFFFFFL // 0x0000FFFFFFFFFFF0L
+        val maskOffset =  0x0000FFFFFFFFFFF0L
+
+        val recordTypeMask = 0xEL // 1110
+
+        val recordTypeSmall = 0x0L
+        val recordtTypeLarge = 0x2L
+        val recordTypeIndex = 0x6L
+
+        val indexRecordSizeMask= 0xF0L
+
+        val indexValNull:Long = 8L.shl(4).or(recordTypeIndex)
+
+        val maxSmallRecordSize = 0xFFFFL
     }
 
     private val lock = newReadWriteLock(isThreadSafe)
@@ -36,7 +49,6 @@ class StoreDirect(
     private fun spaceRelease(offset:Long, size:Int){
 
     }
-
 
     init{
         //find max recid
@@ -56,7 +68,9 @@ class StoreDirect(
         lock.assertWriteLock()
         assert(size>=0)
         val ret = eof
-        eof+=size
+        eof+=DataIO.roundUp(size, 16)
+
+        assert(ret%16==0L)
         return ret
     }
 
@@ -75,15 +89,13 @@ class StoreDirect(
     private fun indexVal(size: Int, offset: Long):Long{
         assert(size<256*256)
         assert(offset<Int.MAX_VALUE)
-        return size.toLong().shl(48).or(offset)
+        assert(offset%16==0L)
+        return size.toLong().shl(48).or(offset).or(recordTypeSmall)
     }
 
     private fun indexValToSize(indexVal:Long) = indexVal.ushr(48)
 
     private fun indexValToOffset(indexVal:Long) = indexVal.and(maskOffset)
-
-
-
 
     private fun recidAllocate(indexVal:Long):Long{
         lock.assertWriteLock()
@@ -132,37 +144,82 @@ class StoreDirect(
             val indexVal = indexGet(recid)
             if(indexVal == 0L)
                 throw DBException.RecidNotFound()
-            if(indexVal==1L)
-                return null
-            val size = indexValToSize(indexVal)
-            val offset = indexValToOffset(indexVal)
 
-            val bb = read(size, offset)
-            return serializer.deserialize(DataInput2ByteArray(bb))
+            return when(indexVal.and(recordTypeMask)){
+                recordTypeSmall -> getRecordSmall(indexVal, serializer)
+                recordTypeIndex -> getRecordIndex(indexVal, serializer)
+                recordtTypeLarge -> getRecordLarge(indexVal, serializer)
+
+                else -> throw DBException.DataAssert("Unknown record type")
+            }
+
         }
     }
 
+    private fun <K> getRecordIndex(indexVal: Long, serializer: Serializer<K>): K? {
+        val size = indexVal.and(indexRecordSizeMask).ushr(4).toInt()
+        if(size==8)
+            return null
+
+        val bb = ByteArray(8)
+        DataIO.putLong(bb, 0, indexVal)
+
+        val bb2 = Arrays.copyOf(bb,size)
+        return serializer.deserialize(DataInput2ByteArray(bb2))
+    }
+
+    private fun <K> getRecordLarge(indexVal:Long, serializer: Serializer<K>):K?  {
+        val size = indexValToSize(indexVal)
+        val offset = indexValToOffset(indexVal)
+
+        val linkCount = b.getChar(offset.toInt()).toInt()
+        assert(linkCount>0)
+        assert(offset+size>=linkCount*8+8)
+        val links = (0 until linkCount).map{i->
+            val linkOffset = offset + 2 + i*8
+            b.getLong(linkOffset.toInt())
+        }.toLongArray()
+
+        val bbSize = links.map{it.ushr(48)}.sum()
+        val bb = ByteArray(bbSize.toInt())
+
+        var bbPos = 0L
+        var b2 = b.duplicate()
+        for(link in links){
+            val size = link.ushr(48)
+            assert(size>0)
+            val offset = link.and(maskOffset)
+
+            b2.position(offset.toInt())
+            b2.get(bb, bbPos.toInt(), size.toInt())
+
+            bbPos+=size
+        }
+        assert(bbSize == bbPos)
+
+        return serializer.deserialize(DataInput2ByteArray(bb))
+    }
+    private fun <K> getRecordSmall(indexVal:Long, serializer: Serializer<K>):K?  {
+        val size = indexValToSize(indexVal)
+        val offset = indexValToOffset(indexVal)
+
+        val bb = read(size, offset)
+        return serializer.deserialize(DataInput2ByteArray(bb))
+    }
+
     override fun getAll(consumer: (Long, ByteArray?) -> Unit) {
-        //TODO exclude deleted
         lock.lockRead {
             for (recid in 1L..maxRecid) {
                 val indexVal = indexGet(recid)
                 if (indexVal == 0L) {
                     continue
                 }
-                if (indexVal == 1L) {
-                    consumer(recid, null)
-                    continue
-                }
 
-                val size = indexValToSize(indexVal)
-                val offset = indexValToOffset(indexVal)
-                val bb = read(size, offset)
+                val bb = get(recid, Serializers.BYTE_ARRAY_NOSIZE) //TODO hack
                 consumer(recid, bb)
             }
         }
     }
-
 
     override fun isEmpty(): Boolean {
         lock.lockRead {
@@ -176,28 +233,18 @@ class StoreDirect(
             delete(recid, serializer)
             return ret
         }
-
     }
-
 
     override fun preallocate(): Long {
         lock.lockWrite {
-            return recidAllocate(1L)
+            return recidAllocate(indexValNull)
         }
     }
 
     override fun <K> put(record: K?, serializer: Serializer<K>): Long {
-        if(record==null)
-            return preallocate()
-
-        val out = DataOutput2ByteArray()
-        serializer.serialize(record, out)
         lock.lockWrite {
-            val offset = spaceAllocate(out.pos)
-
-            write(offset, out.buf)
-
-            val recid = recidAllocate(indexVal(out.pos, offset))
+            val recid = preallocate()
+            update(recid, serializer, record)
             return recid
         }
     }
@@ -214,17 +261,54 @@ class StoreDirect(
                 spaceRelease(indexValToOffset(indexVal), indexValToSize(indexVal).toInt())
             }
 
-            if(bb==null){
+            if(bb==null) {
                 //write null
-                indexUpdate(recid, 1L)
-            }else{
-                //TODO handle empty records
+                indexUpdate(recid, indexValNull)
+            }else if(bb.size<8){
+                val bb8 = Arrays.copyOf(bb, 8)
+                val indexVal = DataIO.getLong(bb8, 0)
+                        .or(bb.size.toLong().shl(4))
+                        .or(recordTypeIndex)
+                indexUpdate(recid, indexVal)
+            }else if(bb.size<= maxSmallRecordSize){
+                //small record
+
                 val offset = spaceAllocate(bb.size)
 
                 write(offset, bb)
                 indexUpdate(recid, indexVal(bb.size, offset))
+            }else{
+                updateRecordLarge(bb, recid)
             }
         }
+    }
+
+    private fun updateRecordLarge(bb: ByteArray, recid: Long) {
+        //large record
+        val rootSize = maxSmallRecordSize.toInt()
+        val rootOffset = spaceAllocate(rootSize) //TODO size allocation
+
+        var bbPos = 0
+        var count = 0
+        while (bbPos < bb.size) {
+            val partSize = Math.min(maxSmallRecordSize.toInt(), bb.size - bbPos)
+            val partOffset = spaceAllocate(partSize.toInt())
+            val b2 = b.duplicate()
+            b2.position(partOffset.toInt())
+            b2.put(bb, bbPos, partSize.toInt())
+
+            val linkVal = partSize.toLong().shl(48).or(partOffset)
+            b.putLong(rootOffset.toInt()+2 + count * 8, linkVal)
+
+            count++
+            bbPos += partSize
+        }
+        assert(bbPos == bb.size)
+        assert(count <= 0xFF)
+        b.putChar(rootOffset.toInt(), count.toChar())
+
+        val indexVal = rootSize.toLong().shl(48).or(rootOffset).or(recordtTypeLarge)
+        indexUpdate(recid, indexVal)
     }
 
 
@@ -262,13 +346,37 @@ class StoreDirect(
 
             recidRelease(recid)
 
-            if(indexVal==1L)
-                return //null
-
-            val offset = indexValToOffset(indexVal)
-            val size = indexValToSize(indexVal)
-            spaceRelease(offset, size.toInt())
+            when(indexVal.and(recordTypeMask)){
+                recordTypeSmall -> deleteRecordSmall(indexVal)
+                recordTypeIndex -> {} //no space to release
+                recordtTypeLarge -> deleteRecordLarge(indexVal)
+                else -> throw DBException.DataAssert("unknown record type")
+            }
         }
+    }
+
+    private fun deleteRecordSmall(indexVal: Long){
+        lock.assertWriteLock()
+        val offset = indexValToOffset(indexVal)
+        val size = indexValToSize(indexVal)
+        assert(size>0)
+        spaceRelease(offset, size.toInt())
+    }
+
+    private fun deleteRecordLarge(indexVal:Long){
+        lock.assertWriteLock()
+        val offset = indexValToOffset(indexVal)
+        val size = indexValToSize(indexVal)
+
+        val linkCount = b.getChar(offset.toInt()).toInt()
+        assert(offset+size>=linkCount*8+8)
+        for(i in 0 until linkCount){
+            val linkOffset = offset + 2 + i*8
+            val linkVal = b.getLong(linkOffset.toInt())
+            deleteRecordSmall(linkVal)
+        }
+
+        deleteRecordSmall(indexVal)
     }
 
     override fun verify() {

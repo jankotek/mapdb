@@ -14,5 +14,5 @@ open class DBException(msg:String): RuntimeException(msg) {
 
     class StoreReentry(): DBException("Can not modify store during updateAtomic")
 
-    class DataAssert():DBException("data corrupted")
+    class DataAssert(msg:String = "data corrupted"):DBException(msg)
 }
