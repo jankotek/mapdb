@@ -37,6 +37,12 @@ sourceSets {
     main.java.srcDirs += 'src/main/java'
     test.kotlin.srcDirs += 'src/test/java'
     test.java.srcDirs += 'src/test/java'
+
+    main.kotlin.srcDirs += 'srcGen/main/java'
+    main.java.srcDirs += 'srcGen/main/java'
+    test.kotlin.srcDirs += 'srcGen/test/java'
+    test.java.srcDirs += 'srcGen/test/java'
+
 }
 
 repositories {
@@ -50,7 +56,6 @@ test{
 }
 
 dependencies {
-
     compile "org.eclipse.collections:eclipse-collections-api:$ec_version"
     compile "org.eclipse.collections:eclipse-collections:$ec_version"
 
@@ -66,6 +71,4 @@ dependencies {
 
     testCompile("org.junit.jupiter:junit-jupiter-api:$junit_version")
     testRuntime("org.junit.jupiter:junit-jupiter-engine:$junit_version")
-
-
 }
