@@ -6,10 +6,11 @@ import io.kotlintest.specs.WordSpec
 import org.junit.Assert.assertTrue
 import org.mapdb.cli.Export
 import org.mapdb.cli.Import
+import org.mapdb.db.DB
 import org.mapdb.io.DataInput2
 import org.mapdb.io.DataInput2ByteArray
 import org.mapdb.io.DataOutput2ByteArray
-import org.mapdb.queue.LinkedQueue
+import org.mapdb.queue.LinkedFIFOQueue
 import org.mapdb.serializer.Serializer
 import org.mapdb.serializer.Serializers
 
@@ -136,9 +137,9 @@ class DBCollectionTest: WordSpec({
     companion object {
 
         abstract class  Adapter<C>{
-            abstract fun open(db:DB, name:String, serializer: Serializer<*>):C
+            abstract fun open(db: DB, name:String, serializer: Serializer<*>):C
 
-            abstract fun import(db:DB, name:String, serializer: Serializer<*>, input: DataInput2):C
+            abstract fun import(db: DB, name:String, serializer: Serializer<*>, input: DataInput2):C
 
             abstract fun add(c:C, e:Any?)
 
@@ -150,24 +151,24 @@ class DBCollectionTest: WordSpec({
 
         fun adapters():List<Adapter<Any>>{
 
-            val qAdapter = object: Adapter<LinkedQueue<Any>>() {
+            val qAdapter = object: Adapter<LinkedFIFOQueue<Any>>() {
 
-                override fun import(db: DB, name: String, serializer: Serializer<*>, input: DataInput2): LinkedQueue<Any> {
+                override fun import(db: DB, name: String, serializer: Serializer<*>, input: DataInput2): LinkedFIFOQueue<Any> {
                     return db.queue(name, serializer)
                             .importFromDataInput2(input)
-                            .make() as LinkedQueue<Any>
+                            .make() as LinkedFIFOQueue<Any>
                 }
 
 
-                override fun open(db: DB, name: String, serializer: Serializer<*>): LinkedQueue<Any> {
-                    return db.queue(name, serializer).make() as LinkedQueue<Any>
+                override fun open(db: DB, name: String, serializer: Serializer<*>): LinkedFIFOQueue<Any> {
+                    return db.queue(name, serializer).make() as LinkedFIFOQueue<Any>
                 }
 
-                override fun add(c: LinkedQueue<Any>, e: Any?) {
+                override fun add(c: LinkedFIFOQueue<Any>, e: Any?) {
                     c.add(e)
                 }
 
-                override fun getAll(c: LinkedQueue<Any>): Iterable<Any?> {
+                override fun getAll(c: LinkedFIFOQueue<Any>): Iterable<Any?> {
                     return c
                 }
 

@@ -2,7 +2,6 @@ package org.mapdb.queue
 
 import io.kotlintest.shouldBe
 import org.junit.Test
-import org.junit.jupiter.api.condition.EnabledIf
 import org.mapdb.TT
 import org.mapdb.jsr166.BlockingQueueTest
 import org.mapdb.serializer.Serializers
@@ -12,20 +11,20 @@ import java.util.concurrent.BlockingQueue
 import java.util.concurrent.locks.LockSupport
 
 
-class LinkedQueue166Test: BlockingQueueTest() {
+class LinkedFIFOQueue166Test: BlockingQueueTest() {
 
     override fun emptyCollection(): BlockingQueue<*> {
-        return LinkedQueueTest.newOnHeap()
+        return LinkedFIFOQueueTest.newOnHeap()
     }
 }
 
-class LinkedQueueTest{
+class LinkedFIFOQueueTest{
 
     companion object {
-        fun newOnHeap():LinkedQueue<Int>{
+        fun newOnHeap():LinkedFIFOQueue<Int>{
             val store = StoreOnHeapSer()
             val rootRecid = store.put(0L, Serializers.RECID)
-            return LinkedQueue(store, rootRecid, Serializers.INTEGER)
+            return LinkedFIFOQueue(store, rootRecid, Serializers.INTEGER)
         }
     }
 

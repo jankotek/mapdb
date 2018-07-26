@@ -1,7 +1,7 @@
 package org.mapdb.cli
 
 import com.xenomachina.argparser.ArgParser
-import org.mapdb.DB
+import org.mapdb.db.DB
 import org.mapdb.io.DataInput2ByteArray
 import org.mapdb.serializer.Serializers
 import java.io.File

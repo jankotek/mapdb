@@ -3,6 +3,7 @@ package org.mapdb
 import io.kotlintest.should
 import io.kotlintest.shouldBe
 import org.junit.Test
+import org.mapdb.db.DB
 import org.mapdb.serializer.Serializers
 import org.mapdb.store.StoreOnHeap
 import org.mapdb.store.StoreOnHeapSer

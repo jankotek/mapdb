@@ -1,6 +1,6 @@
 package org.mapdb.queue
 
-import org.mapdb.DB
+import org.mapdb.db.DB
 import org.mapdb.DBException
 import org.mapdb.Exporter
 import org.mapdb.io.DataInput2
@@ -23,7 +23,7 @@ import kotlin.NoSuchElementException
 /**
  * Unbounded uncounted FIFO Queue (stack)
  */
-class LinkedQueue<E> (
+class LinkedFIFOQueue<E> (
         private val store: MutableStore,
         private val rootRecid:Long,
         private val serializer:Serializer<E>)
@@ -32,7 +32,7 @@ class LinkedQueue<E> (
 
     companion object {
 
-        val formatFIFO = "LinkedQueueFIFO"
+        val formatFIFO = "LinkedFIFOQueue"
         fun createWithParams(store:MutableStore, serializer: Serializer<*>, importInput:DataInput2? = null): MutableMap<String, String> {
             val ret = TreeMap<String,String>()
 
@@ -51,7 +51,7 @@ class LinkedQueue<E> (
         private fun import(serializer: Serializer<*>, importInput: DataInput2, store: MutableStore):Long {
             var prevRecid = 0L
             //dummy queue
-            var q = LinkedQueue(store = StoreOnHeap(), rootRecid = 111L, serializer = serializer as Serializer<Any?>)
+            var q = LinkedFIFOQueue(store = StoreOnHeap(), rootRecid = 111L, serializer = serializer as Serializer<Any?>)
             //create stack in cycle
             while (importInput.availableMore()) {
                 val e = serializer.deserialize(importInput)
@@ -65,7 +65,7 @@ class LinkedQueue<E> (
         fun <T> openWithParams(store: Store, serializer:Serializer<T>, qp: Map<String, String>): Queue<T> {
             val rootRecid = qp[DB.ParamNames.recid]!!.toLong()
             dataAssert(qp[DB.ParamNames.format] == formatFIFO)
-            return LinkedQueue(store=store as MutableStore, rootRecid=rootRecid, serializer = serializer)
+            return LinkedFIFOQueue(store=store as MutableStore, rootRecid=rootRecid, serializer = serializer)
         }
 
     }

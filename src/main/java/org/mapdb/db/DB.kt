@@ -1,9 +1,10 @@
-package org.mapdb
+package org.mapdb.db
 
 import com.google.common.cache.CacheBuilder
+import org.mapdb.DBException
 import org.mapdb.io.DataInput2
 import org.mapdb.list.LinkedList
-import org.mapdb.queue.LinkedQueue
+import org.mapdb.queue.LinkedFIFOQueue
 import org.mapdb.serializer.Serializer
 import org.mapdb.serializer.Serializers
 import org.mapdb.store.*
@@ -89,29 +90,29 @@ class DB(val store: Store): Closeable {
             return DB(store)
         }
 
-        fun readOnly(): DB.Maker {
+        fun readOnly(): Maker {
             //FIXME readme
             return this
         }
 
 
         companion object {
-            fun appendFile(f: File): DB.Maker {
-                val maker = DB.Maker()
+            fun appendFile(f: File): Maker {
+                val maker = Maker()
                 maker.props[ConfigKey.file.name] = f.path
                 maker.props[ConfigKey.storeType.name] = ConfigVal.fileAppend.name
                 return maker
             }
 
-            fun heap(): DB.Maker {
-                val maker = DB.Maker()
+            fun heap(): Maker {
+                val maker = Maker()
                 maker.props[ConfigKey.storeType.name] = ConfigVal.onHeap.name
                 return maker
             }
 
 
-            fun heapSer(): DB.Maker {
-                val maker = DB.Maker()
+            fun heapSer(): Maker {
+                val maker = Maker()
                 maker.props[ConfigKey.storeType.name] = ConfigVal.onHeapSer.name
                 return maker
             }
@@ -139,7 +140,8 @@ class DB(val store: Store): Closeable {
     }
 
 
-    private val instances = CacheBuilder.newBuilder().weakValues().build<String, Any>()
+    //TODO make private
+    internal val instances = CacheBuilder.newBuilder().weakValues().build<String, Any>()
 
     private val paramSerializer = Serializers.JAVA as Serializer<Map<String, Map<String, String>>>
 
@@ -181,46 +183,5 @@ class DB(val store: Store): Closeable {
     }
 
 
-    class QueueMaker<T>(private val db: DB, private val name: String, private val serializer: Serializer<*>){
-
-        private var importInput:DataInput2? = null
-
-        enum class Order {
-            FIFO, LIFO
-        }
-
-
-        fun make(): Queue<T> {
-            val params = db.paramsLoad()
-            var qp = params[name]
-
-            if (qp == null) {
-                //create new
-                val qp2 = LinkedQueue.createWithParams(db.store as MutableStore, serializer, importInput = importInput)
-                val params2 = TreeMap(params)
-                qp2[DB.ParamNames.serializer] = db.serializerName(serializer)!!
-                params2[name] = qp2
-                qp = qp2
-                db.paramsSave(params2)
-            }else if(importInput!=null){
-                //TODO option to ignore?
-                throw DBException.WrongConfig("Can not import, collection already exists")
-            }
-
-
-            if (qp[DB.ParamNames.serializer] != db.serializerName(serializer))
-                throw DBException.WrongSerializer("Wrong serializer, expected ${qp[DB.ParamNames.serializer]} user supplied $serializer")
-
-            return db.instances.get(name, {
-                LinkedQueue.openWithParams(db.store, serializer as Serializer<T>, qp)
-            }) as Queue<T>
-
-        }
-
-        fun importFromDataInput2(input: DataInput2): QueueMaker<T> {
-            importInput = input
-            return this
-        }
-    }
 
 }
