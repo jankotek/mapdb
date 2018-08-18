@@ -1,7 +1,7 @@
 buildscript {
 
     //TODO wildcard for dep versions
-    ext.kotlin_version = '1.2.50'
+    ext.kotlin_version = '1.2.51'
     ext.junit_version = '5.2.0-M1'
     ext.ec_version = '9.1.0'
     ext.guava_version = '20.0'
