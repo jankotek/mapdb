@@ -7,7 +7,7 @@ import org.mapdb.serializer.Serializer
 import org.mapdb.store.MutableStore
 import java.util.*
 
-class QueueMaker<T>(private val db: DB, private val name: String, private val serializer: Serializer<*>){
+class QueueMaker<T>(private val db: DB, private val name: String, private val serializer: Serializer<T>){
 
     private var importInput: DataInput2? = null
 
@@ -46,5 +46,13 @@ class QueueMaker<T>(private val db: DB, private val name: String, private val se
     fun importFromDataInput2(input: DataInput2): QueueMaker<T> {
         importInput = input
         return this
+    }
+
+    companion object {
+
+        @JvmStatic
+        fun <E> newLinkedFifoQueue(db:DB, name: String, clazz: Class<E>): QueueMaker<E> {
+            return QueueMaker(db,name, db.serializerForClass(clazz));
+        }
     }
 }

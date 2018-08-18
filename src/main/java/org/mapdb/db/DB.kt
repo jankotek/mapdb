@@ -14,6 +14,7 @@ import java.io.Closeable
 import java.io.File
 import java.nio.file.Path
 import java.util.*
+import java.util.concurrent.Callable
 
 /** Main class for accessing MapDB */
 class DB(val store: Store): Closeable {
@@ -63,6 +64,11 @@ class DB(val store: Store): Closeable {
             return this
         }
 
+
+        fun txBlock(): Maker {
+            //TODO transactions
+            return this
+        }
         fun make(): DB {
 
             val threadSafe = props.getBooleanOrDefault(ConfigKey.threadSafe.name, true)
@@ -182,6 +188,31 @@ class DB(val store: Store): Closeable {
         return serializerNames[name]
     }
 
+    fun <E> serializerForClass(clazz: Class<E>): Serializer<E> {
+        val s = when(clazz){
+            String::class.java-> Serializers.STRING
+            ByteArray::class.java -> Serializers.BYTE_ARRAY
+            java.lang.Integer::class.java -> Serializers.INTEGER
+            java.lang.Long::class.java -> Serializers.LONG
+            else -> throw DBException.WrongConfig("No registered serializer for class: "+clazz.name)
+            //TODO config for fallback (default serialzier), or register 'catch all' serializer for java.lang.Object
+        }
+        return s as Serializer<E>
+    }
+
+
+
+    fun tx(o: Runnable){
+        //TODO tx
+        o.run()
+    }
+
+    fun <E> tx(o: Callable<E>): E {
+        //TODO tx
+        //TODO make sure it is not embeddable
+        //TODO in separate interface
+        return o.call()
+    }
 
 
 }
