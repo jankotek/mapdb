@@ -19,7 +19,6 @@ public interface Serializer<K>{
     }
 
 
-    //TODO long test that hashCode is well distributed for random values
     default int hashCode(@NotNull K k){
         return k.hashCode();
     }
