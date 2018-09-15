@@ -1,6 +1,9 @@
 package org.mapdb
 
+import io.kotlintest.TestCaseConfig
 import io.kotlintest.properties.Gen
+import io.kotlintest.specs.AbstractWordSpec
+import io.kotlintest.specs.WordSpec
 import org.junit.Assert.*
 import org.junit.Test
 import org.mapdb.io.*
@@ -8,6 +11,7 @@ import org.mapdb.serializer.Serializer
 import org.mapdb.serializer.Serializers
 import org.mapdb.store.MutableStore
 import java.io.*
+import java.time.Duration
 import java.util.*
 import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicBoolean
@@ -419,4 +423,16 @@ class TTTest{
         val f = TT.tempFile()
         assertTrue(f.name,f.name.startsWith("mapdbTest_org.mapdb.TTTest-tempFileName_textets-"))
     }
+}
+
+
+abstract class DBWordSpec(body: AbstractWordSpec.() -> Unit = {})  : WordSpec(body) {
+
+    private val duration =
+            if(TT.shortTest()) Duration.ofSeconds(2)
+            else Duration.ofHours(12)
+
+    override val defaultTestCaseConfig = TestCaseConfig(
+            timeout = duration)
+
 }

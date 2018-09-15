@@ -1,19 +1,21 @@
 package org.mapdb.serializer
 
-import io.kotlintest.matchers.beGreaterThan
+import io.kotlintest.TestCaseConfig
+import io.kotlintest.matchers.*
 import io.kotlintest.properties.forAll
 import io.kotlintest.should
 import io.kotlintest.specs.WordSpec
+import org.mapdb.DBWordSpec
 import org.mapdb.TT
+import java.time.Duration
 
-class SerializersTest : WordSpec({
-
+class SerializersTest : DBWordSpec({
 
     val sers = Serializers::class.java.fields
             .filter { it.name != "INSTANCE" } //TODO remove this field from java
             .map { Pair(it.name, it.get(null) as Serializer<Any?>) }
 
-    assert(sers.size > 0)
+    assert(sers.isNotEmpty())
 
 
     for ((name, ser) in sers) {
@@ -45,28 +47,33 @@ class SerializersTest : WordSpec({
                 }
             }
 
+
             if(!TT.shortTest()){
-                "hash spread and collisions"{
-                    val slotsCount = 100_000_000
+                "hash variance and collisions"{
+                    val slotsCount = 100_000
                     val hashCount = 1e9.toLong()
-                    val spread = IntArray(slotsCount)
-                    val collisions = IntArray(slotsCount)
+                    val variance = LongArray(slotsCount)
+                    val collisions = LongArray(slotsCount)
                     val iter = gen.random().iterator()
                     for(i in 0L until hashCount){
                         val r = iter.next()
                         val hash = r.hashCode()
 
                         // use div, to check its distributed from Integer.MIN_VALUE to Integer.MAX_VALUE
-                        spread[Math.abs(hash / slotsCount)]++
+                        variance[Math.abs(hash / slotsCount)]++
                         // use modulo to check for hash collisions
                         collisions[Math.abs(hash % slotsCount)]++
 
                     }
 
-                    for(i in 0 until slotsCount){
-                        spread[i].toDouble() should beGreaterThan(0.1 * hashCount/slotsCount)
-                        collisions[i].toDouble() should beGreaterThan(0.1 * hashCount/slotsCount)
+                    for(c in collisions){
+                         c.toDouble() should beGreaterThan(0.1 * hashCount/slotsCount)
                     }
+
+                    val lowVarCount = variance.filter{it< 0.0001 * hashCount/slotsCount }.size
+                    // 80% for almost empty hashes slots seems like too much, perhaps problem in random generator?
+                    lowVarCount.toDouble() should beLessThan(0.8 * slotsCount)
+
                 }
             }
         }

@@ -14,7 +14,7 @@ import org.mapdb.queue.LinkedFIFOQueue
 import org.mapdb.serializer.Serializer
 import org.mapdb.serializer.Serializers
 
-class DBCollectionTest: WordSpec({
+class DBCollectionTest: DBWordSpec({
 
     for(a in adapters()){
         a.name should {
