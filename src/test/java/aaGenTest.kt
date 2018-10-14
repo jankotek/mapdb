@@ -4,6 +4,6 @@ class genTest{
 
     @Test
     fun main(){
-        println(AACodeGen())
+        AACodeGen()
     }
 }
