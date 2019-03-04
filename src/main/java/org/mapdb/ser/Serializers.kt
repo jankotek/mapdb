@@ -1,4 +1,4 @@
-package org.mapdb.serializer
+package org.mapdb.ser
 
 import org.mapdb.io.*
 import java.io.*

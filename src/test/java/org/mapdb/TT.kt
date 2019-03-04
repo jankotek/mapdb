@@ -7,8 +7,8 @@ import io.kotlintest.specs.WordSpec
 import org.junit.Assert.*
 import org.junit.Test
 import org.mapdb.io.*
-import org.mapdb.serializer.Serializer
-import org.mapdb.serializer.Serializers
+import org.mapdb.ser.Serializer
+import org.mapdb.ser.Serializers
 import org.mapdb.store.MutableStore
 import java.io.*
 import java.time.Duration

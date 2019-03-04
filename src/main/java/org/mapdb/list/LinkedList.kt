@@ -2,7 +2,7 @@ package org.mapdb.list
 
 import org.mapdb.io.DataInput2
 import org.mapdb.io.DataOutput2
-import org.mapdb.serializer.Serializer
+import org.mapdb.ser.Serializer
 import org.mapdb.store.MutableStore
 import org.mapdb.util.lockRead
 import org.mapdb.util.lockWrite

@@ -1,13 +1,10 @@
-package org.mapdb.serializer
+package org.mapdb.ser
 
-import io.kotlintest.TestCaseConfig
 import io.kotlintest.matchers.*
 import io.kotlintest.properties.forAll
 import io.kotlintest.should
-import io.kotlintest.specs.WordSpec
 import org.mapdb.DBWordSpec
 import org.mapdb.TT
-import java.time.Duration
 
 class SerializersTest : DBWordSpec({
 

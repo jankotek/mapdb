@@ -1,4 +1,4 @@
-package org.mapdb.serializer;
+package org.mapdb.ser;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

@@ -1,6 +1,6 @@
 package org.mapdb.store
 
-import org.mapdb.serializer.Serializer
+import org.mapdb.ser.Serializer
 import java.io.Closeable
 
 /** Basic unmodifiable store */

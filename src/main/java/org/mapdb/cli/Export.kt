@@ -4,7 +4,7 @@ import com.xenomachina.argparser.ArgParser
 import org.mapdb.db.DB
 import org.mapdb.Exporter
 import org.mapdb.io.DataOutput2ByteArray
-import org.mapdb.serializer.Serializers
+import org.mapdb.ser.Serializers
 import java.io.File
 
 object Export{

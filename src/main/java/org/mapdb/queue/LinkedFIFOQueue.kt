@@ -5,8 +5,8 @@ import org.mapdb.DBException
 import org.mapdb.Exporter
 import org.mapdb.io.DataInput2
 import org.mapdb.io.DataOutput2
-import org.mapdb.serializer.Serializer
-import org.mapdb.serializer.Serializers
+import org.mapdb.ser.Serializer
+import org.mapdb.ser.Serializers
 import org.mapdb.store.MutableStore
 import org.mapdb.store.Store
 import org.mapdb.store.StoreOnHeap

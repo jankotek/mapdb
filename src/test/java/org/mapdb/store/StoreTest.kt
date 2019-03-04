@@ -10,8 +10,8 @@ import org.mapdb.TT
 import org.mapdb.io.DataIO
 import org.mapdb.io.DataInput2
 import org.mapdb.io.DataOutput2
-import org.mapdb.serializer.Serializer
-import org.mapdb.serializer.Serializers
+import org.mapdb.ser.Serializer
+import org.mapdb.ser.Serializers
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.ByteBuffer

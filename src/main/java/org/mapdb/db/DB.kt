@@ -2,11 +2,9 @@ package org.mapdb.db
 
 import com.google.common.cache.CacheBuilder
 import org.mapdb.DBException
-import org.mapdb.io.DataInput2
 import org.mapdb.list.LinkedList
-import org.mapdb.queue.LinkedFIFOQueue
-import org.mapdb.serializer.Serializer
-import org.mapdb.serializer.Serializers
+import org.mapdb.ser.Serializer
+import org.mapdb.ser.Serializers
 import org.mapdb.store.*
 import org.mapdb.util.dataAssert
 import org.mapdb.util.getBooleanOrDefault

@@ -1,4 +1,4 @@
-package org.mapdb.serializer;
+package org.mapdb.ser;
 
 import org.junit.Test;
 import org.mapdb.io.DataOutput2ByteArray;

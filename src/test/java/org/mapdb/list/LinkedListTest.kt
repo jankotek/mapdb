@@ -2,7 +2,7 @@ package org.mapdb.list
 
 import io.kotlintest.shouldBe
 import org.junit.Test
-import org.mapdb.serializer.Serializers
+import org.mapdb.ser.Serializers
 import org.mapdb.store.StoreOnHeap
 
 

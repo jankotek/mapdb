@@ -4,7 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.mapdb.io.DataInput2;
 import org.mapdb.io.DataOutput2;
-import org.mapdb.serializer.Serializer;
+import org.mapdb.ser.Serializer;
 
 import static org.junit.Assert.assertEquals;
 

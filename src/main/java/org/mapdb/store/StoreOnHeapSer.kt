@@ -4,8 +4,8 @@ import org.eclipse.collections.impl.factory.primitive.LongLists
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
 import org.mapdb.DBException
 import org.mapdb.io.DataInput2ByteArray
-import org.mapdb.serializer.Serializer
-import org.mapdb.serializer.Serializers
+import org.mapdb.ser.Serializer
+import org.mapdb.ser.Serializers
 import org.mapdb.util.dataAssert
 import org.mapdb.util.lockRead
 import org.mapdb.util.lockWrite

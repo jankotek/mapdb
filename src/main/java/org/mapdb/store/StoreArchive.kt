@@ -2,7 +2,7 @@ package org.mapdb.store
 
 import org.mapdb.DBException
 import org.mapdb.io.DataInput2ByteArray
-import org.mapdb.serializer.Serializer
+import org.mapdb.ser.Serializer
 
 import java.io.DataOutputStream
 import java.io.OutputStream

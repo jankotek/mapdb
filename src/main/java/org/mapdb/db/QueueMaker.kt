@@ -3,7 +3,7 @@ package org.mapdb.db
 import org.mapdb.DBException
 import org.mapdb.io.DataInput2
 import org.mapdb.queue.LinkedFIFOQueue
-import org.mapdb.serializer.Serializer
+import org.mapdb.ser.Serializer
 import org.mapdb.store.MutableStore
 import java.util.*
 

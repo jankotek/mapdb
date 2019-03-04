@@ -5,8 +5,8 @@ import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap
 import org.mapdb.DBException
 import org.mapdb.io.DataIO
 import org.mapdb.io.DataInput2ByteArray
-import org.mapdb.serializer.Serializer
-import org.mapdb.serializer.Serializers
+import org.mapdb.ser.Serializer
+import org.mapdb.ser.Serializers
 import org.mapdb.util.*
 import java.nio.ByteBuffer
 import java.nio.MappedByteBuffer

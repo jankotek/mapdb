@@ -1,6 +1,6 @@
 package org.mapdb.util
 
-import org.mapdb.serializer.Serializers
+import org.mapdb.ser.Serializers
 import org.mapdb.store.MutableStore
 
 class RecidRecord(

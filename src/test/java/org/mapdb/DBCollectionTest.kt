@@ -2,7 +2,6 @@ package org.mapdb
 
 import io.kotlintest.should
 import io.kotlintest.shouldBe
-import io.kotlintest.specs.WordSpec
 import org.junit.Assert.assertTrue
 import org.mapdb.cli.Export
 import org.mapdb.cli.Import
@@ -11,8 +10,8 @@ import org.mapdb.io.DataInput2
 import org.mapdb.io.DataInput2ByteArray
 import org.mapdb.io.DataOutput2ByteArray
 import org.mapdb.queue.LinkedFIFOQueue
-import org.mapdb.serializer.Serializer
-import org.mapdb.serializer.Serializers
+import org.mapdb.ser.Serializer
+import org.mapdb.ser.Serializers
 
 class DBCollectionTest: DBWordSpec({
 
