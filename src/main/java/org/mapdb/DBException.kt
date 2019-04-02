@@ -1,5 +1,7 @@
 package org.mapdb
 
+import java.nio.file.Path
+
 open class DBException(msg:String): RuntimeException(msg) {
 
     class RecidNotFound():DBException("recid was not found")
@@ -15,4 +17,7 @@ open class DBException(msg:String): RuntimeException(msg) {
     class StoreReentry(): DBException("Can not modify store during updateAtomic")
 
     class DataAssert(msg:String = "data corrupted"):DBException(msg)
+
+
+    class FileLocked(path: Path):DBException("File locked: $path")
 }
