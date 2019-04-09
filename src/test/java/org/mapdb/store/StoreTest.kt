@@ -586,6 +586,7 @@ abstract class StoreTest {
     }
 }
 
+//TODO merge with StoreReopenTest
 abstract class FileStoreTest():StoreTest(){
 
     abstract fun openStore(f: File):MutableStore
