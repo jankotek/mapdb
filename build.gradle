@@ -60,7 +60,8 @@ dependencies {
     compile "org.eclipse.collections:eclipse-collections:$ec_version"
 
     compile "com.google.guava:guava:$guava_version"
-
+    
+    compile "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version" //TODO compile only?
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
 
     //TODO optional dependencies?
