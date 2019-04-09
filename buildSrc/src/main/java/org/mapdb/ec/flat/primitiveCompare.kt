@@ -1,6 +1,5 @@
-package org.mapdb.ec.flat
+package org.mapdb.ec.flat.primitiveCompare
 
-object primitiveCompare{
 
 
     fun compare(type:String, left:String, right:String, wrapperName:String) = when(type) {
@@ -28,4 +27,3 @@ object primitiveCompare{
     fun wrapperCompare(left:String , right:String , wrapperName:String ) =
         "$wrapperName>.compare($left, $right)"
 
-}

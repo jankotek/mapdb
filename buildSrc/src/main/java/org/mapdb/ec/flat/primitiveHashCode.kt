@@ -1,6 +1,5 @@
-package org.mapdb.ec.flat
+package org.mapdb.ec.flat.primitiveHashCode
 
-object primitiveHashCode{
 
     fun hashCode(type:String, item:String) = when(type)
     {
@@ -147,4 +146,3 @@ object primitiveHashCode{
     }
 
 
-}

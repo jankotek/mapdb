@@ -1,6 +1,4 @@
-package org.mapdb.ec.flat
-
-object copyrightAndOthers{
+package org.mapdb.ec.flat.copyrightAndOthers
 
 fun copyrightAndOthers() = """
 /*
@@ -14,4 +12,3 @@ fun copyrightAndOthers() = """
  */
 """
 
-}

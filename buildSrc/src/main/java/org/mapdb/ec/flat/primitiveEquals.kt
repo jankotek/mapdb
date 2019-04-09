@@ -1,6 +1,4 @@
-package org.mapdb.ec.flat
-
-object primitiveEquals {
+package org.mapdb.ec.flat.primitiveEquals
 
     fun equals(type:String, left:String, right:String ) = when(type) {
         "boolean"-> operatorEquals(left, right)
@@ -91,5 +89,3 @@ object primitiveEquals {
     fun doubleLessThanOrEquals(left:String, right:String) = "Double.compare($left, $right) <= 0"
 
     fun floatLessThanOrEqual(left:String, right:String)  = "Float.compare($left, $right) <= 0"
-
-}

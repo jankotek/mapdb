@@ -1,6 +1,5 @@
-package org.mapdb.ec.flat
+package org.mapdb.ec.flat.primitiveLiteral
 
-object primitiveLiteral{
 
     fun literal(type:String, item:String) = when(type){
         "byte" -> byteLiteral(item)
@@ -72,7 +71,7 @@ object primitiveLiteral{
     fun charStringLiteral(item:String) = "\\u<item; format=\"%04x\">"
 
 
-    fun zero(type:String, item:String) = when(type){
+    fun zero(type:String) = when(type){
         "boolean" -> "false"
         "byte" -> "(byte) 0"
         "short" -> "(short) 0"
@@ -84,7 +83,7 @@ object primitiveLiteral{
         else -> throw Error("no matching zero: "+type)
     }
 
-    fun wideZero(type:String, item:String) = when(type){
+    fun wideZero(type:String) = when(type){
         "byte" -> "0L"
         "short" -> "0L"
         "char" ->"0L"
@@ -95,7 +94,7 @@ object primitiveLiteral{
         else -> throw Error("no matching wide zero: "+type)
     }
 
-    fun delta(type:String, item:String) = when(type){
+    fun delta(type:String) = when(type){
         "byte" -> ""
         "short" -> ""
         "char" -> ""
@@ -106,7 +105,7 @@ object primitiveLiteral{
         else -> throw Error("no matching delta "+type)
     }
 
-    fun wideDelta(type:String, item:String) = when(type){
+    fun wideDelta(type:String) = when(type){
         "boolean" -> ""
         "byte" -> ""
         "short" -> ""
@@ -118,7 +117,7 @@ object primitiveLiteral{
         else -> throw Error("no matching wide delta: "+type)
     }
 
-    fun wideType(type:String, item:String) = when(type) {
+    fun wideType(type:String) = when(type) {
         "byte" -> "long"
         "short" -> "long"
         "char" -> "long"
@@ -130,7 +129,7 @@ object primitiveLiteral{
         else -> throw Error("no matching wide type: " + type)
     }
 
-    fun wideName(type:String, item:String) = when(type){
+    fun wideName(type:String) = when(type){
         "byte" -> "Long"
         "short" -> "Long"
         "char" -> "Long"
@@ -142,13 +141,13 @@ object primitiveLiteral{
         else -> throw Error("no matching wide type: "+type)
     }
 
-    fun bitsType(type:String, item:String) = when(type){
+    fun bitsType(type:String) = when(type){
         "float" -> "int"
         "double" -> "long"
         else -> throw Error("no matching type: "+type)
     }
 
-    fun castWideType(type:String, item:String) = when(type) {
+    fun castWideType(type:String) = when(type) {
         "byte" -> "(long) "
         "short" -> "(long) "
         "char" -> "(long) "
@@ -160,7 +159,7 @@ object primitiveLiteral{
         else -> throw Error("no matching wide type: " + type)
     }
 
-    fun castDouble(type:String, item:String) = when(type) {
+    fun castDouble(type:String) = when(type) {
         "byte" -> "(double) "
         "short" -> "(double) "
         "char" -> "(double) "
@@ -171,7 +170,7 @@ object primitiveLiteral{
         else -> throw Error("no matching double cast: " + type)
     }
 
-    fun castSum(type:String, item:String) = when(type) {
+    fun castSum(type:String) = when(type) {
         "byte" -> "(double) "
         "short" -> "(double) "
         "char" -> "(double) "
@@ -320,12 +319,12 @@ object primitiveLiteral{
 
 
     //TODO ????
-    fun article(type:String, item:String) = when(type){
+    fun article(type:String) = when(type){
         "int" -> "an"
         else -> throw Error("a")
     }
 
-    fun keySize(type:String, item:String) = when(type){
+    fun keySize(type:String) = when(type){
         "byte" -> "1"
         "short" -> "2"
         "char" -> "2"
@@ -335,6 +334,3 @@ object primitiveLiteral{
         "double" -> "8"
         else -> throw Error("no matching key type: "+type)
     }
-
-
-}
