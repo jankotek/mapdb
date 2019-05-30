@@ -53,6 +53,9 @@ public class IndexTreeLongLongMap(
     val levels:Int,
     val collapseOnRemove:Boolean
 ): AbstractLongIterable(), MutableLongLongMap {
+    override fun updateValues(p0: LongLongToLongFunction?) {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
 
 
     companion object{

@@ -175,6 +175,20 @@ class VolumeTest {
         v.close()
     }
 
+    @org.junit.Test @Throws(IOException::class)
+    fun single_mmap_grow_with_cleaner_hack() {
+        val f = File.createTempFile("mapdbTest", "mapdb")
+        val raf = RandomAccessFile(f, "rw")
+        raf.seek(0)
+        raf.writeLong(112314123)
+        raf.close()
+        assertEquals(8, f.length())
+
+        val v = MappedFileVolSingle(f, false, 0L, 1000, true)
+        assertEquals(1000, f.length())
+        assertEquals(112314123, v.getLong(0))
+        v.close()
+    }
     @org.junit.Test
     @Throws(IOException::class)
     fun lock_double_open() {

@@ -3,13 +3,24 @@ package org.mapdb.volume;
 import org.mapdb.CC;
 import org.mapdb.DBException;
 import org.mapdb.DataInput2;
-import sun.misc.Cleaner;
-import sun.nio.ch.DirectBuffer;
+/*import sun.misc.Cleaner;
+import sun.nio.ch.DirectBuffer;*/
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.util.concurrent.locks.ReentrantLock;
+
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import static java.lang.invoke.MethodHandles.constant;
+import static java.lang.invoke.MethodHandles.dropArguments;
+import static java.lang.invoke.MethodHandles.filterReturnValue;
+import static java.lang.invoke.MethodHandles.guardWithTest;
+import static java.lang.invoke.MethodHandles.lookup;
+import static java.lang.invoke.MethodType.methodType;
 
 /**
  * Abstract Volume over bunch of ByteBuffers
@@ -27,6 +38,9 @@ abstract public class ByteBufferVol extends Volume {
 
     protected volatile ByteBuffer[] slices = new ByteBuffer[0];
     protected final boolean readOnly;
+
+    // null if unmap is not supported
+    private static final MethodHandle UNMAP;
 
     protected ByteBufferVol(boolean readOnly, int sliceShift, boolean cleanerHackEnabled) {
         this.readOnly = readOnly;
@@ -327,43 +341,99 @@ abstract public class ByteBufferVol extends Volume {
      * Any error is silently ignored (for example SUN API does not exist on Android).
      */
     protected static boolean unmap(MappedByteBuffer b){
-        if(!unmapHackSupported) {
+        if (!b.isDirect())
             return false;
-        }
-
-        if(!(b instanceof DirectBuffer))
+        if (UNMAP == null)
             return false;
 
-        // need to dispose old direct buffer, see bug
-        // http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4724038
-        DirectBuffer bb = (DirectBuffer) b;
-        Cleaner c = bb.cleaner();
-        if(c!=null){
-            c.clean();
+        try {
+            UNMAP.invokeExact((ByteBuffer) b);
             return true;
+        } catch (Throwable throwable) {
+            return false;
         }
-        Object attachment = bb.attachment();
-        return attachment!=null &&
-                attachment instanceof DirectBuffer &&
-                attachment!=b &&
-                unmap((MappedByteBuffer) attachment);
-
     }
 
-    private static boolean unmapHackSupported = true;
-    static{
-        try{
-            //TODO use better way to recognize class?
-            unmapHackSupported = Thread.currentThread().getContextClassLoader().loadClass("sun.nio.ch.DirectBuffer")!=null;
-        }catch(Exception e){
+    private static MethodHandle lookupUnmapMethodHandle()
+            throws NoSuchMethodException, IllegalAccessException, ClassNotFoundException {
+        final MethodHandles.Lookup lookup = MethodHandles.lookup();
+        try {
+            try {
+                // *** sun.misc.Unsafe unmapping (Java 9+) ***
+                final Class<?> unsafeClass = Class.forName("sun.misc.Unsafe");
+                // first check if Unsafe has the right method, otherwise we can
+                // give up without doing any security critical stuff:
+                final MethodHandle unmapper = lookup.findVirtual(unsafeClass,
+                        "invokeCleaner", methodType(void.class, ByteBuffer.class));
+                // fetch the unsafe instance and bind it to the virtual MH:
+                final Field f = unsafeClass.getDeclaredField("theUnsafe");
+                f.setAccessible(true);
+                final Object theUnsafe = f.get(null);
+                return unmapper.bindTo(theUnsafe);
+            } catch (SecurityException se) {
+                // rethrow to report errors correctly (we need to catch it here,
+                // as we also catch RuntimeException below!):
+                throw se;
+            } catch (ReflectiveOperationException | RuntimeException e) {
+                // *** sun.misc.Cleaner unmapping (Java 8) ***
+                final Class<?> directBufferClass =
+                        Class.forName("java.nio.DirectByteBuffer");
+
+                final Method m = directBufferClass.getMethod("cleaner");
+                m.setAccessible(true);
+                final MethodHandle directBufferCleanerMethod = lookup.unreflect(m);
+                final Class<?> cleanerClass =
+                        directBufferCleanerMethod.type().returnType();
+                final MethodHandle cleanMethod = lookup.findVirtual(
+                        cleanerClass, "clean", methodType(void.class));
+                final MethodHandle nonNullTest = lookup.findStatic(ByteBufferVol.class,
+                        "nonNull", methodType(boolean.class, Object.class))
+                        .asType(methodType(boolean.class, cleanerClass));
+                final MethodHandle noop = dropArguments(
+                        constant(Void.class, null).asType(methodType(void.class)),
+                        0, cleanerClass);
+                final MethodHandle unmapper = filterReturnValue(
+                        directBufferCleanerMethod,
+                        guardWithTest(nonNullTest, cleanMethod, noop))
+                        .asType(methodType(void.class, ByteBuffer.class));
+                return unmapper;
+            }
+        } catch (SecurityException se) {
+            throw se;
+
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            throw e;
+        }
+    }
+
+    static {
+        Object unmap = null;
+        try {
+            unmap = lookupUnmapMethodHandle();
+        } catch (RuntimeException e) {
             LOG.warning("mmap file unmap hack not supported, mmap files will not be closed, sun.nio.ch.DirectBuffer not found");
-            unmapHackSupported = false;
+        }
+        catch (NoSuchMethodException e) {
+            LOG.warning("Method not found while applying reflection to invoke a cleaner function");
+        }
+        catch (IllegalAccessException e) {
+            LOG.warning("IllegalAccessException while applying reflection to invoke a cleaner function");
+        }
+        catch (ClassNotFoundException e) {
+            LOG.warning("Class not found while applying reflection to invoke a cleaner function");
+        }
+    if (unmap != null) {
+            UNMAP = (MethodHandle) unmap;
+        } else {
+            UNMAP = null;
         }
     }
-
     // Workaround for https://github.com/jankotek/MapDB/issues/326
     // File locking after .close() on Windows.
     static boolean windowsWorkaround = System.getProperty("os.name").toLowerCase().startsWith("win");
 
+    private static boolean nonNull(Object o) {
+        return o != null;
+    }
 
 }
