@@ -174,7 +174,9 @@ class VolumeTest {
         assertEquals(112314123, v.getLong(0))
         v.close()
     }
-
+    /*
+    * single_mmap_grow_with_cleaner_hack is the same test as single_mmap_grow but with Cleaner Hack Enabled
+    * */
     @org.junit.Test @Throws(IOException::class)
     fun single_mmap_grow_with_cleaner_hack() {
         val f = File.createTempFile("mapdbTest", "mapdb")

@@ -37,7 +37,9 @@ import static java.lang.invoke.MethodType.methodType;
  * sun.misc.Unsafe#invokeCleaner(ByteBuffer) is the replacement.
  * This class is a hack to use sun.misc.Cleaner in Java 8 and
  * use the replacement in Java 9+.
- * This implementation is inspired by LUCENE-6989.
+ * This implementation is based on Hadoop class
+ * hadoop/hadoop-common-project/hadoop-common/src/main/java/org/apache/hadoop/util/CleanerUtil.java
+ * Some adaptations have been done to handle the attachment() of the byte buffer (explained in Bug #776)
  */
 public final class CleanerUtil {
 
@@ -135,7 +137,7 @@ public final class CleanerUtil {
             }
         } catch (SecurityException se) {
             return "Unmapping is not supported, because not all required " +
-                    "permissions are given to the Hadoop JAR file: " + se +
+                    "permissions are given to the MapDB JAR file: " + se +
                     " [Please grant at least the following permissions: " +
                     "RuntimePermission(\"accessClassInPackage.sun.misc\") " +
                     " and ReflectPermission(\"suppressAccessChecks\")]";
@@ -154,7 +156,10 @@ public final class CleanerUtil {
 
             try {
                 CLEANER.invokeExact(buffer);
-                // Handling attachment of the ByteBuffer object
+                /*
+                * Handling attachment of the ByteBuffer object
+                * Refer to https://github.com/jankotek/mapdb/issues/776 for details
+                * */
                 if (JAVA8_OR_LESS) {
                     final MethodHandles.Lookup lookup = MethodHandles.lookup();
                     final Class<?> directBufferClass =

@@ -793,9 +793,11 @@ public class IndexTreeLongLongMap(
         }
         return result
     }
-
+    /*
+    * Module would not compiled without adding implementing this method
+    * */
     override fun updateValues(p0: LongLongToLongFunction?) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+
     }
 
 }

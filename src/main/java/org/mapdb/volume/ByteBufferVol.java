@@ -331,7 +331,7 @@ abstract public class ByteBufferVol extends Volume {
                 CleanerUtil.freeBuffer((ByteBuffer) b);
                 return true;
             } catch (IOException e) {
-                LOG.warning("Failed to free the buffer");
+                LOG.warning("Failed to free the buffer. " + e);
             }
         } else {
             LOG.warning(CleanerUtil.UNMAP_NOT_SUPPORTED_REASON);
