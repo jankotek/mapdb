@@ -38,7 +38,7 @@ import static java.lang.invoke.MethodType.methodType;
  * This class is a hack to use sun.misc.Cleaner in Java 8 and
  * use the replacement in Java 9+.
  * This implementation is based on Hadoop class
- * hadoop/hadoop-common-project/hadoop-common/src/main/java/org/apache/hadoop/util/CleanerUtil.java
+ * https://github.com/apache/hadoop/blob/5d084d7eca32cfa647a78ff6ed3c378659f5b186/hadoop-common-project/hadoop-common/src/main/java/org/apache/hadoop/util/CleanerUtil.java
  * Some adaptations have been done to handle the attachment() of the byte buffer (explained in Bug #776)
  */
 public final class CleanerUtil {

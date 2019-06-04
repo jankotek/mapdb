@@ -794,10 +794,12 @@ public class IndexTreeLongLongMap(
         return result
     }
     /*
-    * Module would not compiled without adding implementing this method
+    * This method was introduced in Eclipse Collections 10.0.0.M3
+    * Module would not compile without implementing this method
+    * pom.xml uses an open ended version, thats why Maven builds using latest version of Eclipse Collections.
     * */
     override fun updateValues(p0: LongLongToLongFunction?) {
-
+        throw UnsupportedOperationException("UpdateValues() hasn't been implemented yet");
     }
 
 }
