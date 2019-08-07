@@ -4,6 +4,8 @@ import java.nio.file.Path
 
 open class DBException(msg:String): RuntimeException(msg) {
 
+    class RecordNotFound():DBException("record not found")
+
     class RecidNotFound():DBException("recid was not found")
 
     class StoreClosed(): DBException("Store was closed")

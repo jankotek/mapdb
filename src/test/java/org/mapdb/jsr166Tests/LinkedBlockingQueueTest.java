@@ -1,4 +1,4 @@
-package org.mapdb.jsr166;/*
+package org.mapdb.jsr166Tests;/*
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
@@ -19,8 +19,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
-
-import junit.framework.Test;
 
 public class LinkedBlockingQueueTest extends JSR166TestCase {
 

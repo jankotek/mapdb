@@ -1,4 +1,4 @@
-package org.mapdb.jsr166;/*
+package org.mapdb.jsr166Tests;/*
  * Written by Doug Lea and Martin Buchholz with assistance from
  * members of JCP JSR-166 Expert Group and released to the public
  * domain, as explained at
@@ -39,7 +39,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import junit.framework.Test;
-import org.mapdb.jsr166.JSR166TestCase;
 
 /**
  * Contains tests applicable to all jdk8+ Collection implementations.

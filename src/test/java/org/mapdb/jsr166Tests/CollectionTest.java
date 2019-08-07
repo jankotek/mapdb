@@ -1,11 +1,9 @@
-package org.mapdb.jsr166;/*
+package org.mapdb.jsr166Tests;/*
  * Written by Doug Lea and Martin Buchholz with assistance from
  * members of JCP JSR-166 Expert Group and released to the public
  * domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
-
-import junit.framework.Test;
 
 /**
  * Contains tests applicable to all Collection implementations.

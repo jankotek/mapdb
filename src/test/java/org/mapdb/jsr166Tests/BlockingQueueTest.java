@@ -1,4 +1,4 @@
-package org.mapdb.jsr166;/*
+package org.mapdb.jsr166Tests;/*
  * Written by Doug Lea and Martin Buchholz with assistance from members
  * of JCP JSR-166 Expert Group and released to the public domain, as
  * explained at http://creativecommons.org/publicdomain/zero/1.0/
@@ -15,9 +15,6 @@ import java.util.Collection;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
-
-import junit.framework.Test;
-import junit.framework.TestSuite;
 
 /**
  * Contains "contract" tests applicable to all BlockingQueue implementations.
