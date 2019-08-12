@@ -1,18 +1,31 @@
 package org.mapdb.io;
 
+import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
 import org.mapdb.DBException;
-
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Random;
 
 import static org.junit.Assert.*;
 import static org.mapdb.io.DataIO.*;
+import static org.mockito.Matchers.anyString;
 
+@RunWith(PowerMockRunner.class)
 public class DataIOTest {
+
+    @Rule public final ExpectedException thrown = ExpectedException.none();
 
     @Test public void parity1() {
         assertEquals(Long.parseLong("1", 2), parity1Set(0));
@@ -335,4 +348,269 @@ public class DataIOTest {
                 DataIO.packLongSize(1 << 63));
     }
 
+    @Test public void testUnpackInt() throws IOException {
+        Assert.assertEquals(126, DataIO.unpackInt(
+                new ByteArrayInputStream(new byte[]{-2, -15, -128})));
+        Assert.assertEquals(0, DataIO.unpackInt((DataInput) new
+                DataInputStream(new ByteArrayInputStream(new byte[]{-128}))));
+
+        Assert.assertEquals(0, DataIO.unpackInt(new byte[]{-128}, 0));
+        Assert.assertEquals(0, DataIO.unpackInt(new byte[]{0, -128}, 0));
+    }
+
+    @Test public void testUnpackIntThrowsException1() throws IOException {
+        thrown.expect(EOFException.class);
+        DataIO.unpackInt((DataInput)new DataInputStream(
+                new ByteArrayInputStream(new byte[]{0})));
+    }
+
+    @Test public void testUnpackIntThrowsException2() throws IOException {
+        thrown.expect(EOFException.class);
+        DataIO.unpackInt(new ByteArrayInputStream(new byte[]{0}));
+    }
+
+    @Test public void testUnpackLong() throws IOException {
+        Assert.assertEquals(0L, DataIO.unpackLong(
+                new ByteArrayInputStream(new byte[]{0, -128, -127})));
+        Assert.assertEquals(0L, DataIO.unpackLong(
+                new ByteArrayInputStream(new byte[]{-128, -127})));
+        Assert.assertEquals(0, DataIO.unpackLong((DataInput) new
+                DataInputStream(new ByteArrayInputStream(new byte[]{-128}))));
+
+        Assert.assertEquals(0L, DataIO.unpackLong(new byte[]{-128}, 0));
+        Assert.assertEquals(0L, DataIO.unpackLong(new byte[]{0, -128}, 0));
+    }
+
+    @Test public void testUnpackLongThrowsException() throws IOException {
+        thrown.expect(EOFException.class);
+        DataIO.unpackLong(new ByteArrayInputStream(new byte[]{0}));
+    }
+
+    @Test public void testPackLong() {
+        Assert.assertArrayEquals(new byte[2], new byte[2]);
+        Assert.assertArrayEquals(new byte[9], new byte[9]);
+
+        Assert.assertEquals(1, DataIO.packLong(new byte[2], 1, 0L));
+        Assert.assertEquals(2, DataIO.packLong(new byte[9], 3, 2048L));
+    }
+
+    @Test public void testPackLongSize2() {
+        Assert.assertEquals(1, DataIO.packLongSize(0L));
+        Assert.assertEquals(2, DataIO.packLongSize(2048L));
+    }
+
+    @Test public void testUnpackRecid() throws Exception {
+        final DataInput2 in = PowerMockito.mock(DataInput2.class);
+        PowerMockito.when(in.readPackedLong()).thenReturn(4610L);
+
+        Assert.assertEquals(2305L, DataIO.unpackRecid(in));
+    }
+
+    @Test public void testLongHash() {
+        Assert.assertEquals(0, DataIO.longHash(0L));
+    }
+
+    @Test public void testIntHash() {
+        Assert.assertEquals(0, DataIO.intHash(0));
+    }
+
+    @Test public void getInt() {
+        Assert.assertEquals(
+                66051, DataIO.getInt(new byte[] {0, 1, 2, 3, 4, 5}, 0));
+        Assert.assertEquals(
+                16909060, DataIO.getInt(new byte[] {0, 1, 2, 3, 4, 5}, 1));
+    }
+
+    @Test public void getLong() {
+        Assert.assertEquals(283686952306183l,
+                DataIO.getLong(new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8}, 0));
+        Assert.assertEquals(72623859790382856l,
+                DataIO.getLong(new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8}, 1));
+    }
+
+    @Test public void testPackInt() {
+        Assert.assertArrayEquals(new byte[6], new byte[6]);
+        Assert.assertArrayEquals(new byte[8], new byte[8]);
+
+        Assert.assertEquals(2, DataIO.packInt(new byte[6], 2, 128));
+        Assert.assertEquals(1, DataIO.packInt(new byte[8], 1, 0));
+    }
+
+    @Test public void getSixLong() {
+        Assert.assertEquals(4328719365l,
+                DataIO.getSixLong(new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8}, 0));
+        Assert.assertEquals(1108152157446l,
+                DataIO.getSixLong(new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8}, 1));
+    }
+
+    @Test public void testNextPowTwo3() {
+        Assert.assertEquals(1L, DataIO.nextPowTwo(0L));
+        Assert.assertEquals(1, DataIO.nextPowTwo(0));
+    }
+
+    @Test public void testWriteFully1() throws Exception {
+        final Path path = Files.createTempFile("write-fully", ".tmp");
+        try {
+            try(final FileOutputStream os = new FileOutputStream(path.toString());
+                final FileChannel channel = os.getChannel()) {
+                DataIO.writeFully(channel, ByteBuffer.allocate(0));
+            }
+            Assert.assertEquals(0, Files.readAllBytes(path).length);
+        } finally {
+            Files.delete(path);
+        }
+    }
+
+    @Test public void testWriteFully2() throws Exception {
+        final ByteBuffer buf = ByteBuffer.allocate(3);
+        buf.put(new byte[]{'a', 'b', 'c'});
+        buf.flip();
+
+        final Path path = Files.createTempFile("write-fully", ".tmp");
+        try {
+            try(final FileOutputStream os = new FileOutputStream(path.toString());
+                final FileChannel channel = os.getChannel()) {
+                DataIO.writeFully(channel, buf);
+            }
+            final byte[] actual = Files.readAllBytes(path);
+            Assert.assertArrayEquals(buf.array(), actual);
+        } finally {
+            Files.delete(path);
+        }
+    }
+
+    @Test public void testSkipFully() throws IOException {
+        final ByteArrayInputStream in = new ByteArrayInputStream(new byte[0]);
+        DataIO.skipFully(in, new byte[0].length);
+        Assert.assertEquals(0, in.available());
+    }
+
+    @Test public void testParity1Set() {
+        Assert.assertEquals(1, DataIO.parity1Set(1));
+        Assert.assertEquals(1L, DataIO.parity1Set(1L));
+    }
+
+    @Test public void testParity1Get() {
+        Assert.assertEquals(-2147483648, DataIO.parity1Get(-2147483648));
+        Assert.assertEquals(-9223372036854775808L, DataIO.parity1Get(-9223372036854775808L));
+    }
+
+    @Test public void testParity1GetThrowsException() {
+        thrown.expect(DBException.PointerChecksumBroken.class);
+        DataIO.parity1Get(2148);
+    }
+
+    @Test public void testParity3Set() {
+        Assert.assertEquals(1L, DataIO.parity3Set(0L));
+    }
+
+    @Test public void testParity3Get() {
+        Assert.assertEquals(0L, DataIO.parity3Get(1L));
+    }
+
+    @Test public void testParity3GetThrowsException() {
+        thrown.expect(DBException.PointerChecksumBroken.class);
+        DataIO.parity3Get(2149);
+    }
+
+    @Test public void testParity4Set() {
+        Assert.assertEquals(1L, DataIO.parity4Set(0L));
+    }
+
+    @Test public void testParity4Get() {
+        Assert.assertEquals(0L, DataIO.parity4Get(1L));
+    }
+
+    @Test public void testParity4GetThrowsException() {
+        thrown.expect(DBException.PointerChecksumBroken.class);
+        DataIO.parity4Get(2149);
+    }
+
+    @Test public void testParity16Set() {
+        Assert.assertEquals(24431, DataIO.parity16Set(1390L));
+    }
+
+    @Test public void testParity16Get() {
+        Assert.assertEquals(0L, DataIO.parity16Get(58_577L));
+    }
+
+    @Test public void testParity16GetThrowsException() {
+        thrown.expect(DBException.PointerChecksumBroken.class);
+        DataIO.parity16Get(2148);
+    }
+
+    @Test public void testToHexa() {
+        Assert.assertEquals("", DataIO.toHexa(new byte[]{}));
+        Assert.assertEquals("98", DataIO.toHexa(new byte[]{-104}));
+    }
+
+    @Test public void testArrayPut() {
+        Assert.assertArrayEquals(new Integer[] {1},
+                DataIO.arrayPut(new Integer[] {}, 0, 1));
+        Assert.assertArrayEquals(new Integer[] {1, 2, 3},
+                DataIO.arrayPut(new Integer[] {1, 3}, 1, 2));
+    }
+
+    @Test public void testArrayDeleteObjects() {
+        Assert.assertArrayEquals(new Integer[]{},
+                DataIO.arrayDelete(new Integer[]{}, 0, 0));
+        Assert.assertArrayEquals(new Integer[]{},
+                DataIO.arrayDelete(new Integer[]{1}, 1, 1));
+        Assert.assertArrayEquals(new Integer[]{1, 4},
+                DataIO.arrayDelete(new Integer[]{1, 2, 3, 4}, 3, 2));
+    }
+
+    @Test public void testArrayDeleteLongs() {
+        Assert.assertArrayEquals(new long[] {},
+                DataIO.arrayDelete(new long[] {}, 0, 0));
+        Assert.assertArrayEquals(new long[] {},
+                DataIO.arrayDelete(new long[] {1l}, 1, 1));
+        Assert.assertArrayEquals(new long[] {1l, 4l},
+                DataIO.arrayDelete(new long[] {1l, 2l, 3l, 4l}, 3, 2));
+    }
+
+    @Test public void testIntToLong() {
+        Assert.assertEquals(0L, DataIO.intToLong(0));
+    }
+
+    @Test public void testRoundUp() {
+        Assert.assertEquals(0, DataIO.roundUp(0, 1));
+        Assert.assertEquals(0L, DataIO.roundUp(0L, 1L));
+    }
+
+    @Test public void testRoundDown() {
+        Assert.assertEquals(0, DataIO.roundDown(0, 1));
+        Assert.assertEquals(0L, DataIO.roundDown(0L, 1L));
+    }
+
+    @Test public void testShift() {
+        Assert.assertEquals(0, DataIO.shift(1));
+    }
+
+    @PrepareForTest({DataIO.class, System.class})
+    @Test public void testIsWindows() {
+        PowerMockito.mockStatic(System.class);
+        PowerMockito.when(System.getProperty(anyString()))
+                .thenReturn("Linux");
+
+        Assert.assertFalse(DataIO.isWindows());
+    }
+
+    @Test public void testJVMSupportsLargeMappedFiles() {
+        final String osArchOriginal = System.getProperty("os.arch");
+        final String osNameOriginal = System.getProperty("os.name");
+
+        System.setProperty("os.arch", "x86_32");
+        Assert.assertFalse(DataIO.JVMSupportsLargeMappedFiles());
+
+        System.setProperty("os.arch", "x86_64");
+        System.setProperty("os.name", "Mac OS X");
+        Assert.assertTrue(DataIO.JVMSupportsLargeMappedFiles());
+
+        System.setProperty("os.name", "Windows 10");
+        Assert.assertFalse(DataIO.JVMSupportsLargeMappedFiles());
+
+        System.setProperty("os.arch", osArchOriginal);
+        System.setProperty("os.name", osNameOriginal);
+    }
 }
