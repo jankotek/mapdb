@@ -463,7 +463,7 @@ abstract class StoreTest {
             override fun serializedType() = String::class.java
 
 
-            override fun serialize(k:String, out: DataOutput2) {
+            override fun serialize(out: DataOutput2, k: String) {
                 out.writeUTF(k)
                 // that should fail
                 store.update(recid, Serializers.STRING, k)
@@ -478,7 +478,7 @@ abstract class StoreTest {
 
             override fun serializedType() = String::class.java
 
-            override fun serialize(k:String, out: DataOutput2) {
+            override fun serialize(out: DataOutput2, k: String) {
                 out.writeUTF(k)
             }
 

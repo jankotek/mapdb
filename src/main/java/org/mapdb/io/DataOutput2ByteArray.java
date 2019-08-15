@@ -154,61 +154,64 @@ public class DataOutput2ByteArray extends OutputStream implements DataOutput2{
     }
 
 
-    //TODO remove packed methods
+    //TODO evaluate  packed methods
     public void packInt(int value) throws IOException {
-        ensureAvail(5); //ensure worst case bytes
-
-        // Optimize for the common case where value is small. This is particular important where our caller
-        // is SerializerBase.SER_STRING.serialize because most chars will be ASCII characters and hence in this range.
-        // credit Max Bolingbroke https://github.com/jankotek/MapDB/pull/489
-        int shift = (value & ~0x7F); //reuse variable
-        if (shift != 0) {
-            shift = 31 - Integer.numberOfLeadingZeros(value);
-            shift -= shift % 7; // round down to nearest multiple of 7
-            while (shift != 0) {
-                buf[pos++] = (byte) ((value >>> shift) & 0x7F);
-                shift -= 7;
-            }
-        }
-        buf[pos++] = (byte) ((value & 0x7F)| 0x80);
+        writeInt(value);
     }
-
-    public void packIntBigger(int value) throws IOException {
-        ensureAvail(5); //ensure worst case bytes
-        int shift = 31-Integer.numberOfLeadingZeros(value);
-        shift -= shift%7; // round down to nearest multiple of 7
-        while(shift!=0){
-            buf[pos++] = (byte) ((value>>>shift) & 0x7F);
-            shift-=7;
-        }
-        buf[pos++] = (byte) ((value & 0x7F)|0x80);
-    }
-
-    public void packLong(long value) {
-        ensureAvail(10); //ensure worst case bytes
-        int shift = 63-Long.numberOfLeadingZeros(value);
-        shift -= shift%7; // round down to nearest multiple of 7
-        while(shift!=0){
-            buf[pos++] = (byte) ((value>>>shift) & 0x7F);
-            shift-=7;
-        }
-        buf[pos++] = (byte) ((value & 0x7F) | 0x80);
-    }
-
-
-    public void packLongArray(long[] array, int fromIndex, int toIndex  ) {
-        for(int i=fromIndex;i<toIndex;i++){
-            long value = array[i];
-            ensureAvail(10); //ensure worst case bytes
-            int shift = 63-Long.numberOfLeadingZeros(value);
-            shift -= shift%7; // round down to nearest multiple of 7
-            while(shift!=0){
-                buf[pos++] = (byte) ((value>>>shift) & 0x7F);
-                shift-=7;
-            }
-            buf[pos++] = (byte) ((value & 0x7F) | 0x80);
-        }
-    }
+//    public void packInt(int value) throws IOException {
+//        ensureAvail(5); //ensure worst case bytes
+//
+//        // Optimize for the common case where value is small. This is particular important where our caller
+//        // is SerializerBase.SER_STRING.serialize because most chars will be ASCII characters and hence in this range.
+//        // credit Max Bolingbroke https://github.com/jankotek/MapDB/pull/489
+//        int shift = (value & ~0x7F); //reuse variable
+//        if (shift != 0) {
+//            shift = 31 - Integer.numberOfLeadingZeros(value);
+//            shift -= shift % 7; // round down to nearest multiple of 7
+//            while (shift != 0) {
+//                buf[pos++] = (byte) ((value >>> shift) & 0x7F);
+//                shift -= 7;
+//            }
+//        }
+//        buf[pos++] = (byte) ((value & 0x7F)| 0x80);
+//    }
+//
+//    public void packIntBigger(int value) throws IOException {
+//        ensureAvail(5); //ensure worst case bytes
+//        int shift = 31-Integer.numberOfLeadingZeros(value);
+//        shift -= shift%7; // round down to nearest multiple of 7
+//        while(shift!=0){
+//            buf[pos++] = (byte) ((value>>>shift) & 0x7F);
+//            shift-=7;
+//        }
+//        buf[pos++] = (byte) ((value & 0x7F)|0x80);
+//    }
+//
+//    public void packLong(long value) {
+//        ensureAvail(10); //ensure worst case bytes
+//        int shift = 63-Long.numberOfLeadingZeros(value);
+//        shift -= shift%7; // round down to nearest multiple of 7
+//        while(shift!=0){
+//            buf[pos++] = (byte) ((value>>>shift) & 0x7F);
+//            shift-=7;
+//        }
+//        buf[pos++] = (byte) ((value & 0x7F) | 0x80);
+//    }
+//
+//
+//    public void packLongArray(long[] array, int fromIndex, int toIndex  ) {
+//        for(int i=fromIndex;i<toIndex;i++){
+//            long value = array[i];
+//            ensureAvail(10); //ensure worst case bytes
+//            int shift = 63-Long.numberOfLeadingZeros(value);
+//            shift -= shift%7; // round down to nearest multiple of 7
+//            while(shift!=0){
+//                buf[pos++] = (byte) ((value>>>shift) & 0x7F);
+//                shift-=7;
+//            }
+//            buf[pos++] = (byte) ((value & 0x7F) | 0x80);
+//        }
+//    }
 
     @Override
     public void sizeHint(int size) {

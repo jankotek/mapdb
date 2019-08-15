@@ -117,7 +117,7 @@ object TT{
 
 
         override fun serializedType() = throw AssertionError("No access")
-        override fun serialize(value: Any, out: DataOutput2) {
+        override fun serialize(out: DataOutput2, value: Any) {
             throw AssertionError("Should not access this serializer")
         }
 
@@ -155,7 +155,7 @@ object TT{
     /* clone value using serialization */
     @JvmStatic fun <E> clone(value: E, serializer: Serializer<*>, out:DataOutput2 = DataOutput2ByteArray()): E {
         @Suppress("UNCHECKED_CAST")
-        (serializer as Serializer<E>).serialize(value, out)
+        (serializer as Serializer<E>).serialize(out, value)
         val in2 = DataInput2ByteArray(out.copyBytes())
         return serializer.deserialize(in2)
     }
@@ -174,7 +174,7 @@ object TT{
 
     @JvmStatic fun <E> serializedSize(value: E, serializer: Serializer<*>, out:DataOutput2 = DataOutput2ByteArray()): Int {
         @Suppress("UNCHECKED_CAST")
-        (serializer as Serializer<E>).serialize(value, out)
+        (serializer as Serializer<E>).serialize(out, value)
         return out.copyBytes().size;
     }
 

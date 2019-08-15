@@ -5,10 +5,10 @@ import org.mapdb.io.DataOutput2
 
 class ArrayListSerializer<K>(val ser: Serializer<K>) : Serializer<ArrayList<K>> {
 
-    override fun serialize(k: ArrayList<K>, out: DataOutput2) {
+    override fun serialize(out: DataOutput2, k: ArrayList<K>) {
         out.writePackedInt(k.size)
         for(e in k){
-            ser.serialize(e, out)
+            ser.serialize(out, e)
         }
     }
 

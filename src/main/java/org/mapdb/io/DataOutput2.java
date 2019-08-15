@@ -28,4 +28,8 @@ public interface DataOutput2 extends DataOutput {
     byte[] copyBytes() throws IOException;
 
 
+    @Deprecated         //TODO temp method for compatibility
+    default void packInt(int i) throws IOException {
+        writePackedInt(i);
+    }
 }

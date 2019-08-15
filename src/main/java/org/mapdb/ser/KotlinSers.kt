@@ -8,9 +8,9 @@ class  PairSer<A,B>(
         private val serB:Serializer<B>
 ):Serializer<Pair<A,B>>{
 
-    override fun serialize(k: Pair<A, B>, out: DataOutput2) {
-        serA.serialize(k.first, out)
-        serB.serialize(k.second, out);
+    override fun serialize(out: DataOutput2, k: Pair<A, B>) {
+        serA.serialize(out, k.first)
+        serB.serialize(out, k.second);
     }
 
     override fun deserialize(input: DataInput2): Pair<A, B> {

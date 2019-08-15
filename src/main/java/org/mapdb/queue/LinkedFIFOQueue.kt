@@ -73,9 +73,9 @@ class LinkedFIFOQueue<E> (
     private data class Node<E>(val prevRecid:Long, val e:E)
 
     private val nodeSer = object:Serializer<Node<E>>{
-        override fun serialize(k: Node<E>, out: DataOutput2) {
+        override fun serialize(out: DataOutput2, k: Node<E>) {
             out.writePackedRecid(k.prevRecid)
-            serializer.serialize(k.e, out)
+            serializer.serialize(out, k.e)
         }
 
         override fun deserialize(input: DataInput2): Node<E> {
@@ -418,7 +418,7 @@ class LinkedFIFOQueue<E> (
 
             while(recid!=0L){
                 val node = store.get(recid, nodeSer) ?: throw DBException.DataAssert()
-                serializer.serialize(node.e, out)
+                serializer.serialize(out, node.e)
                 recid = node.prevRecid
             }
         }

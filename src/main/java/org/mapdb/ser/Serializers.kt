@@ -1,7 +1,10 @@
 package org.mapdb.ser
 
 import org.mapdb.io.*
-import java.io.*
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.ObjectInputStream
+import java.io.ObjectOutputStream
 import java.util.*
 
 object Serializers {
@@ -9,99 +12,22 @@ object Serializers {
 
     /** Serializer for [java.lang.Integer] */
     @JvmField
-    val INTEGER = object : Serializer<Int> {
-
-        override fun serializedType() = java.lang.Integer::class.java
-
-        override fun serialize(k: Int, out: DataOutput2) {
-            out.writeInt(k)
-        }
-
-        override fun deserialize(input: DataInput2): Int {
-            return input.readInt()
-        }
-
-
-        override fun hashCode(k: Int): Int {
-            return DataIO.intHash(k)
-        }
-    }
+    val INTEGER = IntegerSerializer()
 
     /** Serializer for [java.lang.Long] */
     @JvmField
-    val LONG = object : Serializer<Long> {
-
-        override fun serializedType() = java.lang.Long::class.java
-
-        override fun serialize(k: Long, out: DataOutput2) {
-            out.writeLong(k)
-        }
-
-        override fun deserialize(input: DataInput2): Long {
-            return input.readLong()
-        }
-
-        override fun hashCode(k: Long): Int {
-            return DataIO.longHash(k)
-        }
-    }
+    val LONG = LongSerializer();
 
 
     /** Serializer for recids (packed 6 bytes, extra parity bit) */
     @JvmField
-    val RECID = object : Serializer<Long> {
-
-        override fun serializedType() = java.lang.Long::class.java
-
-        override fun serialize(k: Long, out: DataOutput2) {
-            out.writePackedRecid(k)
-        }
-
-        override fun deserialize(input: DataInput2): Long {
-            return input.readPackedLong()
-        }
-
-
-        override fun hashCode(k: Long): Int {
-            return DataIO.longHash(k)
-        }
-    }
+    val RECID = RecidSerializer()
 
     /** Serializer for [java.lang.String] */
     @JvmField
-    val STRING = object : Serializer<String> {
+    val STRING = StringSerializer()
 
-        override fun serializedType() = java.lang.String::class.java
 
-        override fun serialize(k: String, out: DataOutput2) {
-            out.writeUTF(k)
-        }
-
-        override fun deserialize(input: DataInput2): String {
-            return input.readUTF()
-        }
-
-        //FIXME better hash code
-    }
-
-    /** Serializer for `byte[]`, adds extra few bytes for array size */
-    @JvmField
-    val BYTE_ARRAY = object : AbstractByteArraySerializer() {
-
-        override fun deserialize(input: DataInput2): ByteArray {
-            val size = input.readPackedInt()
-            val b = ByteArray(size)
-            input.readFully(b)
-            return b
-        }
-
-        override fun serialize(k: ByteArray, out: DataOutput2) {
-            out.writePackedInt(k.size)
-            out.sizeHint(k.size)
-            out.write(k)
-        }
-
-    }
 
 
     /**
@@ -119,7 +45,7 @@ object Serializers {
             return b
         }
 
-        override fun serialize(k: ByteArray, out: DataOutput2) {
+        override fun serialize(out: DataOutput2, k: ByteArray) {
             out.sizeHint(k.size)
             out.write(k)
         }
@@ -130,7 +56,7 @@ object Serializers {
     /** serialize record into ByteArray using given serializer */
     fun <K> serializeToByteArray(record: K, serializer: Serializer<K>): ByteArray {
         val out = DataOutput2ByteArray()
-        serializer.serialize(record, out)
+        serializer.serialize(out, record)
         return out.copyBytes()
     }
 
@@ -158,8 +84,8 @@ object Serializers {
     }
 
 
-    @JvmField val JAVA = object:Serializer<Any>{
-        override fun serialize(k: Any, out: DataOutput2) {
+    @JvmField val JAVA = object:DefaultGroupSerializer<Any>(){
+        override fun serialize(out: DataOutput2, k: Any) {
             val b = ByteArrayOutputStream()
             val b2 = ObjectOutputStream(b)
             b2.writeObject(k)
@@ -181,6 +107,38 @@ object Serializers {
         override fun serializedType(): Class<*>? = null
 
     }
+
+    @JvmField val BYTE = ByteSerializer();
+
+    /** Serializer for `byte[]`, adds extra few bytes for array size */
+    @JvmField val BYTE_ARRAY = ByteArraySerializer();
+
+    @JvmField val CHAR = CharSerializer();
+    @JvmField val CHAR_ARRAY = CharArraySerializer();
+
+    @JvmField val SHORT = ShortSerializer();
+    @JvmField val SHORT_ARRAY = ShortArraySerializer();
+
+    @JvmField val FLOAT = FloatSerializer();
+    @JvmField val FLOAT_ARRAY = FloatArraySerializer();
+
+    @JvmField val DOUBLE = DoubleSerializer();
+    @JvmField val DOUBLE_ARRAY = DoubleArraySerializer();
+
+    @JvmField val BOOLEAN = BooleanSerializer();
+
+    @JvmField val INT_ARRAY = IntArraySerializer();
+    @JvmField val LONG_ARRAY = LongArraySerializer();
+
+
+    @JvmField val BIG_DECIMAL = BigDecimalSerializer();
+    @JvmField val BIG_INTEGER = BigIntegerSerializer();
+
+    @JvmField val CLASS = ClassSerializer();
+    @JvmField val DATE = DateSerializer();
+    @JvmField val UUID = UUIDSerializer();
+
+
 }
 
 abstract class AbstractByteArraySerializer : Serializer<ByteArray> {

@@ -64,5 +64,12 @@ public interface DataInput2 extends DataInput {
     }
 
 
+    @Deprecated //TODO temp method for compatibility
+    default int unpackInt() throws IOException {
+        return readPackedInt();
+    }
+
+
+    void unpackLongSkip(int count) throws IOException ;
 
 }

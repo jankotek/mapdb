@@ -18,7 +18,7 @@ public class Issue888_serializer_override {
         }
 
         @Override
-        public void serialize(Integer integer, @NotNull DataOutput2 out) {
+        public void serialize(@NotNull DataOutput2 out, Integer integer) {
 
         }
 

@@ -17,6 +17,10 @@ public final class DataInput2ByteArray implements DataInput2 {
         this.pos = pos;
     }
 
+    public int getPos(){
+        return pos;
+    }
+
     @Override
     public void readFully(byte[] b, int off, int len) throws IOException {
         System.arraycopy(buf, pos, b, off, len);
@@ -106,5 +110,21 @@ public final class DataInput2ByteArray implements DataInput2 {
     public long readPackedLong() throws IOException {
         return readLong();
     }
+
+
+    @Override
+    public void unpackLongSkip(int count) throws IOException {
+        byte[] b = buf;
+        int pos2 = this.pos;
+        while(count>0){
+//            count -= (b[pos2++]&0x80)>>7;
+            //TODO go back to packed longs, remove code bellow
+            readLong();
+            count--;
+            pos2+=8;
+        }
+        this.pos = pos2;
+    }
+
 }
 

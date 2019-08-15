@@ -28,10 +28,10 @@ class LinkedList<E>(
 
         override fun serializedType() = Node::class.java
 
-        override fun serialize(k: Node<E>, out: DataOutput2) {
+        override fun serialize(out: DataOutput2, k: Node<E>) {
             out.writePackedRecid(k.prevRecid)
             out.writePackedRecid(k.nextRecid)
-            serializer.serialize(k.e, out)
+            serializer.serialize(out, k.e)
         }
 
         override fun deserialize(input: DataInput2): Node<E> {

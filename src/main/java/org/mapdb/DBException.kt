@@ -2,7 +2,11 @@ package org.mapdb
 
 import java.nio.file.Path
 
-open class DBException(msg:String): RuntimeException(msg) {
+open class DBException: RuntimeException {
+
+    constructor(cause:Exception): super(cause)
+    constructor(msg:String): super(msg)
+    constructor(msg:String, cause:Exception): super(msg, cause)
 
     class RecordNotFound():DBException("record not found")
 
@@ -22,4 +26,7 @@ open class DBException(msg:String): RuntimeException(msg) {
 
 
     class FileLocked(path: Path):DBException("File locked: $path")
+
+
+    class SerializationError(e:Exception):DBException(e)
 }
