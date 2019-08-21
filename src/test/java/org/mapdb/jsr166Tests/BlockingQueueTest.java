@@ -181,7 +181,7 @@ public abstract class BlockingQueueTest extends JSR166TestCase {
             for (int n : ns)
                 assertEquals(0, q.drainTo(sink, n));
             assertEquals(1, q.size());
-            assertSame(one, q.poll());
+            assertEquals(one, q.poll());
             assertTrue(sink.isEmpty());
         }
     }
@@ -202,7 +202,7 @@ public abstract class BlockingQueueTest extends JSR166TestCase {
 
                 barrier.await();
 
-                assertSame(zero, q.poll(LONG_DELAY_MS, MILLISECONDS));
+                assertEquals(zero, q.poll(LONG_DELAY_MS, MILLISECONDS));
 
                 Thread.currentThread().interrupt();
                 try {
