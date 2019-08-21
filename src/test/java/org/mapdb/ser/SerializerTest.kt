@@ -20,8 +20,11 @@ abstract class SerializerTest<E> {
 
     abstract val serializer: Serializer<E>
 
-    val max = 1000L + TT.testScale() * 1000*10
-    val arraySize = 10 + TT.testScale() * 100
+    val max = 100L + TT.testScale()
+
+    open val repeat = 100
+
+    val arraySize = 10 + TT.testScale() * 10
 
     fun assertSerEquals(v1: Any?, v2: Any?) {
         assertTrue(serializer.equals(v1 as E, v2 as E))
@@ -667,6 +670,8 @@ class Serializer_DOUBLE_ARRAY: GroupSerializerTest<DoubleArray, Any>(){
 class Serializer_JAVA: GroupSerializerTest<Any, Array<Any>>(){
     override fun randomValue() = TT.randomString(10)
     override val serializer = Serializers.JAVA
+
+    override val repeat: Int = 3
 
     internal class Object2 : Serializable
 
