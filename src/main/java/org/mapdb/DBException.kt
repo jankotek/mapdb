@@ -24,6 +24,12 @@ open class DBException: RuntimeException {
 
     class DataAssert(msg:String = "data corrupted"):DBException(msg)
 
+    class DataCorruption(msg:String = "data corrupted"):DBException(msg)
+
+
+    //TODO add assertion to build system, if this is referenced from source code
+    class TODO(msg:String = "not yet implemented"):DBException(msg)
+
 
     class FileLocked(path: Path):DBException("File locked: $path")
 

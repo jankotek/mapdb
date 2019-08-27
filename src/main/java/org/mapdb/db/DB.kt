@@ -1,6 +1,7 @@
 package org.mapdb.db
 
 import com.google.common.cache.CacheBuilder
+import org.checkerframework.checker.units.qual.K
 import org.mapdb.DBException
 import org.mapdb.list.LinkedList
 import org.mapdb.ser.Serializer
@@ -13,6 +14,8 @@ import java.io.File
 import java.nio.file.Path
 import java.util.*
 import java.util.concurrent.Callable
+import java.util.concurrent.ConcurrentNavigableMap
+import java.util.concurrent.ConcurrentSkipListMap
 
 /** Main class for accessing MapDB */
 class DB(val store: Store): Closeable {
@@ -212,5 +215,14 @@ class DB(val store: Store): Closeable {
         return o.call()
     }
 
+    fun <K,V> treeMap(test: String, keySer:Serializer<K>,
+                      valueSer:Serializer<V>): NavigableMapMaker<K,V> {
+        return NavigableMapMaker<K,V>()
+    }
+
+
+    class NavigableMapMaker<K,V> {
+        fun make():ConcurrentNavigableMap<K,V> = ConcurrentSkipListMap() //TODO mock treemap
+    }
 
 }

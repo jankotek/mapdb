@@ -1,6 +1,9 @@
 package org.mapdb.ser
 
-import org.mapdb.io.*
+import org.mapdb.io.DataInput2
+import org.mapdb.io.DataInput2ByteArray
+import org.mapdb.io.DataOutput2
+import org.mapdb.io.DataOutput2ByteArray
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.ObjectInputStream
@@ -27,6 +30,11 @@ object Serializers {
     @JvmField
     val STRING = StringSerializer()
 
+    @JvmField
+    val STRING_DELTA = StringDeltaSerializer()
+
+    @JvmField
+    val STRING_DELTA2 = StringDelta2Serializer()
 
 
 
@@ -112,6 +120,9 @@ object Serializers {
 
     /** Serializer for `byte[]`, adds extra few bytes for array size */
     @JvmField val BYTE_ARRAY = ByteArraySerializer();
+    @JvmField val BYTE_ARRAY_DELTA = ByteArrayDeltaSerializer();
+    @JvmField val BYTE_ARRAY_DELTA2 = ByteArrayDelta2Serializer();
+
 
     @JvmField val CHAR = CharSerializer();
     @JvmField val CHAR_ARRAY = CharArraySerializer();

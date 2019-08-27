@@ -10,7 +10,7 @@ import java.util.Arrays;
 public class DataOutput2ByteArray extends OutputStream implements DataOutput2{
 
     public byte[] buf;
-    public int pos;
+    public int pos; //TODO private fields vs getters?
     public int sizeMask;
 
 
