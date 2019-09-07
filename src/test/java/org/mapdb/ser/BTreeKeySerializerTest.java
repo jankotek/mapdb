@@ -1,5 +1,6 @@
 package org.mapdb.ser;
 
+import org.junit.Ignore;
 import org.junit.Test;import org.mapdb.*;
 import org.mapdb.db.DB;
 import org.mapdb.db.DBMaker;
@@ -161,7 +162,8 @@ public class BTreeKeySerializerTest {
 
 
 
-    @Test public void string_formats_compatible() throws IOException {
+    @Test @Ignore
+    public void string_formats_compatible() throws IOException {
         ArrayList keys = new ArrayList();
         for(int i=0;i<1000;i++){
             keys.add("common prefix "+ TT.randomString(10 + new Random().nextInt(100), 0));
@@ -171,7 +173,8 @@ public class BTreeKeySerializerTest {
     }
 
 
-    @Test public void string_formats_compatible_no_prefix() throws IOException {
+    @Test @Ignore
+    public void string_formats_compatible_no_prefix() throws IOException {
         ArrayList keys = new ArrayList();
         for(int i=0;i<1000;i++){
             keys.add(TT.randomString(10 + new Random().nextInt(100),0));
@@ -180,7 +183,8 @@ public class BTreeKeySerializerTest {
         checkStringSerializers(keys);
     }
 
-    @Test public void string_formats_compatible_equal_size() throws IOException {
+    @Test @Ignore
+    public void string_formats_compatible_equal_size() throws IOException {
         ArrayList keys = new ArrayList();
         for(int i=0;i<1000;i++){
             keys.add("common prefix "+ TT.randomString(10,0));
