@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentNavigableMap
 import java.util.concurrent.ConcurrentSkipListMap
 
 /** Main class for accessing MapDB */
-class DB(val store: Store): Closeable {
+class DB(val store: MutableStore): Closeable {
 
     companion object {
 

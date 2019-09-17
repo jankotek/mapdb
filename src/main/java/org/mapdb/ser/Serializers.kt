@@ -37,6 +37,9 @@ object Serializers {
     val STRING_DELTA2 = StringDelta2Serializer()
 
 
+    @JvmField
+    val STRING_NOSIZE = STRING // TODO string_nosize
+
 
     /**
      * Serializer for `byte[]`, but does not add extra bytes for array size.
