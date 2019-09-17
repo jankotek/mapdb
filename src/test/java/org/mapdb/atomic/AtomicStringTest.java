@@ -34,7 +34,7 @@ public class AtomicStringTest extends TestCase {
      */
     public void testConstructor2() {
         Atomic.String ai =AtomicStringMaker.maker(db, "test2").create();
-        assertEquals(null, ai.get());
+        assertEquals("", ai.get());
     }
 
     /*

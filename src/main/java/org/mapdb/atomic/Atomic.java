@@ -156,12 +156,9 @@ final public class Atomic {
          * @return the previous value
          */
         public final int getAndSet(int newValue) {
-            //$DELAY$
             for (;;) {
                 int current = get();
-                //$DELAY$
                 if (compareAndSet(current, newValue)) {
-                    //$DELAY$
                     return current;
                 }
             }
@@ -187,14 +184,10 @@ final public class Atomic {
          * @return the previous value
          */
         public final int getAndIncrement() {
-            //$DELAY$
             for (;;) {
-                //$DELAY$
                 int current = get();
                 int next = current + 1;
-                //$DELAY$
                 if (compareAndSet(current, next)) {
-                    //$DELAY$
                     return current;
                 }
             }
@@ -206,14 +199,10 @@ final public class Atomic {
          * @return the previous value
          */
         public final int getAndDecrement() {
-            //$DELAY$
             for (;;) {
-                //$DELAY$
                 int current = get();
                 int next = current - 1;
-                //$DELAY$
                 if (compareAndSet(current, next)) {
-                    //$DELAY$
                     return current;
                 }
             }
@@ -226,14 +215,10 @@ final public class Atomic {
          * @return the previous value
          */
         public final int getAndAdd(int delta) {
-            //$DELAY$
             for (;;) {
-                //$DELAY$
                 int current = get();
                 int next = current + delta;
-                //$DELAY$
                 if (compareAndSet(current, next)) {
-                    //$DELAY$
                     return current;
                 }
             }
@@ -245,14 +230,10 @@ final public class Atomic {
          * @return the updated value
          */
         public final int incrementAndGet() {
-            //$DELAY$
             for (;;) {
-                //$DELAY$
                 int current = get();
                 int next = current + 1;
-                //$DELAY$
                 if (compareAndSet(current, next)) {
-                    //$DELAY$
                     return next;
                 }
             }
@@ -264,14 +245,10 @@ final public class Atomic {
          * @return the updated value
          */
         public final int decrementAndGet() {
-            //$DELAY$
             for (;;) {
-                //$DELAY$
                 int current = get();
                 int next = current - 1;
-                //$DELAY$
                 if (compareAndSet(current, next)) {
-                    //$DELAY$
                     return next;
                 }
             }
@@ -284,14 +261,10 @@ final public class Atomic {
          * @return the updated value
          */
         public final int addAndGet(int delta) {
-            //$DELAY$
             for (;;) {
-                //$DELAY$
                 int current = get();
                 int next = current + delta;
-                //$DELAY$
                 if (compareAndSet(current, next)) {
-                    //$DELAY$
                     return next;
                 }
             }
@@ -379,13 +352,9 @@ final public class Atomic {
          * @return the previous value
          */
         public final long getAndSet(long newValue) {
-            //$DELAY$
             while (true) {
-                //$DELAY$
                 long current = get();
-                //$DELAY$
                 if (compareAndSet(current, newValue)) {
-                    //$DELAY$
                     return current;
                 }
             }
@@ -411,14 +380,10 @@ final public class Atomic {
          * @return the previous value
          */
         public final long getAndIncrement() {
-            //$DELAY$
             while (true) {
-                //$DELAY$
                 long current = get();
                 long next = current + 1;
-                //$DELAY$
                 if (compareAndSet(current, next)) {
-                    //$DELAY$
                     return current;
                 }
             }
@@ -430,14 +395,10 @@ final public class Atomic {
          * @return the previous value
          */
         public final long getAndDecrement() {
-            //$DELAY$
             while (true) {
-                //$DELAY$
                 long current = get();
                 long next = current - 1;
-                //$DELAY$
                 if (compareAndSet(current, next)) {
-                    //$DELAY$
                     return current;
                 }
             }
@@ -450,14 +411,10 @@ final public class Atomic {
          * @return the previous value
          */
         public final long getAndAdd(long delta) {
-            //$DELAY$
             while (true) {
-                //$DELAY$
                 long current = get();
                 long next = current + delta;
-                //$DELAY$
                 if (compareAndSet(current, next)) {
-                    //$DELAY$
                     return current;
                 }
             }
@@ -469,14 +426,10 @@ final public class Atomic {
          * @return the updated value
          */
         public final long incrementAndGet() {
-            //$DELAY$
             for (;;) {
-                //$DELAY$
                 long current = get();
                 long next = current + 1;
-                //$DELAY$
                 if (compareAndSet(current, next)) {
-                    //$DELAY$
                     return next;
                 }
             }
@@ -488,14 +441,10 @@ final public class Atomic {
          * @return the updated value
          */
         public final long decrementAndGet() {
-            //$DELAY$
             for (;;) {
-                //$DELAY$
                 long current = get();
                 long next = current - 1;
-                //$DELAY$
                 if (compareAndSet(current, next)) {
-                    //$DELAY$
                     return next;
                 }
             }
@@ -508,14 +457,10 @@ final public class Atomic {
          * @return the updated value
          */
         public final long addAndGet(long delta) {
-            //$DELAY$
             for (;;) {
-                //$DELAY$
                 long current = get();
                 long next = current + delta;
-                //$DELAY$
                 if (compareAndSet(current, next)) {
-                    //$DELAY$
                     return next;
                 }
             }
@@ -610,13 +555,9 @@ final public class Atomic {
          * @return the previous value
          */
         public final boolean getAndSet(boolean newValue) {
-            //$DELAY$
             for (;;) {
-                //$DELAY$
                 boolean current = get();
-                //$DELAY$
                 if (compareAndSet(current, newValue)) {
-                    //$DELAY$
                     return current;
                 }
             }
@@ -697,13 +638,9 @@ final public class Atomic {
          * @return the previous value
          */
         public final java.lang.String getAndSet(java.lang.String newValue) {
-            //$DELAY$
             for (;;) {
-                //$DELAY$
                 java.lang.String current = get();
-                //$DELAY$
                 if (compareAndSet(current, newValue)) {
-                    //$DELAY$
                     return current;
                 }
             }
@@ -787,13 +724,9 @@ final public class Atomic {
          * @return the previous value
          */
         public final E getAndSet(E newValue) {
-            //$DELAY$
             for (;;) {
-                //$DELAY$
                 E current = get();
-                //$DELAY$
                 if (compareAndSet(current, newValue)) {
-                    //$DELAY$
                     return current;
                 }
             }
