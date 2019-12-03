@@ -1,24 +1,25 @@
-package org.mapdb.atomic;/*
+/*
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/licenses/publicdomain
- * Other contributors include Andrew Wright, Jeffrey Hayes, 
- * Pat Fisher, Mike Judd. 
+ * Other contributors include Andrew Wright, Jeffrey Hayes,
+ * Pat Fisher, Mike Judd.
  */
+package org.mapdb.record;
 
 import junit.framework.TestCase;
 import org.mapdb.db.DB;
 import org.mapdb.db.DBMaker;
 
-public class AtomicBooleanTest extends TestCase{
+public class BooleanRecordTest extends TestCase{
 
     DB db;
-    Atomic.Boolean ai;
+   BooleanRecord ai;
 
     @Override
     protected void setUp() throws Exception {
         db = DBMaker.memoryDB().make();
-        ai= AtomicBooleanMaker.maker(db, "test").init(true).create();
+        ai= Records.newBoolean(db, "test").init(true).make();
     }
 
     @Override
@@ -38,7 +39,7 @@ public class AtomicBooleanTest extends TestCase{
      * default constructed initializes to false
      */
     public void testConstructor2() {
-        Atomic.Boolean ai = AtomicBooleanMaker.maker(db, "test2").create();
+        BooleanRecord ai = Records.newBoolean(db, "test2").make();
         assertEquals(false,ai.get());
     }
 
@@ -100,7 +101,7 @@ public class AtomicBooleanTest extends TestCase{
      * toString returns current value.
      */
     public void testToString() {
-        Atomic.Boolean ai = AtomicBooleanMaker.maker(db,"test2").create();
+        BooleanRecord ai = Records.newBoolean(db,"test2").make();
         assertEquals(ai.toString(), Boolean.toString(false));
         ai.set(true);
         assertEquals(ai.toString(), Boolean.toString(true));

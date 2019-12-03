@@ -21,15 +21,11 @@
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/licenses/publicdomain
  */
-package org.mapdb.atomic;
+package org.mapdb.record;
 
 import org.mapdb.ser.Serializer;
 import org.mapdb.ser.Serializers;
 import org.mapdb.store.MutableStore;
-import org.mapdb.store.Store;
-
-import java.io.DataInput;
-import java.io.IOException;
 
 /**
  * <p>

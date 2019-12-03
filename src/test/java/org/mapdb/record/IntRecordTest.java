@@ -1,4 +1,4 @@
-package org.mapdb.atomic;/*
+package org.mapdb.record;/*
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/licenses/publicdomain
@@ -10,16 +10,16 @@ import junit.framework.TestCase;
 import org.mapdb.db.DB;
 import org.mapdb.db.DBMaker;
 
-public class AtomicIntegerTest extends TestCase {
+public class IntRecordTest extends TestCase {
 
     DB db;
-    Atomic.Integer ai;
+    IntRecord ai;
 
 
     @Override
     protected void setUp() throws Exception {
         db = DBMaker.memoryDB().make();
-        ai = AtomicIntegerMaker.maker(db,"test").init(1).create();
+        ai = Records.newInt(db,"test").init(1).make();
     }
 
     @Override
@@ -39,7 +39,7 @@ public class AtomicIntegerTest extends TestCase {
      * default constructed initializes to zero
      */
     public void testConstructor2(){
-        Atomic.Integer  ai = AtomicIntegerMaker.maker(db,"test2").create();
+        IntRecord  ai = Records.newInt(db,"test2").make();
         assertEquals(0,ai.get());
     }
 

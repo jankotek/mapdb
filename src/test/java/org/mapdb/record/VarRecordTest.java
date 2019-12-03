@@ -1,20 +1,20 @@
-package org.mapdb.atomic;
+package org.mapdb.record;
 
 import junit.framework.TestCase;
 import org.mapdb.db.DB;
 import org.mapdb.db.DBMaker;
 import org.mapdb.ser.Serializers;
 
-public class AtomicVarTest extends TestCase {
+public class VarRecordTest extends TestCase {
 
     DB db;
-    Atomic.Var<String> ai;
+    VarRecord<String> ai;
 
 
     @Override
     protected void setUp() throws Exception {
         db = DBMaker.memoryDB().make();
-        ai = AtomicVarMaker.maker(db, "test", Serializers.STRING).init("test").create();
+        ai = Records.newVar(db, "test", Serializers.STRING).init("test").make();
     }
 
     @Override
@@ -34,7 +34,7 @@ public class AtomicVarTest extends TestCase {
      * default constructed initializes to empty string
      */
     public void testConstructor2() {
-        Atomic.Var<String> ai = AtomicVarMaker.maker(db,"test2", Serializers.STRING).create();
+        VarRecord<String> ai = Records.newVar(db,"test2", Serializers.STRING).make();
         assertEquals(null, ai.get());
     }
 

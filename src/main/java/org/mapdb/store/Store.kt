@@ -42,7 +42,33 @@ interface MutableStore:Store{
     /** updateAtomic existing record with new value */
     fun <K> update(recid:Long, serializer: Serializer<K>, newRecord:K?)
 
+
+    fun <K> getAndUpdate(recid:Long, serializer: Serializer<K>, newRecord:K?):K? {
+        val old = get(recid,serializer)
+        update(recid, serializer, newRecord)
+        return old //TODO atomic
+
+    }
+
+    fun <K> updateAndGet(recid:Long, serializer: Serializer<K>, m: (K?)->K?):K? {
+        val old = get(recid,serializer)
+        val newVal = m(old)
+        update(recid, serializer, newVal)
+        return newVal //TODO atomic
+    }
+
+
     fun <K> updateAtomic(recid: Long, serializer: Serializer<K>, m: (K?)->K?)
+
+
+    fun <K> getAndUpdateAtomic(recid: Long, serializer: Serializer<K>, m: (K?)->K?):K? {
+        val oldVal = get(recid,serializer)
+        val newVal = m(oldVal)
+        update(recid, serializer, newVal)
+        return oldVal
+        //TODO atomic
+    }
+
 
     fun <K> updateWeak(recid: Long, serializer: Serializer<K>, m: (K?)->K?){
         val oldRec = get(recid, serializer)

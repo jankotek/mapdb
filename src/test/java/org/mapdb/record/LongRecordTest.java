@@ -1,4 +1,4 @@
-package org.mapdb.atomic;/*
+package org.mapdb.record;/*
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/licenses/publicdomain
@@ -10,15 +10,15 @@ import junit.framework.TestCase;
 import org.mapdb.db.DB;
 import org.mapdb.db.DBMaker;
 
-public class AtomicLongTest extends TestCase {
+public class LongRecordTest extends TestCase {
 
     DB db;
-    Atomic.Long ai;
+    LongRecord ai;
 
     @Override
     protected void setUp() throws Exception {
         db = DBMaker.memoryDB().make();
-        ai = AtomicLongMaker.maker(db,"test").init(1).create();
+        ai = Records.newLong(db,"test").init(1).make();
     }
 
     @Override
@@ -37,7 +37,7 @@ public class AtomicLongTest extends TestCase {
      * default constructed initializes to zero
      */
     public void testConstructor2(){
-        Atomic.Long ai = AtomicLongMaker.maker(db,"test2").create();
+        LongRecord ai = Records.newLong(db,"test2").make();
         assertEquals(0,ai.get());
     }
 

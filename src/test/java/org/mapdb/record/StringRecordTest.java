@@ -1,19 +1,19 @@
-package org.mapdb.atomic;
+package org.mapdb.record;
 
 import junit.framework.TestCase;
 import org.mapdb.db.DB;
 import org.mapdb.db.DBMaker;
 
-public class AtomicStringTest extends TestCase {
+public class StringRecordTest extends TestCase {
 
     DB db;
-    Atomic.String ai;
+    StringRecord ai;
 
 
     @Override
     protected void setUp() throws Exception {
         db = DBMaker.memoryDB().make();
-        ai = AtomicStringMaker.maker(db, "test").init("test").create();
+        ai = Records.newString(db, "test").init("test").make();
     }
 
     @Override
@@ -33,7 +33,7 @@ public class AtomicStringTest extends TestCase {
      * default constructed initializes to empty string
      */
     public void testConstructor2() {
-        Atomic.String ai =AtomicStringMaker.maker(db, "test2").create();
+        StringRecord ai = Records.newString(db, "test2").make();
         assertEquals("", ai.get());
     }
 
