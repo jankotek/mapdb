@@ -17,6 +17,7 @@ import java.util.*
 import java.util.concurrent.locks.ReadWriteLock
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
+/** Appends all changes into a file */
 class StoreAppend(
         val file: Path,
         override val isThreadSafe:Boolean=true

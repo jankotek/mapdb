@@ -10,6 +10,7 @@ import org.mapdb.util.lockWrite
 import java.util.concurrent.locks.ReadWriteLock
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
+/** uses heap memory like Map<Recid,Record>, no serialization */
 class StoreOnHeap(
         override val isThreadSafe:Boolean=true
 ):MutableStore{

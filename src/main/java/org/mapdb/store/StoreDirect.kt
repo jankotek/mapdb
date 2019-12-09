@@ -12,6 +12,7 @@ import java.nio.ByteBuffer
 import java.nio.MappedByteBuffer
 import java.util.*
 
+/** Uses buffer directly, no transactions */
 class StoreDirect(
         private val b: ByteBuffer,
         override val isThreadSafe: Boolean = true

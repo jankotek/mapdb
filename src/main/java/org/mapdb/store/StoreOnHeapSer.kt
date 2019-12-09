@@ -13,6 +13,7 @@ import java.io.*
 import java.util.concurrent.locks.ReadWriteLock
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
+/** Stores data on heap, but with serialization. Like `Map<Recid, byte[]>` */
 class StoreOnHeapSer(
         val file: File? = null,
         override val isThreadSafe:Boolean=true
