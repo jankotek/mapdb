@@ -240,6 +240,10 @@ public class IndexTreeLongLongMap(
         }
     }
 
+    override fun updateValues(p0: LongLongToLongFunction?) {
+        throw IllegalAccessError("updateValues function not implemented")
+    }
+
     override fun count(predicate: LongPredicate): Int {
         return Utils.roundDownToIntMAXVAL(
                 treeFold(rootRecid, store, levels, 0L) { k, v, b: Long ->
