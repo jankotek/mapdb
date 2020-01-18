@@ -1,21 +1,18 @@
 package org.mapdb.db
 
-import com.google.common.cache.CacheBuilder
-import org.checkerframework.checker.units.qual.K
-import org.mapdb.DBException
-import org.mapdb.list.LinkedList
-import org.mapdb.ser.Serializer
-import org.mapdb.ser.Serializers
-import org.mapdb.store.*
-import org.mapdb.util.dataAssert
-import org.mapdb.util.getBooleanOrDefault
-import java.io.Closeable
-import java.io.File
-import java.nio.file.Path
-import java.util.*
-import java.util.concurrent.Callable
-import java.util.concurrent.ConcurrentNavigableMap
-import java.util.concurrent.ConcurrentSkipListMap
+import com.google.common.cache.CacheBuilder;
+
+import org.mapdb.DBException;
+import org.mapdb.ser.Serializer;
+import org.mapdb.ser.Serializers;
+import org.mapdb.store.*;
+import java.io.Closeable;
+import java.io.File;
+import java.nio.file.Path;
+import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 /** Main class for accessing MapDB */
 class DB(val store: MutableStore): Closeable {

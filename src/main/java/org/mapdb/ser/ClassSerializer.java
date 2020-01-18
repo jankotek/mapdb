@@ -11,7 +11,7 @@ import java.io.IOException;
  * Serialier for class. It takes a class loader as constructor param, by default it uses
  * {@code Thread.currentThread().getContextClassLoader()}
  */
-public class ClassSerializer extends DefaultGroupSerializer<Class<?>> {
+public class ClassSerializer extends DefaultGroupSerializer<Class> {
 
     protected final ClassLoader classLoader;
 
@@ -24,12 +24,12 @@ public class ClassSerializer extends DefaultGroupSerializer<Class<?>> {
     }
 
     @Override
-    public void serialize(DataOutput2 out, Class<?> value) throws IOException {
+    public void serialize(DataOutput2 out, Class value) throws IOException {
         out.writeUTF(value.getName());
     }
 
     @Override
-    public Class<?> deserialize(DataInput2 in) throws IOException {
+    public Class deserialize(DataInput2 in) throws IOException {
         try {
             return classLoader.loadClass(in.readUTF());
         } catch (ClassNotFoundException e) {
@@ -49,12 +49,12 @@ public class ClassSerializer extends DefaultGroupSerializer<Class<?>> {
     }
 
     @Override
-    public boolean equals(Class<?> a1, Class<?> a2) {
+    public boolean equals(Class a1, Class a2) {
         return a1 == a2 || (a1.toString().equals(a2.toString()));
     }
 
     @Override
-    public int hashCode(Class<?> aClass, int seed) {
+    public int hashCode(Class aClass, int seed) {
         //class does not override identity hash code
         return aClass.toString().hashCode();
     }
