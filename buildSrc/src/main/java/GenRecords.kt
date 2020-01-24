@@ -1,28 +1,33 @@
+import org.gradle.internal.impldep.org.apache.commons.io.FileUtils
+import java.io.File
+
 object GenRecords {
 
-    fun makeRecordMakers():String{
+    fun makeRecordMakers(dir: File){
         data class R(val type:String, val initVal:String, val ser:String){
 
-            private val gen = if(type!="Var") "" else "<E>"
+            val gen = if(type!="Var") "" else "<E>"
 
             val isVar = type=="Var"
             val isNum = type=="Int" || type=="Long"
 
-            val nullConv = if(isVar) "" else "!!"
+            val extends = if(isNum)" extends Number" else ""
 
-            val extends = if(isNum)":Number()" else ""
+            fun recName() = type+"Record"
+            fun valType() =
+                    if(isNum) type.toLowerCase()
+                    else if(!isVar) type
+                    else "E"
 
-            fun makerName() = type+"RecordMaker"+gen
-            fun recName() = type+"Record"+gen
-            fun valType() = if(!isVar) type else "E?"
 
-
-            fun constParams() = if(!isVar) "" else ", private val ser:Serializer<E>"
-            fun newParams() = if(!isVar) "" else ", ser:Serializer<E>"
+            fun constParams() = if(!isVar) "" else "private final Serializer<E> ser;"
+            fun newParams() = if(!isVar) "" else ", Serializer<E> ser";
             fun newParams2() = if(!isVar) "" else ", ser"
+            fun constBody() = if(!isVar) "" else "this.ser=ser;"
             fun newGen() = if(!isVar) "" else "<E>"
 
-            fun privSer() = if(isVar) "" else "private val ser="+ser
+
+
         }
 
         val types = listOf(
@@ -30,100 +35,119 @@ object GenRecords {
                 R("Long", "0L", "Serializers.LONG"),
                 R("Int", "0", "Serializers.INTEGER"),
                 R("Boolean","false", "Serializers.BOOLEAN"),
-                R("Var", "null","")
+                R("Var", "null","ser")
         )
 
-        val mkClasses = types.map { t->
-            """
-                    class ${t.makerName()}(private val db:DB, private val name:String ${t.constParams()}){
+        for(t in types){
+            val cont = """
+                                package org.mapdb.record;
+                                
+                                import org.mapdb.db.DB;
+                                import org.mapdb.store.Store;
+                                import org.mapdb.ser.Serializer;
+                                import org.mapdb.ser.Serializers;
+
+                    public class ${t.recName()}${t.gen} ${t.extends}{
+
+                    public static class  Maker${t.gen}{
                     
-                        private var initVal:${t.valType()} = ${t.initVal}
-    
-                        fun init(initialValue:${t.valType()}):${t.makerName()}{
-                            initVal = initialValue
-                            return this
+                       private final DB db;
+                       private final String name;
+                       
+                       private ${t.valType()} initVal = ${t.initVal};
+                    
+                        ${t.constParams()}
+                        public Maker(DB db, String name  ${t.newParams()}){
+                            this.db = db;
+                            this.name = name;
+                            ${t.constBody()}
+                        }
+                    
+
+                        public Maker init(${t.valType()} initialValue){
+                            initVal = initialValue;
+                            return this;
                         }
     
-                        fun make():${t.recName()} {
-                            val recid = db.store.put(initVal, ${if(t.isVar) "ser" else t.ser})
-                            return ${t.recName()}(db.store, recid ${t.newParams2()}) 
+                        public ${t.recName()}  make(){
+                            long recid = db.store.put(initVal, ${if(t.isVar) "ser" else t.ser});
+                            return new ${t.recName()}(db.store, recid ${t.newParams2()}); 
                         }
                         
                     }
                     
-                    class ${t.recName()}(private val store:MutableStore, private val recid:Long ${t.constParams()})${t.extends}{
 
-                        ${t.privSer()}
-                        
+
+                        private final Store store;
+                        private final long recid;
+                        ${t.constParams()}
+
+                        public ${t.recName()}(Store store, long recid ${t.newParams()}){
+                            this.store = store;
+                            this.recid = recid;
+                            ${t.constBody()}
+                        }
+
                         ${if(t.isNum)"""
-                            
+                            public ${t.valType()} addAndGet(${t.valType()} i){ 
+                                return store.updateAndGet(recid, ${t.ser}, (v)-> v+i);
+                            }
 
-                            fun addAndGet(i:${t.type}):${t.valType()} = 
-                                store.updateAndGet(recid, ser, {v:${t.valType()}?-> v!!+i})!!
+                            public ${t.valType()} getAndAdd(${t.valType()} i){ 
+                                return store.getAndUpdateAtomic(recid, ${t.ser}, (v)-> v+i);
+                            }
 
-                            fun getAndAdd(i:${t.type}):${t.valType()} = 
-                                store.getAndUpdateAtomic(recid, ser, {v:${t.valType()}?-> v!!+i})!!
+                            public ${t.valType()}  getAndDecrement(){return getAndAdd(-1);}
 
-                            fun getAndDecrement():${t.valType()} = getAndAdd(-1)
+                            public ${t.valType()}  getAndIncrement(){return getAndAdd(+1);}
 
-                            fun getAndIncrement():${t.valType()} = getAndAdd(+1)
+                            public ${t.valType()}  decrementAndGet(){return addAndGet(-1);}
 
-                            fun decrementAndGet():${t.valType()} = addAndGet(-1)
+                            public ${t.valType()}  incrementAndGet(){return addAndGet(+1);}
 
-                            fun incrementAndGet():${t.valType()} = addAndGet(+1)
-
-                            override fun toDouble() = get().toDouble()
-                            override fun toFloat() = get().toFloat()
-                            override fun toLong() = get().toLong()
-                            override fun toInt() = get().toInt()
-                            override fun toChar() = get().toChar()
-                            override fun toShort() = get().toShort()
-                            override fun toByte() = get().toByte()
+                            @Override public double doubleValue(){ return (double) get();}
+                            @Override public float floatValue(){ return (float) get();}
+                            @Override public long longValue(){ return (long) get();}
+                            @Override public int intValue(){ return (int) get();}
+//                            @Override public char charValue(){ return (char) get();}
+                            @Override public short shortValue(){ return (short) get();}
+                            @Override public byte byteValue(){ return (byte) get();}
                             
                         """ else ""}
                         
-                        fun get():${t.valType()} = store.get(recid, ser)${t.nullConv}
+                        //TODO hash code
+                        
+                        public ${t.valType()} get(){
+                          return store.get(recid, ${t.ser});
+                        }
 
-                        fun set(value:${t.valType()}) = store.update(recid, ser, value)
+                        public void set(${t.valType()} value){
+                            store.update(recid, ${t.ser}, value);
+                        } 
 
-                        fun getAndSet(value:${t.valType()}):${t.valType()} = store.getAndUpdate(recid, ser, value)${t.nullConv}
+                        public ${t.valType()} getAndSet(${t.valType()} value){
+                            return store.getAndUpdate(recid, ${t.ser}, value);
+                        }
 
-                        fun compareAndSet(expectedValue:${t.valType()}, newValue:${t.valType()}):Boolean = 
-                            store.compareAndUpdate(recid, ser, expectedValue, newValue)
-
-                        override fun toString():String = get().toString()
+                        public boolean compareAndSet(${t.valType()} expectedValue, ${t.valType()} newValue){ 
+                            return store.compareAndUpdate(recid, ${t.ser}, expectedValue, newValue);
+                        }
+                        
+                        @Override 
+                        public String toString(){
+                            return ""+get();
+                        }
                     
                     }
-                    
+
                 """.trimIndent()
-        }.joinToString("")
-        val mkFuns = types.map{t->
-            """
-                @JvmStatic
-                     fun ${t.newGen()} new${t.type}(db:DB,name:String ${t.newParams()}):${t.makerName()} {
-                        return ${t.makerName()}(db, name ${t.newParams2()})
-                     }
-                """.trimIndent()
-        }.joinToString("")
+            FileUtils.write(File(dir, t.type+"Record.java"), cont);
+        }
 
 
-        return """
-                package org.mapdb.record
-                
-                import org.mapdb.db.DB
-                import org.mapdb.store.MutableStore
-                import org.mapdb.ser.Serializer
-                import org.mapdb.ser.Serializers
-                
-                class Records{
-                    companion object{
-                        $mkFuns
-                    }
-                }
-                
-                $mkClasses
-                
-            """.trimIndent()
+
+
+
     }
 
 }

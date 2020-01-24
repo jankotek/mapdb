@@ -1,8 +1,9 @@
 package org.mapdb.store;
 
 import org.mapdb.ser.Serializer;
+import java.io.Closeable;
 
-public interface ReadonlyStore extends Closable {
+public interface ReadonlyStore extends Closeable {
 
 
     /**

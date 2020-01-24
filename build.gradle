@@ -58,6 +58,8 @@ dependencies {
     compile "org.eclipse.collections:eclipse-collections:$ec_version"
 
     compile "com.google.guava:guava:$guava_version"
+
+    compile group: 'org.jetbrains', name: 'annotations', version: '15.0'
     
     testCompile "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
     testCompile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
@@ -73,4 +75,5 @@ dependencies {
 
     testCompile("org.junit.jupiter:junit-jupiter-api:$junit_version")
     testRuntime("org.junit.jupiter:junit-jupiter-engine:$junit_version")
+    implementation 'org.jetbrains:annotations:15.0'
 }

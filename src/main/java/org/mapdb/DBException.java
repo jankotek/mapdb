@@ -1,6 +1,5 @@
 package org.mapdb;
 
-import sun.reflect.annotation.ExceptionProxy;
 
 import java.nio.file.Path;
 
@@ -18,37 +17,55 @@ public class DBException extends RuntimeException {
         super(msg,cause);
     }
 
-    class RecordNotFound extends DBException{
+    public static class RecordNotFound extends DBException{
         public RecordNotFound(){
             super("record not found");
         }
     }
 
 
-    class RecidNotFound extends DBException{
+    public static class RecidNotFound extends DBException{
         public RecidNotFound(){
             super("recid not found");
         }
     }
 
-    class StoreClosed extends DBException{
+    public static class StoreClosed extends DBException{
         public StoreClosed(){
             super("store closed");
         }
     }
 
 
-    class DataCorruption extends DBException{
+    public static class DataCorruption extends DBException{
         public DataCorruption(){
             super("data corruption");
         }
+
+        public DataCorruption(String msg) {
+            super(msg);
+        }
     }
 
-    class SerializerError extends DBException{
-        public SerializerError(Exception e){
+    public static class SerializationError extends DBException{
+        public SerializationError(Exception e){
             super(e);
         }
     }
 
 
+    public static class PointerChecksumBroken extends DataCorruption{
+
+    }
+
+    public static class TODO extends DBException{
+
+        public TODO() {
+            super("not implemented yet");
+        }
+
+        public TODO(String msg) {
+            super(msg);
+        }
+    }
 }

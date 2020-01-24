@@ -25,7 +25,7 @@ package org.mapdb.record;
 
 import org.mapdb.ser.Serializer;
 import org.mapdb.ser.Serializers;
-import org.mapdb.store.MutableStore;
+import org.mapdb.store.Store;
 
 /**
  * <p>
@@ -111,10 +111,10 @@ final public class Atomic {
 
 		private static final long serialVersionUID = 4615119399830853054L;
 		
-		protected final MutableStore store;
+		protected final Store store;
         protected final long recid;
 
-        public Integer(MutableStore store, long recid) {
+        public Integer(Store store, long recid) {
             this.store = store;
             this.recid = recid;
         }
@@ -306,10 +306,10 @@ final public class Atomic {
 
 		private static final long serialVersionUID = 2882620413591274781L;
 		
-		protected final MutableStore store;
+		protected final Store store;
         protected final long recid;
 
-        public Long(MutableStore store, long recid) {
+        public Long(Store store, long recid) {
             this.store = store;
             this.recid = recid;
         }
@@ -495,10 +495,10 @@ final public class Atomic {
      */
     public final static class Boolean {
 
-        protected final MutableStore store;
+        protected final Store store;
         protected final long recid;
 
-        public Boolean(MutableStore store, long recid) {
+        public Boolean(Store store, long recid) {
             this.store = store;
             this.recid = recid;
         }
@@ -574,10 +574,10 @@ final public class Atomic {
     */
     public final static class String{
 
-        protected final MutableStore store;
+        protected final Store store;
         protected final long recid;
 
-        public String(MutableStore store, long recid) {
+        public String(Store store, long recid) {
             this.store = store;
             this.recid = recid;
         }
@@ -649,11 +649,11 @@ final public class Atomic {
      */
     public static final class Var<E> {
 
-        protected final MutableStore store;
+        protected final Store store;
         protected final long recid;
         protected final Serializer<E> serializer;
 
-        public Var(MutableStore store, long recid, Serializer<E> serializer) {
+        public Var(Store store, long recid, Serializer<E> serializer) {
             this.store = store;
             this.recid = recid;
             this.serializer = serializer;

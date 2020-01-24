@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicLong
  */
 abstract class StoreTest {
 
-    abstract fun openStore(): MutableStore
+    abstract fun openStore(): Store
 
     @Test fun put_get() {
         val e = openStore()
@@ -589,9 +589,9 @@ abstract class StoreTest {
 //TODO merge with StoreReopenTest
 abstract class FileStoreTest():StoreTest(){
 
-    abstract fun openStore(f: File):MutableStore
+    abstract fun openStore(f: File):Store
 
-    override fun openStore(): MutableStore {
+    override fun openStore(): Store {
         val f = TT.tempFile()
         return openStore(f)
     }

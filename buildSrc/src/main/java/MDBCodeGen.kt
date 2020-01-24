@@ -12,14 +12,14 @@ class MDBCodeGen{
             val testDir = File("../srcGen/test/java")
 
 
-            FileUtils.write(File(srcDir, "aaGen.kt"), """
-class AACodeGen{
+            FileUtils.write(File(srcDir, "AACodeGen.java"), """
+public class AACodeGen{
 }
                             """)
 
-            val srcDirRecords = File(srcDir, "org/mapdb/records/")
+            val srcDirRecords = File(srcDir, "org/mapdb/record/")
             srcDirRecords.mkdirs()
-            FileUtils.write(File(srcDirRecords, "Records.kt"), GenRecords.makeRecordMakers())
+            GenRecords.makeRecordMakers(srcDirRecords)
         }
     }
 

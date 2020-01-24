@@ -22,6 +22,7 @@ public interface Store extends ReadonlyStore{
 
     }
 
+
     interface Transform<R>{
         R transform(R r);
     }
@@ -32,6 +33,14 @@ public interface Store extends ReadonlyStore{
         update(recid, serializer, newRec);
         return newRec; //TODO atomic
     }
+
+    default <R> R getAndUpdateAtomic(long recid, Serializer<R> serializer, Transform<R> t) {
+        R old = get(recid,serializer);
+        R newRec = t.transform(old);
+        update(recid, serializer, newRec);
+        return old; //TODO atomic
+    }
+
 
     <R> void updateAtomic(long recid, Serializer<R> serializer, Transform<R> r);
 
