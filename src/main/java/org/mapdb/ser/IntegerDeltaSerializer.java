@@ -12,17 +12,17 @@ import java.util.Comparator;
  */
 public class IntegerDeltaSerializer extends IntegerSerializer {
     @Override
-    public void serialize(DataOutput2 out, Integer value) throws IOException {
+    public void serialize(DataOutput2 out, Integer value) {
         out.packInt(value);
     }
 
     @Override
-    public Integer deserialize(DataInput2 in, int available) throws IOException {
+    public Integer deserialize(DataInput2 in, int available) {
         return new Integer(in.unpackInt());
     }
 
     @Override
-    public void valueArraySerialize(DataOutput2 out, int[] vals) throws IOException {
+    public void valueArraySerialize(DataOutput2 out, int[] vals) {
         int[] keys = (int[]) vals;
         int prev = keys[0];
         out.packInt(prev);
@@ -37,7 +37,7 @@ public class IntegerDeltaSerializer extends IntegerSerializer {
     }
 
     @Override
-    public int[] valueArrayDeserialize(DataInput2 in, int size) throws IOException {
+    public int[] valueArrayDeserialize(DataInput2 in, int size) {
         int[] ret = new int[size];
         int prev = 0;
         for (int i = 0; i < size; i++) {
@@ -50,7 +50,7 @@ public class IntegerDeltaSerializer extends IntegerSerializer {
 
 
     @Override
-    public Integer valueArrayBinaryGet(DataInput2 input, int keysLen, int pos) throws IOException {
+    public Integer valueArrayBinaryGet(DataInput2 input, int keysLen, int pos) {
         int a = 0;
         while (pos-- >= 0) {
             a += input.unpackInt();
@@ -60,7 +60,7 @@ public class IntegerDeltaSerializer extends IntegerSerializer {
 
 
     @Override
-    public int valueArrayBinarySearch(Integer key, DataInput2 input, int keysLen, Comparator comparator) throws IOException {
+    public int valueArrayBinarySearch(Integer key, DataInput2 input, int keysLen, Comparator comparator) {
         if (comparator != this)
             return super.valueArrayBinarySearch(key, input, keysLen, comparator);
         int key2 = key;

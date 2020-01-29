@@ -14,12 +14,12 @@ import java.util.Date;
 public class DateSerializer extends EightByteSerializer<Date> {
 
     @Override
-    public void serialize(DataOutput2 out, Date value) throws IOException {
+    public void serialize(DataOutput2 out, Date value) {
         out.writeLong(value.getTime());
     }
 
     @Override
-    public Date deserialize(DataInput2 in) throws IOException {
+    public Date deserialize(DataInput2 in) {
         return new Date(in.readLong());
     }
 

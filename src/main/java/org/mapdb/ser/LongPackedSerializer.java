@@ -12,24 +12,24 @@ import java.util.Comparator;
  */
 public class LongPackedSerializer extends LongSerializer {
     @Override
-    public void serialize(DataOutput2 out, Long value) throws IOException {
+    public void serialize(DataOutput2 out, Long value) {
         out.writePackedLong(value);
     }
 
     @Override
-    public Long deserialize(DataInput2 in, int available) throws IOException {
+    public Long deserialize(DataInput2 in, int available) {
         return new Long(in.readPackedLong());
     }
 
     @Override
-    public void valueArraySerialize(DataOutput2 out, long[] vals) throws IOException {
+    public void valueArraySerialize(DataOutput2 out, long[] vals) {
         for (long o : (long[])vals) {
             out.writePackedLong(o);
         }
     }
 
     @Override
-    public long[] valueArrayDeserialize(DataInput2 in, int size) throws IOException {
+    public long[] valueArrayDeserialize(DataInput2 in, int size) {
         long[] ret = new long[size];
         throw new DBException.TODO("packed long");
 //        in.unpackLongArray(ret, 0, size);
@@ -42,7 +42,7 @@ public class LongPackedSerializer extends LongSerializer {
     }
 
     @Override
-    public int valueArrayBinarySearch(Long key, DataInput2 input, int keysLen, Comparator comparator) throws IOException {
+    public int valueArrayBinarySearch(Long key, DataInput2 input, int keysLen, Comparator comparator) {
         if (comparator != this)
             return super.valueArrayBinarySearch(key, input, keysLen, comparator);
         long key2 = key;
@@ -60,7 +60,7 @@ public class LongPackedSerializer extends LongSerializer {
     }
 
     @Override
-    public Long valueArrayBinaryGet(DataInput2 input, int keysLen, int pos) throws IOException {
+    public Long valueArrayBinaryGet(DataInput2 input, int keysLen, int pos) {
         input.unpackLongSkip(pos);
         return input.readPackedLong();
     }

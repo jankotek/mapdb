@@ -13,7 +13,7 @@ import java.util.Arrays;
 public class LongArraySerializer extends DefaultGroupSerializer<long[]> {
 
     @Override
-    public void serialize(DataOutput2 out, long[] value) throws IOException {
+    public void serialize(DataOutput2 out, long[] value) {
         out.packInt(value.length);
         for (long c : value) {
             out.writeLong(c);
@@ -21,7 +21,7 @@ public class LongArraySerializer extends DefaultGroupSerializer<long[]> {
     }
 
     @Override
-    public long[] deserialize(DataInput2 in) throws IOException {
+    public long[] deserialize(DataInput2 in) {
         final int size = in.unpackInt();
         long[] ret = new long[size];
         for (int i = 0; i < size; i++) {

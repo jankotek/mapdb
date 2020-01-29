@@ -24,12 +24,12 @@ public class FloatSerializer extends FourByteSerializer<Float> {
 
 
     @Override
-    public void serialize(DataOutput2 out, Float value) throws IOException {
+    public void serialize(DataOutput2 out, Float value) {
         out.writeFloat(value);
     }
 
     @Override
-    public Float deserialize(DataInput2 in) throws IOException {
+    public Float deserialize(DataInput2 in) {
         return new Float(in.readFloat());
     }
 

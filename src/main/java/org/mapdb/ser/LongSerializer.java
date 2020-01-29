@@ -14,12 +14,12 @@ import java.util.Comparator;
 public class LongSerializer extends EightByteSerializer<Long> {
 
     @Override
-    public void serialize(DataOutput2 out, Long value) throws IOException {
+    public void serialize(DataOutput2 out, Long value) {
         out.writeLong(value);
     }
 
     @Override
-    public Long deserialize(DataInput2 in) throws IOException {
+    public Long deserialize(DataInput2 in) {
         return new Long(in.readLong());
     }
 
@@ -47,7 +47,7 @@ public class LongSerializer extends EightByteSerializer<Long> {
 
 
     @Override
-    public int valueArrayBinarySearch(Long key, DataInput2 input, int keysLen, Comparator comparator) throws IOException {
+    public int valueArrayBinarySearch(Long key, DataInput2 input, int keysLen, Comparator comparator) {
         if (comparator != this)
             return super.valueArrayBinarySearch(key, input, keysLen, comparator);
         long key2 = key;

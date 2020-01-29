@@ -51,14 +51,14 @@ public class ArraySerializer<T> extends DefaultGroupSerializer<T[]> {
 
 //        /** used for deserialization */
 //        @SuppressWarnings("unchecked")
-//		protected Array(SerializerBase serializerBase, DataInput2 is, SerializerBase.FastArrayList<Object> objectStack) throws IOException {
+//		protected Array(SerializerBase serializerBase, DataInput2 is, SerializerBase.FastArrayList<Object> objectStack) {
 //            objectStack.add(this);
 //            this.serializer = (Serializer<T>) serializerBase.deserialize(is,objectStack);
 //        }
 
 
     @Override
-    public void serialize(DataOutput2 out, T[] value) throws IOException {
+    public void serialize(DataOutput2 out, T[] value) {
         out.packInt(value.length);
         for (T a : value) {
             serializer.serialize(out, a);
@@ -66,7 +66,7 @@ public class ArraySerializer<T> extends DefaultGroupSerializer<T[]> {
     }
 
     @Override
-    public T[] deserialize(DataInput2 in) throws IOException {
+    public T[] deserialize(DataInput2 in) {
         int size = in.unpackInt();
         T[] ret = (T[]) Array.newInstance(componentType, size);
         for (int i = 0; i < ret.length; i++) {

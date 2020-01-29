@@ -12,7 +12,7 @@ import java.io.IOException;
  */
 public class StringAsciiSerializer extends DefaultGroupSerializer<String> {
     @Override
-    public void serialize(DataOutput2 out, String value) throws IOException {
+    public void serialize(DataOutput2 out, String value) {
         int size = value.length();
         out.packInt(size);
         for (int i = 0; i < size; i++) {
@@ -21,7 +21,7 @@ public class StringAsciiSerializer extends DefaultGroupSerializer<String> {
     }
 
     @Override
-    public String deserialize(DataInput2 in) throws IOException {
+    public String deserialize(DataInput2 in) {
         int size = in.unpackInt();
         StringBuilder result = new StringBuilder(size);
         for (int i = 0; i < size; i++) {

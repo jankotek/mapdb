@@ -13,17 +13,17 @@ import java.util.Comparator;
  */
 public class LongDeltaSerializer extends LongSerializer {
     @Override
-    public void serialize(DataOutput2 out, Long value) throws IOException {
+    public void serialize(DataOutput2 out, Long value) {
         out.writePackedLong(value);
     }
 
     @Override
-    public Long deserialize(DataInput2 in, int available) throws IOException {
+    public Long deserialize(DataInput2 in, int available) {
         return new Long(in.readPackedLong());
     }
 
     @Override
-    public void valueArraySerialize(DataOutput2 out, long[] vals) throws IOException {
+    public void valueArraySerialize(DataOutput2 out, long[] vals) {
         long[] keys = (long[]) vals;
         long prev = keys[0];
         out.writePackedLong(prev);
@@ -38,14 +38,14 @@ public class LongDeltaSerializer extends LongSerializer {
     }
 
     @Override
-    public long[] valueArrayDeserialize(DataInput2 in, int size) throws IOException {
+    public long[] valueArrayDeserialize(DataInput2 in, int size) {
         throw new DBException.TODO("delta packing");
 //        return in.unpackLongArrayDeltaCompression(size);
     }
 
 
     @Override
-    public Long valueArrayBinaryGet(DataInput2 input, int keysLen, int pos) throws IOException {
+    public Long valueArrayBinaryGet(DataInput2 input, int keysLen, int pos) {
         long a = 0;
         while (pos-- >= 0) {
             a += input.readPackedLong();
@@ -54,7 +54,7 @@ public class LongDeltaSerializer extends LongSerializer {
     }
 
     @Override
-    public int valueArrayBinarySearch(Long key, DataInput2 input, int keysLen, Comparator comparator) throws IOException {
+    public int valueArrayBinarySearch(Long key, DataInput2 input, int keysLen, Comparator comparator) {
         if (comparator != this)
             return super.valueArrayBinarySearch(key, input, keysLen, comparator);
         long key2 = key;

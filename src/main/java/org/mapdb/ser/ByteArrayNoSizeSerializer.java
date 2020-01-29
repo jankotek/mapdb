@@ -18,12 +18,12 @@ import java.util.Arrays;
 public class ByteArrayNoSizeSerializer implements Serializer<byte[]> {
 
     @Override
-    public void serialize(DataOutput2 out, byte[] value) throws IOException {
+    public void serialize(DataOutput2 out, byte[] value) {
         out.write(value);
     }
 
     @Override
-    public byte[] deserialize(@NotNull DataInput2 input) throws IOException {
+    public byte[] deserialize(@NotNull DataInput2 input) {
         //TODO fixed size serializer
         throw new DBException.TODO("fixed ser");
     }
@@ -35,7 +35,7 @@ public class ByteArrayNoSizeSerializer implements Serializer<byte[]> {
     }
 
     @Override
-    public byte[] deserialize(DataInput2 in, int available) throws IOException {
+    public byte[] deserialize(DataInput2 in, int available) {
         byte[] ret = new byte[available];
         in.readFully(ret);
         return ret;

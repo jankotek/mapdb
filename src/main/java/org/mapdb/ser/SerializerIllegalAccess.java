@@ -11,12 +11,12 @@ import java.io.IOException;
  */
 public class SerializerIllegalAccess<E> extends DefaultGroupSerializer<E> {
     @Override
-    public void serialize(DataOutput2 out, E value) throws IOException {
+    public void serialize(DataOutput2 out, E value) {
         throw new IllegalAccessError();
     }
 
     @Override
-    public E deserialize(DataInput2 in) throws IOException {
+    public E deserialize(DataInput2 in) {
         throw new IllegalAccessError();
     }
 

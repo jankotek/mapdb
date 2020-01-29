@@ -12,7 +12,7 @@ import java.util.Arrays;
  */
 public class ShortArraySerializer extends DefaultGroupSerializer<short[]> {
     @Override
-    public void serialize(DataOutput2 out, short[] value) throws IOException {
+    public void serialize(DataOutput2 out, short[] value) {
         out.packInt(value.length);
         for (short v : value) {
             out.writeShort(v);
@@ -20,7 +20,7 @@ public class ShortArraySerializer extends DefaultGroupSerializer<short[]> {
     }
 
     @Override
-    public short[] deserialize(DataInput2 in) throws IOException {
+    public short[] deserialize(DataInput2 in) {
         short[] ret = new short[in.unpackInt()];
         for (int i = 0; i < ret.length; i++) {
             ret[i] = in.readShort();

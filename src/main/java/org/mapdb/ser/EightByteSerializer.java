@@ -74,14 +74,14 @@ public abstract class EightByteSerializer<E> implements GroupSerializer<E,long[]
     }
 
     @Override
-    public void valueArraySerialize(DataOutput2 out, long[] vals) throws IOException {
+    public void valueArraySerialize(DataOutput2 out, long[] vals) {
         for(long o:(long[]) vals){
             out.writeLong(o);
         }
     }
 
     @Override
-    public long[] valueArrayDeserialize(DataInput2 in, int size) throws IOException {
+    public long[] valueArrayDeserialize(DataInput2 in, int size) {
         long[] ret = new long[size];
         for(int i=0;i<size;i++){
             ret[i] = in.readLong();
@@ -90,7 +90,7 @@ public abstract class EightByteSerializer<E> implements GroupSerializer<E,long[]
     }
 
     @Override
-    public E valueArrayBinaryGet(DataInput2 input, int keysLen, int pos) throws IOException {
+    public E valueArrayBinaryGet(DataInput2 input, int keysLen, int pos) {
         input.skipBytes(pos*8);
         return unpack(input.readLong());
     }

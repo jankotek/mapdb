@@ -13,13 +13,13 @@ import java.math.BigInteger;
  */
 public class BigDecimalSerializer extends DefaultGroupSerializer<BigDecimal> {
     @Override
-    public void serialize(DataOutput2 out, BigDecimal value) throws IOException {
+    public void serialize(DataOutput2 out, BigDecimal value) {
         Serializers.BYTE_ARRAY.serialize(out, value.unscaledValue().toByteArray());
         out.packInt(value.scale());
     }
 
     @Override
-    public BigDecimal deserialize(DataInput2 in) throws IOException {
+    public BigDecimal deserialize(DataInput2 in) {
         return new BigDecimal(new BigInteger(
                 Serializers.BYTE_ARRAY.deserialize(in, -1)),
                 in.unpackInt());

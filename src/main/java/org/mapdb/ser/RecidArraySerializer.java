@@ -12,7 +12,7 @@ import java.io.IOException;
 public class RecidArraySerializer extends LongArraySerializer{
 
     @Override
-    public void serialize(DataOutput2 out, long[] value) throws IOException {
+    public void serialize(DataOutput2 out, long[] value) {
         out.packInt(value.length);
         for (long recid : value) {
             DataIO.packRecid(out, recid);
@@ -20,7 +20,7 @@ public class RecidArraySerializer extends LongArraySerializer{
     }
 
     @Override
-    public long[] deserialize(DataInput2 in, int available) throws IOException {
+    public long[] deserialize(DataInput2 in, int available) {
         int size = in.unpackInt();
         long[] ret = new long[size];
         for (int i = 0; i < size; i++) {

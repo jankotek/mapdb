@@ -28,12 +28,12 @@ public class DoubleSerializer extends EightByteSerializer<Double> {
     }
 
     @Override
-    public void serialize(DataOutput2 out, Double value) throws IOException {
+    public void serialize(DataOutput2 out, Double value) {
         out.writeDouble(value);
     }
 
     @Override
-    public Double deserialize(DataInput2 in) throws IOException {
+    public Double deserialize(DataInput2 in) {
         return new Double(in.readDouble());
     }
 

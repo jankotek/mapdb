@@ -12,12 +12,12 @@ import java.io.IOException;
  */
 public class StringOrigHashSerializer extends StringSerializer {
     @Override
-    public void serialize(DataOutput2 out, String value) throws IOException {
+    public void serialize(DataOutput2 out, String value) {
         out.writeUTF(value);
     }
 
     @Override
-    public String deserialize(DataInput2 in, int available) throws IOException {
+    public String deserialize(DataInput2 in, int available) {
         return in.readUTF();
     }
 

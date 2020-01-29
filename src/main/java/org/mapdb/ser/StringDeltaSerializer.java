@@ -27,7 +27,7 @@ public class StringDeltaSerializer extends StringSerializer{
     }
 
     @Override
-    public char[][] valueArrayDeserialize(DataInput2 in, int size) throws IOException {
+    public char[][] valueArrayDeserialize(DataInput2 in, int size) {
         char[][] ret = new char[size][];
         //$DELAY$
         //read lengths and init arrays
@@ -58,7 +58,7 @@ public class StringDeltaSerializer extends StringSerializer{
     }
 
     @Override
-    public void valueArraySerialize(DataOutput2 out, char[][] chars2) throws IOException {
+    public void valueArraySerialize(DataOutput2 out, char[][] chars2) {
         char[][] chars = (char[][]) chars2;
         //write lengths
         for(char[] b:chars){

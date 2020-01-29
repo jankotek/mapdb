@@ -22,46 +22,46 @@ public final class DataInput2ByteArray implements DataInput2 {
     }
 
     @Override
-    public void readFully(byte[] b, int off, int len) throws IOException {
+    public void readFully(byte[] b, int off, int len) {
         System.arraycopy(buf, pos, b, off, len);
         pos += len;
     }
 
     @Override
-    public int skipBytes(final int n) throws IOException {
+    public int skipBytes(final int n) {
         pos += n;
         return n;
     }
 
     @Override
-    public boolean readBoolean() throws IOException {
+    public boolean readBoolean() {
         return buf[pos++] == 1;
     }
 
     @Override
-    public byte readByte() throws IOException {
+    public byte readByte() {
         return buf[pos++];
     }
 
     @Override
-    public int readUnsignedByte() throws IOException {
+    public int readUnsignedByte() {
         return buf[pos++] & 0xff;
     }
 
     @Override
-    public short readShort() throws IOException {
+    public short readShort() {
         return (short)((buf[pos++] << 8) | (buf[pos++] & 0xff));
     }
 
     @Override
-    public char readChar() throws IOException {
+    public char readChar() {
         return (char) (
                 ((buf[pos++] & 0xff) << 8) |
                         (buf[pos++] & 0xff));
     }
 
     @Override
-    public int readInt() throws IOException {
+    public int readInt() {
         int p = pos;
         final byte[] b = buf;
         final int ret =
@@ -74,7 +74,7 @@ public final class DataInput2ByteArray implements DataInput2 {
     }
 
     @Override
-    public long readLong() throws IOException {
+    public long readLong() {
         int p = pos;
         final byte[] b = buf;
         final long ret =
@@ -97,23 +97,23 @@ public final class DataInput2ByteArray implements DataInput2 {
     }
 
     @Override
-    public boolean availableMore() throws IOException {
+    public boolean availableMore() {
         return available()>0;
     }
 
     @Override
-    public int readPackedInt() throws IOException {
+    public int readPackedInt() {
         return readInt();
     }
 
     @Override
-    public long readPackedLong() throws IOException {
+    public long readPackedLong() {
         return readLong();
     }
 
 
     @Override
-    public void unpackLongSkip(int count) throws IOException {
+    public void unpackLongSkip(int count) {
         byte[] b = buf;
         int pos2 = this.pos;
         while(count>0){

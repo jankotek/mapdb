@@ -43,14 +43,14 @@ public class ArrayTupleSerializer implements GroupSerializer<Object[],Object[]> 
     }
 
     @Override
-    public void serialize(@NotNull DataOutput2 out, @NotNull Object[] value) throws IOException {
+    public void serialize(@NotNull DataOutput2 out, @NotNull Object[] value) {
         for(int i=0;i<size;i++){
             ser[i].serialize(out, value[i]);
         }
     }
 
     @Override
-    public Object[] deserialize(@NotNull DataInput2 input) throws IOException {
+    public Object[] deserialize(@NotNull DataInput2 input) {
         Object[] v = new Object[size];
         for(int i=0;i<size;i++){
             v[i] = ser[i].deserialize(input,-1);
@@ -65,7 +65,7 @@ public class ArrayTupleSerializer implements GroupSerializer<Object[],Object[]> 
     }
 
     @Override
-    public void valueArraySerialize(DataOutput2 out, Object[] vals) throws IOException {
+    public void valueArraySerialize(DataOutput2 out, Object[] vals) {
         //TODO delta compression
         Object[] v = cast(vals);
         for(int i=0;i<v.length;i++){
@@ -74,7 +74,7 @@ public class ArrayTupleSerializer implements GroupSerializer<Object[],Object[]> 
     }
 
     @Override
-    public Object[] valueArrayDeserialize(DataInput2 in, int size) throws IOException {
+    public Object[] valueArrayDeserialize(DataInput2 in, int size) {
         Object[] v = new Object[size * this.size];
         for (int i = 0; i < v.length; i++) {
             v[i] = ser[i%this.size].deserialize(in,-1);

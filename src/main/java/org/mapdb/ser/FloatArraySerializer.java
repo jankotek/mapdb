@@ -12,7 +12,7 @@ import java.util.Arrays;
  */
 public class FloatArraySerializer extends DefaultGroupSerializer<float[]> {
     @Override
-    public void serialize(DataOutput2 out, float[] value) throws IOException {
+    public void serialize(DataOutput2 out, float[] value) {
         out.packInt(value.length);
         for (float v : value) {
             out.writeFloat(v);
@@ -20,7 +20,7 @@ public class FloatArraySerializer extends DefaultGroupSerializer<float[]> {
     }
 
     @Override
-    public float[] deserialize(DataInput2 in) throws IOException {
+    public float[] deserialize(DataInput2 in) {
         float[] ret = new float[in.unpackInt()];
         for (int i = 0; i < ret.length; i++) {
             ret[i] = in.readFloat();

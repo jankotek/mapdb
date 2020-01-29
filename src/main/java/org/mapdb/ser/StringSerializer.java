@@ -11,12 +11,12 @@ import java.util.Comparator;
 public class StringSerializer implements GroupSerializer<String, char[][]> {
 
     @Override
-    public void serialize(DataOutput2 out, String value) throws IOException {
+    public void serialize(DataOutput2 out, String value) {
         out.writeUTF(value);
     }
 
     @Override
-    public String deserialize(DataInput2 in) throws IOException {
+    public String deserialize(DataInput2 in) {
         return in.readUTF();
     }
 
@@ -33,7 +33,7 @@ public class StringSerializer implements GroupSerializer<String, char[][]> {
 
 
     @Override
-    public void valueArraySerialize(DataOutput2 out2, char[][] vals) throws IOException {
+    public void valueArraySerialize(DataOutput2 out2, char[][] vals) {
         for(char[] v:(char[][])vals){
             out2.packInt(v.length);
             for(char c:v){
@@ -43,7 +43,7 @@ public class StringSerializer implements GroupSerializer<String, char[][]> {
     }
 
     @Override
-    public char[][] valueArrayDeserialize(DataInput2 in2, int size) throws IOException {
+    public char[][] valueArrayDeserialize(DataInput2 in2, int size) {
         char[][] ret = new char[size][];
         for(int i=0;i<size;i++){
             int size2 = in2.unpackInt();

@@ -3,13 +3,13 @@ package org.mapdb.io;
 import java.io.DataInput;
 import java.io.IOException;
 
-public interface DataInput2 extends DataInput {
+public interface DataInput2{
 
     /**
      * How many bytes are available for read (`total size - current position`).
      * Returns `Integer.MIN_VALUE` if this information is not available 
      */
-    int available() throws IOException ;
+    int available() ;
 
 
     /** returns true if more bytes are available for read
@@ -19,33 +19,37 @@ public interface DataInput2 extends DataInput {
     boolean availableMore()throws IOException;
 
 
-    int readPackedInt() throws IOException ;
+    int readPackedInt() ;
 
-    long readPackedLong() throws IOException ;
+    long readPackedLong() ;
 
-    default long readPackedRecid() throws IOException{
+    default long readPackedRecid(){
         //TODO bit parity for recids
         return readPackedLong();
     }
 
-    default long readRecid() throws IOException{
+    default long readRecid(){
         //TODO bit parity for recids
         return readLong();
     }
 
-    @Override  default float readFloat() throws IOException {
+    long readLong();
+
+    default float readFloat() {
         return java.lang.Float.intBitsToFloat(readInt());
     }
 
-    @Override default double readDouble() throws IOException {
+    int readInt();
+
+    default double readDouble() {
         return java.lang.Double.longBitsToDouble(readLong());
     }
 
-    @Override default String readLine() throws IOException {
+    default String readLine() {
         return readUTF();
     }
 
-    @Override default String readUTF() throws IOException {
+    default String readUTF() {
         //TODO is it better then DataOutputStream.readUTF?
         int len = readPackedInt();
         char[] b = new char[len];
@@ -54,22 +58,36 @@ public interface DataInput2 extends DataInput {
         return new String(b);
     }
 
-    @Override default int readUnsignedShort() throws IOException {
+    default int readUnsignedShort() {
         return readChar();
     }
 
+    int skipBytes(int n);
 
-    @Override default void readFully(byte[] b) throws IOException {
+    boolean readBoolean();
+
+    byte readByte();
+
+    int readUnsignedByte();
+
+    short readShort();
+
+    char readChar();
+
+
+    default void readFully(byte[] b) {
         readFully(b, 0, b.length);
     }
 
+    void readFully(byte[] b, int offset, int length);
+
 
     @Deprecated //TODO temp method for compatibility
-    default int unpackInt() throws IOException {
+    default int unpackInt() {
         return readPackedInt();
     }
 
 
-    void unpackLongSkip(int count) throws IOException ;
+    void unpackLongSkip(int count) ;
 
 }

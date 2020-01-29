@@ -30,7 +30,7 @@ public class ByteArrayDelta2Serializer implements GroupSerializer<byte[],ByteArr
     }
 
     @Override
-    public void valueArraySerialize(DataOutput2 out, ByteArrayKeys keys2) throws IOException {
+    public void valueArraySerialize(DataOutput2 out, ByteArrayKeys keys2) {
         ByteArrayKeys keys = (ByteArrayKeys) keys2;
         int offset = 0;
         //write sizes
@@ -53,7 +53,7 @@ public class ByteArrayDelta2Serializer implements GroupSerializer<byte[],ByteArr
     }
 
     @Override
-    public ByteArrayKeys valueArrayDeserialize(DataInput2 in, int size) throws IOException {
+    public ByteArrayKeys valueArrayDeserialize(DataInput2 in, int size) {
         //read data sizes
         int[] offsets = new int[size];
         int old=0;
@@ -147,12 +147,12 @@ public class ByteArrayDelta2Serializer implements GroupSerializer<byte[],ByteArr
     }
 
     @Override
-    public void serialize(@NotNull DataOutput2 out, @NotNull byte[] value) throws IOException {
+    public void serialize(@NotNull DataOutput2 out, @NotNull byte[] value) {
         Serializers.BYTE_ARRAY.serialize(out, value);
     }
 
     @Override
-    public byte[] deserialize(@NotNull DataInput2 input) throws IOException {
+    public byte[] deserialize(@NotNull DataInput2 input) {
         return Serializers.BYTE_ARRAY.deserialize(input);
     }
 

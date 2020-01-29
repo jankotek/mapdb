@@ -19,13 +19,13 @@ public class ByteArraySerializer implements GroupSerializer<byte[], byte[][]> {
     private static final XXHash32 HASHER =  XXHashFactory.fastestInstance().hash32();
 
     @Override
-    public void serialize(DataOutput2 out, byte[] value) throws IOException {
+    public void serialize(DataOutput2 out, byte[] value) {
         out.packInt(value.length);
         out.write(value);
     }
 
     @Override
-    public byte[] deserialize(DataInput2 in) throws IOException {
+    public byte[] deserialize(DataInput2 in) {
         int size = in.unpackInt();
         byte[] ret = new byte[size];
         in.readFully(ret);
@@ -79,7 +79,7 @@ public class ByteArraySerializer implements GroupSerializer<byte[], byte[][]> {
     }
 
     @Override
-    public void valueArraySerialize(DataOutput2 out, byte[][] vals) throws IOException {
+    public void valueArraySerialize(DataOutput2 out, byte[][] vals) {
         byte[][] vals2 = (byte[][]) vals;
         out.packInt(vals2.length);
         for(byte[]b:vals2){
@@ -88,7 +88,7 @@ public class ByteArraySerializer implements GroupSerializer<byte[], byte[][]> {
     }
 
     @Override
-    public byte[][] valueArrayDeserialize(DataInput2 in, int size) throws IOException {
+    public byte[][] valueArrayDeserialize(DataInput2 in, int size) {
         int s = in.unpackInt();
         byte[][] ret = new byte[s][];
         for(int i=0;i<s;i++) {

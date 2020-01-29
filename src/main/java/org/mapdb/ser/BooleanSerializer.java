@@ -14,12 +14,12 @@ import java.util.Comparator;
 public class BooleanSerializer implements GroupSerializer<Boolean, boolean[]> {
 
     @Override
-    public void serialize(DataOutput2 out, Boolean value) throws IOException {
+    public void serialize(DataOutput2 out, Boolean value) {
         out.writeBoolean(value);
     }
 
     @Override
-    public Boolean deserialize(DataInput2 in) throws IOException {
+    public Boolean deserialize(DataInput2 in) {
         return in.readBoolean();
     }
 
@@ -51,14 +51,14 @@ public class BooleanSerializer implements GroupSerializer<Boolean, boolean[]> {
     }
 
     @Override
-    public void valueArraySerialize(DataOutput2 out, boolean[] vals) throws IOException {
+    public void valueArraySerialize(DataOutput2 out, boolean[] vals) {
         for (boolean b : ((boolean[]) vals)) {
             out.writeBoolean(b);
         }
     }
 
     @Override
-    public boolean[]  valueArrayDeserialize(DataInput2 in, int size) throws IOException {
+    public boolean[]  valueArrayDeserialize(DataInput2 in, int size) {
         boolean[] ret = new boolean[size];
         for (int i = 0; i < size; i++) {
             ret[i] = in.readBoolean();

@@ -24,12 +24,12 @@ public class ClassSerializer extends DefaultGroupSerializer<Class> {
     }
 
     @Override
-    public void serialize(DataOutput2 out, Class value) throws IOException {
+    public void serialize(DataOutput2 out, Class value) {
         out.writeUTF(value.getName());
     }
 
     @Override
-    public Class deserialize(DataInput2 in) throws IOException {
+    public Class deserialize(DataInput2 in) {
         try {
             return classLoader.loadClass(in.readUTF());
         } catch (ClassNotFoundException e) {

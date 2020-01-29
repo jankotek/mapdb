@@ -10,9 +10,9 @@ import java.io.InputStream;
  */
 public final class DataInputToStream extends InputStream {
 
-    protected final DataInput in;
+    protected final DataInput2 in;
 
-    public DataInputToStream(DataInput in) {
+    public DataInputToStream(DataInput2 in) {
         this.in = in;
     }
 

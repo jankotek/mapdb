@@ -87,14 +87,14 @@ public abstract class FourByteSerializer<E> implements GroupSerializer<E, int[]>
 
 
     @Override
-    public void valueArraySerialize(DataOutput2 out, int[] vals) throws IOException {
+    public void valueArraySerialize(DataOutput2 out, int[] vals) {
         for (int o : (int[]) vals) {
             out.writeInt(o);
         }
     }
 
     @Override
-    public int[] valueArrayDeserialize(DataInput2 in, int size) throws IOException {
+    public int[] valueArrayDeserialize(DataInput2 in, int size) {
         int[] ret = new int[size];
         for (int i = 0; i < size; i++) {
             ret[i] = in.readInt();
@@ -125,7 +125,7 @@ public abstract class FourByteSerializer<E> implements GroupSerializer<E, int[]>
     }
 
     @Override
-    public E valueArrayBinaryGet(DataInput2 input, int keysLen, int pos) throws IOException {
+    public E valueArrayBinaryGet(DataInput2 input, int keysLen, int pos) {
         input.skipBytes(pos*4);
         return unpack(input.readInt());
     }

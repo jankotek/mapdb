@@ -10,12 +10,12 @@ import java.io.IOException;
 public class StringNoSizeSerializer implements Serializer<String> {
 
     @Override
-    public void serialize(@NotNull DataOutput2 out, @NotNull String s) throws IOException {
+    public void serialize(@NotNull DataOutput2 out, @NotNull String s) {
         out.writeUTF(s);
     }
 
     @Override
-    public String deserialize(@NotNull DataInput2 input) throws IOException {
+    public String deserialize(@NotNull DataInput2 input) {
         return input.readUTF();
     }
 

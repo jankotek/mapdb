@@ -25,6 +25,25 @@ public final class DataIO {
      *a
      * @throws java.io.IOException in case of IO error
      */
+    static public int unpackInt(DataInput2 in){
+        int ret = 0;
+        byte v;
+        do{
+            v = in.readByte();
+            ret = (ret<<7 ) | (v & 0x7F);
+        }while((v&0x80)==0);
+
+        return ret;
+    }
+
+    /**
+     * Unpack int value from the input stream.
+     *
+     * @param in The input stream.
+     * @return The long value.
+     *a
+     * @throws java.io.IOException in case of IO error
+     */
     static public int unpackInt(DataInput in) throws IOException {
         int ret = 0;
         byte v;
@@ -44,6 +63,17 @@ public final class DataIO {
      *
      * @throws java.io.IOException in case of IO error
      */
+    static public long unpackLong(DataInput2 in){
+        long ret = 0;
+        byte v;
+        do{
+            v = in.readByte();
+            ret = (ret<<7 ) | (v & 0x7F);
+        }while((v&0x80)==0);
+
+        return ret;
+    }
+
     static public long unpackLong(DataInput in) throws IOException {
         long ret = 0;
         byte v;
@@ -168,7 +198,7 @@ public final class DataIO {
      * @return The long value.
      * @throws java.io.IOException in case of IO error
      */
-    static public long unpackRecid(DataInput2 in) throws IOException {
+    static public long unpackRecid(DataInput2 in){
         long val = in.readPackedLong();
         val = DataIO.parity1Get(val);
         return val >>> 1;
@@ -183,7 +213,7 @@ public final class DataIO {
      * @param value to be serialized, must be non-negative
      * @throws java.io.IOException in case of IO error
      */
-    static public void packRecid(DataOutput2 out, long value) throws IOException {
+    static public void packRecid(DataOutput2 out, long value){
         value = DataIO.parity1Set(value<<1);
         out.writePackedLong(value);
     }
@@ -202,6 +232,26 @@ public final class DataIO {
        // Optimize for the common case where value is small. This is particular important where our caller
        // is SerializerBase.SER_STRING.serialize because most chars will be ASCII characters and hence in this range.
        // credit Max Bolingbroke https://github.com/jankotek/MapDB/pull/489
+
+        int shift = (value & ~0x7F); //reuse variable
+        if (shift != 0) {
+            //$DELAY$
+            shift = 31-Integer.numberOfLeadingZeros(value);
+            shift -= shift%7; // round down to nearest multiple of 7
+            while(shift!=0){
+                out.writeByte((byte) ((value>>>shift) & 0x7F));
+                //$DELAY$
+                shift-=7;
+            }
+        }
+        //$DELAY$
+        out.writeByte((byte) ((value & 0x7F)|0x80));
+    }
+
+    static public void packInt(DataOutput2 out, int value){
+        // Optimize for the common case where value is small. This is particular important where our caller
+        // is SerializerBase.SER_STRING.serialize because most chars will be ASCII characters and hence in this range.
+        // credit Max Bolingbroke https://github.com/jankotek/MapDB/pull/489
 
         int shift = (value & ~0x7F); //reuse variable
         if (shift != 0) {

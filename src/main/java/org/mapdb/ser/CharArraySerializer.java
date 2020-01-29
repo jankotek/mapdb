@@ -13,7 +13,7 @@ import java.util.Arrays;
 public class CharArraySerializer extends DefaultGroupSerializer<char[]> {
 
     @Override
-    public void serialize(DataOutput2 out, char[] value) throws IOException {
+    public void serialize(DataOutput2 out, char[] value) {
         out.packInt(value.length);
         for (char c : value) {
             out.writeChar(c);
@@ -21,7 +21,7 @@ public class CharArraySerializer extends DefaultGroupSerializer<char[]> {
     }
 
     @Override
-    public char[] deserialize(DataInput2 in) throws IOException {
+    public char[] deserialize(DataInput2 in) {
         final int size = in.unpackInt();
         char[] ret = new char[size];
         for (int i = 0; i < size; i++) {

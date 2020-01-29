@@ -12,12 +12,12 @@ import java.io.IOException;
  */
 public class StringInternSerializer extends DefaultGroupSerializer<String> {
     @Override
-    public void serialize(DataOutput2 out, String value) throws IOException {
+    public void serialize(DataOutput2 out, String value) {
         out.writeUTF(value);
     }
 
     @Override
-    public String deserialize(DataInput2 in) throws IOException {
+    public String deserialize(DataInput2 in) {
         return in.readUTF().intern();
     }
 

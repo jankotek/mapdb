@@ -11,12 +11,12 @@ import java.io.IOException;
  */
 public class CharSerializer extends DefaultGroupSerializer<Character> {
     @Override
-    public void serialize(DataOutput2 out, Character value) throws IOException {
+    public void serialize(DataOutput2 out, Character value) {
         out.writeChar(value.charValue());
     }
 
     @Override
-    public Character deserialize(DataInput2 in) throws IOException {
+    public Character deserialize(DataInput2 in) {
         return in.readChar();
     }
 

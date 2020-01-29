@@ -13,7 +13,7 @@ public class ByteArrayDeltaSerializer extends ByteArraySerializer {
     //TODO PERF char[][] versus Object[]
 
     @Override
-    public void valueArraySerialize(DataOutput2 out, byte[][] vals) throws IOException {
+    public void valueArraySerialize(DataOutput2 out, byte[][] vals) {
         byte[][] chars = (byte[][]) vals;
         //write lengths
         for(byte[] b:chars){
@@ -33,7 +33,7 @@ public class ByteArrayDeltaSerializer extends ByteArraySerializer {
     }
 
     @Override
-    public byte[][] valueArrayDeserialize(DataInput2 in, int size) throws IOException {
+    public byte[][] valueArrayDeserialize(DataInput2 in, int size) {
         byte[][] ret = new byte[size][];
 
         //read lengths and init arrays

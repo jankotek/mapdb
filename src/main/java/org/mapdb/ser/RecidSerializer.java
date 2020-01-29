@@ -14,12 +14,12 @@ import java.util.Arrays;
 public class RecidSerializer extends EightByteSerializer<Long> {
 
     @Override
-    public void serialize(DataOutput2 out, Long value) throws IOException {
+    public void serialize(DataOutput2 out, Long value) {
         DataIO.packRecid(out, value);
     }
 
     @Override
-    public Long deserialize(DataInput2 in) throws IOException {
+    public Long deserialize(DataInput2 in) {
         return new Long(DataIO.unpackRecid(in));
     }
 
@@ -56,14 +56,14 @@ public class RecidSerializer extends EightByteSerializer<Long> {
     }
 
     @Override
-    public void valueArraySerialize(DataOutput2 out, long[] vals) throws IOException {
+    public void valueArraySerialize(DataOutput2 out, long[] vals) {
         for (long o : (long[]) vals) {
             DataIO.packRecid(out, o);
         }
     }
 
     @Override
-    public long[] valueArrayDeserialize(DataInput2 in, int size) throws IOException {
+    public long[] valueArrayDeserialize(DataInput2 in, int size) {
         long[] ret = new long[size];
         for (int i = 0; i < size; i++) {
             ret[i] = DataIO.unpackRecid(in);
@@ -72,7 +72,7 @@ public class RecidSerializer extends EightByteSerializer<Long> {
     }
 
     @Override
-    public Long valueArrayBinaryGet(DataInput2 input, int keysLen, int pos) throws IOException {
+    public Long valueArrayBinaryGet(DataInput2 input, int keysLen, int pos) {
         input.unpackLongSkip(pos);
         return deserialize(input,-1);
     }

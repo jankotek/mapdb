@@ -42,7 +42,7 @@ public class StringDelta2Serializer implements  GroupSerializer<String, StringAr
 
         boolean hasUnicodeChars();
 
-        void serialize(DataOutput out, int prefixLen) throws IOException;
+        void serialize(DataOutput2 out, int prefixLen);
     }
 
     //PERF right now byte[] contains 7 bit characters, but it should be expandable to 8bit.
@@ -58,7 +58,7 @@ public class StringDelta2Serializer implements  GroupSerializer<String, StringAr
                 throw new DBException.DataCorruption("inconsistent array size");
         }
 
-        ByteArrayKeys(DataInput2 in, int[] offsets, int prefixLen) throws IOException {
+        ByteArrayKeys(DataInput2 in, int[] offsets, int prefixLen) {
             this.offset = offsets;
             array = new byte[offsets[offsets.length-1]];
 
@@ -276,7 +276,7 @@ public class StringDelta2Serializer implements  GroupSerializer<String, StringAr
         }
 
         @Override
-        public void serialize(DataOutput out, int prefixLen) throws IOException {
+        public void serialize(DataOutput2 out, int prefixLen) {
             //write rest of the suffix
             out.write(array,0,prefixLen);
             //$DELAY$
@@ -301,7 +301,7 @@ public class StringDelta2Serializer implements  GroupSerializer<String, StringAr
                 throw new DBException.DataCorruption("inconsistent array size");
         }
 
-        public CharArrayKeys(DataInput2 in, int[] offsets, int prefixLen) throws IOException {
+        public CharArrayKeys(DataInput2 in, int[] offsets, int prefixLen) {
             this.offset = offsets;
             array = new char[offsets[offsets.length-1]];
 
@@ -337,6 +337,13 @@ public class StringDelta2Serializer implements  GroupSerializer<String, StringAr
                 array[i] = (char) DataIO.unpackInt(in);
             }
         }
+
+        private void inReadFully(DataInput2 in, int from, int to) {
+            for(int i=from;i<to;i++){
+                array[i] = (char) DataIO.unpackInt(in);
+            }
+        }
+
 
         @Override
         public int commonPrefixLen() {
@@ -514,7 +521,7 @@ public class StringDelta2Serializer implements  GroupSerializer<String, StringAr
         }
 
         @Override
-        public void serialize(DataOutput out, int prefixLen) throws IOException {
+        public void serialize(DataOutput2 out, int prefixLen) {
             //write rest of the suffix
             outWrite(out, 0, prefixLen);
             //$DELAY$
@@ -526,7 +533,7 @@ public class StringDelta2Serializer implements  GroupSerializer<String, StringAr
             }
         }
 
-        private void outWrite(DataOutput out, int from, int to) throws IOException {
+        private void outWrite(DataOutput2 out, int from, int to) {
             for(int i=from;i<to;i++){
                 DataIO.packInt(out,array[i]);
             }
@@ -536,7 +543,7 @@ public class StringDelta2Serializer implements  GroupSerializer<String, StringAr
 
 
     @Override
-    public StringArrayKeys valueArrayDeserialize(DataInput2 in2, int size) throws IOException {
+    public StringArrayKeys valueArrayDeserialize(DataInput2 in2, int size) {
         //read data sizes
         int[] offsets = new int[size];
         int old=0;
@@ -557,7 +564,7 @@ public class StringDelta2Serializer implements  GroupSerializer<String, StringAr
     }
 
     @Override
-    public void valueArraySerialize(DataOutput2 out, StringArrayKeys vals) throws IOException {
+    public void valueArraySerialize(DataOutput2 out, StringArrayKeys vals) {
         StringArrayKeys keys = (StringArrayKeys) vals;
         int offset = 0;
         //write sizes
@@ -664,12 +671,12 @@ public class StringDelta2Serializer implements  GroupSerializer<String, StringAr
 
 
     @Override
-    public void serialize(@NotNull DataOutput2 out, @NotNull String value) throws IOException {
+    public void serialize(@NotNull DataOutput2 out, @NotNull String value) {
         Serializers.STRING.serialize(out, value);
     }
 
     @Override
-    public String deserialize(@NotNull DataInput2 input) throws IOException {
+    public String deserialize(@NotNull DataInput2 input) {
         return Serializers.STRING.deserialize(input);
     }
 

@@ -1,13 +1,12 @@
 package org.mapdb.ser;
 
+import org.mapdb.DBException;
 import org.mapdb.io.DataInput2;
 import org.mapdb.io.DataInput2ByteArray;
 import org.mapdb.io.DataOutput2;
 import org.mapdb.io.DataOutput2ByteArray;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+
+import java.io.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
@@ -83,4 +82,9 @@ public final class Serializers {
     public static final Serializer<UUID> UUID = new UUIDSerializer();
 
 
+    public static <R> byte[] serializeToByteArray(R record, Serializer<R> serializer) {
+        DataOutput2ByteArray out = new DataOutput2ByteArray();
+        serializer.serialize(out,record);
+        return out.copyBytes();
+    }
 }

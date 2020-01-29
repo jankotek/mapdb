@@ -14,13 +14,13 @@ import java.util.Comparator;
 public abstract class DefaultGroupSerializer<A> implements GroupSerializer<A, Object[]> {
 
 
-    @Override public void valueArraySerialize(DataOutput2 out, Object[] vals) throws IOException {
+    @Override public void valueArraySerialize(DataOutput2 out, Object[] vals) {
         for(Object o:vals){
             serialize(out, (A)o);
         }
     }
 
-    @Override public Object[] valueArrayDeserialize(DataInput2 in, int size) throws IOException {
+    @Override public Object[] valueArrayDeserialize(DataInput2 in, int size) {
         Object[] ret = new Object[size];
         for(int i=0;i<size;i++){
             ret[i] = deserialize(in);

@@ -11,12 +11,12 @@ import java.io.IOException;
  */
 public class ShortSerializer extends DefaultGroupSerializer<Short> {
     @Override
-    public void serialize(DataOutput2 out, Short value) throws IOException {
+    public void serialize(DataOutput2 out, Short value) {
         out.writeShort(value.shortValue());
     }
 
     @Override
-    public Short deserialize(DataInput2 in) throws IOException {
+    public Short deserialize(DataInput2 in) {
         return in.readShort();
     }
 

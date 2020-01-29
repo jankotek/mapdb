@@ -12,12 +12,12 @@ import java.math.BigInteger;
  */
 public class BigIntegerSerializer extends DefaultGroupSerializer<BigInteger> {
     @Override
-    public void serialize(DataOutput2 out, BigInteger value) throws IOException {
+    public void serialize(DataOutput2 out, BigInteger value) {
         Serializers.BYTE_ARRAY.serialize(out, value.toByteArray());
     }
 
     @Override
-    public BigInteger deserialize(DataInput2 in) throws IOException {
+    public BigInteger deserialize(DataInput2 in) {
         return new BigInteger(Serializers.BYTE_ARRAY.deserialize(in));
     }
 

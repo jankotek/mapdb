@@ -18,7 +18,7 @@ public class ArrayDeltaSerializer<T> extends ArraySerializer<T> {
     }
 
     @Override
-    public void valueArraySerialize(DataOutput2 out, Object[] vals2) throws IOException {
+    public void valueArraySerialize(DataOutput2 out, Object[] vals2) {
         Object[] vals = (Object[]) vals2;
         if (vals.length == 0)
             return;
@@ -50,7 +50,7 @@ public class ArrayDeltaSerializer<T> extends ArraySerializer<T> {
     }
 
     @Override
-    public Object[] valueArrayDeserialize(DataInput2 in, final int size) throws IOException {
+    public Object[] valueArrayDeserialize(DataInput2 in, final int size) {
         Object[] ret = new Object[size];
         if (size == 0)
             return ret;

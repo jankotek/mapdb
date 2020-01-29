@@ -13,7 +13,7 @@ import java.util.Arrays;
 public class DoubleArraySerializer extends DefaultGroupSerializer<double[]> {
 
     @Override
-    public void serialize(DataOutput2 out, double[] value) throws IOException {
+    public void serialize(DataOutput2 out, double[] value) {
         out.packInt(value.length);
         for (double c : value) {
             out.writeDouble(c);
@@ -21,7 +21,7 @@ public class DoubleArraySerializer extends DefaultGroupSerializer<double[]> {
     }
 
     @Override
-    public double[] deserialize(DataInput2 in) throws IOException {
+    public double[] deserialize(DataInput2 in) {
         final int size = in.unpackInt();
         double[] ret = new double[size];
         for (int i = 0; i < size; i++) {

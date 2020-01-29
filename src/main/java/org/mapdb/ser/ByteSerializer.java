@@ -14,12 +14,12 @@ public class ByteSerializer extends DefaultGroupSerializer<Byte> {
     //TODO use byte[] group serializer
 
     @Override
-    public void serialize(DataOutput2 out, Byte value) throws IOException {
+    public void serialize(DataOutput2 out, Byte value) {
         out.writeByte(value);
     }
 
     @Override
-    public Byte deserialize(DataInput2 in) throws IOException {
+    public Byte deserialize(DataInput2 in) {
         return in.readByte();
     }
 

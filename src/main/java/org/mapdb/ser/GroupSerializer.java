@@ -11,7 +11,7 @@ import java.util.Comparator;
  */
 public interface GroupSerializer<A,G> extends Serializer<A> {
 
-    default A valueArrayBinaryGet(DataInput2 input, int keysLen, int pos) throws IOException {
+    default A valueArrayBinaryGet(DataInput2 input, int keysLen, int pos) {
         G keys = valueArrayDeserialize(input, keysLen);
         return valueArrayGet(keys, pos);
 //        A a=null;
@@ -23,7 +23,7 @@ public interface GroupSerializer<A,G> extends Serializer<A> {
 
 
 
-    default int valueArrayBinarySearch(A key, DataInput2 input, int keysLen, Comparator comparator) throws IOException {
+    default int valueArrayBinarySearch(A key, DataInput2 input, int keysLen, Comparator comparator) {
         G keys = valueArrayDeserialize(input, keysLen);
         return valueArraySearch(keys, key, comparator);
 //        for(int pos=0; pos<keysLen; pos++){
@@ -42,9 +42,9 @@ public interface GroupSerializer<A,G> extends Serializer<A> {
 
     int valueArraySearch(G keys, A key, Comparator comparator);
 
-    void valueArraySerialize(DataOutput2 out, G vals) throws IOException;
+    void valueArraySerialize(DataOutput2 out, G vals);
 
-    G valueArrayDeserialize(DataInput2 in, int size) throws IOException;
+    G valueArrayDeserialize(DataInput2 in, int size);
 
     A valueArrayGet(G vals, int pos);
 

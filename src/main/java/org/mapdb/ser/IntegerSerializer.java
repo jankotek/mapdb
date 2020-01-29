@@ -12,12 +12,12 @@ public class IntegerSerializer extends FourByteSerializer<Integer> {
 
 
     @Override
-    public void serialize(DataOutput2 out, Integer value) throws IOException {
+    public void serialize(DataOutput2 out, Integer value) {
         out.writeInt(value);
     }
 
     @Override
-    public Integer deserialize(DataInput2 in) throws IOException {
+    public Integer deserialize(DataInput2 in) {
         return new Integer(in.readInt());
     }
 
@@ -44,7 +44,7 @@ public class IntegerSerializer extends FourByteSerializer<Integer> {
 
 
     @Override
-    public int valueArrayBinarySearch(Integer key, DataInput2 input, int keysLen, Comparator comparator) throws IOException {
+    public int valueArrayBinarySearch(Integer key, DataInput2 input, int keysLen, Comparator comparator) {
         if (comparator != this)
             return super.valueArrayBinarySearch(key, input, keysLen, comparator);
         final int key2 = key;
