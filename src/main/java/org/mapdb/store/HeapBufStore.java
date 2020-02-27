@@ -54,7 +54,7 @@ public class HeapBufStore implements Store {
                 Serializers.serializeToByteArray(record, serializer);
     }
 
-    protected <E> E check(byte[] value, Serializer<E> ser){
+    protected <E> E deser(Serializer<E> ser, byte[] value){
         if(value == NULL_RECORD)
             return null;
         if(value == null)
@@ -80,7 +80,7 @@ public class HeapBufStore implements Store {
         if(!records.containsKey(recid))
             throw new DBException.RecidNotFound();
 
-        R oldRec = check(records.get(recid), serializer);
+        R oldRec = deser(serializer, records.get(recid));
         R newRec = r.transform(oldRec);
         byte[] newVal = serialize(serializer, newRec);
 
@@ -92,7 +92,7 @@ public class HeapBufStore implements Store {
     public <R> boolean compareAndUpdate(long recid, Serializer<R> serializer, R expectedOldRecord, R updatedRecord) {
         //-WLOCK
         byte[] b = records.get(recid);
-        R rec = check(b, serializer);
+        R rec = deser(serializer, b);
         if(!serializer.equals(rec, expectedOldRecord))
             return false;
         b = serialize(serializer, updatedRecord);
@@ -105,7 +105,7 @@ public class HeapBufStore implements Store {
     public <R> boolean compareAndDelete(long recid, Serializer<R> serializer, R expectedOldRecord) {
         //-WLOCK
         byte[] b = records.get(recid);
-        R rec = check(b, serializer);
+        R rec = deser(serializer, b);
         if(!serializer.equals(rec, expectedOldRecord))
             return false;
         delete2(recid);
@@ -139,7 +139,7 @@ public class HeapBufStore implements Store {
         //--RLOCK
         buf = records.get(recid);
         //-RUNLOCK
-        return check(buf, ser);
+        return deser(ser, buf);
     }
 
 
