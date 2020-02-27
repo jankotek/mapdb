@@ -399,7 +399,7 @@ class Serializer_BYTE_ARRAY: GroupSerializerTest<ByteArray, Any>(){
 
     @Test fun next_val(){
         fun check(b1:ByteArray?, b2:ByteArray?){
-            assertArrayEquals(b1, Serializers.BYTE_ARRAY.nextValue(b2))
+            assertArrayEquals(b1, (Serializers.BYTE_ARRAY as ByteArraySerializer).nextValue(b2))
         }
 
         check(byteArrayOf(1,1), byteArrayOf(1,0))

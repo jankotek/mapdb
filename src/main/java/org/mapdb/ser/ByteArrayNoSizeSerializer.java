@@ -24,8 +24,10 @@ public class ByteArrayNoSizeSerializer implements Serializer<byte[]> {
 
     @Override
     public byte[] deserialize(@NotNull DataInput2 input) {
-        //TODO fixed size serializer
-        throw new DBException.TODO("fixed ser");
+        int avail = input.available();
+        byte[] ret = new byte[avail];
+        input.readFully(ret, 0, avail);
+        return ret;
     }
 
     @Nullable

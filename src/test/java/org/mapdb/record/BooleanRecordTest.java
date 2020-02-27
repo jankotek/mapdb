@@ -9,7 +9,6 @@ package org.mapdb.record;
 
 import junit.framework.TestCase;
 import org.mapdb.db.DB;
-import org.mapdb.db.DBMaker;
 
 public class BooleanRecordTest extends TestCase{
 
@@ -18,8 +17,8 @@ public class BooleanRecordTest extends TestCase{
 
     @Override
     protected void setUp() throws Exception {
-        db = DBMaker.memoryDB().make();
-        ai= Records.newBoolean(db, "test").init(true).make();
+        db = DB.Maker.memoryDB().make();
+        ai= new BooleanRecord.Maker(db, "test").init(true).make();
     }
 
     @Override
@@ -39,7 +38,7 @@ public class BooleanRecordTest extends TestCase{
      * default constructed initializes to false
      */
     public void testConstructor2() {
-        BooleanRecord ai = Records.newBoolean(db, "test2").make();
+        BooleanRecord ai = new BooleanRecord.Maker(db, "test2").make();
         assertEquals(false,ai.get());
     }
 
@@ -101,7 +100,7 @@ public class BooleanRecordTest extends TestCase{
      * toString returns current value.
      */
     public void testToString() {
-        BooleanRecord ai = Records.newBoolean(db,"test2").make();
+        BooleanRecord ai = new BooleanRecord.Maker(db,"test2").make();
         assertEquals(ai.toString(), Boolean.toString(false));
         ai.set(true);
         assertEquals(ai.toString(), Boolean.toString(true));

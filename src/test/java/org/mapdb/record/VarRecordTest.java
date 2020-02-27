@@ -2,7 +2,6 @@ package org.mapdb.record;
 
 import junit.framework.TestCase;
 import org.mapdb.db.DB;
-import org.mapdb.db.DBMaker;
 import org.mapdb.ser.Serializers;
 
 public class VarRecordTest extends TestCase {
@@ -13,8 +12,8 @@ public class VarRecordTest extends TestCase {
 
     @Override
     protected void setUp() throws Exception {
-        db = DBMaker.memoryDB().make();
-        ai = Records.newVar(db, "test", Serializers.STRING).init("test").make();
+        db = DB.Maker.memoryDB().make();
+        ai = new VarRecord.Maker(db, "test", Serializers.STRING).init("test").make();
     }
 
     @Override
@@ -34,7 +33,7 @@ public class VarRecordTest extends TestCase {
      * default constructed initializes to empty string
      */
     public void testConstructor2() {
-        VarRecord<String> ai = Records.newVar(db,"test2", Serializers.STRING).make();
+        VarRecord<String> ai = new VarRecord.Maker(db,"test2", Serializers.STRING).make();
         assertEquals(null, ai.get());
     }
 

@@ -8,7 +8,7 @@ package org.mapdb.record;/*
 
 import junit.framework.TestCase;
 import org.mapdb.db.DB;
-import org.mapdb.db.DBMaker;
+
 
 public class IntRecordTest extends TestCase {
 
@@ -18,8 +18,8 @@ public class IntRecordTest extends TestCase {
 
     @Override
     protected void setUp() throws Exception {
-        db = DBMaker.memoryDB().make();
-        ai = Records.newInt(db,"test").init(1).make();
+        db = DB.Maker.memoryDB().make();
+        ai = new IntRecord.Maker(db,"test").init(1).make();
     }
 
     @Override
@@ -39,7 +39,7 @@ public class IntRecordTest extends TestCase {
      * default constructed initializes to zero
      */
     public void testConstructor2(){
-        IntRecord  ai = Records.newInt(db,"test2").make();
+        IntRecord  ai = new IntRecord.Maker(db,"test2").make();
         assertEquals(0,ai.get());
     }
 

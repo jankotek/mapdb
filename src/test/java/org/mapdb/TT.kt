@@ -9,7 +9,7 @@ import org.junit.Test
 import org.mapdb.io.*
 import org.mapdb.ser.Serializer
 import org.mapdb.ser.Serializers
-import org.mapdb.store.MutableStore
+import org.mapdb.store.Store
 import java.io.*
 import java.time.Duration
 import java.util.*
@@ -41,7 +41,7 @@ object TT{
         return ret
     }
 
-    @JvmStatic fun randomFillStore(store: MutableStore, size:Int=1000, seed:Long=Random().nextLong()){
+    @JvmStatic fun randomFillStore(store: Store, size:Int=1000, seed:Long=Random().nextLong()){
         val random = Random(seed)
         for(i in 0..size){
             val bytes = randomByteArray(random.nextInt(100),seed=random.nextInt());
@@ -371,6 +371,7 @@ object TT{
             b.set(false)
         }
     }
+/*
 
     fun installValidateReadWriteLock(v:Validate, fieldName:String){
         val origLock = reflectionGetField<ReadWriteLock>(v, fieldName, v.javaClass)
@@ -390,6 +391,7 @@ object TT{
 
         reflectionSetField(v, vLock, fieldName, v.javaClass)
     }
+*/
 
 }
 

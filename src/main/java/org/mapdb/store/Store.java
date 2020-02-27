@@ -1,5 +1,6 @@
 package org.mapdb.store;
 
+import org.jetbrains.annotations.NotNull;
 import org.mapdb.ser.Serializer;
 
 public interface Store extends ReadonlyStore{
@@ -21,6 +22,14 @@ public interface Store extends ReadonlyStore{
         return old; //TODO atomic
 
     }
+
+    void verify();
+
+    void commit();
+
+    void compact();
+
+    boolean isThreadSafe();
 
 
     interface Transform<R>{

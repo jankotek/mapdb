@@ -2,7 +2,6 @@ package org.mapdb.record;
 
 import junit.framework.TestCase;
 import org.mapdb.db.DB;
-import org.mapdb.db.DBMaker;
 
 public class StringRecordTest extends TestCase {
 
@@ -12,8 +11,8 @@ public class StringRecordTest extends TestCase {
 
     @Override
     protected void setUp() throws Exception {
-        db = DBMaker.memoryDB().make();
-        ai = Records.newString(db, "test").init("test").make();
+        db = DB.Maker.memoryDB().make();
+        ai = new StringRecord.Maker(db, "test").init("test").make();
     }
 
     @Override
@@ -33,7 +32,7 @@ public class StringRecordTest extends TestCase {
      * default constructed initializes to empty string
      */
     public void testConstructor2() {
-        StringRecord ai = Records.newString(db, "test2").make();
+        StringRecord ai = new StringRecord.Maker(db, "test2").make();
         assertEquals("", ai.get());
     }
 

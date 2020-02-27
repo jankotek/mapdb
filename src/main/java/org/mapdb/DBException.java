@@ -24,6 +24,20 @@ public class DBException extends RuntimeException {
     }
 
 
+
+    public static class StoreReentry extends DBException {
+        public StoreReentry() {
+            super("repeated call to Store method");
+        }
+    }
+
+    public static class FileLocked extends DBException {
+        public FileLocked() {
+            super("file locked");
+        }
+    }
+
+
     public static class RecidNotFound extends DBException{
         public RecidNotFound(){
             super("recid not found");
@@ -50,6 +64,19 @@ public class DBException extends RuntimeException {
     public static class SerializationError extends DBException{
         public SerializationError(Exception e){
             super(e);
+        }
+    }
+
+    public static class WrongConfig extends DBException {
+
+        public WrongConfig(String msg) {
+            super(msg);
+        }
+    }
+
+    public static class WrongSerializer extends WrongConfig{
+        public WrongSerializer(){
+            super("wrong serializer used");
         }
     }
 

@@ -9,9 +9,9 @@ import org.mapdb.db.DB
 import org.mapdb.io.DataInput2
 import org.mapdb.io.DataInput2ByteArray
 import org.mapdb.io.DataOutput2ByteArray
-import org.mapdb.queue.LinkedFIFOQueue
 import org.mapdb.ser.Serializer
 import org.mapdb.ser.Serializers
+import org.mapdb.util.Exporter
 
 class DBCollectionTest: DBWordSpec({
 
@@ -149,6 +149,7 @@ class DBCollectionTest: DBWordSpec({
 
 
         fun adapters():List<Adapter<Any>>{
+/*
 
             val qAdapter = object: Adapter<LinkedFIFOQueue<Any>>() {
 
@@ -174,8 +175,9 @@ class DBCollectionTest: DBWordSpec({
                 override val name = "queue"
 
             }
+*/
 
-            return listOf(qAdapter) as List<Adapter<Any>>
+            return emptyList()
 
         }
     }

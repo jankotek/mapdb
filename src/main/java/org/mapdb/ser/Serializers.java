@@ -1,5 +1,7 @@
 package org.mapdb.ser;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.mapdb.DBException;
 import org.mapdb.io.DataInput2;
 import org.mapdb.io.DataInput2ByteArray;
@@ -86,5 +88,22 @@ public final class Serializers {
         DataOutput2ByteArray out = new DataOutput2ByteArray();
         serializer.serialize(out,record);
         return out.copyBytes();
+    }
+
+    @Nullable
+    public static <R> R clone(@NotNull R r, @NotNull Serializer<R> ser) {
+        byte[] b = serializeToByteArray(r, ser);
+        return ser.deserialize(new DataInput2ByteArray(b));
+    }
+
+    @NotNull
+    public static boolean binaryEqual(@NotNull Serializer<Object> ser, Object a, Object b) {
+        if(a==b)
+            return true;
+        if(a==null || b==null)
+            return false;
+        byte[] ba = serializeToByteArray(a, ser);
+        byte[] bb = serializeToByteArray(b, ser);
+        return Arrays.equals(ba,bb);
     }
 }

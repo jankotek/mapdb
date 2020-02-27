@@ -8,7 +8,6 @@ package org.mapdb.record;/*
 
 import junit.framework.TestCase;
 import org.mapdb.db.DB;
-import org.mapdb.db.DBMaker;
 
 public class LongRecordTest extends TestCase {
 
@@ -17,8 +16,8 @@ public class LongRecordTest extends TestCase {
 
     @Override
     protected void setUp() throws Exception {
-        db = DBMaker.memoryDB().make();
-        ai = Records.newLong(db,"test").init(1).make();
+        db = DB.Maker.memoryDB().make();
+        ai = new LongRecord.Maker(db,"test").init(1).make();
     }
 
     @Override
@@ -37,7 +36,7 @@ public class LongRecordTest extends TestCase {
      * default constructed initializes to zero
      */
     public void testConstructor2(){
-        LongRecord ai = Records.newLong(db,"test2").make();
+        LongRecord ai = new LongRecord.Maker(db,"test2").make();
         assertEquals(0,ai.get());
     }
 

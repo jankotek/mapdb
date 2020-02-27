@@ -15,7 +15,7 @@ object GenRecords {
 
             fun recName() = type+"Record"
             fun valType() =
-                    if(isNum) type.toLowerCase()
+                    if(isNum || type=="Boolean") type.toLowerCase()
                     else if(!isVar) type
                     else "E"
 
@@ -70,8 +70,9 @@ object GenRecords {
                         }
     
                         public ${t.recName()}  make(){
-                            long recid = db.store.put(initVal, ${if(t.isVar) "ser" else t.ser});
-                            return new ${t.recName()}(db.store, recid ${t.newParams2()}); 
+                            Store store = db.getStore();
+                            long recid = store.put(initVal, ${if(t.isVar) "ser" else t.ser});
+                            return new ${t.recName()}(store, recid ${t.newParams2()}); 
                         }
                         
                     }
