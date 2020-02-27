@@ -12,9 +12,7 @@ import org.mapdb.io.DataInput2
 import org.mapdb.io.DataOutput2
 import org.mapdb.ser.Serializer
 import org.mapdb.ser.Serializers
-import java.io.ByteArrayOutputStream
 import java.io.File
-import java.nio.ByteBuffer
 import java.util.*
 import java.util.concurrent.atomic.AtomicLong
 
@@ -610,5 +608,9 @@ abstract class FileStoreTest():StoreTest(){
 class HeapBufStoreTest : StoreTest() {
     override fun openStore() = HeapBufStore()
 
+}
+
+class FileHeapBufStoreTest : FileStoreTest() {
+    override fun openStore(f:File) = FileHeapBufStore(f)
 }
 

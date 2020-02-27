@@ -11,7 +11,7 @@ import org.mapdb.ser.Serializers;
 
 public class HeapBufStore implements Store {
 
-    private static final byte[] NULL_RECORD = new byte[]{1,2,3};
+    protected static final byte[] NULL_RECORD = new byte[]{1,2,3};
 
     //-newRWLOCK
 
