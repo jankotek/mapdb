@@ -175,8 +175,10 @@ public class HeapBufStore implements Store {
 
     @Override
     public void compact() {
+        //-WLOCK
         records.compact();
         freeRecids.trimToSize();
+        //-WUNLOCK
     }
 
     @Override
