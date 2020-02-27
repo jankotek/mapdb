@@ -16,6 +16,14 @@ import java.io.File
 import java.util.*
 import java.util.concurrent.atomic.AtomicLong
 
+
+
+class HeapBufStoreTest : StoreTest() {
+    override fun openStore() = HeapBufStore()
+
+}
+
+
 /**
  * Tests contract on `Store` interface
  */
@@ -579,38 +587,5 @@ abstract class StoreTest {
         //TODO restore empty state when no data in store? perhaps not possible, so replace is 'isFresh()` (no data inserted yet)
 //        store.isEmpty() shouldBe true
     }
-}
-
-//TODO merge with StoreReopenTest
-abstract class FileStoreTest():StoreTest(){
-
-    abstract fun openStore(f: File):Store
-
-    override fun openStore(): Store {
-        val f = TT.tempFile()
-        return openStore(f)
-    }
-
-    @Test fun reopen(){
-        TT.withTempFile { f->
-            var s = openStore(f)
-            val recid = s.put("aa", Serializers.STRING)
-            s.commit()
-            s.close()
-
-            s = openStore(f)
-            s.get(recid,Serializers.STRING) shouldBe "aa"
-            s.close()
-        }
-    }
-}
-
-class HeapBufStoreTest : StoreTest() {
-    override fun openStore() = HeapBufStore()
-
-}
-
-class FileHeapBufStoreTest : FileStoreTest() {
-    override fun openStore(f:File) = FileHeapBufStore(f)
 }
 

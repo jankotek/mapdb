@@ -10,6 +10,7 @@ public class FileHeapBufStore extends HeapBufStore{
 
     public FileHeapBufStore(File file) {
         this.file = file;
+
         //-WLOCK
         reload();
         //-WUNLOCK
