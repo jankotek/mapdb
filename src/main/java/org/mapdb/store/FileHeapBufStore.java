@@ -82,7 +82,8 @@ public class FileHeapBufStore extends HeapBufStore{
 
     private void clear() {
         //-AWLOCK
-        freeRecids.clear();  //TODO compact internal array
+        freeRecids.clear();
+        freeRecids.trimToSize();
         records.clear();
         records.compact();
     }

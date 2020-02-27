@@ -1,8 +1,6 @@
 package org.mapdb.store;
 
-import org.eclipse.collections.api.block.procedure.primitive.LongObjectProcedure;
-import org.eclipse.collections.api.list.primitive.MutableLongList;
-import org.eclipse.collections.impl.factory.primitive.LongLists;
+import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList;
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap;
 import org.mapdb.DBException;
 import org.mapdb.io.DataInput2ByteArray;
@@ -17,7 +15,7 @@ public class HeapBufStore implements Store {
 
     protected final LongObjectHashMap<byte[]> records = LongObjectHashMap.newMap();
 
-    protected final MutableLongList freeRecids = LongLists.mutable.empty();
+    protected final LongArrayList freeRecids = new LongArrayList();
 
     protected long maxRecid = 0L;
 
