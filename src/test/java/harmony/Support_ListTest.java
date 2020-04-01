@@ -132,7 +132,7 @@ public class Support_ListTest extends junit.framework.TestCase {
 
 	public void t_listIterator(List<Integer> list) {
 		ListIterator<Integer> li = list.listIterator(1);
-		assertTrue("listIterator(1)", li.next() == list.get(1));
+		assertEquals("listIterator(1)", li.next() , list.get(1));
 
 		int orgSize = list.size();
 		li = list.listIterator();
@@ -154,7 +154,7 @@ public class Support_ListTest extends junit.framework.TestCase {
 					.previousIndex() == i - 1);
 			boolean exception = false;
 			try {
-				assertTrue("list iterator next(): " + i, li.next() == list
+				assertEquals("list iterator next(): " + i, li.next() , list
 						.get(i));
 			} catch (NoSuchElementException e) {
 				exception = true;
@@ -167,7 +167,7 @@ public class Support_ListTest extends junit.framework.TestCase {
 		}
 
 		for (int i = orgSize - 1; i >= 0; i--) {
-			assertTrue("list iterator previous(): " + i, li.previous() == list
+			assertEquals("list iterator previous(): " + i, li.previous() , list
 					.get(i));
 			assertTrue("list iterator nextIndex()2: " + i, li.nextIndex() == i);
 			assertTrue("list iterator previousIndex()2: " + i, li
@@ -197,11 +197,11 @@ public class Support_ListTest extends junit.framework.TestCase {
 		assertEquals("list iterator add(), previousIndex()",
 				0, li.previousIndex());
 		Object next = li.next();
-		assertTrue("list iterator add(), next(): " + next, next == list.get(1));
+		assertEquals("list iterator add(), next(): " + next, next , list.get(1));
 		li.add(add2);
 		Object previous = li.previous();
-		assertTrue("list iterator add(), previous(): " + previous,
-				previous == add2);
+		assertEquals("list iterator add(), previous(): " + previous,
+				previous , add2);
 		assertEquals("list iterator add(), nextIndex()2", 2, li.nextIndex());
 		assertEquals("list iterator add(), previousIndex()2",
 				1, li.previousIndex());
@@ -212,9 +212,9 @@ public class Support_ListTest extends junit.framework.TestCase {
 		assertEquals("list iterator remove(), nextIndex()", 2, li.nextIndex());
 		assertEquals("list iterator remove(), previousIndex()", 1, li
 				.previousIndex());
-		assertTrue("list iterator previous()2", li.previous() == list.get(1));
-		assertTrue("list iterator previous()3", li.previous() == list.get(0));
-		assertTrue("list iterator next()2", li.next() == list.get(0));
+		assertEquals("list iterator previous()2", li.previous() , list.get(1));
+		assertEquals("list iterator previous()3", li.previous() , list.get(0));
+		assertEquals("list iterator next()2", li.next() , list.get(0));
 		li.remove();
 		assertTrue("list iterator hasPrevious()3", !li.hasPrevious());
 		assertTrue("list iterator hasNext()3", li.hasNext());
