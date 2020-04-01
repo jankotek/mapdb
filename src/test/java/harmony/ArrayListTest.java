@@ -77,7 +77,7 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
     public void testConstructorWithConcurrentCollection() {
         Collection<String> collection = shrinksOnSize("A", "B", "C", "D");
         List<String> list = newList(collection);
-        assertFalse(list.contains(null));
+        assertFalse(list.contains(""));
     }
 
     /**
@@ -114,7 +114,6 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
             fail("Should throw IndexOutOfBoundsException");
         } catch (IndexOutOfBoundsException e) {
             // Expected
-            assertNotNull(e.getMessage());
         }
 
         try {
@@ -122,7 +121,6 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
             fail("Should throw IndexOutOfBoundsException");
         } catch (IndexOutOfBoundsException e) {
             // Expected
-            assertNotNull(e.getMessage());
         }
 
         try {
@@ -130,7 +128,6 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
             fail("Should throw IndexOutOfBoundsException");
         } catch (IndexOutOfBoundsException e) {
             // Expected
-            assertNotNull(e.getMessage());
         }
 
         try {
@@ -138,7 +135,6 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
             fail("Should throw IndexOutOfBoundsException");
         } catch (IndexOutOfBoundsException e) {
             // Expected
-            assertNotNull(e.getMessage());
         }
     }
 
@@ -223,7 +219,6 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
             fail("IndexOutOfBoundsException expected");
         } catch (IndexOutOfBoundsException e) {
             // Expected
-            assertNotNull(e.getMessage());
         }
 
         // Regression for HARMONY-5705
@@ -292,7 +287,6 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
             fail("Should throw IndexOutOfBoundsException");
         } catch (IndexOutOfBoundsException e) {
             // Expected
-            assertNotNull(e.getMessage());
         }
 
         try {
@@ -300,7 +294,6 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
             fail("Should throw IndexOutOfBoundsException");
         } catch (IndexOutOfBoundsException e) {
             // Expected
-            assertNotNull(e.getMessage());
         }
 
         try {
@@ -315,7 +308,6 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
             fail("Should throw IndexOutOfBoundsException");
         } catch (IndexOutOfBoundsException e) {
             // Expected
-            assertNotNull(e.getMessage());
         }
 
         try {
@@ -323,7 +315,6 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
             fail("IndexOutOfBoundsException expected");
         } catch (IndexOutOfBoundsException e) {
             // Expected
-            assertNotNull(e.getMessage());
         }
     }
 
@@ -444,7 +435,7 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
         list.addAll(6, coll);
 
         assertEquals(11, list.size());
-        assertFalse(list.contains(null));
+        assertFalse(list.contains(""));
     }
 
     /**
@@ -480,7 +471,7 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
         assertTrue("Returned true for invalid element", !alist
                 .contains(""));
         assertTrue("Returned true for null but should have returned false",
-                !alist.contains(null));
+                !alist.contains(""));
         alist.add(null);
         assertTrue("Returned false for null but should have returned true",
                 alist.contains(null));
@@ -803,16 +794,23 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
 
     public void testAddAllWithConcurrentCollection() {
         List<String> list = newList();
-        list.addAll(shrinksOnSize("A", "B", "C", "D"));
-        assertFalse(list.contains(null));
+        try {
+            list.addAll(shrinksOnSize("A", "B", "C", "D"));
+            assertFalse(list.contains(""));
+        }catch(ConcurrentModificationException e){
+            //expected
+        }
     }
 
     public void testAddAllAtPositionWithConcurrentCollection() {
         List<String> list = newList(
                 Arrays.asList("A", "B", "C", "D"));
-
-        list.addAll(3, shrinksOnSize("E", "F", "G", "H"));
-        assertFalse(list.contains(null));
+        try{
+            list.addAll(3, shrinksOnSize("E", "F", "G", "H"));
+            assertFalse(list.contains(""));
+        }catch(ConcurrentModificationException e){
+            //expected
+        }
     }
 
     public class MockArrayList extends ArrayList {

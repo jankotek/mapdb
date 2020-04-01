@@ -130,15 +130,23 @@ public class HeapBufStore implements Store {
 
     @Override
     public <R> R getAndDelete(long recid, Serializer<R> serializer) {
-        return null;
+        byte[] buf = null;
+        //-WLOCK
+        buf = records.get(recid);
+        delete2(recid);
+        //-WUNLOCK
+        return deser(serializer, buf);
     }
 
     @Override
     public <K> K get(long recid, Serializer<K> ser) {
+        if(recid<=0)
+            throw new DBException.RecidNotFound();
         byte[] buf = null;
         //--RLOCK
         buf = records.get(recid);
         //-RUNLOCK
+
         return deser(ser, buf);
     }
 

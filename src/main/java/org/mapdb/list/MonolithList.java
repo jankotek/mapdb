@@ -6,7 +6,8 @@ import org.mapdb.store.Store;
 
 import java.util.*;
 
-public class MonolithList<E> extends AbstractList<E>
+public class MonolithList<E>
+        extends AbstractList<E>
         implements List<E>, RandomAccess {
 
     public static class Maker<E> {
