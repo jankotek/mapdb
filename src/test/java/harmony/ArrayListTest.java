@@ -29,6 +29,12 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
             objArray[i] = new Integer(i);
     }
 
+    
+    abstract <E> List<E> newList();
+    abstract <E> List<E> newList(Collection<E> col);
+    abstract <E> List<E> newList(int size);
+    
+    
     /**
      * @tests java.util.ArrayList#ArrayList()
      */
@@ -36,7 +42,7 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
         // Test for method java.util.ArrayList()
         new Support_ListTest("", alist){}.runTest();
 
-        ArrayList subList = new ArrayList();
+        List subList = newList();
         for (int i = -50; i < 150; i++)
             subList.add(new Integer(i));
         new Support_ListTest("", subList.subList(50, 150)){}.runTest();
@@ -47,14 +53,14 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
      */
     public void test_ConstructorI() {
         // Test for method java.util.ArrayList(int)
-        ArrayList al = new ArrayList(5);
+        List al = newList(5);
         assertEquals("Incorrect arrayList created", 0, al.size());
         
-        al = new ArrayList(0);
+        al = newList(0);
         assertEquals("Incorrect arrayList created", 0, al.size());
         
         try {
-            al = new ArrayList(-1);
+            al = newList(-1);
             fail("Should throw IllegalArgumentException");
         } catch (IllegalArgumentException e) {
             // Excepted
@@ -66,7 +72,7 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
      */
     public void test_ConstructorLjava_util_Collection() {
         // Test for method java.util.ArrayList(java.util.Collection)
-        ArrayList al = new ArrayList(Arrays.asList(objArray));
+        List al = newList(Arrays.asList(objArray));
         assertTrue("arrayList created from collection has incorrect size", al
                 .size() == objArray.length);
         for (int counter = 0; counter < objArray.length; counter++)
@@ -78,7 +84,7 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
 
     public void testConstructorWithConcurrentCollection() {
         Collection<String> collection = shrinksOnSize("A", "B", "C", "D");
-        ArrayList<String> list = new ArrayList<String>(collection);
+        List<String> list = newList(collection);
         assertFalse(list.contains(null));
     }
 
@@ -193,7 +199,7 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
         for (int i = 0; i >= 150 && (i < 200); i++)
             assertTrue("Failed to ad elements properly",
                     alist.get(i) == objArray[i - 100]);
-        ArrayList listWithNulls = new ArrayList();
+        List listWithNulls = newList();
         listWithNulls.add(null);
         listWithNulls.add(null);
         listWithNulls.add("yoink");
@@ -218,7 +224,7 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
     @SuppressWarnings("unchecked")
     public void test_addAllILjava_util_Collection_2() {
         // Regression for HARMONY-467
-        ArrayList obj = new ArrayList();
+        List obj = newList();
         try {
             obj.addAll((int) -1, (Collection) null);
             fail("IndexOutOfBoundsException expected");
@@ -229,8 +235,8 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
 
         // Regression for HARMONY-5705
         String[] data = new String[] { "1", "2", "3", "4", "5", "6", "7", "8" };
-        ArrayList list1 = new ArrayList();
-        ArrayList list2 = new ArrayList();
+        List list1 = newList();
+        List list2 = newList();
         for (String d : data) {
             list1.add(d);
             list2.add(d);
@@ -243,7 +249,7 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
                 .containsAll(list2)
                 && list2.containsAll(list1));
 
-        obj = new ArrayList();
+        obj = newList();
         for (int i = 0; i < 100; i++) {
             if (list1.size() > 0) {
                 obj.removeAll(list1);
@@ -255,8 +261,8 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
                 && list1.containsAll(obj));
 
         // Regression for Harmony-5799
-        list1 = new ArrayList();
-        list2 = new ArrayList();
+        list1 = newList();
+        list2 = newList();
         int location = 2;
 
         String[] strings = { "0", "1", "2", "3", "4", "5", "6" };
@@ -285,7 +291,7 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
      * @tests java.util.ArrayList#addAll(int, java.util.Collection)
      */
     public void test_addAllILjava_util_Collection_3() {
-        ArrayList obj = new ArrayList();
+        List obj = newList();
         obj.addAll(0, obj);
         obj.addAll(obj.size(), obj);
         try {
@@ -331,8 +337,8 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
     public void test_addAllCollectionOfQextendsE() {
         // Regression for HARMONY-539
         // https://issues.apache.org/jira/browse/HARMONY-539
-        ArrayList<String> alist = new ArrayList<String>();
-        ArrayList<String> blist = new ArrayList<String>();
+        List<String> alist = newList();
+        List<String> blist = newList();
         alist.add("a");
         alist.add("b");
         blist.add("c");
@@ -350,7 +356,7 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
     public void test_addAllLjava_util_Collection() {
         // Test for method boolean
         // java.util.ArrayList.addAll(java.util.Collection)
-        List l = new ArrayList();
+        List l = newList();
         l.addAll(alist);
         for (int i = 0; i < alist.size(); i++)
             assertTrue("Failed to add elements properly", l.get(i).equals(
@@ -387,7 +393,7 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
         }
         
         // Regression test for Harmony-3481
-        ArrayList<Integer> originalList = new ArrayList<Integer>(12);
+        List<Integer> originalList = newList(12);
         for (int j = 0; j < 12; j++) {
             originalList.add(j);
         }
@@ -395,7 +401,7 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
         originalList.remove(0);
         originalList.remove(0);
 
-        ArrayList<Integer> additionalList = new ArrayList<Integer>(11);
+        List<Integer> additionalList = newList(11);
         for (int j = 0; j < 11; j++) {
             additionalList.add(j);
         }
@@ -405,9 +411,9 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
     }
 
         public void test_ArrayList_addAll_scenario1() {
-        ArrayList arrayListA = new ArrayList();
+        List arrayListA = newList();
         arrayListA.add(1);
-        ArrayList arrayListB = new ArrayList();
+        List arrayListB = newList();
         arrayListB.add(1);
         arrayListA.addAll(1, arrayListB);
         int size = arrayListA.size();
@@ -418,7 +424,7 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
     }
 
     public void test_ArrayList_addAll_scenario2() {
-        ArrayList arrayList = new ArrayList();
+        List arrayList = newList();
         arrayList.add(1);
         arrayList.addAll(1, arrayList);
         int size = arrayList.size();
@@ -431,7 +437,7 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
     // Regression test for HARMONY-5839
     public void testaddAllHarmony5839() {
         Collection coll = Arrays.asList(new String[] { "1", "2" });
-        List list = new ArrayList();
+        List list = newList();
         list.add("a");
         list.add(0, "b");
         list.add(0, "c");
@@ -510,39 +516,6 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
     }
 
     /**
-     * @tests java.util.ArrayList#ensureCapacity(int)
-     */
-    public void test_ensureCapacityI() {
-        // Test for method void java.util.ArrayList.ensureCapacity(int)
-        // TODO : There is no good way to test this as it only really impacts on
-        // the private implementation.
-
-        Object testObject = new Object();
-        int capacity = 20;
-        ArrayList al = new ArrayList(capacity);
-        int i;
-        for (i = 0; i < capacity / 2; i++) {
-            al.add(i, new Object());
-        }
-        al.add(i, testObject);
-        int location = al.indexOf(testObject);
-        al.ensureCapacity(capacity);
-        assertTrue("EnsureCapacity moved objects around in array1.",
-                location == al.indexOf(testObject));
-        al.remove(0);
-        al.ensureCapacity(capacity);
-        assertTrue("EnsureCapacity moved objects around in array2.",
-                --location == al.indexOf(testObject));
-        al.ensureCapacity(capacity + 2);
-        assertTrue("EnsureCapacity did not change location.", location == al
-                .indexOf(testObject));
-
-        ArrayList<String> list = new ArrayList<String>(1);
-        list.add("hello");
-        list.ensureCapacity(Integer.MIN_VALUE);
-    }
-
-    /**
      * @tests java.util.ArrayList#get(int)
      */
     public void test_getI() {
@@ -577,7 +550,7 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
      */
     public void test_isEmpty() {
         // Test for method boolean java.util.ArrayList.isEmpty()
-        assertTrue("isEmpty returned false for new list", new ArrayList()
+        assertTrue("isEmpty returned false for new list", newList()
                 .isEmpty());
         assertTrue("Returned true for existing list with elements", !alist
                 .isEmpty());
@@ -673,7 +646,7 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
         alist.remove(25);
         assertTrue("Removing nulls did not work", alist.equals(myList));
 
-        List list = new ArrayList(Arrays.asList(new String[] { "a", "b", "c",
+        List list = newList(Arrays.asList(new String[] { "a", "b", "c",
                 "d", "e", "f", "g" }));
         assertTrue("Removed wrong element 1", list.remove(0) == "a");
         assertTrue("Removed wrong element 2", list.remove(4) == "f");
@@ -682,7 +655,7 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
         assertTrue("Removed wrong element 3", Arrays.equals(result,
                 new String[] { "b", "c", "d", "e", "g" }));
 
-        List l = new ArrayList(0);
+        List l = newList(0);
         l.add(new Object());
         l.add(new Object());
         l.remove(0);
@@ -761,7 +734,7 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
         // Test for method int java.util.ArrayList.size()
         assertEquals("Returned incorrect size for exiting list", 100, alist
                 .size());
-        assertEquals("Returned incorrect size for new list", 0, new ArrayList()
+        assertEquals("Returned incorrect size for new list", 0, newList()
                 .size());
     }
 
@@ -769,7 +742,7 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
      * @tests java.util.AbstractCollection#toString()
      */
     public void test_toString() {
-        ArrayList l = new ArrayList(1);
+        List l = newList(1);
         l.add(l);
         String result = l.toString();
         assertTrue("should contain self ref", result.indexOf("(this") > -1);
@@ -822,36 +795,13 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
         }
     }
 
-    /**
-     * @tests java.util.ArrayList#trimToSize()
-     */
-    public void test_trimToSize() {
-        // Test for method void java.util.ArrayList.trimToSize()
-        for (int i = 99; i > 24; i--)
-            alist.remove(i);
-        ((ArrayList) alist).trimToSize();
-        assertEquals("Returned incorrect size after trim", 25, alist.size());
-        for (int i = 0; i < alist.size(); i++)
-            assertTrue("Trimmed list contained incorrect elements", alist
-                    .get(i) == objArray[i]);
-        Vector v = new Vector();
-        v.add("a");
-        ArrayList al = new ArrayList(v);
-        Iterator it = al.iterator();
-        al.trimToSize();
-        try {
-            it.next();
-            fail("should throw a ConcurrentModificationException");
-        } catch (ConcurrentModificationException ioobe) {
-            // expected
-        }
-    }
+
 
     /**
      * @test java.util.ArrayList#addAll(int, Collection)
      */
     public void test_addAll() {
-        ArrayList list = new ArrayList();
+        List list = newList();
         list.add("one");
         list.add("two");
         assertEquals(2, list.size());
@@ -859,7 +809,7 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
         list.remove(0);
         assertEquals(1, list.size());
 
-        ArrayList collection = new ArrayList();
+        List collection = newList();
         collection.add("1");
         collection.add("2");
         collection.add("3");
@@ -889,47 +839,17 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
     }
 
     public void testAddAllWithConcurrentCollection() {
-        ArrayList<String> list = new ArrayList<String>();
+        List<String> list = newList();
         list.addAll(shrinksOnSize("A", "B", "C", "D"));
         assertFalse(list.contains(null));
     }
 
     public void testAddAllAtPositionWithConcurrentCollection() {
-        ArrayList<String> list = new ArrayList<String>(
+        List<String> list = newList(
                 Arrays.asList("A", "B", "C", "D"));
 
         list.addAll(3, shrinksOnSize("E", "F", "G", "H"));
         assertFalse(list.contains(null));
-    }
-
-    public void test_override_size() throws Exception {
-        ArrayList testlist = new MockArrayList();
-        // though size is overriden, it should passed without exception
-        testlist.add("test_0");
-        testlist.add("test_1");
-        testlist.add("test_2");
-        testlist.add(1, "test_3");
-        testlist.get(1);
-        testlist.remove(2);
-        testlist.set(1, "test_4");
-    }
-
-    public static class ArrayListExtend extends ArrayList {
-
-        private int size = 0;
-
-        public ArrayListExtend() {
-            super(10);
-        }
-
-        public boolean add(Object o) {
-            size++;
-            return super.add(o);
-        }
-
-        public int size() {
-            return size;
-        }
     }
 
     public class MockArrayList extends ArrayList {
@@ -942,16 +862,6 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
         }
     }
 
-    public void test_subclassing() {
-        ArrayListExtend a = new ArrayListExtend();
-        /*
-         * Regression test for subclasses that override size() (which used to
-         * cause an exception when growing 'a').
-         */
-        for (int i = 0; i < 100; i++) {
-            a.add(new Object());
-        }
-    }
 
     /**
      * Sets up the fixture, for example, open a network connection. This method
@@ -959,7 +869,7 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
      */
     protected void setUp() throws Exception {
         super.setUp();
-        alist = new ArrayList();
+        alist = newList();
         for (int i = 0; i < objArray.length; i++)
             alist.add(objArray[i]);
     }
