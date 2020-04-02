@@ -19,6 +19,7 @@ package org.mapdb.store.legacy;
 import org.mapdb.CC;
 import org.mapdb.io.DataOutput2ByteArray;
 import org.mapdb.ser.Serializer;
+import org.mapdb.store.StoreTx;
 
 import java.io.IOError;
 import java.io.IOException;
@@ -32,7 +33,7 @@ import java.util.zip.CRC32;
 /**
  * Write-Ahead-Log
  */
-public class StoreWAL extends StoreDirect {
+public class StoreWAL extends StoreDirect implements StoreTx {
 
     protected static final long LOG_MASK_OFFSET = 0x0000FFFFFFFFFFFFL;
 
@@ -367,7 +368,7 @@ public class StoreWAL extends StoreDirect {
     }
 
     @Override
-    public <A> void update(long recid, A value, Serializer<A> serializer) {
+    public <A> void update(long recid, Serializer<A> serializer,  A value) {
         assert(recid>0);
         assert(value!=null);
         DataOutput2ByteArray out = serialize(value, serializer);
@@ -422,7 +423,7 @@ public class StoreWAL extends StoreDirect {
     }
 
     @Override
-    public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+    public <A> boolean compareAndUpdate(long recid, Serializer<A> serializer, A expectedOldValue, A newValue) {
         assert(recid>0);
         assert(expectedOldValue!=null && newValue!=null);
         final long ioRecid = IO_USER_START + recid*8;
@@ -1089,11 +1090,6 @@ public class StoreWAL extends StoreDirect {
         reloadIndexFile();
     }
 
-
-    @Override
-    public boolean canRollback(){
-        return true;
-    }
 
     protected void logChecksumAdd(int cs) {
         for(;;){

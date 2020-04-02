@@ -493,7 +493,7 @@ public class StoreDirect extends Store2 {
 
 
     @Override
-    public <A> void update(long recid, A value, Serializer<A> serializer) {
+    public <A> void update(long recid, Serializer<A> serializer, A value) {
         assert(value!=null);
         assert(recid>0);
         DataOutput2ByteArray out = serialize(value, serializer);
@@ -509,6 +509,27 @@ public class StoreDirect extends Store2 {
         }
         if(CC.LOG_STORE)
             LOG.finest("Update recid="+recid+", "+" size="+out.pos+", "+" val="+value+" ser="+serializer );
+    }
+
+    @Override
+    public <R> void updateAtomic(long recid, Serializer<R> serializer, Transform<R> r) {
+        assert(recid>0);
+        final long ioRecid = IO_USER_START + recid*8;
+
+        final Lock lock  = locks.writeLock();
+        lock.lock();
+        try{
+            R old = get2(ioRecid, serializer);
+            R newRec = r.transform(old);
+            if(old==newRec)
+                return;
+            update2(serialize(newRec, serializer), ioRecid);
+        } catch (IOException e) {
+            throw new IOError(e);
+        } finally{
+            lock.unlock();
+        }
+
     }
 
     protected void update2(DataOutput2ByteArray out, long ioRecid) {
@@ -557,7 +578,7 @@ public class StoreDirect extends Store2 {
 
 
     @Override
-    public <A> boolean compareAndSwap(long recid, A expectedOldValue, A newValue, Serializer<A> serializer) {
+    public <A> boolean compareAndUpdate(long recid, Serializer<A> serializer, A expectedOldValue, A newValue) {
         assert(expectedOldValue!=null && newValue!=null);
         assert(recid>0);
         final long ioRecid = IO_USER_START + recid*8;
@@ -591,6 +612,17 @@ public class StoreDirect extends Store2 {
             lock.unlock();
         }
         return true;
+    }
+
+    @Override
+    public void verify() {
+        //TODO verify
+    }
+
+    @Override
+    public boolean isEmpty() {
+        //TODO better check
+        return getMaxRecid()>Recids.RECID_MAX_RESERVED;
     }
 
     @Override
@@ -631,6 +663,41 @@ public class StoreDirect extends Store2 {
             lock.unlock();
         }
     }
+
+    @Override
+    public <R> R getAndDelete(long recid, Serializer<R> serializer) {
+        final long ioRecid = IO_USER_START + recid*8;
+        final Lock lock  = locks.writeLock();
+        lock.lock();
+        try{
+            R ret = get2(ioRecid, serializer);
+            delete(recid, serializer);
+            return ret;
+        } catch (IOException e) {
+            throw new IOError(e);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    @Override
+    public <R> boolean compareAndDelete(long recid, Serializer<R> serializer, R expectedOldRecord){
+        final long ioRecid = IO_USER_START + recid*8;
+        final Lock lock  = locks.writeLock();
+        lock.lock();
+        try{
+            R ret = get2(ioRecid, serializer);
+            boolean eq = serializer.equals(ret,expectedOldRecord);
+            if(eq)
+                delete(recid, serializer);
+            return eq;
+        } catch (IOException e) {
+            throw new IOError(e);
+        } finally {
+            lock.unlock();
+        }
+    }
+
 
     protected long[] getLinkedRecordsIndexVals(long indexVal) {
         long[] linkedRecords = null;
@@ -743,11 +810,6 @@ public class StoreDirect extends Store2 {
     }
 
     @Override
-    public boolean isClosed() {
-        return index==null;
-    }
-
-    @Override
     public void commit() {
         if(!readOnly){
 
@@ -763,23 +825,9 @@ public class StoreDirect extends Store2 {
         }
     }
 
-    @Override
-    public void rollback() throws UnsupportedOperationException {
-        throw new UnsupportedOperationException("rollback not supported with journal disabled");
-    }
 
-    @Override
     public boolean isReadOnly() {
         return readOnly;
-    }
-
-    @Override
-    public boolean canRollback(){
-        return false;
-    }
-
-    @Override
-    public void clearCache() {
     }
 
     @Override
@@ -926,6 +974,11 @@ public class StoreDirect extends Store2 {
             unlockAllWrite();
         }
 
+    }
+
+    @Override
+    public boolean isThreadSafe() {
+        return true;
     }
 
     /** subclasses put additional checks before compaction starts here */
@@ -1159,7 +1212,7 @@ public class StoreDirect extends Store2 {
             data.get(b);
         }
         //TODO use BB without copying
-        update(recid, b, Serializers.BYTE_ARRAY_NOSIZE);
+        update(recid, Serializers.BYTE_ARRAY_NOSIZE, b);
     }
 
     @Override
@@ -1200,6 +1253,11 @@ public class StoreDirect extends Store2 {
 
 
         return s;
+    }
+
+    @Override
+    public void getAll(GetAllCallback callback) {
+        throw new UnsupportedOperationException("TODO");
     }
 
     protected long countLongStackItems(long ioList){

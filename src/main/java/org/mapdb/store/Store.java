@@ -1,6 +1,5 @@
 package org.mapdb.store;
 
-import org.jetbrains.annotations.NotNull;
 import org.mapdb.ser.Serializer;
 
 public interface Store extends ReadonlyStore{
@@ -8,6 +7,12 @@ public interface Store extends ReadonlyStore{
 
     /** allocates new null record, and returns its recid. It can be latter updated with `updateAtomic()` or `cas` */
     long preallocate();
+
+    default void preallocate(long[] recids) {
+        for(int i=0;i<recids.length;i++){
+            recids[i] = preallocate();
+        }
+    }
 
     /** insert new record, returns recid under which record was stored */
     <K> long put(K record, Serializer<K> serializer);
