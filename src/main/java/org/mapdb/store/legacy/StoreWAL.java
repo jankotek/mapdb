@@ -17,7 +17,10 @@
 package org.mapdb.store.legacy;
 
 import org.mapdb.CC;
-import org.mapdb.store.Store;
+import org.mapdb.io.DataInput2;
+import org.mapdb.io.DataInput2ByteArray;
+import org.mapdb.io.DataOutput2;
+import org.mapdb.ser.Serializer;
 
 import java.io.IOError;
 import java.io.IOException;
@@ -74,8 +77,7 @@ public class StoreWAL extends StoreDirect {
     public StoreWAL(Volume.Factory volFac, boolean readOnly, boolean deleteFilesAfterClose,
                     int spaceReclaimMode, boolean syncOnCommitDisabled, long sizeLimit,
                     boolean checksum, boolean compress, byte[] password, boolean disableLocks, int sizeIncrement) {
-        super(volFac, readOnly, deleteFilesAfterClose, spaceReclaimMode, syncOnCommitDisabled, sizeLimit,
-                checksum, compress, password,disableLocks, sizeIncrement);
+        super(volFac, readOnly, deleteFilesAfterClose, spaceReclaimMode, syncOnCommitDisabled, sizeLimit);
         this.volFac = volFac;
         this.log = volFac.createTransLogVolume();
 
@@ -169,7 +171,7 @@ public class StoreWAL extends StoreDirect {
             }finally{
                 structuralLock.unlock();
             }
-            final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
+            final Lock lock  = locks.writeLock();
             lock.lock();
             try{
 
@@ -221,7 +223,7 @@ public class StoreWAL extends StoreDirect {
             structuralLock.unlock();
         }
 
-        final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
+        final Lock lock  = locks.writeLock();
         lock.lock();
         try{
             //write data into log
@@ -229,7 +231,6 @@ public class StoreWAL extends StoreDirect {
             walPhysArray(out, physPos, logPos);
 
             modified.put(ioRecid,logPos);
-            recycledDataOuts.offer(out);
         }finally{
             lock.unlock();
         }
@@ -275,7 +276,7 @@ public class StoreWAL extends StoreDirect {
 
 
     protected void walIndexVal(long logPos, long ioRecid, long indexVal) {
-        assert(locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
+        assert(locks.writeLock().isHeldByCurrentThread());
         assert(logSize>=logPos+1+8+8);
         log.putByte(logPos, WAL_INDEX_LONG);
         log.putLong(logPos + 1, ioRecid);
@@ -317,7 +318,7 @@ public class StoreWAL extends StoreDirect {
     public <A> A get(long recid, Serializer<A> serializer) {
         assert(recid>0);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Store.lockPos(ioRecid)].readLock();
+        final Lock lock  = locks.readLock();
         lock.lock();
         try{
             return get2(ioRecid, serializer);
@@ -330,8 +331,8 @@ public class StoreWAL extends StoreDirect {
 
     @Override
     protected <A> A get2(long ioRecid, Serializer<A> serializer) throws IOException {
-        assert(locks[Store.lockPos(ioRecid)].getWriteHoldCount()==0||
-                locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
+        assert(locks.getWriteHoldCount()==0||
+                locks.writeLock().isHeldByCurrentThread());
 
         //check if record was modified in current transaction
         long[] r = modified.get(ioRecid);
@@ -363,7 +364,7 @@ public class StoreWAL extends StoreDirect {
             }
             if(pos!=totalSize)throw new AssertionError();
 
-            return deserialize(serializer,totalSize, new DataInput2(b));
+            return deserialize(serializer,totalSize, new DataInput2ByteArray(b));
         }
     }
 
@@ -373,7 +374,7 @@ public class StoreWAL extends StoreDirect {
         assert(value!=null);
         DataOutput2 out = serialize(value, serializer);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
+        final Lock lock  = locks.writeLock();
         lock.lock();
         try{
             final long[] physPos;
@@ -420,7 +421,6 @@ public class StoreWAL extends StoreDirect {
         }finally{
             lock.unlock();
         }
-        recycledDataOuts.offer(out);
     }
 
     @Override
@@ -428,7 +428,7 @@ public class StoreWAL extends StoreDirect {
         assert(recid>0);
         assert(expectedOldValue!=null && newValue!=null);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
+        final Lock lock  = locks.writeLock();
         lock.lock();
         DataOutput2 out;
         try{
@@ -484,7 +484,6 @@ public class StoreWAL extends StoreDirect {
         }finally{
             lock.unlock();
         }
-        recycledDataOuts.offer(out);
         return true;
     }
 
@@ -492,7 +491,7 @@ public class StoreWAL extends StoreDirect {
     public <A> void delete(long recid, Serializer<A> serializer) {
         assert(recid>0);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
+        final Lock lock  = locks.writeLock();
         lock.lock();
         try{
             final long logPos;
@@ -538,10 +537,6 @@ public class StoreWAL extends StoreDirect {
     public void commit() {
         lockAllWrite();
         try{
-            if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
-                serializerPojo.save(this);
-            }
-
             if(!logDirty()){
                 return;
             }
@@ -871,7 +866,7 @@ public class StoreWAL extends StoreDirect {
     }
 
     protected long[] getLinkedRecordsFromLog(long ioRecid){
-        assert(locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
+        assert(locks.writeLock().isHeldByCurrentThread());
         long[] ret0 = modified.get(ioRecid);
         if(ret0==PREALLOC) return ret0;
 
@@ -1066,10 +1061,6 @@ public class StoreWAL extends StoreDirect {
     public void close() {
         for(Runnable closeListener:closeListeners)
             closeListener.run();
-
-        if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
-            serializerPojo.save(this);
-        }
 
         lockAllWrite();
         try{

@@ -16,10 +16,9 @@
 
 package org.mapdb.store.legacy;
 
-import org.mapdb.CC;
+import org.mapdb.io.DataInput2;
 
 import java.io.*;
-import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
@@ -87,7 +86,7 @@ public abstract class Volume {
 
 
 
-    abstract public DataInput getDataInput(final long offset, final int size);
+    abstract public DataInput2 getDataInput(final long offset, final int size);
 
     abstract public void close();
 
@@ -315,7 +314,7 @@ public abstract class Volume {
     abstract static public class ByteBufferVol extends Volume{
 
 
-        protected final ReentrantLock growLock = new ReentrantLock(CC.FAIR_LOCKS);
+        protected final ReentrantLock growLock = new ReentrantLock();
 
         protected final long sizeLimit;
         protected final boolean hasLimit;
@@ -454,45 +453,35 @@ public abstract class Volume {
          * Any error is silently ignored (for example SUN API does not exist on Android).
          */
         protected void unmap(MappedByteBuffer b){
-            try{
-                if(unmapHackSupported && !asyncWriteEnabled){
-
-                    // need to dispose old direct buffer, see bug
-                    // http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4724038
-                    Method cleanerMethod = b.getClass().getMethod("cleaner", new Class[0]);
-                    cleanerMethod.setAccessible(true);
-                    if(cleanerMethod!=null){
-                        Object cleaner = cleanerMethod.invoke(b);
-                        if(cleaner!=null){
-                            Method clearMethod = cleaner.getClass().getMethod("clean", new Class[0]);
-                            if(clearMethod!=null) {
-                                clearMethod.invoke(cleaner);
-                            }
-                        }else{
-                            //cleaner is null, try fallback method for readonly buffers
-                            Method attMethod = b.getClass().getMethod("attachment", new Class[0]);
-                            attMethod.setAccessible(true);
-                            Object att = attMethod.invoke(b);
-                            if(att instanceof MappedByteBuffer)
-                                unmap((MappedByteBuffer) att);
-                        }
-                    }
-                }
-            }catch(Exception e){
-                unmapHackSupported = false;
-                //TODO exception handling
-                //Utils.LOG.log(Level.WARNING, "ByteBufferVol Unmap failed", e);
-            }
-        }
-
-        private static boolean unmapHackSupported = true;
-        static{
-            try{
-                unmapHackSupported =
-                        SerializerPojo.classForName("sun.nio.ch.DirectBuffer")!=null;
-            }catch(Exception e){
-                unmapHackSupported = false;
-            }
+//            try{
+//                if(unmapHackSupported && !asyncWriteEnabled){
+//
+//                    // need to dispose old direct buffer, see bug
+//                    // http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4724038
+//                    Method cleanerMethod = b.getClass().getMethod("cleaner", new Class[0]);
+//                    cleanerMethod.setAccessible(true);
+//                    if(cleanerMethod!=null){
+//                        Object cleaner = cleanerMethod.invoke(b);
+//                        if(cleaner!=null){
+//                            Method clearMethod = cleaner.getClass().getMethod("clean", new Class[0]);
+//                            if(clearMethod!=null) {
+//                                clearMethod.invoke(cleaner);
+//                            }
+//                        }else{
+//                            //cleaner is null, try fallback method for readonly buffers
+//                            Method attMethod = b.getClass().getMethod("attachment", new Class[0]);
+//                            attMethod.setAccessible(true);
+//                            Object att = attMethod.invoke(b);
+//                            if(att instanceof MappedByteBuffer)
+//                                unmap((MappedByteBuffer) att);
+//                        }
+//                    }
+//                }
+//            }catch(Exception e){
+//                unmapHackSupported = false;
+//                //TODO exception handling
+//                //Utils.LOG.log(Level.WARNING, "ByteBufferVol Unmap failed", e);
+//            }
         }
 
         // Workaround for https://github.com/jankotek/MapDB/issues/326

@@ -4,4 +4,6 @@ package org.mapdb;
 public interface CC {
    boolean PARANOID = false;
     boolean ASSERT = true;
+    //TODO move to preprocessor
+    boolean LOG_STORE = false;
 }

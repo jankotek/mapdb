@@ -15,12 +15,19 @@
  */
 package org.mapdb.store.legacy;
 
-import org.mapdb.store.Store;
+import org.mapdb.CC;
+import org.mapdb.io.DataInput2;
+import org.mapdb.io.DataInput2ByteArray;
+import org.mapdb.io.DataOutput2;
+import org.mapdb.ser.Serializer;
+import org.mapdb.ser.Serializers;
+import org.mapdb.store.Recids;
 
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.concurrent.locks.Lock;
@@ -116,7 +123,7 @@ import java.util.concurrent.locks.Lock;
  *
  * @author Jan Kotek
  */
-public class StoreDirect extends Store {
+public class StoreDirect extends Store2 {
 
     protected static final long MASK_OFFSET = 0x0000FFFFFFFFFFF0L;
 
@@ -186,9 +193,7 @@ public class StoreDirect extends Store {
 
 
     public StoreDirect(Volume.Factory volFac, boolean readOnly, boolean deleteFilesAfterClose,
-                       int spaceReclaimMode, boolean syncOnCommitDisabled, long sizeLimit,
-                       boolean checksum, boolean compress, byte[] password, boolean disableLocks,int sizeIncrement) {
-        super(checksum, compress, password, disableLocks);
+                       int spaceReclaimMode, boolean syncOnCommitDisabled, long sizeLimit) {
         this.readOnly = readOnly;
         this.deleteFilesAfterClose = deleteFilesAfterClose;
         this.syncOnCommitDisabled = syncOnCommitDisabled;
@@ -246,7 +251,7 @@ public class StoreDirect extends Store {
     }
 
     public StoreDirect(Volume.Factory volFac) {
-        this(volFac, false,false,5,false,0L, false,false,null,false,0);
+        this(volFac, false,false,5,false,0L);
     }
 
 
@@ -272,7 +277,7 @@ public class StoreDirect extends Store {
     }
 
     protected void createStructure() {
-        indexSize = IO_USER_START+LAST_RESERVED_RECID*8+8;
+        indexSize = IO_USER_START+ Recids.RECID_MAX_RESERVED*8+8;
         assert(indexSize>IO_USER_START);
         index.ensureAvailable(indexSize);
         for(int i=0;i<indexSize;i+=8) index.putLong(i,0L);
@@ -313,7 +318,7 @@ public class StoreDirect extends Store {
                 structuralLock.unlock();
             }
 
-            final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
+            final Lock lock  = locks.writeLock();
             lock.lock();
             try{
                 index.putLong(ioRecid,MASK_DISCARD);
@@ -343,7 +348,7 @@ public class StoreDirect extends Store {
             }
             for(int i=0;i<recids.length;i++){
                 final long ioRecid = recids[i];
-                final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
+                final Lock lock  = locks.writeLock();
                 lock.lock();
                 try{
                     index.putLong(ioRecid,MASK_DISCARD);
@@ -378,7 +383,7 @@ public class StoreDirect extends Store {
             }finally {
                 structuralLock.unlock();
             }
-            final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
+            final Lock lock  = locks.writeLock();
             lock.lock();
             try{
                 put2(out, ioRecid, indexVals);
@@ -393,12 +398,11 @@ public class StoreDirect extends Store {
         assert(recid>0);
         if(CC.LOG_STORE)
             LOG.finest("Put recid="+recid+", "+" size="+out.pos+", "+" val="+value+" ser="+serializer );
-        recycledDataOuts.offer(out);
         return recid;
     }
 
     protected void put2(DataOutput2 out, long ioRecid, long[] indexVals) {
-        assert(locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
+        assert(locks.writeLock().isHeldByCurrentThread());
         index.putLong(ioRecid, indexVals[0]|MASK_ARCHIVE);
         //write stuff
         if(indexVals.length==1||indexVals[1]==0){ //is more then one? ie linked
@@ -435,7 +439,7 @@ public class StoreDirect extends Store {
     public <A> A get(long recid, Serializer<A> serializer) {
         assert(recid>0);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Store.lockPos(ioRecid)].readLock();
+        final Lock lock  = locks.readLock();
         lock.lock();
         try{
             return get2(ioRecid,serializer);
@@ -447,8 +451,8 @@ public class StoreDirect extends Store {
     }
 
     protected <A> A get2(long ioRecid,Serializer<A> serializer) throws IOException {
-        assert(locks[Store.lockPos(ioRecid)].getWriteHoldCount()==0||
-                locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
+        assert(locks.getWriteHoldCount()==0||
+                locks.writeLock().isHeldByCurrentThread());
 
         long indexVal = index.getLong(ioRecid);
         if(indexVal == MASK_DISCARD) return null; //preallocated record
@@ -482,7 +486,7 @@ public class StoreDirect extends Store {
                 //is the next part last?
                 c =  ((next& MASK_LINKED)==0)? 0 : 8;
             }
-            di = new DataInput2(buf);
+            di = new DataInput2ByteArray(buf);
             size = pos;
         }
         return deserialize(serializer, size, di);
@@ -498,7 +502,7 @@ public class StoreDirect extends Store {
 
         final long ioRecid = IO_USER_START + recid*8;
 
-        final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
+        final Lock lock  = locks.writeLock();
         lock.lock();
         try{
             update2(out, ioRecid);
@@ -507,15 +511,13 @@ public class StoreDirect extends Store {
         }
         if(CC.LOG_STORE)
             LOG.finest("Update recid="+recid+", "+" size="+out.pos+", "+" val="+value+" ser="+serializer );
-
-        recycledDataOuts.offer(out);
     }
 
     protected void update2(DataOutput2 out, long ioRecid) {
         final long indexVal = index.getLong(ioRecid);
         final int size = (int) (indexVal>>>48);
         final boolean linked = (indexVal&MASK_LINKED)!=0;
-        assert(locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
+        assert(locks.writeLock().isHeldByCurrentThread());
 
         if(!linked && out.pos>0 && size>0 && size2ListIoRecid(size) == size2ListIoRecid(out.pos)){
             //size did change, but still fits into this location
@@ -552,7 +554,7 @@ public class StoreDirect extends Store {
 
             put2(out, ioRecid, indexVals);
         }
-        assert(locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
+        assert(locks.writeLock().isHeldByCurrentThread());
     }
 
 
@@ -561,7 +563,7 @@ public class StoreDirect extends Store {
         assert(expectedOldValue!=null && newValue!=null);
         assert(recid>0);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
+        final Lock lock  = locks.writeLock();
         lock.lock();
 
         DataOutput2 out;
@@ -590,7 +592,6 @@ public class StoreDirect extends Store {
         }finally{
             lock.unlock();
         }
-        recycledDataOuts.offer(out);
         return true;
     }
 
@@ -598,7 +599,7 @@ public class StoreDirect extends Store {
     public <A> void delete(long recid, Serializer<A> serializer) {
         assert(recid>0);
         final long ioRecid = IO_USER_START + recid*8;
-        final Lock lock  = locks[Store.lockPos(ioRecid)].writeLock();
+        final Lock lock  = locks.writeLock();
         lock.lock();
         try{
             //get index val and zero it out
@@ -708,10 +709,6 @@ public class StoreDirect extends Store {
         try{
             try {
                 if(!readOnly){
-                    if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
-                        serializerPojo.save(this);
-                    }
-
                     index.putLong(IO_PHYS_SIZE,physSize);
                     index.putLong(IO_INDEX_SIZE,indexSize);
                     index.putLong(IO_FREE_SIZE,freeSize);
@@ -755,10 +752,6 @@ public class StoreDirect extends Store {
     @Override
     public void commit() {
         if(!readOnly){
-
-            if(serializerPojo!=null && serializerPojo.hasUnsavedChanges()){
-                serializerPojo.save(this);
-            }
 
             index.putLong(IO_PHYS_SIZE,physSize);
             index.putLong(IO_INDEX_SIZE,indexSize);
@@ -814,11 +807,11 @@ public class StoreDirect extends Store {
             File f1del = null;
             final File compactedFile = new File((indexFile!=null?indexFile:(f1del=File.createTempFile("mapdb","compact")))+".compact");
             boolean asyncWriteEnabled = index instanceof Volume.ByteBufferVol && ((Volume.ByteBufferVol)index).asyncWriteEnabled;
-            Volume.Factory fab = Volume.fileFactory(compactedFile,rafMode,false,sizeLimit,  CC.VOLUME_CHUNK_SHIFT,0,
+            Volume.Factory fab = Volume.fileFactory(compactedFile,rafMode,false,sizeLimit,  VOLUME_CHUNK_SHIFT,0,
                     new File(compactedFile.getPath() + StoreDirect.DATA_FILE_EXT),
                     new File(compactedFile.getPath() + StoreWAL.TRANS_LOG_FILE_EXT),
                     asyncWriteEnabled);
-            StoreDirect store2 = new StoreDirect(fab,false,false,5,false,0L, checksum,compress,password,false,0);
+            StoreDirect store2 = new StoreDirect(fab,false,false,5,false,0L);
 
             compactPreUnderLock();
 
@@ -840,12 +833,12 @@ public class StoreDirect extends Store {
             store2.index.putLong(IO_INDEX_SIZE, indexSize);
 
             for(long ioRecid = IO_USER_START; ioRecid<indexSize;ioRecid+=8){
-                byte[] bb = get2(ioRecid,Serializer.BYTE_ARRAY_NOSIZE);
+                byte[] bb = get2(ioRecid,Serializers.BYTE_ARRAY_NOSIZE);
                 store2.index.ensureAvailable(ioRecid+8);
                 if(bb==null||bb.length==0){
                     store2.index.putLong(ioRecid,0);
                 }else{
-                    DataOutput2 out = serialize(bb,Serializer.BYTE_ARRAY_NOSIZE);
+                    DataOutput2 out = serialize(bb, Serializers.BYTE_ARRAY_NOSIZE);
                     long[] indexVals = store2.physAllocate(out.pos,true,false);
                     store2.put2(out, ioRecid,indexVals);
                 }
@@ -882,7 +875,7 @@ public class StoreDirect extends Store {
                 if(!physFile2.renameTo(physFile))
                     throw new AssertionError("could not rename file");
 
-                final Volume.Factory fac2 = Volume.fileFactory(indexFile,rafMode, false, sizeLimit, CC.VOLUME_CHUNK_SHIFT,0,
+                final Volume.Factory fac2 = Volume.fileFactory(indexFile,rafMode, false, sizeLimit, VOLUME_CHUNK_SHIFT,0,
                         new File(indexFile.getPath() + StoreDirect.DATA_FILE_EXT),
                         new File(indexFile.getPath() + StoreWAL.TRANS_LOG_FILE_EXT),
                         asyncWriteEnabled);
@@ -893,9 +886,9 @@ public class StoreDirect extends Store {
                 physFile_.delete();
             }else{
                 //in memory, so copy files into memory
-                Volume indexVol2 = new Volume.MemoryVol(useDirectBuffer,sizeLimit, CC.VOLUME_CHUNK_SHIFT);
+                Volume indexVol2 = new Volume.MemoryVol(useDirectBuffer,sizeLimit, VOLUME_CHUNK_SHIFT);
                 Volume.volumeTransfer(indexSize, store2.index, indexVol2);
-                Volume physVol2 = new Volume.MemoryVol(useDirectBuffer,sizeLimit, CC.VOLUME_CHUNK_SHIFT);
+                Volume physVol2 = new Volume.MemoryVol(useDirectBuffer,sizeLimit, VOLUME_CHUNK_SHIFT);
                 Volume.volumeTransfer(store2.physSize, store2.phys, physVol2);
 
                 File f1 = store2.index.getFile();
@@ -1054,7 +1047,7 @@ public class StoreDirect extends Store {
 
     protected void freeIoRecidPut(long ioRecid) {
         assert(ioRecid>IO_USER_START);
-        assert(locks[Store.lockPos(ioRecid)].writeLock().isHeldByCurrentThread());
+        assert(locks.writeLock().isHeldByCurrentThread());
         if(spaceReclaimTrack)
             longStackPut(IO_FREE_RECID, ioRecid,false);
     }
@@ -1142,14 +1135,14 @@ public class StoreDirect extends Store {
     @Override
     public ByteBuffer getRaw(long recid) {
         //TODO use direct BB
-        byte[] bb = get(recid, Serializer.BYTE_ARRAY_NOSIZE);
+        byte[] bb = get(recid, Serializers.BYTE_ARRAY_NOSIZE);
         if(bb==null) return null;
         return ByteBuffer.wrap(bb);
     }
 
     @Override
     public Iterator<Long> getFreeRecids() {
-        return Fun.EMPTY_ITERATOR; //TODO iterate over stack of free recids, without modifying it
+        return new ArrayList().iterator(); //TODO iterate over stack of free recids, without modifying it
     }
 
     @Override
@@ -1168,7 +1161,7 @@ public class StoreDirect extends Store {
             data.get(b);
         }
         //TODO use BB without copying
-        update(recid, b, Serializer.BYTE_ARRAY_NOSIZE);
+        update(recid, b, Serializers.BYTE_ARRAY_NOSIZE);
     }
 
     @Override

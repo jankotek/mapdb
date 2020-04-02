@@ -1,6 +1,6 @@
 package org.mapdb.store;
 
-class Recids {
+public class Recids {
 
     public static final long RECID_NAME_PARAMS = 1L;
 

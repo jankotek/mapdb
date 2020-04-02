@@ -23,7 +23,6 @@
  */
 
 package org.mapdb.store.legacy;
-import org.mapdb.CC;
 
 import java.io.Serializable;
 import java.util.Iterator;
@@ -240,7 +239,7 @@ public class LongConcurrentHashMap< V>
         final float loadFactor;
 
         Segment(int initialCapacity, float lf) {
-            super(CC.FAIR_LOCKS);
+            super();
             loadFactor = lf;
             setTable(HashEntry.<V>newArray(initialCapacity));
         }
