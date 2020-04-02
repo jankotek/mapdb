@@ -16,8 +16,6 @@
 
 package org.mapdb.store.legacy;
 
-import org.mapdb.io.DataInput2;
-
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
@@ -86,7 +84,7 @@ public abstract class Volume {
 
 
 
-    abstract public DataInput2 getDataInput(final long offset, final int size);
+    abstract public DataInput2Exposed getDataInput(final long offset, final int size);
 
     abstract public void close();
 
@@ -430,8 +428,8 @@ public abstract class Volume {
 
 
         @Override
-        public final DataInput2 getDataInput(long offset, int size) {
-            return new DataInput2(chunks[(int)(offset >>> chunkShift)], (int) (offset&chunkSizeModMask));
+        public final DataInput2Exposed getDataInput(long offset, int size) {
+            return new DataInput2Exposed(chunks[(int)(offset >>> chunkShift)], (int) (offset&chunkSizeModMask));
         }
 
         @Override
@@ -991,11 +989,11 @@ public abstract class Volume {
         }
 
         @Override
-        public DataInput2 getDataInput(long offset, int size) {
+        public DataInput2Exposed getDataInput(long offset, int size) {
             try{
                 ByteBuffer buf = ByteBuffer.allocate(size);
                 readFully(offset,buf);
-                return new DataInput2(buf,0);
+                return new DataInput2Exposed(buf,0);
             }catch(IOException e){
                 throw new IOError(e);
             }
@@ -1057,7 +1055,7 @@ public abstract class Volume {
 
         for(long offset=0;offset<size;offset+=bufSize){
             int bb = (int) Math.min(bufSize, size-offset);
-            DataInput2 input = (DataInput2) from.getDataInput(offset, bb);
+            DataInput2Exposed input = from.getDataInput(offset, bb);
             ByteBuffer buf = input.buf.duplicate();
             buf.position(input.pos);
             buf.limit(input.pos+bb);

@@ -16,14 +16,11 @@
 package org.mapdb.store.legacy;
 
 import org.mapdb.CC;
-import org.mapdb.io.DataInput2;
-import org.mapdb.io.DataOutput2;
 import org.mapdb.io.DataOutput2ByteArray;
 import org.mapdb.ser.Serializer;
 import org.mapdb.ser.Serializers;
 import org.mapdb.store.Store;
 
-import java.io.IOError;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -94,9 +91,8 @@ public abstract class Store2 implements Store {
         newRecidLock.writeLock().unlock();
     }
 
-    protected <A> DataOutput2 serialize(A value, Serializer<A> serializer){
-        try {
-            DataOutput2 out = newDataOut2();
+    protected <A> DataOutput2ByteArray serialize(A value, Serializer<A> serializer){
+            DataOutput2ByteArray out = newDataOut2();
 
             serializer.serialize(out,value);
 
@@ -104,10 +100,10 @@ public abstract class Store2 implements Store {
 
                 if(CC.PARANOID)try{
                     //check that array is the same after deserialization
-                    DataInput2 inp = new DataInput2(Arrays.copyOf(out.buf,out.pos));
+                    DataInput2Exposed inp = new DataInput2Exposed(ByteBuffer.wrap(Arrays.copyOf(out.buf,out.pos)));
                     byte[] decompress = deserialize(Serializers.BYTE_ARRAY_NOSIZE,out.pos,inp);
 
-                    DataOutput2 expected = newDataOut2();
+                    DataOutput2ByteArray expected = newDataOut2();
                     serializer.serialize(expected,value);
 
                     byte[] expected2 = Arrays.copyOf(expected.buf, expected.pos);
@@ -120,18 +116,15 @@ public abstract class Store2 implements Store {
                 }
             }
             return out;
-        } catch (IOException e) {
-            throw new IOError(e);
-        }
 
     }
 
-    protected DataOutput2 newDataOut2() {
+    protected DataOutput2ByteArray newDataOut2() {
         return  new DataOutput2ByteArray();
     }
 
 
-    protected <A> A deserialize(Serializer<A> serializer, int size, DataInput2 di) throws IOException {
+    protected <A> A deserialize(Serializer<A> serializer, int size, DataInput2Exposed di) throws IOException {
 
         int start = di.pos;
 

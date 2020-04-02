@@ -16,9 +16,7 @@
 package org.mapdb.store.legacy;
 
 import org.mapdb.CC;
-import org.mapdb.io.DataInput2;
-import org.mapdb.io.DataInput2ByteArray;
-import org.mapdb.io.DataOutput2;
+import org.mapdb.io.DataOutput2ByteArray;
 import org.mapdb.ser.Serializer;
 import org.mapdb.ser.Serializers;
 import org.mapdb.store.Recids;
@@ -369,7 +367,7 @@ public class StoreDirect extends Store2 {
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
         assert(value!=null);
-        DataOutput2 out = serialize(value, serializer);
+        DataOutput2ByteArray out = serialize(value, serializer);
         final long ioRecid;
         newRecidLock.readLock().lock();
         try{
@@ -401,7 +399,7 @@ public class StoreDirect extends Store2 {
         return recid;
     }
 
-    protected void put2(DataOutput2 out, long ioRecid, long[] indexVals) {
+    protected void put2(DataOutput2ByteArray out, long ioRecid, long[] indexVals) {
         assert(locks.writeLock().isHeldByCurrentThread());
         index.putLong(ioRecid, indexVals[0]|MASK_ARCHIVE);
         //write stuff
@@ -458,11 +456,11 @@ public class StoreDirect extends Store2 {
         if(indexVal == MASK_DISCARD) return null; //preallocated record
 
         int size = (int) (indexVal>>>48);
-        DataInput2 di;
+        DataInput2Exposed di;
         long offset = indexVal&MASK_OFFSET;
         if((indexVal& MASK_LINKED)==0){
             //read single record
-            di = (DataInput2) phys.getDataInput(offset, size);
+            di = phys.getDataInput(offset, size);
 
         }else{
             //is linked, first construct buffer we will read data to
@@ -472,7 +470,7 @@ public class StoreDirect extends Store2 {
             byte[] buf = new byte[64];
             //read parts into segment
             for(;;){
-                DataInput2 in = (DataInput2) phys.getDataInput(offset + c, size-c);
+                DataInput2Exposed in = phys.getDataInput(offset + c, size-c);
 
                 if(buf.length<pos+size-c)
                     buf = Arrays.copyOf(buf,Math.max(pos+size-c,buf.length*2)); //buf to small, grow
@@ -486,7 +484,7 @@ public class StoreDirect extends Store2 {
                 //is the next part last?
                 c =  ((next& MASK_LINKED)==0)? 0 : 8;
             }
-            di = new DataInput2ByteArray(buf);
+            di = new DataInput2Exposed(ByteBuffer.wrap(buf));
             size = pos;
         }
         return deserialize(serializer, size, di);
@@ -498,7 +496,7 @@ public class StoreDirect extends Store2 {
     public <A> void update(long recid, A value, Serializer<A> serializer) {
         assert(value!=null);
         assert(recid>0);
-        DataOutput2 out = serialize(value, serializer);
+        DataOutput2ByteArray out = serialize(value, serializer);
 
         final long ioRecid = IO_USER_START + recid*8;
 
@@ -513,7 +511,7 @@ public class StoreDirect extends Store2 {
             LOG.finest("Update recid="+recid+", "+" size="+out.pos+", "+" val="+value+" ser="+serializer );
     }
 
-    protected void update2(DataOutput2 out, long ioRecid) {
+    protected void update2(DataOutput2ByteArray out, long ioRecid) {
         final long indexVal = index.getLong(ioRecid);
         final int size = (int) (indexVal>>>48);
         final boolean linked = (indexVal&MASK_LINKED)!=0;
@@ -566,7 +564,7 @@ public class StoreDirect extends Store2 {
         final Lock lock  = locks.writeLock();
         lock.lock();
 
-        DataOutput2 out;
+        DataOutput2ByteArray out;
         try{
             /*
              * deserialize old value
@@ -838,7 +836,7 @@ public class StoreDirect extends Store2 {
                 if(bb==null||bb.length==0){
                     store2.index.putLong(ioRecid,0);
                 }else{
-                    DataOutput2 out = serialize(bb, Serializers.BYTE_ARRAY_NOSIZE);
+                    DataOutput2ByteArray out = serialize(bb, Serializers.BYTE_ARRAY_NOSIZE);
                     long[] indexVals = store2.physAllocate(out.pos,true,false);
                     store2.put2(out, ioRecid,indexVals);
                 }

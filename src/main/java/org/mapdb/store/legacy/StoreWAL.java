@@ -17,9 +17,7 @@
 package org.mapdb.store.legacy;
 
 import org.mapdb.CC;
-import org.mapdb.io.DataInput2;
-import org.mapdb.io.DataInput2ByteArray;
-import org.mapdb.io.DataOutput2;
+import org.mapdb.io.DataOutput2ByteArray;
 import org.mapdb.ser.Serializer;
 
 import java.io.IOError;
@@ -202,7 +200,7 @@ public class StoreWAL extends StoreDirect {
     @Override
     public <A> long put(A value, Serializer<A> serializer) {
         assert(value!=null);
-        DataOutput2 out = serialize(value, serializer);
+        DataOutput2ByteArray out = serialize(value, serializer);
 
         final long ioRecid;
         final long[] physPos;
@@ -243,7 +241,7 @@ public class StoreWAL extends StoreDirect {
         return recid;
     }
 
-    protected void walPhysArray(DataOutput2 out, long[] physPos, long[] logPos) {
+    protected void walPhysArray(DataOutput2ByteArray out, long[] physPos, long[] logPos) {
         //write byte[] data
         int outPos = 0;
         int logC = 0;
@@ -345,7 +343,7 @@ public class StoreWAL extends StoreDirect {
         if(r.length==1){
             //single record
             final int size = (int) (r[0]>>>48);
-            DataInput2 in = (DataInput2) log.getDataInput(r[0]&LOG_MASK_OFFSET, size);
+            DataInput2Exposed in = log.getDataInput(r[0]&LOG_MASK_OFFSET, size);
             return deserialize(serializer,size,in);
         }else{
             //linked record
@@ -364,7 +362,7 @@ public class StoreWAL extends StoreDirect {
             }
             if(pos!=totalSize)throw new AssertionError();
 
-            return deserialize(serializer,totalSize, new DataInput2ByteArray(b));
+            return deserialize(serializer,totalSize, new DataInput2Exposed(ByteBuffer.wrap(b)));
         }
     }
 
@@ -372,7 +370,7 @@ public class StoreWAL extends StoreDirect {
     public <A> void update(long recid, A value, Serializer<A> serializer) {
         assert(recid>0);
         assert(value!=null);
-        DataOutput2 out = serialize(value, serializer);
+        DataOutput2ByteArray out = serialize(value, serializer);
         final long ioRecid = IO_USER_START + recid*8;
         final Lock lock  = locks.writeLock();
         lock.lock();
@@ -430,7 +428,7 @@ public class StoreWAL extends StoreDirect {
         final long ioRecid = IO_USER_START + recid*8;
         final Lock lock  = locks.writeLock();
         lock.lock();
-        DataOutput2 out;
+        DataOutput2ByteArray out;
         try{
 
             A oldVal = get2(ioRecid,serializer);
@@ -693,7 +691,7 @@ public class StoreWAL extends StoreDirect {
                     log.getDataInput(logSize, size).readFully(b);
 
                     crc32.reset();
-                    crc32.update(b);
+                    crc32.update(b, 0, b.length);
 
                     crc |= LongHashMap.longHash(logSize | WAL_PHYS_ARRAY | offset2 | crc32.getValue());
 
@@ -709,7 +707,7 @@ public class StoreWAL extends StoreDirect {
                     byte[] b = new byte[size];
                     log.getDataInput(logSize, size).readFully(b);
                     crc32.reset();
-                    crc32.update(b);
+                    crc32.update(b, 0, b.length);
 
                     crc |= LongHashMap.longHash((logSize) | WAL_PHYS_ARRAY_ONE_LONG | offset2 | nextPageLink | crc32.getValue());
 
@@ -725,7 +723,7 @@ public class StoreWAL extends StoreDirect {
                     byte[] b = new byte[size];
                     log.getDataInput(logSize, size).readFully(b);
                     crc32.reset();
-                    crc32.update(b);
+                    crc32.update(b, 0, b.length);
                     crc |= crc32.getValue();
 
                     log.getDataInput(logSize, size).readFully(b);
@@ -758,10 +756,6 @@ public class StoreWAL extends StoreDirect {
 
             //checksum is broken, so disable it
             return true;
-        } catch (IOException e) {
-            if(CC.LOG_STORE)
-                LOG.log(Level.INFO, "Rollback corrupted log.",e);
-            return false;
         }catch(IOError e){
             if(CC.LOG_STORE)
                 LOG.log(Level.INFO, "Rollback corrupted log.",e);
@@ -810,7 +804,7 @@ public class StoreWAL extends StoreDirect {
                 offset = offset&MASK_OFFSET;
 
                 //transfer byte[] directly from log file without copying into memory
-                DataInput2 input = (DataInput2) log.getDataInput(logSize, size);
+                DataInput2Exposed input = log.getDataInput(logSize, size);
                 ByteBuffer buf = input.buf.duplicate();
 
                 buf.position(input.pos);
@@ -1044,11 +1038,7 @@ public class StoreWAL extends StoreDirect {
             int size = phys.getUnsignedShort(offset);
             assert(size>=8+6);
             ret = new byte[size];
-            try {
-                phys.getDataInput(offset,size).readFully(ret);
-            } catch (IOException e) {
-                throw new IOError(e);
-            }
+            phys.getDataInput(offset,size).readFully(ret);
 
             //and load page
             longStackPages.put(offset,ret);
