@@ -1099,6 +1099,10 @@ public class StoreWAL extends StoreDirect implements StoreTx {
         }
     }
 
+    @Override
+    public boolean isEmpty() {
+        return (getMaxRecid()<=1L) && modified.isEmpty() ;
+    }
 
 
 }

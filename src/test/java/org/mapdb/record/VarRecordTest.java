@@ -33,9 +33,18 @@ public class VarRecordTest extends TestCase {
      * default constructed initializes to empty string
      */
     public void testConstructor2() {
-        VarRecord<String> ai = new VarRecord.Maker(db,"test2", Serializers.STRING).make();
-        assertEquals(null, ai.get());
+        try {
+            VarRecord<String> ai = new VarRecord.Maker(db, "test2", Serializers.STRING).make();
+            fail();
+        } catch (NullPointerException e){
+        }
     }
+
+    public void testConstructor3() {
+        VarRecord<String> ai = new VarRecord.Maker(db, "test2", Serializers.STRING).init("aa").make();
+        assertEquals("aa", ai.get());
+    }
+
 
     /*
      * get returns the last value set

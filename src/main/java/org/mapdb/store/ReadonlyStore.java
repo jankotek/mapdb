@@ -1,6 +1,8 @@
 package org.mapdb.store;
 
+import org.jetbrains.annotations.NotNull;
 import org.mapdb.ser.Serializer;
+
 import java.io.Closeable;
 
 public interface ReadonlyStore extends Closeable {
@@ -11,7 +13,7 @@ public interface ReadonlyStore extends Closeable {
      *
      * @return record or null if record was not allocated yet, or was deleted
      **/
-    <K> K get(long recid, Serializer<K> ser);
+    @NotNull <K> K get(long recid, @NotNull Serializer<K> ser);
 
     void close();
 
@@ -20,10 +22,10 @@ public interface ReadonlyStore extends Closeable {
      *
      * Function takes recid and binary data
      */
-    void getAll(GetAllCallback callback);
+    void getAll(@NotNull GetAllCallback callback);
 
     interface GetAllCallback{
-        void takeOne(long recid, byte[] data);
+        void takeOne(long recid, @NotNull byte[] data);
     }
 
     /**

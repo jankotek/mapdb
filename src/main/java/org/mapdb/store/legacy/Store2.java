@@ -39,7 +39,7 @@ public abstract class Store2 implements Store {
 
     protected static final Logger LOG = Logger.getLogger(Store.class.getName());
 
-    protected static final int VOLUME_CHUNK_SHIFT = 20; // 1 MB
+    public static final int VOLUME_CHUNK_SHIFT = 20; // 1 MB
 
     protected final static int CHECKSUM_FLAG_MASK = 1;
     protected final static int COMPRESS_FLAG_MASK = 1<<2;
@@ -92,30 +92,33 @@ public abstract class Store2 implements Store {
     }
 
     protected <A> DataOutput2ByteArray serialize(A value, Serializer<A> serializer){
-            DataOutput2ByteArray out = newDataOut2();
+        if(value==null)
+            return null;
 
-            serializer.serialize(out,value);
+        DataOutput2ByteArray out = newDataOut2();
 
-            if(out.pos>0){
+        serializer.serialize(out,value);
 
-                if(CC.PARANOID)try{
-                    //check that array is the same after deserialization
-                    DataInput2Exposed inp = new DataInput2Exposed(ByteBuffer.wrap(Arrays.copyOf(out.buf,out.pos)));
-                    byte[] decompress = deserialize(Serializers.BYTE_ARRAY_NOSIZE,out.pos,inp);
+        if(out.pos>0){
 
-                    DataOutput2ByteArray expected = newDataOut2();
-                    serializer.serialize(expected,value);
+            if(CC.PARANOID)try{
+                //check that array is the same after deserialization
+                DataInput2Exposed inp = new DataInput2Exposed(ByteBuffer.wrap(Arrays.copyOf(out.buf,out.pos)));
+                byte[] decompress = deserialize(Serializers.BYTE_ARRAY_NOSIZE,out.pos,inp);
 
-                    byte[] expected2 = Arrays.copyOf(expected.buf, expected.pos);
-                    //check arrays equals
-                    assert(Arrays.equals(expected2,decompress));
+                DataOutput2ByteArray expected = newDataOut2();
+                serializer.serialize(expected,value);
+
+                byte[] expected2 = Arrays.copyOf(expected.buf, expected.pos);
+                //check arrays equals
+                assert(Arrays.equals(expected2,decompress));
 
 
-                }catch(Exception e){
-                    throw new RuntimeException(e);
-                }
+            }catch(Exception e){
+                throw new RuntimeException(e);
             }
-            return out;
+        }
+        return out;
 
     }
 
@@ -128,7 +131,7 @@ public abstract class Store2 implements Store {
 
         int start = di.pos;
 
-        A ret = serializer.deserialize(di,size);
+        A ret = serializer.deserialize(di);
         if(size+start>di.pos)
             throw new AssertionError("data were not fully read, check your serializer ");
         if(size+start<di.pos)

@@ -29,7 +29,7 @@ public class FileHeapBufStore extends HeapBufStore{
                 long recid = IO.readLong(is);
                 int size = IO.readInt(is);
                 byte[] b = size==-1?
-                        NULL_RECORD :
+                        PREALLOC_RECORD :
                         IO.readByteArray(is, size);
                 records.put(recid, b);
                 maxRecid = Math.max(maxRecid, recid);
@@ -58,7 +58,7 @@ public class FileHeapBufStore extends HeapBufStore{
             records.forEachKeyValue((recid, buf) ->{
                 try {
                     IO.writeLong(out, recid);
-                    int size = buf==NULL_RECORD? -1 : buf.length;
+                    int size = buf==PREALLOC_RECORD? -1 : buf.length;
                     IO.writeInt(out, size);
                     if(size>0)
                         IO.writeByteArray(out, buf);

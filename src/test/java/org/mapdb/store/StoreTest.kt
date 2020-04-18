@@ -12,7 +12,7 @@ import org.mapdb.io.DataInput2
 import org.mapdb.io.DataOutput2
 import org.mapdb.ser.Serializer
 import org.mapdb.ser.Serializers
-import java.io.File
+import org.mapdb.ser.Serializers.LONG
 import java.util.*
 import java.util.concurrent.atomic.AtomicLong
 
@@ -34,8 +34,8 @@ abstract class StoreTest {
     @Test fun put_get() {
         val e = openStore()
         val l = 11231203099090L
-        val recid = e.put(l, Serializers.LONG)
-        assertEquals(l, e.get(recid, Serializers.LONG))
+        val recid = e.put(l, LONG)
+        assertEquals(l, e.get(recid, LONG))
         e.verify()
         e.close()
     }
@@ -52,8 +52,8 @@ abstract class StoreTest {
 
     @Test fun testSetGet() {
         val e = openStore()
-        val recid = e.put(10000.toLong(), Serializers.LONG)
-        val s2 = e.get(recid, Serializers.LONG)
+        val recid = e.put(10000.toLong(), LONG)
+        val s2 = e.get(recid, LONG)
         assertEquals(s2, java.lang.Long.valueOf(10000))
         e.verify()
         e.close()
@@ -161,9 +161,23 @@ abstract class StoreTest {
         val e = openStore()
         val recid = e.preallocate()
         e.verify()
-        assertFalse(e.compareAndUpdate(recid, Serializers.LONG, 1L, 2L))
-        assertTrue(e.compareAndUpdate(recid, Serializers.LONG, null, 2L))
-        assertEquals(2L, e.get(recid, Serializers.LONG))
+        TT.assertFailsWith(DBException.PreallocRecordAccess::class) {
+            e.compareAndUpdate(recid, LONG, 1L, 2L)
+        }
+        TT.assertFailsWith(DBException.PreallocRecordAccess::class) {
+            e.compareAndUpdate(recid, LONG, 2L, 2L)
+        }
+        TT.assertFailsWith(DBException.PreallocRecordAccess::class) {
+            e.get(recid, LONG)
+        }
+
+        e.preallocatePut(recid, LONG, 2L)
+
+        assertFalse(e.compareAndUpdate(recid, LONG, 1L, 3L))
+        assertTrue(e.compareAndUpdate(recid, LONG, 2L, 2L))
+        assertTrue(e.compareAndUpdate(recid, LONG, 2L, 3L))
+        assertEquals(3L, e.get(recid, LONG))
+
         e.verify()
         e.close()
     }
@@ -172,16 +186,25 @@ abstract class StoreTest {
         val e = openStore()
         val recid = e.preallocate()
         e.verify()
-        assertNull(e.get(recid, TT.Serializer_ILLEGAL_ACCESS))
-        e.update(recid,  Serializers.LONG, 1L)
-        assertEquals(1L.toLong(), e.get(recid, Serializers.LONG))
-        e.delete(recid, Serializers.LONG)
+        TT.assertFailsWith(DBException.PreallocRecordAccess::class) {
+            e.get(recid, TT.Serializer_ILLEGAL_ACCESS)
+        }
+        TT.assertFailsWith(DBException.PreallocRecordAccess::class) {
+            e.update(recid, LONG, 1L)
+        }
+        TT.assertFailsWith(DBException.PreallocRecordAccess::class) {
+            assertEquals(1L.toLong(), e.get(recid, LONG))
+        }
+        e.preallocatePut(recid, LONG, 1L)
+        assertEquals(1L.toLong(), e.get(recid, LONG))
+
+        e.delete(recid, LONG)
         TT.assertFailsWith(DBException.RecidNotFound::class) {
             assertNull(e.get(recid, TT.Serializer_ILLEGAL_ACCESS))
         }
         e.verify()
         TT.assertFailsWith(DBException.RecidNotFound::class) {
-            e.update(recid,  Serializers.LONG, 1L)
+            e.update(recid,  LONG, 1L)
         }
         e.verify()
         e.close()
@@ -189,15 +212,16 @@ abstract class StoreTest {
 
     @Test fun cas_delete() {
         val e = openStore()
-        val recid = e.put(1L, Serializers.LONG)
+        val recid = e.put(1L, LONG)
         e.verify()
-        assertTrue(e.compareAndDelete(recid, Serializers.LONG, 1L))
+        assertTrue(e.compareAndDelete(recid, LONG, 1L))
+        
         TT.assertFailsWith(DBException.RecidNotFound::class) {
             assertNull(e.get(recid, TT.Serializer_ILLEGAL_ACCESS))
         }
         e.verify()
         TT.assertFailsWith(DBException.RecidNotFound::class) {
-            e.update(recid,  Serializers.LONG, 1L)
+            e.update(recid,  LONG, 1L)
         }
         e.verify()
         e.close()
@@ -207,12 +231,16 @@ abstract class StoreTest {
     @Test fun cas_prealloc() {
         val e = openStore()
         val recid = e.preallocate()
-        assertTrue(e.compareAndUpdate(recid,  Serializers.LONG, null, 1L))
+        TT.assertFailsWith(DBException.PreallocRecordAccess::class) {
+            e.compareAndUpdate(recid,  LONG, 2L, 1L)
+        }
+        e.preallocatePut(recid, LONG, 2L)
+        assertTrue(e.compareAndUpdate(recid,  LONG, 2L, 1L))
         e.verify()
-        assertEquals(1L, e.get(recid, Serializers.LONG))
-        assertTrue(e.compareAndUpdate(recid, Serializers.LONG, 1L, null))
+        assertEquals(1L, e.get(recid, LONG))
+        assertTrue(e.compareAndUpdate(recid, LONG, 1L, 3L))
         e.verify()
-        assertNull(e.get(recid, TT.Serializer_ILLEGAL_ACCESS))
+        assertEquals(3L, e.get(recid, LONG))
         e.verify()
         e.close()
     }
@@ -220,9 +248,17 @@ abstract class StoreTest {
     @Test fun cas_prealloc_delete() {
         val e = openStore()
         val recid = e.preallocate()
-        e.delete(recid, Serializers.LONG)
+        TT.assertFailsWith(DBException.PreallocRecordAccess::class) {
+            e.delete(recid, LONG)
+        }
+        TT.assertFailsWith(DBException.PreallocRecordAccess::class) {
+            e.get(recid, LONG)
+        }
+        e.preallocatePut(recid, LONG, 1L)
+
+        e.delete(recid, LONG)
         TT.assertFailsWith(DBException.RecidNotFound::class) {
-            assertTrue(e.compareAndUpdate(recid, Serializers.LONG, null, 1L))
+            assertTrue(e.compareAndUpdate(recid, LONG, 3L, 1L))
         }
         e.verify()
         e.close()
@@ -248,7 +284,18 @@ abstract class StoreTest {
     }
 
 
-    @Test fun nosize_array() {
+    @Test fun not_preallocated() {
+        val e = openStore()
+        TT.assertFailsWith(DBException.RecidNotFound::class) {
+            e.preallocatePut(222, LONG, 1L)
+        }
+        val recid = e.put(1L, LONG)
+        TT.assertFailsWith(DBException.RecordNotPreallocated::class) {
+            e.preallocatePut(recid, LONG, 1L)
+        }
+    }
+
+     @Test fun nosize_array() {
         val e = openStore()
         var b = ByteArray(0)
         val recid = e.put(b, Serializers.BYTE_ARRAY_NOSIZE)
@@ -272,11 +319,11 @@ abstract class StoreTest {
 
     @Test fun get_deleted() {
         val e = openStore()
-        val recid = e.put(1L, Serializers.LONG)
+        val recid = e.put(1L, LONG)
         e.verify()
-        e.delete(recid, Serializers.LONG)
+        e.delete(recid, LONG)
         TT.assertFailsWith(DBException.RecidNotFound::class) {
-            e.get(recid, Serializers.LONG)
+            e.get(recid, LONG)
         }
         e.verify()
         e.close()
@@ -284,10 +331,10 @@ abstract class StoreTest {
 
     @Test fun update_deleted() {
         val e = openStore()
-        val recid = e.put(1L, Serializers.LONG)
-        e.delete(recid, Serializers.LONG)
+        val recid = e.put(1L, LONG)
+        e.delete(recid, LONG)
         TT.assertFailsWith(DBException.RecidNotFound::class) {
-            e.update(recid, Serializers.LONG, 2L)
+            e.update(recid, LONG, 2L)
         }
         e.verify()
         e.close()
@@ -295,10 +342,10 @@ abstract class StoreTest {
 
     @Test fun double_delete() {
         val e = openStore()
-        val recid = e.put(1L, Serializers.LONG)
-        e.delete(recid, Serializers.LONG)
+        val recid = e.put(1L, LONG)
+        e.delete(recid, LONG)
         TT.assertFailsWith(DBException.RecidNotFound::class) {
-            e.delete(recid, Serializers.LONG)
+            e.delete(recid, LONG)
         }
         e.verify()
         e.close()
@@ -406,20 +453,20 @@ abstract class StoreTest {
 
         val ntime = TT.nowPlusMinutes(1.0)
         var counter = AtomicLong(0);
-        val recid = s.put(0L, Serializers.LONG)
+        val recid = s.put(0L, LONG)
         TT.fork(10){
             val random = Random();
             while(ntime>System.currentTimeMillis()){
                 val plus = random.nextInt(1000).toLong()
-                val v:Long = s.get(recid, Serializers.LONG)!!
-                if(s.compareAndUpdate(recid, Serializers.LONG, v, v+plus)){
+                val v:Long = s.get(recid, LONG)!!
+                if(s.compareAndUpdate(recid, LONG, v, v+plus)){
                     counter.addAndGet(plus);
                 }
             }
         }
 
         assertTrue(counter.get()>0)
-        assertEquals(counter.get(), s.get(recid, Serializers.LONG))
+        assertEquals(counter.get(), s.get(recid, LONG))
     }
 
 
@@ -587,5 +634,28 @@ abstract class StoreTest {
         //TODO restore empty state when no data in store? perhaps not possible, so replace is 'isFresh()` (no data inserted yet)
 //        store.isEmpty() shouldBe true
     }
+
+    @Test fun null_prealloc_update_delete(){
+        val store = openStore()
+        val recid = store.preallocate()
+        TT.assertFailsWith(DBException.PreallocRecordAccess::class) {
+            store.update(recid, LONG, 1L)
+        }
+        TT.assertFailsWith(DBException.PreallocRecordAccess::class) {
+            store.get(recid, TT.Serializer_ILLEGAL_ACCESS)
+        }
+        TT.assertFailsWith(DBException.PreallocRecordAccess::class) {
+            store.delete(recid, TT.Serializer_ILLEGAL_ACCESS)
+        }
+        store.preallocatePut(recid, LONG, 1L)
+        store.delete(recid, LONG);
+
+        TT.assertFailsWith(DBException.RecidNotFound::class) {
+            store.get(recid, TT.Serializer_ILLEGAL_ACCESS)
+        }
+    }
+
+    //TODO nullability tests outside of kotlin
+
 }
 

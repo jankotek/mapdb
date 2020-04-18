@@ -2,6 +2,7 @@ package org.mapdb.store;
 
 import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList;
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap;
+import org.jetbrains.annotations.NotNull;
 import org.mapdb.DBException;
 import org.mapdb.io.DataInput2ByteArray;
 import org.mapdb.ser.Serializer;
@@ -9,13 +10,14 @@ import org.mapdb.ser.Serializers;
 
 public class HeapBufStore implements Store {
 
-    protected static final byte[] NULL_RECORD = new byte[]{1,2,3};
+    protected static final byte[] PREALLOC_RECORD = new byte[]{1,2,4};
 
     //-newRWLOCK
 
     protected final LongObjectHashMap<byte[]> records = LongObjectHashMap.newMap();
 
     protected final LongArrayList freeRecids = new LongArrayList();
+
 
     protected long maxRecid = 0L;
 
@@ -26,14 +28,26 @@ public class HeapBufStore implements Store {
         //-WUNLOCK
     }
 
+    @Override
+    public <R> void preallocatePut(long recid, @NotNull Serializer<R> serializer, @NotNull R record) {
+        byte[] data = serialize(serializer, record);
+        //-WLOCK
+        byte[] old = records.get(recid);
+        if(old==null)
+            throw new DBException.RecidNotFound();
+        if(old!=PREALLOC_RECORD)
+            throw new DBException.RecordNotPreallocated();
+        records.put(recid, data);
+        //-WUNLOCK
+    }
+
     protected long preallocate2(){
         //-AWLOCKED
         long recid =
                 freeRecids.isEmpty()?
                     ++maxRecid :
                     freeRecids.removeAtIndex(freeRecids.size()-1);
-        //TODO other record val for preallocated, so it can be cleaned?
-        records.put(recid, NULL_RECORD);
+        records.put(recid, PREALLOC_RECORD);
         return recid;
     }
 
@@ -48,18 +62,28 @@ public class HeapBufStore implements Store {
     }
 
     protected <K> byte[] serialize(Serializer<K> serializer, K record) {
-        return
-            record == null ?
-                NULL_RECORD :
-                Serializers.serializeToByteArray(record, serializer);
+        if(record == null)
+            throw new NullPointerException();
+        return Serializers.serializeToByteArray(record, serializer);
     }
 
     protected <E> E deser(Serializer<E> ser, byte[] value){
-        if(value == NULL_RECORD)
-            return null;
+        if(value == PREALLOC_RECORD)
+            throw new DBException.PreallocRecordAccess();
         if(value == null)
             throw new DBException.RecidNotFound();
         return ser.deserialize(new DataInput2ByteArray(value));
+    }
+
+
+    private byte[] checkExists(long recid) {
+        byte[] old = records.get(recid);
+        if(old == PREALLOC_RECORD)
+            throw new DBException.PreallocRecordAccess();
+        if(old == null)
+            throw new DBException.RecidNotFound();
+
+        return old;
     }
 
 
@@ -67,8 +91,7 @@ public class HeapBufStore implements Store {
     public <K> void update(long recid, Serializer<K> serializer, K updatedRecord) {
         byte[] newData = serialize(serializer, updatedRecord);
         //-WLOCK
-        if(!records.containsKey(recid))
-            throw new DBException.RecidNotFound();
+        checkExists(recid);
         records.put(recid, newData);
         //-WUNLOCK
     }
@@ -77,8 +100,7 @@ public class HeapBufStore implements Store {
     @Override
     public <R> void updateAtomic(long recid, Serializer<R> serializer, Transform<R> r) {
         //-WLOCK
-        if(!records.containsKey(recid))
-            throw new DBException.RecidNotFound();
+        checkExists(recid);
 
         R oldRec = deser(serializer, records.get(recid));
         R newRec = r.transform(oldRec);
@@ -88,10 +110,11 @@ public class HeapBufStore implements Store {
         //-WUNLOCK
     }
 
+
     @Override
     public <R> boolean compareAndUpdate(long recid, Serializer<R> serializer, R expectedOldRecord, R updatedRecord) {
         //-WLOCK
-        byte[] b = records.get(recid);
+        byte[] b = checkExists(recid);
         R rec = deser(serializer, b);
         if(!serializer.equals(rec, expectedOldRecord))
             return false;
@@ -104,7 +127,7 @@ public class HeapBufStore implements Store {
     @Override
     public <R> boolean compareAndDelete(long recid, Serializer<R> serializer, R expectedOldRecord) {
         //-WLOCK
-        byte[] b = records.get(recid);
+        byte[] b = checkExists(recid);
         R rec = deser(serializer, b);
         if(!serializer.equals(rec, expectedOldRecord))
             return false;
@@ -125,6 +148,11 @@ public class HeapBufStore implements Store {
         byte[] buf = records.removeKey(recid);
         if(buf == null)
             throw new DBException.RecidNotFound();
+        if(buf == PREALLOC_RECORD) {
+            records.put(recid, PREALLOC_RECORD);
+            throw new DBException.PreallocRecordAccess();
+        }
+
         freeRecids.add(recid);
     }
 
@@ -132,7 +160,7 @@ public class HeapBufStore implements Store {
     public <R> R getAndDelete(long recid, Serializer<R> serializer) {
         byte[] buf = null;
         //-WLOCK
-        buf = records.get(recid);
+        buf = checkExists(recid);
         delete2(recid);
         //-WUNLOCK
         return deser(serializer, buf);
@@ -144,7 +172,7 @@ public class HeapBufStore implements Store {
             throw new DBException.RecidNotFound();
         byte[] buf = null;
         //--RLOCK
-        buf = records.get(recid);
+        buf = checkExists(recid);
         //-RUNLOCK
 
         return deser(ser, buf);
@@ -155,7 +183,10 @@ public class HeapBufStore implements Store {
     public void getAll(GetAllCallback callback) {
         //--RLOCK
         records.forEachKeyValue(
-                (recid, buf) -> callback.takeOne(recid, buf));
+                (recid, buf) -> {
+                    if (buf != PREALLOC_RECORD)
+                        callback.takeOne(recid, buf);
+                });
         //-RUNLOCK
     }
 

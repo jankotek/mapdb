@@ -93,8 +93,8 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
                         );
         assertEquals(alist.get(52),objArray[51]);
         Object oldItem = alist.get(25);
-        alist.add(25, null);
-        assertNull("Should have returned null", alist.get(25));
+        alist.add(25, "null");
+        assertEquals("null", alist.get(25));
         assertEquals("Should have returned the old item from slot 25", alist
                 .get(26), oldItem);
         
@@ -104,8 +104,8 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
         assertEquals(alist.get(2), objArray[1]);
 
         oldItem = alist.get(0);
-        alist.add(0, null);
-        assertNull("Should have returned null", alist.get(0));
+        alist.add(0, "null");
+        assertEquals("null", alist.get(0));
         assertEquals("Should have returned the old item from slot 0", alist
                 .get(1), oldItem);
 
@@ -117,7 +117,7 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
         }
 
         try {
-            alist.add(-1, null);
+            alist.add(-1, "null");
             fail("Should throw IndexOutOfBoundsException");
         } catch (IndexOutOfBoundsException e) {
             // Expected
@@ -131,7 +131,7 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
         }
 
         try {
-            alist.add(alist.size() + 1, null);
+            alist.add(alist.size() + 1, "null");
             fail("Should throw IndexOutOfBoundsException");
         } catch (IndexOutOfBoundsException e) {
             // Expected
@@ -152,8 +152,8 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
         alist.remove(size);
 
         size = alist.size();
-        alist.add(size, null);
-        assertNull("Should have returned null", alist.get(size));
+        alist.add(size, "null");
+        assertEquals("null", alist.get(size));
         assertEquals(alist.get(size - 2), objArray[size - 2]);
         assertEquals(alist.get(size - 1), objArray[size - 1]);
     }
@@ -166,8 +166,8 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
         Object o = "";
         alist.add(o);
         assertEquals("Failed to add Object", alist.get(alist.size() - 1), o);
-        alist.add(null);
-        assertNull("Failed to add null", alist.get(alist.size() - 1));
+        alist.add("null");
+        assertEquals("null", alist.get(alist.size() - 1));
     }
 
     /**
@@ -189,20 +189,20 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
             assertEquals("Failed to ad elements properly",
                     alist.get(i) , objArray[i - 100]);
         List listWithNulls = newList();
-        listWithNulls.add(null);
-        listWithNulls.add(null);
+        listWithNulls.add("null");
+        listWithNulls.add("null");
         listWithNulls.add("yoink");
         listWithNulls.add("kazoo");
-        listWithNulls.add(null);
+        listWithNulls.add("null");
         alist.addAll(100, listWithNulls);
         assertTrue("Incorrect size: " + alist.size(), alist.size() == 205);
-        assertNull("Item at slot 100 should be null", alist.get(100));
-        assertNull("Item at slot 101 should be null", alist.get(101));
+        assertEquals("null", alist.get(100));
+        assertEquals("null", alist.get(101));
         assertEquals("Item at slot 102 should be 'yoink'", "yoink", alist
                 .get(102));
         assertEquals("Item at slot 103 should be 'kazoo'", "kazoo", alist
                 .get(103));
-        assertNull("Item at slot 104 should be null", alist.get(104));
+        assertEquals("null", alist.get(104));
         alist.addAll(205, listWithNulls);
         assertTrue("Incorrect size2: " + alist.size(), alist.size() == 210);
     }
@@ -355,11 +355,9 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
                     .equals(l.get(i)));
         }
         Set setWithNulls = new HashSet();
-        setWithNulls.add(null);
-        setWithNulls.add(null);
+        setWithNulls.add("dasdsa");
         setWithNulls.add("yoink");
         setWithNulls.add("kazoo");
-        setWithNulls.add(null);
         alist.addAll(100, setWithNulls);
         Iterator i = setWithNulls.iterator();
         assertEquals("Item at slot 100 is wrong: " + alist.get(100), alist
@@ -445,9 +443,9 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
         // Test for method void java.util.ArrayList.clear()
         alist.clear();
         assertEquals("List did not clear", 0, alist.size());
-        alist.add(null);
-        alist.add(null);
-        alist.add(null);
+        alist.add("null");
+        alist.add("null");
+        alist.add("null");
         alist.add("bam");
         alist.clear();
         assertEquals("List with nulls did not clear", 0, alist.size());
@@ -472,9 +470,9 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
                 .contains(""));
         assertTrue("Returned true for null but should have returned false",
                 !alist.contains(""));
-        alist.add(null);
+        alist.add("null");
         assertTrue("Returned false for null but should have returned true",
-                alist.contains(null));
+                alist.contains("null"));
     }
 
     /**
@@ -501,10 +499,10 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
                 .indexOf(objArray[87]));
         assertEquals("Returned index for invalid Object", -1, alist
                 .indexOf(""));
-        alist.add(25, null);
-        alist.add(50, null);
+        alist.add(25, "null");
+        alist.add(50, "null");
         assertEquals("Wrong indexOf for null.  Wanted 25 got: "
-                + alist.indexOf(null), alist.indexOf(null) , 25);
+                + alist.indexOf("null"), alist.indexOf("null") , 25);
     }
 
     /**
@@ -528,10 +526,10 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
                 .lastIndexOf(objArray[99]));
         assertEquals("Returned index for invalid Object", -1, alist
                 .lastIndexOf(""));
-        alist.add(25, null);
-        alist.add(50, null);
+        alist.add(25, "null");
+        alist.add(50, "null");
         assertEquals("Wrong lastIndexOf for null.  Wanted 50 got: "
-                + alist.lastIndexOf(null), alist.lastIndexOf(null) , 50);
+                + alist.lastIndexOf("null"), alist.lastIndexOf("null") , 50);
     }
 
     /**
@@ -604,8 +602,8 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
         }
 
         ArrayList myList = new ArrayList(alist);
-        alist.add(25, null);
-        alist.add(50, null);
+        alist.add(25, "dsad");
+        alist.add(50, "dqwdw");
         alist.remove(50);
         alist.remove(25);
         assertTrue("Removing nulls did not work", alist.equals(myList));
@@ -649,8 +647,8 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
         Object obj;
         alist.set(65, obj = "");
         assertEquals("Failed to set object", alist.get(65) , obj);
-        alist.set(50, null);
-        assertNull("Setting to null did not work", alist.get(50));
+        alist.set(50, "null");
+        assertEquals("null", alist.get(50));
         assertTrue("Setting increased the list's size to: " + alist.size(),
                 alist.size() == 100);
         
@@ -675,7 +673,7 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
         }
 
         try {
-            alist.set(-1, null);
+            alist.set(-1, "null");
             fail("Should throw IndexOutOfBoundsException");
         } catch (IndexOutOfBoundsException e) {
             // Expected
@@ -683,7 +681,7 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
         }
 
         try {
-            alist.set(alist.size(), null);
+            alist.set(alist.size(), "null");
             fail("Should throw IndexOutOfBoundsException");
         } catch (IndexOutOfBoundsException e) {
             // Expected
@@ -707,16 +705,15 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
      */
     public void test_toArray() {
         // Test for method java.lang.Object [] java.util.ArrayList.toArray()
-        alist.set(25, null);
-        alist.set(75, null);
+        alist.set(25, 25*2);
+        alist.set(75, 75*2);
         Object[] obj = alist.toArray();
         assertEquals("Returned array of incorrect size", objArray.length,
                 obj.length);
 
         for (int i = 0; i < obj.length; i++) {
             if ((i == 25) || (i == 75))
-                assertNull("Should be null at: " + i + " but instead got: "
-                        + obj[i], obj[i]);
+                assertEquals(i*2, obj[i]);
             else
                 assertEquals("Returned incorrect array: " + i,
                         obj[i] , objArray[i]);
@@ -730,8 +727,8 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
     public void test_toArray$Ljava_lang_Object() {
         // Test for method java.lang.Object []
         // java.util.ArrayList.toArray(java.lang.Object [])
-        alist.set(25, null);
-        alist.set(75, null);
+        alist.set(25, 25*2);
+        alist.set(75, 75*2);
         Integer[] argArray = new Integer[100];
         Object[] retArray;
         retArray = alist.toArray(argArray);
@@ -742,7 +739,7 @@ abstract public class ArrayListTest extends junit.framework.TestCase {
                 .size()]);
         for (int i = 0; i < 100; i++) {
             if ((i == 25) || (i == 75))
-                assertNull("Should be null: " + i, retArray[i]);
+                assertEquals(i*2, retArray[i]);
             else
                 assertEquals("Returned incorrect array: " + i,
                         retArray[i] , objArray[i]);

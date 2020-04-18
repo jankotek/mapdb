@@ -429,7 +429,10 @@ public abstract class Volume {
 
         @Override
         public final DataInput2Exposed getDataInput(long offset, int size) {
-            return new DataInput2Exposed(chunks[(int)(offset >>> chunkShift)], (int) (offset&chunkSizeModMask));
+            ByteBuffer buf = chunks[(int)(offset >>> chunkShift)].duplicate();
+            int pos = (int) (offset&chunkSizeModMask);
+            buf.limit(pos+size);
+            return new DataInput2Exposed(buf, pos);
         }
 
         @Override

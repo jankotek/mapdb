@@ -1,5 +1,6 @@
 package org.mapdb.store;
 
+import org.jetbrains.annotations.NotNull;
 import org.mapdb.ser.Serializer;
 
 public interface Store extends ReadonlyStore{
@@ -8,6 +9,8 @@ public interface Store extends ReadonlyStore{
     /** allocates new null record, and returns its recid. It can be latter updated with `updateAtomic()` or `cas` */
     long preallocate();
 
+    <R> void preallocatePut(long recid, @NotNull Serializer<R> serializer, @NotNull R record);
+
     default void preallocate(long[] recids) {
         for(int i=0;i<recids.length;i++){
             recids[i] = preallocate();
@@ -15,14 +18,14 @@ public interface Store extends ReadonlyStore{
     }
 
     /** insert new record, returns recid under which record was stored */
-    <K> long put(K record, Serializer<K> serializer);
+    @NotNull <R> long put(@NotNull R record, @NotNull  Serializer<R> serializer);
 
     /** updateAtomic existing record with new value */
-    <K> void update(long recid, Serializer<K> serializer, K updatedRecord);
+    <R> void update(long recid, @NotNull  Serializer<R> serializer, @NotNull  R updatedRecord);
 
 
-    default <K> K getAndUpdate(long recid, Serializer<K> serializer, K updatedRecord) {
-        K old = get(recid,serializer);
+    @NotNull default <R> R getAndUpdate(long recid, @NotNull Serializer<R> serializer, @NotNull R updatedRecord) {
+        R old = get(recid,serializer);
         update(recid, serializer, updatedRecord);
         return old; //TODO atomic
 
@@ -37,18 +40,20 @@ public interface Store extends ReadonlyStore{
     boolean isThreadSafe();
 
 
+
+
     interface Transform<R>{
-        R transform(R r);
+        @NotNull R transform(@NotNull R r);
     }
 
-    default <R> R updateAndGet(long recid, Serializer<R> serializer, Transform<R> t) {
+    @NotNull default <R> R updateAndGet(long recid, @NotNull Serializer<R> serializer, @NotNull Transform<R> t) {
         R old = get(recid,serializer);
         R newRec = t.transform(old);
         update(recid, serializer, newRec);
         return newRec; //TODO atomic
     }
 
-    default <R> R getAndUpdateAtomic(long recid, Serializer<R> serializer, Transform<R> t) {
+    @NotNull default <R> R getAndUpdateAtomic(long recid, @NotNull Serializer<R> serializer, @NotNull Transform<R> t) {
         R old = get(recid,serializer);
         R newRec = t.transform(old);
         update(recid, serializer, newRec);
@@ -56,18 +61,18 @@ public interface Store extends ReadonlyStore{
     }
 
 
-    <R> void updateAtomic(long recid, Serializer<R> serializer, Transform<R> r);
+    <R> void updateAtomic(long recid, @NotNull Serializer<R> serializer, @NotNull Transform<R> r);
 
     /** atomically compares and swap records
      * @return true if compare was sucessfull and record was swapped, else false
      */
-    <R> boolean compareAndUpdate(long recid, Serializer<R> serializer, R expectedOldRecord, R updatedRecord);
+    <R> boolean compareAndUpdate(long recid, @NotNull Serializer<R> serializer, @NotNull R expectedOldRecord, @NotNull R updatedRecord);
 
-    <R> boolean compareAndDelete(long recid, Serializer<R> serializer, R expectedOldRecord);
+    <R> boolean compareAndDelete(long recid, @NotNull Serializer<R> serializer, @NotNull R expectedOldRecord);
 
     /** delete existing record */
-    <R> void delete(long recid, Serializer<R> serializer);
+    <R> void delete(long recid, @NotNull Serializer<R> serializer);
 
-    <R> R getAndDelete(long recid, Serializer<R> serializer);
+    @NotNull <R> R getAndDelete(long recid, @NotNull Serializer<R> serializer);
 
 }
