@@ -41,13 +41,6 @@ public class DBException extends RuntimeException {
         }
     }
 
-
-    public static class RecidNotFound extends DBException{
-        public RecidNotFound(){
-            super("recid not found");
-        }
-    }
-
     public static class StoreClosed extends DBException{
         public StoreClosed(){
             super("store closed");

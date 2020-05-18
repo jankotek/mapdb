@@ -184,7 +184,6 @@ public abstract class Volume {
     public static interface Factory {
         Volume createIndexVolume();
         Volume createPhysVolume();
-        Volume createTransLogVolume();
     }
 
     public static Volume volumeForFile(File f, boolean useRandomAccessFile, boolean readOnly, long sizeLimit, int chunkShift, int sizeIncrement) {
@@ -207,8 +206,7 @@ public abstract class Volume {
                 return fileFactory(
                                 indexFile,
                                 rafMode, readOnly, sizeLimit, chunkShift, sizeIncrement,
-                                new File(indexFile.getPath() + StoreDirect.DATA_FILE_EXT),
-                                new File(indexFile.getPath() + StoreWAL.TRANS_LOG_FILE_EXT));
+                                new File(indexFile.getPath() + StoreDirect.DATA_FILE_EXT));
     }
 
     public static Factory fileFactory(final File indexFile,
@@ -218,8 +216,7 @@ public abstract class Volume {
                                       final int chunkShift,
                                       final int sizeIncrement,
 
-                                      final File physFile,
-                                      final File transLogFile) {
+                                      final File physFile) {
         return fileFactory(
             indexFile,
             rafMode,
@@ -228,7 +225,6 @@ public abstract class Volume {
             chunkShift,
             sizeIncrement,
             physFile,
-            transLogFile,
             false, false
         );
     }
@@ -242,7 +238,6 @@ public abstract class Volume {
                                       final int sizeIncrement,
 
                                       final File physFile,
-                                      final File transLogFile,
                                       final boolean asyncWriteEnabled) {
         return fileFactory(
                 indexFile,
@@ -252,7 +247,6 @@ public abstract class Volume {
                 chunkShift,
                 sizeIncrement,
                 physFile,
-                transLogFile,
                 false, false
         );
     }
@@ -264,7 +258,6 @@ public abstract class Volume {
                                       final int sizeIncrement,
 
                                       final File physFile,
-                                      final File transLogFile,
                                       final boolean asyncWriteEnabled,
                                       final boolean cleanerHackDisable) {
         return new Factory() {
@@ -278,10 +271,6 @@ public abstract class Volume {
                 return volumeForFile(physFile, rafMode>0, readOnly, sizeLimit, chunkShift, sizeIncrement,asyncWriteEnabled,cleanerHackDisable);
             }
 
-            @Override
-            public Volume createTransLogVolume() {
-                return volumeForFile(transLogFile, rafMode>0, readOnly, sizeLimit,chunkShift, sizeIncrement,asyncWriteEnabled,cleanerHackDisable);
-            }
         };
     }
 
@@ -297,9 +286,6 @@ public abstract class Volume {
                 return new MemoryVol(useDirectBuffer, sizeLimit, chunkShift);
             }
 
-            @Override public synchronized Volume createTransLogVolume() {
-                return new MemoryVol(useDirectBuffer, sizeLimit, chunkShift);
-            }
         };
     }
 

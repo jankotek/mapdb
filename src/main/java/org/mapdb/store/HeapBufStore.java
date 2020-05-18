@@ -34,7 +34,7 @@ public class HeapBufStore implements Store {
         //-WLOCK
         byte[] old = records.get(recid);
         if(old==null)
-            throw new DBException.RecidNotFound();
+            throw new DBException.RecordNotPreallocated();
         if(old!=PREALLOC_RECORD)
             throw new DBException.RecordNotPreallocated();
         records.put(recid, data);
@@ -71,7 +71,7 @@ public class HeapBufStore implements Store {
         if(value == PREALLOC_RECORD)
             throw new DBException.PreallocRecordAccess();
         if(value == null)
-            throw new DBException.RecidNotFound();
+            throw new DBException.RecordNotFound();
         return ser.deserialize(new DataInput2ByteArray(value));
     }
 
@@ -81,7 +81,7 @@ public class HeapBufStore implements Store {
         if(old == PREALLOC_RECORD)
             throw new DBException.PreallocRecordAccess();
         if(old == null)
-            throw new DBException.RecidNotFound();
+            throw new DBException.RecordNotFound();
 
         return old;
     }
@@ -147,7 +147,7 @@ public class HeapBufStore implements Store {
         //-ARLOCKED
         byte[] buf = records.removeKey(recid);
         if(buf == null)
-            throw new DBException.RecidNotFound();
+            throw new DBException.RecordNotFound();
         if(buf == PREALLOC_RECORD) {
             records.put(recid, PREALLOC_RECORD);
             throw new DBException.PreallocRecordAccess();
@@ -169,7 +169,7 @@ public class HeapBufStore implements Store {
     @Override
     public <K> K get(long recid, Serializer<K> ser) {
         if(recid<=0)
-            throw new DBException.RecidNotFound();
+            throw new DBException.RecordNotFound();
         byte[] buf = null;
         //--RLOCK
         buf = checkExists(recid);
