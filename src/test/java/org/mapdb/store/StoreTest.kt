@@ -20,8 +20,18 @@ import java.util.concurrent.atomic.AtomicLong
 
 class HeapBufStoreTest : StoreTest() {
     override fun openStore() = HeapBufStore()
+}
+
+
+class ConcMapStoreTest : StoreTest() {
+    override fun openStore() = ConcMapStore()
+
+    override fun recid_getAll_sorted(){
+        //TODO support multiform store
+    }
 
 }
+
 
 
 /**
@@ -600,7 +610,7 @@ abstract class StoreTest {
     }
 
 
-    @Test fun recid_getAll_sorted(){
+    open @Test fun recid_getAll_sorted(){
         val store = openStore()
 
         val max = 1000
