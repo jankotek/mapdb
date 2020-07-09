@@ -5,32 +5,10 @@ package org.mapdb.jsr166Tests;/*
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-import static java.util.concurrent.TimeUnit.HOURS;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import junit.framework.Test;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.ConcurrentModificationException;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Queue;
-import java.util.Set;
-import java.util.Spliterator;
-import java.util.concurrent.BlockingDeque;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.Phaser;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -38,7 +16,8 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import junit.framework.Test;
+import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 /**
  * Contains tests applicable to all jdk8+ Collection implementations.
@@ -396,7 +375,7 @@ public abstract class Collection8Test extends JSR166TestCase {
         }
         Consumer alwaysThrows = e -> { throw new AssertionError(); };
         if (s.hasCharacteristics(Spliterator.CONCURRENT)) {
-            c.clear();          // TODO: many more removal methods
+            c.clear();
             if (testImplementationDetails
                 && !(c instanceof java.util.concurrent.ArrayBlockingQueue)) {
                 if (rnd.nextBoolean())
@@ -438,7 +417,6 @@ public abstract class Collection8Test extends JSR166TestCase {
             it.next();
         }
         Consumer alwaysThrows = e -> { throw new AssertionError(); };
-        // TODO: many more removal methods
         if (rnd.nextBoolean()) {
             for (Iterator z = c.iterator(); z.hasNext(); ) {
                 Object e = z.next();
@@ -741,12 +719,10 @@ public abstract class Collection8Test extends JSR166TestCase {
         assertTrue(found.isEmpty());
     }
 
-    /** TODO: promote to a common utility */
     static <T> T chooseOne(T ... ts) {
         return ts[ThreadLocalRandom.current().nextInt(ts.length)];
     }
 
-    /** TODO: more random adders and removers */
     static <E> Runnable adderRemover(Collection<E> c, E e) {
         return chooseOne(
             () -> {

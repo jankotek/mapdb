@@ -7,14 +7,14 @@ package org.mapdb.jsr166Tests;/*
  * Pat Fisher, Mike Judd.
  */
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
+
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 /**
  * Contains "contract" tests applicable to all BlockingQueue implementations.
@@ -316,7 +316,6 @@ public abstract class BlockingQueueTest extends JSR166TestCase {
 
     /**
      * remove(x) removes x and returns true if present
-     * TODO: move to superclass CollectionTest.java
      */
     public void testRemoveElement() {
         final BlockingQueue q = emptyCollection();

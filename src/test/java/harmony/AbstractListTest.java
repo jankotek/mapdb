@@ -300,13 +300,11 @@ public class AbstractListTest extends junit.framework.TestCase {
 
 		@Override
 		public E get(int location) {
-			// TODO Auto-generated method stub
 			return null;
 		}
 
 		@Override
 		public int size() {
-			// TODO Auto-generated method stub
 			return 0;
 		}
 		
