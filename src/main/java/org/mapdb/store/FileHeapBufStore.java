@@ -8,6 +8,8 @@ public class FileHeapBufStore extends HeapBufStore{
 
     protected final File file;
 
+    //-newRWLOCK
+
     public FileHeapBufStore(File file) {
         this.file = file;
 

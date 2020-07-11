@@ -8,18 +8,23 @@ class MDBCodeGen{
 
             org.mapdb.ec.flat.run.main(args)
 
-            val srcDir = File("../srcGen/main/java")
-            val testDir = File("../srcGen/test/java")
+            val srcGenDir = File("../srcGen/main/java")
+            val srcDir = File("../src/main/java")
+
+            val testGenDir = File("../srcGen/test/java")
 
 
-            FileUtils.write(File(srcDir, "AACodeGen.java"), """
+            FileUtils.write(File(srcGenDir, "AACodeGen.java"), """
 public class AACodeGen{
 }
                             """)
 
-            val srcDirRecords = File(srcDir, "org/mapdb/record/")
+            val srcDirRecords = File(srcGenDir, "org/mapdb/record/")
             srcDirRecords.mkdirs()
             GenRecords.makeRecordMakers(srcDirRecords)
+
+            GenMarkers.wlock(srcDir, srcGenDir);
+
         }
     }
 

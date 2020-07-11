@@ -21,6 +21,10 @@ import java.util.concurrent.atomic.AtomicLong
 class HeapBufStoreTest : StoreTest() {
     override fun openStore() = HeapBufStore()
 }
+class HeapBufStoreRWLockTest : StoreTest() {
+    override fun openStore() = HeapBufStoreRWLock()
+}
+
 
 
 class ConcMapStoreTest : StoreTest() {
