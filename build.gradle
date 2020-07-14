@@ -57,6 +57,10 @@ dependencies {
     compile "org.eclipse.collections:eclipse-collections-api:$ec_version"
     compile "org.eclipse.collections:eclipse-collections:$ec_version"
 
+
+    compile "org.javatuples:javatuples:1.2"
+
+
     compile "com.google.guava:guava:$guava_version"
 
     compile group: 'org.jetbrains', name: 'annotations', version: '15.0'
@@ -72,6 +76,9 @@ dependencies {
 
     testCompile("io.kotlintest:kotlintest-runner-junit5:3.0.4")
     testRuntime("org.junit.vintage:junit-vintage-engine:$junit_version") //TODO all test deps compile only?
+
+    testImplementation "io.vertx:vertx-unit:3.9.1"
+
 
     testCompile("org.junit.jupiter:junit-jupiter-api:$junit_version")
     testRuntime("org.junit.jupiter:junit-jupiter-engine:$junit_version")
