@@ -36,6 +36,10 @@ class ConcMapStoreTest : StoreTest() {
 
 }
 
+class LiStoreTest : StoreTest() {
+    override fun openStore() = LiStore()
+}
+
 
 
 /**
