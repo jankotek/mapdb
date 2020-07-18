@@ -34,17 +34,17 @@ public class LiStore implements Store {
     @Override
     public long preallocate() {
         int recid = allocRecid();
-        index[recid] = 2L<<(7*8);
+        index[recid] = R_PREALLOC<<(7*8);
         return recid;
     }
 
     @Override
     public <R> void preallocatePut(long recid, @NotNull Serializer<R> serializer, @NotNull R record) {
         long indexVal = index[(int) recid];
-        if(indexVal==0L)
+        if(indexVal == R_VOID)
             throw new DBException.RecordNotPreallocated();
         int recType = decompIndexValType(indexVal);
-        if(recType != 2)
+        if(recType != R_PREALLOC)
             throw new DBException.RecordNotPreallocated();
 
         long page = allocPage();
@@ -96,10 +96,10 @@ public class LiStore implements Store {
     @Override
     public <R> void update(long recid, @NotNull Serializer<R> serializer, @NotNull R updatedRecord) {
         long indexVal = index[(int) recid];
-        if(indexVal==0L)
+        if(indexVal== R_VOID)
             throw new DBException.RecordNotFound();
         int recType = decompIndexValType(indexVal);
-        if(recType == 2)
+        if(recType == R_PREALLOC)
             throw new DBException.PreallocRecordAccess();
         int size = decompIndexValSize(indexVal);
         long page = decompIndexValPage(indexVal);
@@ -157,15 +157,15 @@ public class LiStore implements Store {
     @Override
     public <R> void delete(long recid, @NotNull Serializer<R> serializer) {
         long indexVal = index[(int) recid];
-        if(indexVal==0L)
+        if(indexVal==R_VOID)
             throw new DBException.RecordNotFound();
         int recType = decompIndexValType(indexVal);
-        if(recType == 2)
+        if(recType == R_PREALLOC)
             throw new DBException.PreallocRecordAccess();
         int size = decompIndexValSize(indexVal);
         long page = decompIndexValPage(indexVal);
 
-        index[(int) recid] = 0L;
+        index[(int) recid] = R_VOID;
         freeRecids.add((int) recid);
         zeroOut(data, page, PAGE_SIZE);
         freePages.add(page);
@@ -181,10 +181,10 @@ public class LiStore implements Store {
     @Override
     public <K> @NotNull K get(long recid, @NotNull Serializer<K> ser) {
         long indexVal = index[(int) recid];
-        if(indexVal==0L)
+        if(indexVal==R_VOID)
             throw new DBException.RecordNotFound();
         int recType = decompIndexValType(indexVal);
-        if(recType == 2)
+        if(recType == R_PREALLOC)
             throw new DBException.PreallocRecordAccess();
         int size = decompIndexValSize(indexVal);
         long page = decompIndexValPage(indexVal);
@@ -206,10 +206,10 @@ public class LiStore implements Store {
         ByteBuffer bb = data.duplicate();
         for(int recid = 1; recid<recidTail; recid++){
             long indexVal = index[recid];
-            if(indexVal==0L)
+            if(indexVal==R_VOID)
                 continue;
             int recType = decompIndexValType(indexVal);
-            if(recType == 2)
+            if(recType == R_PREALLOC)
                 continue;
             int size = decompIndexValSize(indexVal);
             long page = decompIndexValPage(indexVal);
