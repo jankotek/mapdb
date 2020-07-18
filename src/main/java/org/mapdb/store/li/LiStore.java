@@ -3,14 +3,17 @@ package org.mapdb.store.li;
 import org.jetbrains.annotations.NotNull;
 import org.mapdb.DBException;
 import org.mapdb.io.DataInput2;
-import org.mapdb.io.DataInput2ByteArray;
+import org.mapdb.io.DataInput2ByteBuffer;
 import org.mapdb.io.DataOutput2;
 import org.mapdb.io.DataOutput2ByteArray;
 import org.mapdb.ser.Serializer;
 import org.mapdb.store.Store;
 
+import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.Queue;
+
+import static org.mapdb.store.li.LiUtil.*;
 
 public class LiStore implements Store {
 
@@ -24,7 +27,7 @@ public class LiStore implements Store {
     private final Queue<Long> freePages = new LinkedList<>();
     private long pageTail = PAGE_SIZE;
 
-    private final byte[] data = new byte[64*1024*1024];
+    private final ByteBuffer data = ByteBuffer.allocate(64*1024*1024);
 
 
 
@@ -68,7 +71,9 @@ public class LiStore implements Store {
         if(b.length>PAGE_SIZE)
             throw new RuntimeException();
 
-        System.arraycopy(b, 0, data, (int) page, b.length);
+        ByteBuffer bb = data.duplicate();
+        bb.position((int) page);
+        bb.put(b);
         return b.length;
     }
 
@@ -162,9 +167,7 @@ public class LiStore implements Store {
 
         index[(int) recid] = 0L;
         freeRecids.add((int) recid);
-        for(int i = (int) page; i<page+PAGE_SIZE; i++){
-            data[i] =0;
-        }
+        zeroOut(data, page, PAGE_SIZE);
         freePages.add(page);
     }
 
@@ -186,29 +189,11 @@ public class LiStore implements Store {
         int size = decompIndexValSize(indexVal);
         long page = decompIndexValPage(indexVal);
 
-        byte[] b = new byte[size];
-        System.arraycopy(data, (int) page,  b, 0, size);
-        DataInput2 input = new DataInput2ByteArray(b);
+        ByteBuffer bb = data.duplicate();
+        bb.position((int) page);
+        bb.limit((int) (page+size));
+        DataInput2 input = new DataInput2ByteBuffer(bb);
         return ser.deserialize(input);
-    }
-
-    private long decompIndexValPage(long indexVal) {
-        return indexVal & 0xFFFFFFFFFFL;
-    }
-
-    private int decompIndexValSize(long indexVal) {
-        return (int) ((indexVal >>> (5*8)) & 0xFFFF);
-    }
-
-    private int decompIndexValType(long indexVal) {
-        return (int) (indexVal >>> (7*8));
-    }
-
-
-    private long composeIndexValSmall(int size, long page) {
-        return  (1L<< (7*8)) |
-                (((long)size)<<(5*8)) |
-                page;
     }
 
     @Override
@@ -218,6 +203,7 @@ public class LiStore implements Store {
 
     @Override
     public void getAll(@NotNull GetAllCallback callback) {
+        ByteBuffer bb = data.duplicate();
         for(int recid = 1; recid<recidTail; recid++){
             long indexVal = index[recid];
             if(indexVal==0L)
@@ -228,7 +214,8 @@ public class LiStore implements Store {
             int size = decompIndexValSize(indexVal);
             long page = decompIndexValPage(indexVal);
             byte[] b = new  byte[size];
-            System.arraycopy(data, (int) page, b, 0, size);
+            bb.putInt((int) page);
+            bb.get(b);
             callback.takeOne(recid, b);
         }
 
