@@ -13,6 +13,7 @@ import org.mapdb.io.DataOutput2
 import org.mapdb.ser.Serializer
 import org.mapdb.ser.Serializers
 import org.mapdb.ser.Serializers.LONG
+import org.mapdb.store.li.LiStore
 import java.util.*
 import java.util.concurrent.atomic.AtomicLong
 

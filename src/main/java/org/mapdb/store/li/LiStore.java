@@ -1,4 +1,4 @@
-package org.mapdb.store;
+package org.mapdb.store.li;
 
 import org.jetbrains.annotations.NotNull;
 import org.mapdb.DBException;
@@ -7,6 +7,7 @@ import org.mapdb.io.DataInput2ByteArray;
 import org.mapdb.io.DataOutput2;
 import org.mapdb.io.DataOutput2ByteArray;
 import org.mapdb.ser.Serializer;
+import org.mapdb.store.Store;
 
 import java.util.LinkedList;
 import java.util.Queue;
