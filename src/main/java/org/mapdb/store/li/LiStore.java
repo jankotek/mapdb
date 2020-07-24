@@ -34,7 +34,7 @@ public class LiStore implements Store {
     @Override
     public long preallocate() {
         int recid = allocRecid();
-        index[recid] = R_PREALLOC<<(7*8);
+        index[recid] = composeRecordType(R_PREALLOC);
         return recid;
     }
 
@@ -214,7 +214,7 @@ public class LiStore implements Store {
             int size = decompIndexValSize(indexVal);
             long page = decompIndexValPage(indexVal);
             byte[] b = new  byte[size];
-            bb.putInt((int) page);
+            bb.position((int) page);
             bb.get(b);
             callback.takeOne(recid, b);
         }

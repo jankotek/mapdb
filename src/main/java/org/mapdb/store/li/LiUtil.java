@@ -39,4 +39,8 @@ public final class LiUtil {
                 page;
     }
 
+    public static final long composeRecordType(long recType){
+        return recType<<(7*8);
+    }
+
 }
