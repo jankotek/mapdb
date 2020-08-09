@@ -75,4 +75,8 @@ public interface Store extends ReadonlyStore{
 
     @NotNull <R> R getAndDelete(long recid, @NotNull Serializer<R> serializer);
 
+    default int maxRecordSize() {
+        return Integer.MAX_VALUE;
+    }
+
 }

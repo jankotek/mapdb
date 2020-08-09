@@ -225,4 +225,9 @@ public class LiStore implements Store {
     public boolean isEmpty() {
         return freeRecids.size() == recidTail-1;
     }
+
+    @Override
+    public int maxRecordSize() {
+        return PAGE_SIZE;
+    }
 }

@@ -61,6 +61,9 @@ abstract class StoreTest {
 
     @Test fun put_get_large() {
         val e = openStore()
+        if(e.maxRecordSize()<1e6)
+            return
+
         val b = TT.randomByteArray(1000000)
         Random().nextBytes(b)
         val recid = e.put(b, Serializers.BYTE_ARRAY_NOSIZE)
@@ -92,6 +95,9 @@ abstract class StoreTest {
     @Test
     fun large_record() {
         val e = openStore()
+        if(e.maxRecordSize()<1e6)
+            return
+
         val b = TT.randomByteArray(100000)
         val recid = e.put(b, Serializers.BYTE_ARRAY_NOSIZE)
         val b2 = e.get(recid, Serializers.BYTE_ARRAY_NOSIZE)
@@ -102,6 +108,8 @@ abstract class StoreTest {
 
     @Test fun large_record_delete() {
         val e = openStore()
+        if(e.maxRecordSize()<1e6)
+            return
         val b = TT.randomByteArray(100000)
         val recid = e.put(b, Serializers.BYTE_ARRAY_NOSIZE)
         e.verify()
@@ -113,6 +121,8 @@ abstract class StoreTest {
 
     @Test fun large_record_delete2(){
         val s = openStore()
+        if(s.maxRecordSize()<1e6)
+            return
 
         val b = TT.randomByteArray(200000)
         val recid1 = s.put(b, Serializers.BYTE_ARRAY_NOSIZE)
@@ -137,6 +147,8 @@ abstract class StoreTest {
 
     @Test fun large_record_update(){
         val s = openStore()
+        if(s.maxRecordSize()<1e6)
+            return
 
         var b = TT.randomByteArray(200000)
         val recid1 = s.put(b, Serializers.BYTE_ARRAY_NOSIZE)
