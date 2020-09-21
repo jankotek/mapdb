@@ -1,10 +1,9 @@
 buildscript {
 
-    //TODO wildcard for dep versions
-    ext.kotlin_version = '1.3.61'
-    ext.junit_version = '5.5.1'
-    ext.ec_version = '9.2.0'
-    ext.guava_version = '27.1-jre'
+    ext.kotlin_version = '1.4.10'
+    ext.junit_version = '5.7.0'
+    ext.ec_version = '10.4.0'
+    ext.guava_version = '28.2-jre'
 
     repositories {
         mavenCentral()
@@ -14,16 +13,7 @@ buildscript {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
-
-plugins {
-    id "org.jetbrains.dokka" version "0.9.18"
-}
-
-dokka{
-    jdkVersion = 8
-}
 apply plugin: "kotlin"
-
 
 compileKotlin {
     kotlinOptions {
@@ -33,6 +23,7 @@ compileKotlin {
 
 
 sourceSets {
+    //combine Kotlin and Java source into same dirs
     main.java.srcDirs += 'src/main/java'
     test.kotlin.srcDirs += 'src/test/java'
     test.java.srcDirs += 'src/test/java'
@@ -50,7 +41,7 @@ repositories {
 
 test{
     maxParallelForks = 5
-    maxHeapSize = '512m'
+    maxHeapSize = '2G'
 }
 
 dependencies {
@@ -59,7 +50,7 @@ dependencies {
 
     compile "com.google.guava:guava:$guava_version"
 
-    compile group: 'org.jetbrains', name: 'annotations', version: '15.0'
+    compile group: 'org.jetbrains', name: 'annotations', version: '20.1.0'
     
     testCompile "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
     testCompile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
@@ -70,10 +61,9 @@ dependencies {
     compile 'net.jpountz.lz4:lz4:1.3.0'
     //TODO is there better version?
 
-    testCompile("io.kotlintest:kotlintest-runner-junit5:3.0.4")
+    testCompile("io.kotlintest:kotlintest-runner-junit5:3.4.2")
     testRuntime("org.junit.vintage:junit-vintage-engine:$junit_version") //TODO all test deps compile only?
 
     testCompile("org.junit.jupiter:junit-jupiter-api:$junit_version")
     testRuntime("org.junit.jupiter:junit-jupiter-engine:$junit_version")
-    implementation 'org.jetbrains:annotations:15.0'
 }
