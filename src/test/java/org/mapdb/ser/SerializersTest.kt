@@ -1,6 +1,7 @@
 package org.mapdb.ser
 
-import io.kotlintest.matchers.*
+import io.kotlintest.matchers.beGreaterThan
+import io.kotlintest.matchers.beLessThan
 import io.kotlintest.properties.forAll
 import io.kotlintest.should
 import org.mapdb.DBWordSpec
@@ -10,7 +11,7 @@ class SerializersTest : DBWordSpec({
 
     val sers = Serializers::class.java.fields
             .filter { it.name != "INSTANCE" } //TODO remove this field from java
-            .map { Pair(it.name, it.get(null) as Serializer<Any?>) }
+            .map { Pair(it.name, it.get(null) as Serializer<Any>) }
 
     assert(sers.isNotEmpty())
 
