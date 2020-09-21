@@ -24,10 +24,13 @@ compileKotlin {
 
 sourceSets {
     //combine Kotlin and Java source into same dirs
+    main.kotlin.srcDirs += 'src/main/java'
     main.java.srcDirs += 'src/main/java'
     test.kotlin.srcDirs += 'src/test/java'
     test.java.srcDirs += 'src/test/java'
 
+    //include generated code into build
+    main.kotlin.srcDirs += 'srcGen/main/java'
     main.java.srcDirs += 'srcGen/main/java'
     test.kotlin.srcDirs += 'srcGen/test/java'
     test.java.srcDirs += 'srcGen/test/java'
