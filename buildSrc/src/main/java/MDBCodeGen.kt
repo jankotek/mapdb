@@ -6,8 +6,6 @@ class MDBCodeGen{
         @JvmStatic
         fun main(args: Array<String>) {
 
-            org.mapdb.ec.flat.run.main(args)
-
             val srcGenDir = File("../srcGen/main/java")
             val srcDir = File("../src/main/java")
 
