@@ -25,4 +25,4 @@ cache:
 
 install: /bin/true
 
-script: gradle test
+script: ./gradlew test
