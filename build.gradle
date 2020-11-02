@@ -1,10 +1,9 @@
 buildscript {
 
-    //TODO wildcard for dep versions
-    ext.kotlin_version = '1.3.61'
-    ext.junit_version = '5.5.1'
-    ext.ec_version = '9.2.0'
-    ext.guava_version = '27.1-jre'
+    ext.kotlin_version = '1.4.10'
+    ext.junit_version = '5.7.0'
+    ext.ec_version = '10.4.0'
+    ext.guava_version = '28.2-jre'
 
     repositories {
         mavenCentral()
@@ -13,14 +12,6 @@ buildscript {
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
-}
-
-plugins {
-    id "org.jetbrains.dokka" version "0.9.18"
-}
-
-dokka{
-    jdkVersion = 8
 }
 apply plugin: "kotlin"
 
@@ -39,10 +30,14 @@ compileKotlin {
 
 
 sourceSets {
+    //combine Kotlin and Java source into same dirs
+    main.kotlin.srcDirs += 'src/main/java'
     main.java.srcDirs += 'src/main/java'
     test.kotlin.srcDirs += 'src/test/java'
     test.java.srcDirs += 'src/test/java'
 
+    //include generated code into build
+    main.kotlin.srcDirs += 'srcGen/main/java'
     main.java.srcDirs += 'srcGen/main/java'
     test.kotlin.srcDirs += 'srcGen/test/java'
     test.java.srcDirs += 'srcGen/test/java'
@@ -56,7 +51,7 @@ repositories {
 
 test{
     maxParallelForks = 5
-    maxHeapSize = '512m'
+    maxHeapSize = '2G'
 }
 
 dependencies {
@@ -65,21 +60,16 @@ dependencies {
 
     compile "com.google.guava:guava:$guava_version"
 
-    compile group: 'org.jetbrains', name: 'annotations', version: '15.0'
+    compile group: 'org.jetbrains', name: 'annotations', version: '20.1.0'
     
-    testCompile "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
-    testCompile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-
-    //TODO optional dependencies?
-    testCompile "com.xenomachina:kotlin-argparser:2.0.7"
+    compile "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
 
     compile 'net.jpountz.lz4:lz4:1.3.0'
     //TODO is there better version?
 
-    testCompile("io.kotlintest:kotlintest-runner-junit5:3.0.4")
-    testRuntime("org.junit.vintage:junit-vintage-engine:$junit_version") //TODO all test deps compile only?
-
+    testCompile("io.kotlintest:kotlintest-runner-junit5:3.4.2")
+    testCompile("org.junit.vintage:junit-vintage-engine:$junit_version")
     testCompile("org.junit.jupiter:junit-jupiter-api:$junit_version")
-    testRuntime("org.junit.jupiter:junit-jupiter-engine:$junit_version")
-    implementation 'org.jetbrains:annotations:15.0'
+    testCompile("org.junit.jupiter:junit-jupiter-engine:$junit_version")
 }

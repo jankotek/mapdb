@@ -16,8 +16,6 @@ import java.util.*
 import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
-import java.util.concurrent.locks.Lock
-import java.util.concurrent.locks.ReadWriteLock
 
 /**
  * Unit tests utils
@@ -330,7 +328,7 @@ object TT{
             randomByteArray(random.nextInt(100))
         }
 
-        override fun always(): Iterable<ByteArray> = listOf(
+        override fun constants(): Iterable<ByteArray> = listOf(
                 ByteArray(0), byteArrayOf(-1, -1), byteArrayOf(1, 2, 3), byteArrayOf(0))
 
     }
@@ -340,7 +338,7 @@ object TT{
 
     /** random generator of any type */
     object anyGen: Gen<Any>{
-        override fun always(): Iterable<Any> {
+        override fun constants(): Iterable<Any> {
             return listOf(1,2, 4L, listOf(1,2,4), "aa", TestPojo("aa", "bb"))
         }
 
@@ -351,7 +349,7 @@ object TT{
 
     }
 
-    fun genFor(cl: Class<*>?): Gen<Any> = when (cl) {
+    fun genFor(cl: Class<*>?): Gen<out Any> = when (cl) {
 
         java.lang.Integer::class.java -> Gen.int()
         java.lang.Long::class.java -> Gen.long()
