@@ -34,7 +34,7 @@ Hello world:
 ```java
 //import org.mapdb.*
 DB db = DBMaker.memoryDB().make();
-ConcurrentMap map = db.hashMap("map").make();
+ConcurrentMap map = db.hashMap("map").createOrOpen();
 map.put("something", "here");
 ```
 
