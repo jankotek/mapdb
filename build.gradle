@@ -15,6 +15,13 @@ buildscript {
 }
 apply plugin: "kotlin"
 
+jar {
+    manifest {
+        attributes(
+            'Automatic-Module-Name' : 'mapdb'
+        )
+    }
+}
 compileKotlin {
     kotlinOptions {
         jvmTarget = '1.8'
