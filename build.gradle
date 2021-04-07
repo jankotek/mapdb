@@ -58,8 +58,7 @@ dependencies {
     compile "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
 
-    compile 'net.jpountz.lz4:lz4:1.3.0'
-    //TODO is there better version?
+    compile 'org.lz4:lz4-java:1.7.1'
 
     testCompile("io.kotlintest:kotlintest-runner-junit5:3.4.2")
     testCompile("org.junit.vintage:junit-vintage-engine:$junit_version")
