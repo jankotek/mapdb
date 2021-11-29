@@ -1,6 +1,6 @@
 buildscript {
 
-    ext.kotlin_version = '1.4.10'
+    ext.kotlin_version = '1.6.0'
     ext.junit_version = '5.7.0'
     ext.ec_version = '10.4.0'
     ext.guava_version = '28.2-jre'
@@ -8,12 +8,11 @@ buildscript {
     repositories {
         mavenCentral()
     }
-
-    dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-    }
 }
-apply plugin: "kotlin"
+
+plugins {
+    id "org.jetbrains.kotlin.jvm" version "1.6.0"
+}
 
 compileKotlin {
     kotlinOptions {
@@ -48,21 +47,21 @@ test{
 }
 
 dependencies {
-    compile "org.eclipse.collections:eclipse-collections-api:$ec_version"
-    compile "org.eclipse.collections:eclipse-collections:$ec_version"
+    implementation "org.eclipse.collections:eclipse-collections-api:$ec_version"
+    implementation "org.eclipse.collections:eclipse-collections:$ec_version"
 
-    compile "com.google.guava:guava:$guava_version"
+    implementation "com.google.guava:guava:$guava_version"
 
-    compile group: 'org.jetbrains', name: 'annotations', version: '20.1.0'
-    
-    compile "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    implementation group: 'org.jetbrains', name: 'annotations', version: '20.1.0'
 
-    compile 'net.jpountz.lz4:lz4:1.3.0'
+    implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+
+    implementation 'net.jpountz.lz4:lz4:1.3.0'
     //TODO is there better version?
 
-    testCompile("io.kotlintest:kotlintest-runner-junit5:3.4.2")
-    testCompile("org.junit.vintage:junit-vintage-engine:$junit_version")
-    testCompile("org.junit.jupiter:junit-jupiter-api:$junit_version")
-    testCompile("org.junit.jupiter:junit-jupiter-engine:$junit_version")
+    testImplementation("io.kotlintest:kotlintest-runner-junit5:3.4.2")
+    testImplementation("org.junit.vintage:junit-vintage-engine:$junit_version")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:$junit_version")
+    testImplementation("org.junit.jupiter:junit-jupiter-engine:$junit_version")
 }

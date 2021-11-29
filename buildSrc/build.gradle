@@ -1,5 +1,5 @@
 buildscript {
-    ext.kotlin_version = '1.2.50'
+    ext.kotlin_version = '1.6.0'
 
     repositories {
         mavenCentral()
@@ -32,12 +32,6 @@ sourceSets {
 repositories {
     mavenCentral()
 }
-
-
-dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-}
-
 
 task codegenClean(type: Delete) {
     delete "../srcGen"
