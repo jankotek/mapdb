@@ -639,7 +639,7 @@ class StoreWAL(
             }
 
             indexPagesBackup = indexPages.toArray()
-            if(fileSyncDisable)
+            if(!fileSyncDisable)
                 realVolume.sync()
 
             wal.destroyWalFiles()
