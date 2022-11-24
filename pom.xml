@@ -40,7 +40,7 @@
         <java.source.version>1.8</java.source.version>
 
         <!--eclipse collections-->
-        <ec.version>[7.0.0,)</ec.version>
+        <ec.version>[7.0.0,10.10.90)</ec.version>
         <guava.version>[15.0,)</guava.version>
 
         <elsa.version>3.0.0-M5</elsa.version>
