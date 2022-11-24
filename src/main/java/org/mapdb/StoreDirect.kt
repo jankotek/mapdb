@@ -26,7 +26,8 @@ class StoreDirect(
         fileDeleteAfterOpen: Boolean,
         checksum:Boolean,
         checksumHeader:Boolean,
-        checksumHeaderBypass:Boolean
+        checksumHeaderBypass:Boolean,
+        fileSyncDisable:Boolean = false
 ):StoreDirectAbstract(
         file=file,
         volumeFactory=volumeFactory,
@@ -856,7 +857,8 @@ class StoreDirect(
             volume.putLong(8, calculateChecksum())
         }
 
-        volume.sync()
+        if(!fileSyncDisable)
+            volume.sync()
     }
 
     override fun close() {

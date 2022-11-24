@@ -34,6 +34,8 @@ abstract class StoreDirectAbstract(
     protected val structuralLock = Utils.newLock(isThreadSafe)
     protected val compactionLock = Utils.newReadWriteLock(isThreadSafe)
 
+    internal var fileSyncDisable = false
+
 
     protected val volumeExistsAtStart = volumeFactory.exists(file)
 

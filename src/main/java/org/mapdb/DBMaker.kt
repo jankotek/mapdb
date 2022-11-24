@@ -144,6 +144,8 @@ object DBMaker{
         private var _checksumStoreEnable = false
         private var _checksumHeaderBypass = false
 
+        private var _fileSyncDisable = false;
+
         fun transactionEnable():Maker{
             _transactionEnable = true
             return this
@@ -172,6 +174,13 @@ object DBMaker{
 
         fun fileDeleteAfterOpen():Maker{
             _fileDeleteAfterOpen = true
+            return this
+        }
+
+
+        /** file sync will not be called on DB.commit(), this may lead to data loss */
+        fun fileSyncDisable():Maker{
+            _fileSyncDisable = true
             return this
         }
 
@@ -446,7 +455,8 @@ object DBMaker{
                         StoreOnHeap()
                 }else {
                     storeOpened = volfab!!.exists(file)
-                    if (_transactionEnable.not() || _readOnly) {
+                    val storeDir:StoreDirectAbstract =
+                            if (_transactionEnable.not() || _readOnly) {
                        StoreDirect.make(file = file, volumeFactory = volfab!!,
                                fileLockWait = _fileLockWait,
                                allocateIncrement = _allocateIncrement,
@@ -472,6 +482,9 @@ object DBMaker{
                                isThreadSafe = _isThreadSafe ,
                                checksumHeaderBypass = _checksumHeaderBypass)
                     }
+                    if(_fileSyncDisable)
+                        storeDir.fileSyncDisable = true
+                    storeDir
                 }
 
             return DB(store=store, storeOpened = storeOpened, isThreadSafe = _isThreadSafe, shutdownHook = _closeOnJvmShutdown)

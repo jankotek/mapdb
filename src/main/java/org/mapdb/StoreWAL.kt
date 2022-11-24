@@ -140,7 +140,8 @@ class StoreWAL(
 
                 //and write down everything
                 realVolume.putData(0L, headBytes,0, headBytes.size)
-                realVolume.sync()
+                if(!fileSyncDisable)
+                    realVolume.sync()
             } else {
                 if(volume.length()<=0)
                     throw DBException.DataCorruption("File is empty")
@@ -638,7 +639,8 @@ class StoreWAL(
             }
 
             indexPagesBackup = indexPages.toArray()
-            realVolume.sync()
+            if(fileSyncDisable)
+                realVolume.sync()
 
             wal.destroyWalFiles()
             wal.close()
