@@ -518,9 +518,8 @@ class StoreDirect(
     }
 
     override fun <R> get(recid: Long, serializer: Serializer<R>): R? {
-        assertNotClosed()
-
         Utils.lockRead(locks[recidToSegment(recid)]) {
+            assertNotClosed()
             val indexVal = getIndexVal(recid);
 
             if (indexValFlagLinked(indexVal)) {
