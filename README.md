@@ -48,6 +48,8 @@ More [details](http://www.mapdb.org/support/).
 Development
 --------------------
 
+Note: This library has a lot of TODO and core logic may not work as expected so you have to read all the source code before using it,
+
 MapDB is written in Kotlin, you will need IntelliJ Idea.
 
 You can use Gradle to build MapDB.
