@@ -241,7 +241,7 @@ class BTreeMap<K,V>(
 
         var current = rootRecid
 
-        val binaryGet = BinaryGet<K, Any>(keySerializer, valueNodeSerializer, comparator, key)
+        val binaryGet = BinaryGet<K, Any>(keySerializer, valueNodeSerializer, comparator, key as (K&Any))
 
         do {
             current = binary.getBinaryLong(current, binaryGet)
@@ -253,7 +253,7 @@ class BTreeMap<K,V>(
     protected fun listenerNotify(key:K, oldValue:V?, newValue: V?, triggered:Boolean){
         if(modificationListeners!=null)
             for(l in modificationListeners)
-                l.modify(key, oldValue, newValue, triggered)
+                l.modify(key as (K&Any), oldValue, newValue, triggered)
     }
 
 
@@ -303,7 +303,7 @@ class BTreeMap<K,V>(
             throw NullPointerException()
 
         try {
-            var v = key!!
+            var v:K = key!!
             var completed = false
             val stack = LongArrayStack()
             val rootRecid = rootRecid

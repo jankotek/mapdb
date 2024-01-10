@@ -162,8 +162,8 @@ class HTreeMap<K,V>(
         override fun serialize(out: DataOutput2, value: kotlin.Array<Any>) {
             out.packInt(value.size)
             for(i in 0 until value.size step 3) {
-                keySerializer.serialize(out, value[i+0] as K)
-                valueSerializer.serialize(out, value[i+1] as V)
+                keySerializer.serialize(out, value[i+0] as (K&Any))
+                valueSerializer.serialize(out, value[i+1] as (V&Any))
                 out.packLong(value[i+2] as Long)
             }
         }
@@ -188,7 +188,7 @@ class HTreeMap<K,V>(
         override fun serialize(out: DataOutput2, value: kotlin.Array<Any>) {
             out.packInt(value.size)
             for(i in 0 until value.size step 3) {
-                keySerializer.serialize(out, value[i+0] as K)
+                keySerializer.serialize(out, value[i+0] as (K&Any))
                 out.packLong(value[i+2] as Long)
             }
         }
@@ -215,7 +215,7 @@ class HTreeMap<K,V>(
         override fun serialize(out: DataOutput2, value: Array<Any>) {
             out.packInt(value.size)
             for(i in 0 until value.size step 3) {
-                keySerializer.serialize(out, value[i+0] as K)
+                keySerializer.serialize(out, value[i+0] as (K&Any))
                 out.packLong(value[i+1] as Long)
                 out.packLong(value[i+2] as Long)
             }
@@ -262,7 +262,7 @@ class HTreeMap<K,V>(
 
 
     protected fun hash(key:K):Int{
-        return keySerializer.hashCode(key, 0)
+        return keySerializer.hashCode(key as (K&Any), 0)
     }
     protected fun hashToIndex(hash:Int) = DataIO.intToLong(hash) and indexMask
     protected fun hashToSegment(hash:Int) = hash.ushr(levels*dirShift) and concMask
@@ -1186,7 +1186,7 @@ class HTreeMap<K,V>(
     protected fun listenerNotify(key:K, oldValue:V?, newValue: V?, triggered:Boolean){
         if(modificationListeners!=null)
             for(l in modificationListeners)
-                l.modify(key, oldValue, newValue, triggered)
+                l.modify(key as (K&Any), oldValue, newValue, triggered)
     }
 
 

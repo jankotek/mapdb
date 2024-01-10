@@ -25,7 +25,7 @@ abstract class SerializerTest<E> {
 
     fun assertSerEquals(v1: Any?, v2: Any?) {
         assertTrue(serializer.equals(v1 as E, v2 as E))
-        assertEquals(serializer.hashCode(v1, 0), serializer.hashCode(v2, 0))
+        assertEquals(serializer.hashCode(v1 as (E&Any), 0), serializer.hashCode(v2 as (E&Any), 0))
     }
 
 
@@ -50,7 +50,7 @@ abstract class SerializerTest<E> {
     fun randomNotEqualHashCode(){
         //two random values should not have equal hash code,
         // test will eventually timeout if they are always equal
-        while(serializer.hashCode(randomValue(),0) == serializer.hashCode(randomValue(),0)){
+        while(serializer.hashCode(randomValue() as (E&Any),0) == serializer.hashCode(randomValue() as (E&Any),0)){
 
         }
     }
@@ -66,7 +66,7 @@ abstract class SerializerTest<E> {
         for(i in 0..max) {
             val e = randomValue()
             val out = DataOutput2()
-            serializer.serialize(out, e);
+            serializer.serialize(out, e as (E&Any));
             assertEquals(size,out.pos)
         }
     }
@@ -949,7 +949,7 @@ class Serializer_DeltaArray(): Serializer_Array(){
 
 class Serializer_ArrayTuple(): GroupSerializerTest<Array<Any>>(){
 
-    override fun randomValue() = arrayOf(intArrayOf(random.nextInt()), longArrayOf(random.nextLong()))
+    override fun randomValue() = arrayOf(intArrayOf(random.nextInt()) as Any, longArrayOf(random.nextLong()) as Any)
 
     override val serializer = SerializerArrayTuple(Serializer.INT_ARRAY, Serializer.LONG_ARRAY)
 

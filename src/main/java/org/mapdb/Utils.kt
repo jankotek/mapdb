@@ -232,7 +232,7 @@ internal object Utils {
 
     @JvmStatic fun <E> clone(value: E, serializer: Serializer<E>, out:DataOutput2 = DataOutput2()): E {
         out.pos = 0
-        serializer.serialize(out, value)
+        serializer.serialize(out, value as (E&Any))
         val in2 = DataInput2.ByteArray(out.copyBytes())
         return serializer.deserialize(in2, out.pos)
     }

@@ -83,6 +83,8 @@ class HTreeMap_GuavaTest(val mapMaker:(generic:Boolean)-> ConcurrentMap<Any?, An
 
                     if(!generic)
                         maker.keySerializer(keySerializer).valueSerializer(Serializer.STRING)
+                    else
+                        maker.keySerializer(Serializer.JAVA).valueSerializer(Serializer.JAVA)
 
                     if(!collapse)
                         maker.removeCollapsesIndexTreeDisable()
