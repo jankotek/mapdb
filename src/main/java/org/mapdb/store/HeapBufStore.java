@@ -1,7 +1,10 @@
 package org.mapdb.store;
 
-import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList;
-import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.jetbrains.annotations.NotNull;
 import org.mapdb.DBException;
 import org.mapdb.io.DataInput2ByteArray;
@@ -14,9 +17,9 @@ public class HeapBufStore implements Store {
 
     //-newRWLOCK
 
-    protected final LongObjectHashMap<byte[]> records = LongObjectHashMap.newMap();
+    protected final Map<Long,byte[]> records = new HashMap<>();
 
-    protected final LongArrayList freeRecids = new LongArrayList();
+    protected final List<Long> freeRecids = new ArrayList<>();
 
 
     protected long maxRecid = 0L;
@@ -46,7 +49,7 @@ public class HeapBufStore implements Store {
         long recid =
                 freeRecids.isEmpty()?
                     ++maxRecid :
-                    freeRecids.removeAtIndex(freeRecids.size()-1);
+                    freeRecids.remove(freeRecids.size()-1);
         records.put(recid, PREALLOC_RECORD);
         return recid;
     }
@@ -145,7 +148,7 @@ public class HeapBufStore implements Store {
 
     protected void delete2(long recid) {
         //-ARLOCKED
-        byte[] buf = records.removeKey(recid);
+        byte[] buf = records.remove(recid);
         if(buf == null)
             throw new DBException.RecordNotFound();
         if(buf == PREALLOC_RECORD) {
@@ -182,7 +185,7 @@ public class HeapBufStore implements Store {
     @Override
     public void getAll(GetAllCallback callback) {
         //--RLOCK
-        records.forEachKeyValue(
+        records.forEach(
                 (recid, buf) -> {
                     if (buf != PREALLOC_RECORD)
                         callback.takeOne(recid, buf);
@@ -215,8 +218,6 @@ public class HeapBufStore implements Store {
     @Override
     public void compact() {
         //-WLOCK
-        records.compact();
-        freeRecids.trimToSize();
         //-WUNLOCK
     }
 
