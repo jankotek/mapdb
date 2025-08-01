@@ -57,7 +57,7 @@ public class FileHeapBufStore extends HeapBufStore{
         try( DataOutputStream out = new DataOutputStream(new FileOutputStream(file))) {
             IO.writeLong(out, records.size());
 
-            records.forEachKeyValue((recid, buf) ->{
+            records.forEach((recid, buf) ->{
                 try {
                     IO.writeLong(out, recid);
                     int size = buf==PREALLOC_RECORD? -1 : buf.length;
@@ -85,8 +85,6 @@ public class FileHeapBufStore extends HeapBufStore{
     private void clear() {
         //-AWLOCK
         freeRecids.clear();
-        freeRecids.trimToSize();
         records.clear();
-        records.compact();
     }
 }

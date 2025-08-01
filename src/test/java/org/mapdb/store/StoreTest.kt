@@ -1,8 +1,6 @@
 package org.mapdb.store
 
 import io.kotlintest.shouldBe
-import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList
-import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap
 import org.junit.Assert.*
 import org.junit.Test
 import org.mapdb.DBException
@@ -466,7 +464,7 @@ abstract class StoreTest {
         val s = openStore()
         val random = Random(1);
         val endTime = TT.nowPlusMinutes(10.0)
-        val ref = LongObjectHashMap<ByteArray>()
+        val ref = HashMap<Long,ByteArray>()
         //TODO params could cause OOEM if too big. Make another case of tests with extremely large memory, or disk space
         val maxRecSize = 1000
         val maxSize = 66000 * 3
@@ -481,7 +479,7 @@ abstract class StoreTest {
         s.verify()
 
         while(endTime>System.currentTimeMillis()){
-            ref.forEachKeyValue { recid, record ->
+            ref.forEach { recid, record ->
                 val old = s.get(recid, Serializers.BYTE_ARRAY_NOSIZE)
                 assertTrue(Arrays.equals(record, old))
 
@@ -536,7 +534,7 @@ abstract class StoreTest {
             val store = openStore()
             val maxCount = 1 + maxStoreSize / size;
             //insert recids
-            val recids = LongArrayList()
+            val recids = ArrayList<Long>()
             for (i in 0..maxCount) {
                 val r = TT.randomByteArray(size, seed = i)
                 val recid = store.put(r, Serializers.BYTE_ARRAY_NOSIZE)
@@ -545,7 +543,7 @@ abstract class StoreTest {
 
             fun verify() {
                 //verify recids
-                recids.forEachWithIndex { recid, i ->
+                recids.forEachIndexed { i, recid ->
                     val r = store.get(recid, Serializers.BYTE_ARRAY_NOSIZE)
                     assertTrue(Arrays.equals(r, TT.randomByteArray(size, seed=i)))
                 }
