@@ -39,9 +39,12 @@
         <java.target.version>1.8</java.target.version>
         <java.source.version>1.8</java.source.version>
 
-        <!--eclipse collections-->
-        <ec.version>[7.0.0,10.10.90)</ec.version>
-        <guava.version>[15.0,)</guava.version>
+        <!--eclipse collections: upper bound stays below EC 11.x (incl. milestones), which requires Java 11 (see #1061)-->
+        <ec.version>[10.4.0,10.10.90)</ec.version>
+        <!--guava: pin floor to 32.1.3-jre to avoid CVE-2023-2976 and the CacheBuilder.weakValues() conflict in #1050-->
+        <guava.version>[32.1.3-jre,)</guava.version>
+        <!--lz4: switched from unmaintained org.lz4:lz4-java (CVE-2025-12183, CVE-2025-66566) to the maintained fork at.yawk.lz4:lz4-java; same net.jpountz.* package, drop-in (see #1064)-->
+        <lz4.version>[1.10.1,)</lz4.version>
 
         <elsa.version>3.0.0-M5</elsa.version>
 
@@ -82,9 +85,9 @@
         </dependency>
 
         <dependency>
-            <groupId>net.jpountz.lz4</groupId>
-            <artifactId>lz4</artifactId>
-            <version>1.3.0</version>
+            <groupId>at.yawk.lz4</groupId>
+            <artifactId>lz4-java</artifactId>
+            <version>${lz4.version}</version>
         </dependency>
 
         <dependency>
