@@ -82,7 +82,7 @@ public abstract class AbstractMutableLongLongMapTestCase extends AbstractLongLon
         super.getOrThrow();
         MutableLongLongMap map1 = this.classUnderTest();
         map1.removeKey(0L);
-        Verify.assertThrows(IllegalStateException.class, () -> map1.getOrThrow(0L));
+        Assert.assertThrows(IllegalStateException.class, () -> map1.getOrThrow(0L));
         map1.put(0L, 1L);
         Assert.assertEquals(1L, map1.getOrThrow(0L));
 
@@ -703,7 +703,7 @@ public abstract class AbstractMutableLongLongMapTestCase extends AbstractLongLon
         }
         Assert.assertFalse(iterator.hasNext());
         Verify.assertEmpty(mutableMap);
-        Verify.assertThrows(NoSuchElementException.class, iterator::next);
+        Assert.assertThrows(NoSuchElementException.class, iterator::next);
     }
 
     @Test
@@ -711,7 +711,7 @@ public abstract class AbstractMutableLongLongMapTestCase extends AbstractLongLon
     {
         MutableLongIterator iterator = this.classUnderTest().longIterator();
         Assert.assertTrue(iterator.hasNext());
-        Verify.assertThrows(IllegalStateException.class, iterator::remove);
+        Assert.assertThrows(IllegalStateException.class, iterator::remove);
     }
 
     @Test
@@ -721,6 +721,6 @@ public abstract class AbstractMutableLongLongMapTestCase extends AbstractLongLon
         Assert.assertTrue(iterator.hasNext());
         iterator.next();
         iterator.remove();
-        Verify.assertThrows(IllegalStateException.class, iterator::remove);
+        Assert.assertThrows(IllegalStateException.class, iterator::remove);
     }
 }

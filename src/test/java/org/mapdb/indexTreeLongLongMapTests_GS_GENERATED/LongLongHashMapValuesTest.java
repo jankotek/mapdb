@@ -84,7 +84,7 @@ public abstract class LongLongHashMapValuesTest extends AbstractMutableLongColle
         Verify.assertEmpty(list);
         Assert.assertFalse(iterator.hasNext());
 
-        Verify.assertThrows(NoSuchElementException.class, iterator::next);
+        Assert.assertThrows(NoSuchElementException.class, iterator::next);
     }
 
     @Override

@@ -113,8 +113,8 @@ public abstract class AbstractLongLongMapTestCase
         Assert.assertEquals(31L, this.map.getOrThrow(31L));
         Assert.assertEquals(32L, this.map.getOrThrow(32L));
 
-        Verify.assertThrows(IllegalStateException.class, () -> this.map.getOrThrow(1L));
-        Verify.assertThrows(IllegalStateException.class, () -> this.map.getOrThrow(33L));
+        Assert.assertThrows(IllegalStateException.class, () -> this.map.getOrThrow(1L));
+        Assert.assertThrows(IllegalStateException.class, () -> this.map.getOrThrow(33L));
     }
 
     @Test
@@ -814,8 +814,8 @@ public abstract class AbstractLongLongMapTestCase
         Assert.assertFalse(iterator.hasNext());
 
         Assert.assertEquals(expected, actual);
-        Verify.assertThrows(NoSuchElementException.class, iterator::next);
-        Verify.assertThrows(NoSuchElementException.class, () -> this.getEmptyMap().longIterator().next());
+        Assert.assertThrows(NoSuchElementException.class, iterator::next);
+        Assert.assertThrows(NoSuchElementException.class, () -> this.getEmptyMap().longIterator().next());
     }
 
     @Test
