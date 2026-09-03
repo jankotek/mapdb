@@ -257,6 +257,34 @@ class IndexTreeListTest{
         }
     }
 
+    private fun emptyIndexTreeList(): IndexTreeList<Int?> {
+        val store = StoreDirect.make()
+        val index = IndexTreeLongLongMap.make(store)
+        return IndexTreeList(
+                store = store,
+                serializer = Serializer.INTEGER,
+                isThreadSafe = false,
+                map = index,
+                counterRecid = store.put(0L, Serializer.LONG_PACKED))
+    }
+
+    @Test fun addAtIndexEmptyList(){
+        val list = emptyIndexTreeList()
+        assertTrue(list.isEmpty())
+        list.add(0, 42)
+        assertEquals(1, list.size)
+        assertEquals(42, list[0])
+    }
+
+    @Test fun addAtIndexAppend(){
+        val list = emptyIndexTreeList()
+        list.add(42)
+        list.add(1, 99)
+        assertEquals(2, list.size)
+        assertEquals(42, list[0])
+        assertEquals(99, list[1])
+    }
+
     @Test fun treeClear(){
         val store = StoreTrivial()
         assertFalse(store.getAllRecids().hasNext())
