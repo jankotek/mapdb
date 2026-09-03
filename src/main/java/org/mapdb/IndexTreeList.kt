@@ -29,7 +29,8 @@ class IndexTreeList<E> (
 
     override fun add(index: Int, element: E?) {
         Utils.lockWrite(lock) {
-            checkIndex(index)
+            if (index < 0 || index > size)
+                throw IndexOutOfBoundsException()
             //make space
             for (i in size - 1 downTo index) {
                 val recid = map.get(i.toLong())
