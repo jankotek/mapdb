@@ -86,7 +86,7 @@
             <!-- maintained fork of org.lz4:lz4-java; same net.jpountz.* packages (CVE-2025-12183, CVE-2025-66566, CVE-2026-59949) -->
             <groupId>at.yawk.lz4</groupId>
             <artifactId>lz4-java</artifactId>
-            <version>1.11.2</version>
+            <version>1.11.4</version>
         </dependency>
 
         <dependency>
