@@ -101,8 +101,6 @@ public final class MappedFileVolSingle extends ByteBufferVolSingle {
             }
             buffer = raf.getChannel().map(mapMode, 0, maxSize);
 
-            if (readOnly)
-                buffer = buffer.asReadOnlyBuffer();
             //TODO assert endianess
         } catch (IOException e) {
             throw new DBException.VolumeIOError(e);
