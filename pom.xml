@@ -42,7 +42,7 @@
         <!-- last 10.x on Central; 11.x is Java 11+ bytecode -->
         <ec.version>10.4.0</ec.version>
         <!-- exact pin: [15.0,) resolved CVE-2023-2976 / CVE-2020-8908 artifacts; 33.0.0-jre matches 3.1.0 OSGi baseline -->
-        <guava.version>33.0.0-jre</guava.version>
+        <guava.version>33.7.1-jre</guava.version>
 
         <elsa.version>3.0.0-M5</elsa.version>
 
