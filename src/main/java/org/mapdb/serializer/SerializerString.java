@@ -52,12 +52,35 @@ public class SerializerString implements GroupSerializer<String> {
 
     @Override
     public int valueArraySearch(Object keys, String key) {
-        char[] key2 = key.toCharArray();
-        return Arrays.binarySearch((char[][])keys, key2, CHAR_ARRAY);
+        char[][] array = (char[][]) keys;
+        int keyLength = key.length();
+        int lo = 0;
+        int hi = array.length - 1;
+        while (lo <= hi) {
+            int mid = (lo + hi) >>> 1;
+            char[] value = array[mid];
+            int end = Math.min(value.length, keyLength);
+            int comparison = 0;
+            for (int index = 0; index < end; index++) {
+                comparison = value[index] - key.charAt(index);
+                if (comparison != 0) break;
+            }
+            if (comparison == 0) comparison = value.length - keyLength;
+            if (comparison < 0) lo = mid + 1;
+            else if (comparison > 0) hi = mid - 1;
+            else return mid;
+        }
+        return -(lo + 1);
     }
 
     @Override
     public int valueArraySearch(Object vals, String key, Comparator comparator) {
+        // These predefined comparators all use String's natural ordering. A caller's
+        // comparator, including a subclass override, still receives actual Strings.
+        if (comparator == Serializer.STRING || comparator == Serializer.STRING_DELTA ||
+                comparator == Serializer.STRING_ORIGHASH || comparator == Comparator.naturalOrder()) {
+            return valueArraySearch(vals, key);
+        }
         char[][] array = (char[][]) vals;
         int lo = 0;
         int hi = array.length - 1;
